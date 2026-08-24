@@ -26,35 +26,33 @@ app.add_middleware(
 def _get_data_dir() -> Path:
     """
     Get the active data directory.
-    1. Checks DATA_DIR env override (resolves absolute or relative paths).
-    2. Falls back to backend/published_briefs if it contains brief files.
+    1. Checks DATA_DIR env override (cleaning any annotations/spaces).
+    2. Falls back to backend/published_briefs if it exists.
     3. Defaults to backend/data.
     """
-    env_dir = os.getenv("DATA_DIR")
     backend_root = Path(__file__).resolve().parent.parent
+    env_dir = os.getenv("DATA_DIR")
 
     if env_dir:
-        p = Path(env_dir)
-        if p.is_absolute() and p.exists():
-            return p
-        resolved = backend_root / p
-        if resolved.exists():
-            return resolved
-        cwd_resolved = Path.cwd() / p
-        if cwd_resolved.exists():
-            return cwd_resolved
-        # Check if relative to parent of cwd (e.g. if running from repo root vs backend)
-        parent_resolved = Path.cwd().parent / p
-        if parent_resolved.exists():
-            return parent_resolved
-        return resolved
+        # Clean potential helper annotations like '(or ...)'
+        clean_env = env_dir.split(" ")[0].strip()
+        if clean_env:
+            p = Path(clean_env)
+            if p.is_absolute() and p.exists():
+                return p
+            resolved = backend_root / p
+            if resolved.exists():
+                return resolved
+            cwd_resolved = Path.cwd() / p
+            if cwd_resolved.exists():
+                return cwd_resolved
 
     published_dir = backend_root / "published_briefs"
-    if published_dir.exists() and any(published_dir.glob("brief*.md")):
+    if published_dir.exists() and any(published_dir.glob("*.md")):
         return published_dir
 
     cwd_published = Path.cwd() / "published_briefs"
-    if cwd_published.exists() and any(cwd_published.glob("brief*.md")):
+    if cwd_published.exists() and any(cwd_published.glob("*.md")):
         return cwd_published
 
     return backend_root / "data"
