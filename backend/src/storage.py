@@ -6,18 +6,32 @@ from typing import Any, Dict, List, Optional, Union
 
 
 def _get_data_dir() -> Path:
-    """Get active data directory, supporting DATA_DIR env override."""
+    """
+    Get active data directory.
+    1. Checks DATA_DIR env override (resolves absolute or relative paths).
+    2. Falls back to backend/published_briefs if it contains brief files.
+    3. Defaults to backend/data.
+    """
     env_dir = os.getenv("DATA_DIR")
+    backend_root = Path(__file__).resolve().parent.parent
+
     if env_dir:
         p = Path(env_dir)
-        if p.is_absolute():
+        if p.is_absolute() and p.exists():
             return p
-        backend_root = Path(__file__).resolve().parent.parent
         resolved = backend_root / p
         if resolved.exists():
             return resolved
-        return Path.cwd() / p
-    return Path(__file__).resolve().parent.parent / "data"
+        cwd_resolved = Path.cwd() / p
+        if cwd_resolved.exists():
+            return cwd_resolved
+        return resolved
+
+    published_dir = backend_root / "published_briefs"
+    if published_dir.exists() and any(published_dir.glob("brief*.md")):
+        return published_dir
+
+    return backend_root / "data"
 
 
 def save_signals(
