@@ -43,11 +43,19 @@ def _get_data_dir() -> Path:
         cwd_resolved = Path.cwd() / p
         if cwd_resolved.exists():
             return cwd_resolved
+        # Check if relative to parent of cwd (e.g. if running from repo root vs backend)
+        parent_resolved = Path.cwd().parent / p
+        if parent_resolved.exists():
+            return parent_resolved
         return resolved
 
     published_dir = backend_root / "published_briefs"
     if published_dir.exists() and any(published_dir.glob("brief*.md")):
         return published_dir
+
+    cwd_published = Path.cwd() / "published_briefs"
+    if cwd_published.exists() and any(cwd_published.glob("brief*.md")):
+        return cwd_published
 
     return backend_root / "data"
 
@@ -110,6 +118,23 @@ def _get_brief_id(filename: str) -> str:
 def health_check() -> Dict[str, str]:
     """Root health check endpoint for monitoring and uptime verification."""
     return {"status": "ok", "service": "PrismIQ Competitive Intelligence API"}
+
+
+@app.get("/debug")
+def debug_info() -> Dict[str, Any]:
+    """Diagnostic info for verifying paths and files on deployed host."""
+    backend_root = Path(__file__).resolve().parent.parent
+    active_data_dir = _get_data_dir()
+    return {
+        "cwd": str(Path.cwd()),
+        "file": str(Path(__file__).resolve()),
+        "backend_root": str(backend_root),
+        "backend_root_contents": [p.name for p in backend_root.glob("*")],
+        "data_dir": str(active_data_dir),
+        "data_dir_exists": active_data_dir.exists(),
+        "data_dir_contents": [p.name for p in active_data_dir.glob("*")] if active_data_dir.exists() else [],
+        "DATA_DIR_env": os.getenv("DATA_DIR"),
+    }
 
 
 @app.get("/briefs")
