@@ -1,0 +1,36 @@
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/.env*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+venv/
+.venv/
+env/
+*.sqlite
+*.sqlite3
+
+# Environment Variables & Secrets
+.env
+*.env
+!.env.example
+backend/.env
+backend/.env.*.local
+frontend/.env.local
+
+# Local scratch data
+backend/data/*.json
+backend/data/*.md
+backend/data/*.db
+!backend/data/.gitkeep
+
+# Deployed snapshots (tracked for ephemeral deployments)
+!backend/published_briefs/
+!backend/published_briefs/*

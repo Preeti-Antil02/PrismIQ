@@ -1,0 +1,25 @@
+# Secrets & Environment Variables
+.env
+*.env
+!.env.example
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+env/
+*.sqlite
+*.sqlite3
+
+# Local scratch data
+backend/data/*.json
+backend/data/*.md
+backend/data/*.db
+!backend/data/.gitkeep
+
+# Ephemeral deployment seeded briefs (tracked in git)
+!backend/published_briefs/
+!backend/published_briefs/*

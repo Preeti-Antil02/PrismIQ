@@ -1,0 +1,1442 @@
+[
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Is Agentic by Vercel — AI Agent Readiness Score",
+    "url": "https://is-agentic.com",
+    "published_at": "2026-08-22 05:32:38 +0000",
+    "raw_excerpt": "Score how ready a website is for AI agents, then get evidence and recommendations to improve it."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Vercel Shipped is-agentic.com. Here Is How the Scoreboard Works",
+    "url": "https://dev.to/promptway/vercel-shipped-is-agenticcom-here-is-how-the-scoreboard-works-49d3",
+    "published_at": "2026-08-21 21:41:49 +0000",
+    "raw_excerpt": "Vercel shipped a public score for whether agents can read your site. I had already been doing this..."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "is-agentic Scored Promptway 74. Here Is What I Changed",
+    "url": "https://dev.to/promptway/is-agentic-scored-promptway-74-here-is-what-i-changed-4if9",
+    "published_at": "2026-08-21 21:20:45 +0000",
+    "raw_excerpt": "I ran npx is-agentic promptway.com and the report came back 74 out of 100. Essential was 59 of 80...."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Migrating an Express Backend to Vercel Functions Without Downtime",
+    "url": "https://dev.to/gabbs279/migrating-an-express-backend-to-vercel-functions-without-downtime-3kal",
+    "published_at": "2026-08-21 19:59:20 +0000",
+    "raw_excerpt": "Earlier this year I migrated the analytics backend behind this site from a long-running Express..."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "How Ora benchmarks every major AI agent on Vercel | Customers | Vercel",
+    "url": "https://vercel.com/customers/how-ora-benchmarks-every-major-ai-agent-on-vercel",
+    "published_at": "2026-08-21 18:28:52 +0000",
+    "raw_excerpt": "Ora built an agent benchmarking platform on Vercel that runs Claude Code, ChatGPT, Gemini, and eve against live websites to find where agents fail, powered by a team of 16 shipping hundreds of commits a day on eve."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Deployment Storage keeps your deployments rollback-ready - Vercel",
+    "url": "https://vercel.com/changelog/deployment-storage-keeps-your-deployments-rollback-ready",
+    "published_at": "2026-08-21 14:50:40 +0000",
+    "raw_excerpt": "Deployment Storage is now measured and billed at $0.10 per GB per month for new Pro and Enterprise teams. Control retention in Deployment History."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Pi Agent vs OpenCode after 100+ Hours of Real Use ✌️",
+    "url": "https://dev.to/composiodev/pi-agent-vs-opencode-after-100-hours-of-real-use-1mh7",
+    "published_at": "2026-08-21 13:31:28 +0000",
+    "raw_excerpt": "Open-source coding agents had a weird start to 2026.\n\nIn January, Anthropic suddenly blocked third-party tools from using Claude subscriptions. Overnight, with no warning.\n\nOpenCode got hit the hardest. The team had to remove Claude login support after legal pressure. The commit message was literall..."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Slack will now let you code as a team to get those tricky tasks done",
+    "url": "https://www.techradar.com/pro/slack-will-now-let-you-code-as-a-team-to-get-those-tricky-tasks-done",
+    "published_at": "2026-08-21 09:05:00 +0000",
+    "raw_excerpt": "Slack Code makes coding multiplayer"
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Slack Code Introduced to Help Teams Build Software With AI Agents",
+    "url": "https://www.gadgets360.com/apps/news/slack-code-ai-coding-agents-workspace-features-update-11939932",
+    "published_at": "2026-08-21 08:50:23 +0000",
+    "raw_excerpt": "Slack Code is launching with AI partners, including Claude and GitHub."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "How We Standardized on Next.js + Supabase to Ship Client Sites Fast at a 2-Person Agency",
+    "url": "https://dev.to/locallify/how-we-standardized-on-nextjs-supabase-to-ship-client-sites-fast-at-a-2-person-agency-3hkd",
+    "published_at": "2026-08-21 04:22:54 +0000",
+    "raw_excerpt": "Running a software studio with a 50/50 co-founder split and a growing roster of local business..."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "GPT-5.6 Sol is now 50% off a lower price - Vercel",
+    "url": "https://vercel.com/changelog/gpt-5-6-sol-is-now-50-percent-off-a-lower-price",
+    "published_at": "2026-08-21 00:00:00 +0000",
+    "raw_excerpt": "GPT-5.6 Sol list pricing drops to $4 and $20 per million tokens, and the 50% AI Gateway discount still applies, so requests now cost even less."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Always-on tracing for production and preview traffic - Vercel",
+    "url": "https://vercel.com/changelog/always-on-tracing-for-production-and-preview-traffic",
+    "published_at": "2026-08-21 00:00:00 +0000",
+    "raw_excerpt": "Always-on tracing collects sampled traces from your production and preview traffic, so you can debug real requests without reproducing them."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Connect v0 apps to Slack, Google, and 100+ other services - Vercel",
+    "url": "https://vercel.com/changelog/connect-v0-apps-to-slack-google-and-100-other-services",
+    "published_at": "2026-08-21 00:00:00 +0000",
+    "raw_excerpt": "Apps and agents built in v0 can now securely connect to 100+ third-party services, including Slack, Google, Notion, GitHub, and Salesforce, through Vercel Connect."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "DeepSeek V4 Flash Vision Experimental now available on AI Gateway - Vercel",
+    "url": "https://vercel.com/changelog/deepseek-v4-flash-with-vision-now-available-on-ai-gateway",
+    "published_at": "2026-08-21 00:00:00 +0000",
+    "raw_excerpt": "Call DeepSeek V4 Flash with image input through Vercel AI Gateway with one API key, a 1M token context window, fallbacks, and a trace on every request."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Vercel CLI expands support for DNS, domains, and project commands",
+    "url": "https://vercel.com/changelog/vercel-cli-expands-support-for-dns-domains-and-project-commands",
+    "published_at": "2026-08-21 00:00:00 +0000",
+    "raw_excerpt": "The Vercel CLI now provides dedicated commands for managing DNS records, domains, and projects. This brings more of the functionality available through the Vercel dashboard and API to the terminal, where it can be used interactively, in scripts, or by agents.Inspect and update DNS recordsRetrieve th..."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Slack wants to drag AI coding out of the terminal and into the group chat",
+    "url": "https://venturebeat.com/orchestration/slack-wants-to-drag-ai-coding-out-of-the-terminal-and-into-the-group-chat",
+    "published_at": "2026-08-21 00:00:00 +0000",
+    "raw_excerpt": "Slack wants to drag AI coding out of the terminal and into the group chat.The Salesforce-owned messaging platform today announced Slack Code, a new product that embeds AI coding agents — including Anthropic's Claude Code, Cognition's Devin, GitHub Copilot, and Vercel's agent — directly into dedicate..."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Slack makes it easier to install agents built with third-party tools",
+    "url": "https://thenewstack.io/add-to-slack-agents/",
+    "published_at": "2026-08-20 18:30:00 +0000",
+    "raw_excerpt": "Slack’s Add to Slack simplifies third-party agent installation. NanoClaw shows how one manager app can create a separate Slack bot for every agent."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Manage Vercel Toolbar comments from the CLI - Vercel",
+    "url": "https://vercel.com/changelog/manage-vercel-toolbar-comments-from-the-cli",
+    "published_at": "2026-08-20 18:03:00 +0000",
+    "raw_excerpt": "The new vercel comments command brings Vercel Toolbar comments into the terminal: list, inspect, reply, resolve, edit, and delete, with JSON output for agents."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Slack has a new channel type -- but only agents can create one",
+    "url": "https://thenewstack.io/slack-code-agent-channels/",
+    "published_at": "2026-08-20 16:50:07 +0000",
+    "raw_excerpt": "Slack Code gives coding agents their own temporary channels for plans, diffs, and live previews. Only an agent can open one, and teams decide what ships."
+  },
+  {
+    "source": "news",
+    "company": "Vercel",
+    "title": "Custom metrics are now supported in Vercel Observability - Vercel",
+    "url": "https://vercel.com/changelog/custom-metrics-are-now-supported-in-vercel-observability",
+    "published_at": "2026-08-20 16:38:53 +0000",
+    "raw_excerpt": "Emit custom metrics from your app, visualize them in Vercel Observability, and query them with the CLI"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/repository-dispatch",
+    "url": "https://github.com/vercel/repository-dispatch",
+    "published_at": "2026-08-22T19:47:40Z",
+    "raw_excerpt": "Activity on repository vercel/repository-dispatch by mudbanger"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/platforms",
+    "url": "https://github.com/vercel/platforms",
+    "published_at": "2026-08-22T19:45:29Z",
+    "raw_excerpt": "Activity on repository vercel/platforms by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/eve",
+    "url": "https://github.com/vercel/eve",
+    "published_at": "2026-08-22T19:45:05Z",
+    "raw_excerpt": "Activity on repository vercel/eve by fatboisadboi"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/nft",
+    "url": "https://github.com/vercel/nft",
+    "published_at": "2026-08-22T19:43:22Z",
+    "raw_excerpt": "Activity on repository vercel/nft by Kinfe123"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/workflow-examples",
+    "url": "https://github.com/vercel/workflow-examples",
+    "published_at": "2026-08-22T19:41:30Z",
+    "raw_excerpt": "Activity on repository vercel/workflow-examples by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/mcp-handler",
+    "url": "https://github.com/vercel/mcp-handler",
+    "published_at": "2026-08-22T19:39:05Z",
+    "raw_excerpt": "Activity on repository vercel/mcp-handler by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub IssueCommentEvent created in vercel/eve",
+    "url": "https://github.com/vercel/eve",
+    "published_at": "2026-08-22T19:37:57Z",
+    "raw_excerpt": "Activity on repository vercel/eve by vercel[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/eve-examples",
+    "url": "https://github.com/vercel/eve-examples",
+    "published_at": "2026-08-22T19:37:55Z",
+    "raw_excerpt": "Activity on repository vercel/eve-examples by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/streamdown",
+    "url": "https://github.com/vercel/streamdown",
+    "published_at": "2026-08-22T19:37:08Z",
+    "raw_excerpt": "Activity on repository vercel/streamdown by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub Issue opened in vercel/eve: world-local 30s hook timeouts redeliver and re-bill a long model call; process death mid-call does not always replay",
+    "url": "https://github.com/vercel/eve",
+    "published_at": "2026-08-22T19:30:35Z",
+    "raw_excerpt": "## Summary\n\nTwo related world-local / workflow-sdk failures around a single in-flight model call:\n\n1. The default 30s `WORKFLOW_LOCAL_BODY_TIMEOUT_MS` / `WORKFLOW_LOCAL_HEADERS_TIMEOUT_MS` on the world-local Undici hook redelivers a long Responses generation and OpenRouter (or any provider) bills tw"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub PullRequestReviewEvent created in vercel/chatbot",
+    "url": "https://github.com/vercel/chatbot",
+    "published_at": "2026-08-22T19:29:43Z",
+    "raw_excerpt": "Activity on repository vercel/chatbot by vercel[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub PullRequestReviewCommentEvent created in vercel/chatbot",
+    "url": "https://github.com/vercel/chatbot",
+    "published_at": "2026-08-22T19:29:41Z",
+    "raw_excerpt": "Activity on repository vercel/chatbot by vercel[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/ai-elements",
+    "url": "https://github.com/vercel/ai-elements",
+    "published_at": "2026-08-22T19:29:10Z",
+    "raw_excerpt": "Activity on repository vercel/ai-elements by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/satori",
+    "url": "https://github.com/vercel/satori",
+    "published_at": "2026-08-22T19:28:37Z",
+    "raw_excerpt": "Activity on repository vercel/satori by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub PullRequestEvent opened in vercel/chatbot",
+    "url": "https://github.com/vercel/chatbot",
+    "published_at": "2026-08-22T19:27:45Z",
+    "raw_excerpt": "Activity on repository vercel/chatbot by Flompe"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/examples",
+    "url": "https://github.com/vercel/examples",
+    "published_at": "2026-08-22T19:27:13Z",
+    "raw_excerpt": "Activity on repository vercel/examples by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/turborepo",
+    "url": "https://github.com/vercel/turborepo",
+    "published_at": "2026-08-22T19:27:08Z",
+    "raw_excerpt": "Activity on repository vercel/turborepo by GuiAfonso"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/shop",
+    "url": "https://github.com/vercel/shop",
+    "published_at": "2026-08-22T19:22:01Z",
+    "raw_excerpt": "Activity on repository vercel/shop by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub IssueCommentEvent created in vercel/ai",
+    "url": "https://github.com/vercel/ai",
+    "published_at": "2026-08-22T19:14:59Z",
+    "raw_excerpt": "Activity on repository vercel/ai by ai-sdk-factory[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub Issue labeled in vercel/ai: Security: no working private channel to report a tool-approval signing issue",
+    "url": "https://github.com/vercel/ai",
+    "published_at": "2026-08-22T19:15:00Z",
+    "raw_excerpt": "### Summary\n\nI have a security finding in the signed tool-approval path (`experimental_toolApprovalSecret`) and no working private channel to report it through. Opening this issue to request one rather than to disclose the details.\n\nDeliberately withholding the specifics here, since the issue is unf"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/commerce",
+    "url": "https://github.com/vercel/commerce",
+    "published_at": "2026-08-22T19:14:46Z",
+    "raw_excerpt": "Activity on repository vercel/commerce by jami-studio-hq"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub Issue labeled in vercel/ai: Security: no working private channel to report a tool-approval signing issue",
+    "url": "https://github.com/vercel/ai",
+    "published_at": "2026-08-22T19:14:34Z",
+    "raw_excerpt": "### Summary\n\nI have a security finding in the signed tool-approval path (`experimental_toolApprovalSecret`) and no working private channel to report it through. Opening this issue to request one rather than to disclose the details.\n\nDeliberately withholding the specifics here, since the issue is unf"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub Issue labeled in vercel/ai: Security: no working private channel to report a tool-approval signing issue",
+    "url": "https://github.com/vercel/ai",
+    "published_at": "2026-08-22T19:14:34Z",
+    "raw_excerpt": "### Summary\n\nI have a security finding in the signed tool-approval path (`experimental_toolApprovalSecret`) and no working private channel to report it through. Opening this issue to request one rather than to disclose the details.\n\nDeliberately withholding the specifics here, since the issue is unf"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub Issue opened in vercel/ai: Security: no working private channel to report a tool-approval signing issue",
+    "url": "https://github.com/vercel/ai",
+    "published_at": "2026-08-22T19:14:31Z",
+    "raw_excerpt": "### Summary\n\nI have a security finding in the signed tool-approval path (`experimental_toolApprovalSecret`) and no working private channel to report it through. Opening this issue to request one rather than to disclose the details.\n\nDeliberately withholding the specifics here, since the issue is unf"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub ForkEvent forked in vercel/vercel",
+    "url": "https://github.com/vercel/vercel",
+    "published_at": "2026-08-22T19:12:24Z",
+    "raw_excerpt": "Activity on repository vercel/vercel by srab2001"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub IssueCommentEvent created in vercel/eve",
+    "url": "https://github.com/vercel/eve",
+    "published_at": "2026-08-22T18:55:43Z",
+    "raw_excerpt": "Activity on repository vercel/eve by github-actions[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub WatchEvent started in vercel/next.js",
+    "url": "https://github.com/vercel/next.js",
+    "published_at": "2026-08-22T18:52:56Z",
+    "raw_excerpt": "Activity on repository vercel/next.js by HeyyCzer"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub IssueCommentEvent created in vercel/eve",
+    "url": "https://github.com/vercel/eve",
+    "published_at": "2026-08-22T18:51:58Z",
+    "raw_excerpt": "Activity on repository vercel/eve by vercel[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub PullRequestEvent opened in vercel/eve",
+    "url": "https://github.com/vercel/eve",
+    "published_at": "2026-08-22T18:51:52Z",
+    "raw_excerpt": "Activity on repository vercel/eve by ctgowrie"
+  },
+  {
+    "source": "github",
+    "company": "Vercel",
+    "title": "GitHub Created branch chore/configure-agent-steps-per-workflow-step in vercel/eve",
+    "url": "https://github.com/vercel/eve",
+    "published_at": "2026-08-22T18:51:36Z",
+    "raw_excerpt": "The Open Framework for Building Agents"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "I'm 12. I don't have a laptop. I built a full-stack AI SaaS on my Android phone.",
+    "url": "https://dev.to/koda2026/im-12-i-dont-have-a-laptop-i-built-a-full-stack-ai-saas-on-my-android-phone-2o2l",
+    "published_at": "2026-08-22 13:45:41 +0000",
+    "raw_excerpt": "Hi everyone! 👋 My name is Harun. I am 12 years old. I don't own a laptop or a PC. My entire..."
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "Ask HN: How do you host your vibe coded tools/sites?",
+    "url": "https://news.ycombinator.com/item?id=49393465",
+    "published_at": "2026-08-21 20:36:08 +0000",
+    "raw_excerpt": "Ask HN: How do you host your vibe coded tools/sites?"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "The full power of Git, without the friction: A conversation with Netlify CTO Dana Lawson",
+    "url": "https://www.netlify.com/blog/netlify-source-with-netlify-cto-dana-lawson/",
+    "published_at": "2026-08-17 14:47:27 +0000",
+    "raw_excerpt": "Netlify CTO Dana Lawson explains why Netlify brought Git infrastructure in-house, and what version control looks like in the age of AI agents."
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub Push to netlify/swar-templates",
+    "url": "https://github.com/netlify/swar-templates",
+    "published_at": "2026-08-22T19:39:55Z",
+    "raw_excerpt": "0 commits: "
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub Push to netlify/swar-templates",
+    "url": "https://github.com/netlify/swar-templates",
+    "published_at": "2026-08-22T19:39:44Z",
+    "raw_excerpt": "0 commits: "
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub Push to netlify/swar-templates",
+    "url": "https://github.com/netlify/swar-templates",
+    "published_at": "2026-08-22T19:39:38Z",
+    "raw_excerpt": "0 commits: "
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/plugins",
+    "url": "https://github.com/netlify/plugins",
+    "published_at": "2026-08-22T15:52:57Z",
+    "raw_excerpt": "Activity on repository netlify/plugins by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub Push to netlify/plugins",
+    "url": "https://github.com/netlify/plugins",
+    "published_at": "2026-08-22T15:52:47Z",
+    "raw_excerpt": "0 commits: "
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub WatchEvent started in netlify/axis",
+    "url": "https://github.com/netlify/axis",
+    "published_at": "2026-08-22T07:06:09Z",
+    "raw_excerpt": "Activity on repository netlify/axis by hey-jude"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T04:00:20Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T04:00:16Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T04:00:11Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T04:00:06Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T04:00:01Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:55Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:51Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:46Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:42Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:37Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:33Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:28Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:23Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:19Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:14Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:11Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:06Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:59:00Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:58:56Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:58:52Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:58:47Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:58:43Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:58:40Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Netlify",
+    "title": "GitHub PullRequestReviewEvent created in netlify/build",
+    "url": "https://github.com/netlify/build",
+    "published_at": "2026-08-22T03:58:32Z",
+    "raw_excerpt": "Activity on repository netlify/build by kodiakhq[bot]"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Cloudflare Announces Kitesurf, a Browser Engine for Agents",
+    "url": "https://www.infoq.com/news/2026/08/cloudflare-kitesurf-browser/",
+    "published_at": "2026-08-22 15:01:00 +0000",
+    "raw_excerpt": "Cloudflare recently introduced Kitesurf, a lightweight browser built for automated workloads. Kitesurf runs browser components in isolated WebAssembly/Rust environments on Cloudflare Workers and supports the Chrome DevTools Protocol, allowing tools such as Playwright and Puppeteer to drive it with l..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "The multilingual bugs that never throw: hreflang, JSON-LD and a site in 12 languages",
+    "url": "https://dev.to/ohadfarkash/the-multilingual-bugs-that-never-throw-hreflang-json-ld-and-a-site-in-12-languages-50d2",
+    "published_at": "2026-08-22 12:47:29 +0000",
+    "raw_excerpt": "I run a search engine that publishes in twelve languages from one static site on Cloudflare Pages...."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Your Worker Returned 500 and the Log Says `outcome: \"ok\"`",
+    "url": "https://dev.to/ai_changewatch/your-worker-returned-500-and-the-log-says-outcome-ok-2dla",
+    "published_at": "2026-08-21 12:00:00 +0000",
+    "raw_excerpt": "I run AI Change Watch, a small independent project that crawls what 15 AI vendors publish about their..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "More than a third of the internet is now being written with AI",
+    "url": "https://www.independent.co.uk/tech/ai-webpages-internet-dead-internet-theory-b3037019.html",
+    "published_at": "2026-08-21 11:26:08 +0000",
+    "raw_excerpt": "Research comes amid increasing fears of ‘dead internet theory’"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Running a Monitoring SaaS on Cloudflare Workers + Supabase for Almost Nothing",
+    "url": "https://dev.to/merlonix/running-a-monitoring-saas-on-cloudflare-workers-supabase-for-almost-nothing-1hkm",
+    "published_at": "2026-08-21 10:41:00 +0000",
+    "raw_excerpt": "The real architecture behind a monitoring SaaS: eight Cloudflare Workers, static Pages, CF Queues, one Supabase Postgres — a revenue-gated cron throttle, SSRF-guarded public probes, and a watchdog on a different cloud. Numbers and failure modes included."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Running third-party ads on a site with a strict CSP (without weakening the CSP)",
+    "url": "https://dev.to/hblai_filmlook/running-third-party-ads-on-a-site-with-a-strict-csp-without-weakening-the-csp-33l2",
+    "published_at": "2026-08-21 02:22:57 +0000",
+    "raw_excerpt": "My static site had a deliberately tight Content-Security-Policy: default-src 'self', a short..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Building an AI Translator Keyboard for iOS and Android: Privacy, Latency, and UX Lessons",
+    "url": "https://dev.to/ai-translator-keyboard/building-an-ai-translator-keyboard-for-ios-and-android-privacy-latency-and-ux-lessons-57ja",
+    "published_at": "2026-08-20 16:50:26 +0000",
+    "raw_excerpt": "Translating a message on a phone often means leaving the conversation, opening a translator, pasting the text, copying the result, and returning to the original app.\n\nI wanted to remove that loop.\n\nThe idea behind AI Translator Keyboard was simple: type in the text field you are already using, tap o..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "40 Malicious Firefox Extensions Pose as Web3 Products to Steal Wallet Secrets",
+    "url": "https://vulners.com/thn/THN:821760D01623360AD2A4D357893C0519",
+    "published_at": "2026-08-20 08:42:00 +0000",
+    "raw_excerpt": "A set of 40 Mozilla Firefox extensions has been found to engage in cryptocurrency wallet theft by masquerading as OKX, Rabby Wallet, TronLink, and other Web3 products. According to the Socket Threat Research team, the extensions are part of a broader set of 77 browser add-ons that share source code ..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Everyone Is Misreading Reddit’s DAU Decline",
+    "url": "https://www.reddit.com/r/ValueInvesting/comments/1vtclvp/everyone_is_misreading_reddits_dau_decline/",
+    "published_at": "2026-08-20 07:29:55 +0000",
+    "raw_excerpt": "People just keep assuming Google supplies the oxygen Reddit needs to survive. This is a complete misrepresentation of today’s Reddit. It may have been true in the past, but today Google is increasingly just one distribution channel for Reddit, not something Reddit needs to survive. The majority of p..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "The alarm wasn't silent. It was lying.",
+    "url": "https://dev.to/mk023/the-alarm-wasnt-silent-it-was-lying-iam",
+    "published_at": "2026-08-20 02:12:27 +0000",
+    "raw_excerpt": "This is a submission for DEV's Summer Bug Smash: Clear the Lineup powered by Sentry. ..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "OpenAI Joins NVIDIA's Open Weights Coalition on American AI Leadership",
+    "url": "https://dev.to/alifar/openai-joins-nvidias-open-weights-coalition-on-american-ai-leadership-56fg",
+    "published_at": "2026-08-18 18:25:21 +0000",
+    "raw_excerpt": "OpenAI has joined NVIDIA's Open Weights and American AI Leadership initiative, an industry-backed..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "The backend unframework.",
+    "url": "https://oxide.build/",
+    "published_at": "2026-08-18 15:43:41 +0000",
+    "raw_excerpt": "The backend unframework."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Cloudflare's AI block names eight crawlers. None is ChatGPT's search bot",
+    "url": "https://dev.to/th3nate/cloudflares-ai-block-names-eight-crawlers-none-is-chatgpts-search-bot-4ikm",
+    "published_at": "2026-08-18 15:35:36 +0000",
+    "raw_excerpt": "Eight user agents, and the one that decides whether ChatGPT cites you is not among them. An r/SEO..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "Notable ETF Inflow Detected - CIBR, NET, OKTA, ZS",
+    "url": "https://www.nasdaq.com/articles/notable-etf-inflow-detected-cibr-net-okta-zs",
+    "published_at": "2026-08-18 15:20:35 +0000",
+    "raw_excerpt": "Looking today at week-over-week shares outstanding changes among the universe of ETFs covered at ETF Channel, one standout is the First Trust Nasdaq Cybersecurity ETF (Symbol: CIBR) where we have detected an approximate $244.5 million dollar inflow -- that's a 1.6% increase week"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "YouTube Playlist to a 100% Static",
+    "url": "https://dev.to/focss/youtube-playlist-to-a-100-static-18b6",
+    "published_at": "2026-08-18 06:55:04 +0000",
+    "raw_excerpt": "Every so often you find a mobile game you enjoy but can't finish. Food Hunt is one of those..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "A header scan says 16/16. Here's what it can't see.",
+    "url": "https://dev.to/maclessdev/a-header-scan-says-1616-heres-what-it-cant-see-14ab",
+    "published_at": "2026-08-18 01:48:57 +0000",
+    "raw_excerpt": "A few days after how I built and shipped an iOS app without a Mac went up here, a reader named Amit..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Pages",
+    "title": "PSA: Instagram/TikTok in-app browsers block every client-side path to the App Store. Here's the server-side fix that actually works.",
+    "url": "https://www.reddit.com/r/androiddev/comments/1vqeg4r/psa_instagramtiktok_inapp_browsers_block_every/",
+    "published_at": "2026-08-17 01:22:53 +0000",
+    "raw_excerpt": "If you put a \"link in bio\" that's supposed to send people to the App Store or Play Store, and you've noticed it just… doesn't work from Instagram or TikTok — you're not crazy. I burned a couple days on this so here's the writeup. The problem Instagram, TikTok, and Facebook open links in their own in..."
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/actors",
+    "url": "https://github.com/cloudflare/actors",
+    "published_at": "2026-08-22T19:54:45Z",
+    "raw_excerpt": "Activity on repository cloudflare/actors by grenierdev"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-docs",
+    "url": "https://github.com/cloudflare/cloudflare-docs",
+    "published_at": "2026-08-22T19:54:03Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-docs by xiaunknown116-del"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:53:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by gunkaragoz"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:52:14Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by Toward77"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:50:10Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by pesonn"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:44:01Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by nine-sarayut"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub PullRequestEvent opened in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub Created branch dependabot/npm_and_yarn/packages-dcf6cd6616 in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Sign and verify orchestrated HTTP requests"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-docs",
+    "url": "https://github.com/cloudflare/cloudflare-docs",
+    "published_at": "2026-08-22T19:42:37Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-docs by anascahoneyproducts-byte"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:40:15Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by ryhrm-gz"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub Push to cloudflare/mcp-server-cloudflare",
+    "url": "https://github.com/cloudflare/mcp-server-cloudflare",
+    "published_at": "2026-08-22T19:37:35Z",
+    "raw_excerpt": "0 commits: "
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:36:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by n0vakovic"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:35:57Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by Xintong2022"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:35:30Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by numberyy"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:23:09Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by psykeus"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/computer",
+    "url": "https://github.com/cloudflare/computer",
+    "published_at": "2026-08-22T19:22:20Z",
+    "raw_excerpt": "Activity on repository cloudflare/computer by ashsidhu"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/ai",
+    "url": "https://github.com/cloudflare/ai",
+    "published_at": "2026-08-22T19:22:11Z",
+    "raw_excerpt": "Activity on repository cloudflare/ai by Sakib25800"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/mcp",
+    "url": "https://github.com/cloudflare/mcp",
+    "published_at": "2026-08-22T19:21:40Z",
+    "raw_excerpt": "Activity on repository cloudflare/mcp by Sakib25800"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/quiche",
+    "url": "https://github.com/cloudflare/quiche",
+    "published_at": "2026-08-22T19:21:05Z",
+    "raw_excerpt": "Activity on repository cloudflare/quiche by brayancruces"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:19:34Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by DaCon"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub ForkEvent forked in cloudflare/templates",
+    "url": "https://github.com/cloudflare/templates",
+    "published_at": "2026-08-22T19:18:06Z",
+    "raw_excerpt": "Activity on repository cloudflare/templates by adetoks"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:01:46Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by rojoca"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:00:06Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by neelshah400"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/security-audit-skill",
+    "url": "https://github.com/cloudflare/security-audit-skill",
+    "published_at": "2026-08-22T18:58:02Z",
+    "raw_excerpt": "Activity on repository cloudflare/security-audit-skill by stl314159"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub Created branch james/dev-binding-config in cloudflare/workers-sdk",
+    "url": "https://github.com/cloudflare/workers-sdk",
+    "published_at": "2026-08-22T18:08:05Z",
+    "raw_excerpt": "⛅️ Home to Wrangler, the CLI for Cloudflare Workers®"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Pages",
+    "title": "GitHub WatchEvent started in cloudflare/agentic-inbox",
+    "url": "https://github.com/cloudflare/agentic-inbox",
+    "published_at": "2026-08-22T18:55:48Z",
+    "raw_excerpt": "Activity on repository cloudflare/agentic-inbox by maconstantin"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Declarative Edge Orchestration: Cloudflare Workers & n8n for SaaS Automation",
+    "url": "https://dev.to/mtahir27/declarative-edge-orchestration-cloudflare-workers-n8n-for-saas-automation-ha",
+    "published_at": "2026-08-22 16:20:04 +0000",
+    "raw_excerpt": "Solopreneurs and tech agencies can achieve hyperscale automation without complex infrastructure. Discover how to build a resilient, cost-effective eve"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Cloudflare Announces Kitesurf, a Browser Engine for Agents",
+    "url": "https://www.infoq.com/news/2026/08/cloudflare-kitesurf-browser/",
+    "published_at": "2026-08-22 15:01:00 +0000",
+    "raw_excerpt": "Cloudflare recently introduced Kitesurf, a lightweight browser built for automated workloads. Kitesurf runs browser components in isolated WebAssembly/Rust environments on Cloudflare Workers and supports the Chrome DevTools Protocol, allowing tools such as Playwright and Puppeteer to drive it with l..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "GitHub - pawaca/dsh-edge: Your DeepSeek Harness, anywhere — deploy a persistent personal coding agent to Cloudflare Workers in one command.",
+    "url": "https://github.com/pawaca/dsh-edge",
+    "published_at": "2026-08-22 13:58:50 +0000",
+    "raw_excerpt": "Your DeepSeek Harness, anywhere — deploy a persistent personal coding agent to Cloudflare Workers in one command. - pawaca/dsh-edge"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Why it’s time to stop social media monetising hate",
+    "url": "https://www.independent.co.uk/voices/social-media-hate-tiktok-algorithm-b3037144.html",
+    "published_at": "2026-08-22 05:00:00 +0000",
+    "raw_excerpt": "In a world where the algorithm comes first and attention rules, what rises to the surface? Chris Blackhurst presents an answer in the form of a man’s business suffering off the back of hateful videos posted on social media"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "E4del / PINHOLE Using FTP Banners for Command Retrieval",
+    "url": "https://dev.to/anoymask/e4del-pinhole-using-ftp-banners-for-command-retrieval-12h5",
+    "published_at": "2026-08-22 02:01:34 +0000",
+    "raw_excerpt": "1. Basic Information Article Title: FTP Banners: The New Dead Drop Resolver Delivering..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Cloudflare Cuts Astro Github Issues by 85% with AI Agents",
+    "url": "https://www.infoq.com/news/2026/08/cloudflare-astro-ai-agents/",
+    "published_at": "2026-08-21 14:09:00 +0000",
+    "raw_excerpt": "Cloudflare, Astro, AI agents, GitHub Actions, issue triage, agentic AI, software architecture, open source, developer tools, AI automation, automated testing, human in the loop, agent workflows, GitHub, software engineering, AI software development, bug triage, continuous integration, developer prod..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Your Worker Returned 500 and the Log Says `outcome: \"ok\"`",
+    "url": "https://dev.to/ai_changewatch/your-worker-returned-500-and-the-log-says-outcome-ok-2dla",
+    "published_at": "2026-08-21 12:00:00 +0000",
+    "raw_excerpt": "I run AI Change Watch, a small independent project that crawls what 15 AI vendors publish about their..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Running a Monitoring SaaS on Cloudflare Workers + Supabase for Almost Nothing",
+    "url": "https://dev.to/merlonix/running-a-monitoring-saas-on-cloudflare-workers-supabase-for-almost-nothing-1hkm",
+    "published_at": "2026-08-21 10:41:00 +0000",
+    "raw_excerpt": "The real architecture behind a monitoring SaaS: eight Cloudflare Workers, static Pages, CF Queues, one Supabase Postgres — a revenue-gated cron throttle, SSRF-guarded public probes, and a watchdog on a different cloud. Numbers and failure modes included."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Building an AI Translator Keyboard for iOS and Android: Privacy, Latency, and UX Lessons",
+    "url": "https://dev.to/ai-translator-keyboard/building-an-ai-translator-keyboard-for-ios-and-android-privacy-latency-and-ux-lessons-57ja",
+    "published_at": "2026-08-20 16:50:26 +0000",
+    "raw_excerpt": "Translating a message on a phone often means leaving the conversation, opening a translator, pasting the text, copying the result, and returning to the original app.\n\nI wanted to remove that loop.\n\nThe idea behind AI Translator Keyboard was simple: type in the text field you are already using, tap o..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "40 Malicious Firefox Extensions Pose as Web3 Products to Steal Wallet Secrets",
+    "url": "https://vulners.com/thn/THN:821760D01623360AD2A4D357893C0519",
+    "published_at": "2026-08-20 08:42:00 +0000",
+    "raw_excerpt": "A set of 40 Mozilla Firefox extensions has been found to engage in cryptocurrency wallet theft by masquerading as OKX, Rabby Wallet, TronLink, and other Web3 products. According to the Socket Threat Research team, the extensions are part of a broader set of 77 browser add-ons that share source code ..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Cloudflare Workers Spectre Attack Leaks JWT",
+    "url": "https://cyberupdates365.com/cloudflare-workers-spectre-attack/",
+    "published_at": "2026-08-20 04:07:49 +0000",
+    "raw_excerpt": "Discover how a remote cloudflare workers spectre attack leaked JWTs at 12 bits/second and how the new V8 Sandbox mitigates this vulnerability."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Cloudflare Workers Spectre Attack Leaks JWT From Co-Located Worker at 12 Bits/Second",
+    "url": "https://thehackernews.com/2026/08/cloudflare-workers-spectre-attack-leaks.html",
+    "published_at": "2026-08-19 19:02:40 +0000",
+    "raw_excerpt": "Researchers leak a JWT from a co-located Cloudflare Worker via Spectre at up to 12 bits per second; Cloudflare says the attack is mitigated."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Cloudflare Workers Spectre Attack Leaks JWT From Co-Located Worker at 12 Bits/Second",
+    "url": "https://vulners.com/thn/THN:439F590C5196BFFD162F6CBF2F9E51A0",
+    "published_at": "2026-08-19 19:02:00 +0000",
+    "raw_excerpt": "Cybersecurity researchers have disclosed details of a remote Spectre attack against Cloudflare Workers that leaked a JSON Web Token JWT from a co-located Worker in the production environment at up to 12 bits per second, 360 times the rate of an earlier attack demonstrated in 2021. The end-to-end exp..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "A revisit of remote Spectre attacks on Cloudflare Workers",
+    "url": "https://blog.cloudflare.com/revisiting-spectre-attacks-on-workers/",
+    "published_at": "2026-08-19 17:45:41 +0000",
+    "raw_excerpt": "In 2024 and 2025, we reassessed remote Spectre attacks on our Workers infrastructure. We share details about the new attack primitives like Spectre gadgets, remote timers, achieving co-location and how new defenses further harden Cloudflare Workers."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Syncing Webround and Brevo newsletter subscribers on Cloudflare Workers",
+    "url": "https://dev.to/luca_at_webround/syncing-webround-and-brevo-newsletter-subscribers-on-cloudflare-workers-3pbl",
+    "published_at": "2026-08-19 13:03:35 +0000",
+    "raw_excerpt": "When a client migrated their store to Webround, they already had an active Brevo account with about..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Ask HN: Cloudflare Smart Placement",
+    "url": "https://news.ycombinator.com/item?id=49357166",
+    "published_at": "2026-08-19 05:18:22 +0000",
+    "raw_excerpt": "Ask HN: Cloudflare Smart Placement"
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Remote-Timer-as-a-Service: Efficient Microarchitectural Leakage in the Cloud with Remote Timers",
+    "url": "https://arxiv.org/abs/2608.17043v1",
+    "published_at": "2026-08-19 04:00:00 +0000",
+    "raw_excerpt": "Edge computing solutions have become a crucial part of the industry, delivering fast, flexible and scalable applications close to the end users, with typical use cases including dynamic content creation, image resizing and chatbots. Cloudflare Workers is one such framework, which handles millions of..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Building a server monitoring SaaS on Cloudflare Workers — architecture, decisions, mistakes",
+    "url": "https://dev.to/shannonops/building-a-server-monitoring-saas-on-cloudflare-workers-architecture-decisions-mistakes-7em",
+    "published_at": "2026-08-19 01:33:00 +0000",
+    "raw_excerpt": "TL;DR Pulse is a server monitoring SaaS I built as a solo founder for Latin American small..."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "Building your own Git remote in under an hour",
+    "url": "https://dev.to/calganaygun/building-your-own-git-remote-in-under-an-hour-1gjp",
+    "published_at": "2026-08-18 19:59:27 +0000",
+    "raw_excerpt": "git·vodka's idea had been sitting in the back of my mind for a while. not as some big product idea...."
+  },
+  {
+    "source": "news",
+    "company": "Cloudflare Workers",
+    "title": "GitHub - littledivy/dgit: Git forge on Durable Objects",
+    "url": "https://github.com/littledivy/dgit",
+    "published_at": "2026-08-18 17:41:01 +0000",
+    "raw_excerpt": "Git forge on Durable Objects. Contribute to littledivy/dgit development by creating an account on GitHub."
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/actors",
+    "url": "https://github.com/cloudflare/actors",
+    "published_at": "2026-08-22T19:54:45Z",
+    "raw_excerpt": "Activity on repository cloudflare/actors by grenierdev"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-docs",
+    "url": "https://github.com/cloudflare/cloudflare-docs",
+    "published_at": "2026-08-22T19:54:03Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-docs by xiaunknown116-del"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:53:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by gunkaragoz"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:52:14Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by Toward77"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:50:10Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by pesonn"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:44:01Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by nine-sarayut"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub PullRequestEvent labeled in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub PullRequestEvent opened in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Activity on repository cloudflare/web-bot-auth by dependabot[bot]"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub Created branch dependabot/npm_and_yarn/packages-dcf6cd6616 in cloudflare/web-bot-auth",
+    "url": "https://github.com/cloudflare/web-bot-auth",
+    "published_at": "2026-08-22T19:43:43Z",
+    "raw_excerpt": "Sign and verify orchestrated HTTP requests"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-docs",
+    "url": "https://github.com/cloudflare/cloudflare-docs",
+    "published_at": "2026-08-22T19:42:37Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-docs by anascahoneyproducts-byte"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub ForkEvent forked in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:40:15Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by ryhrm-gz"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub Push to cloudflare/mcp-server-cloudflare",
+    "url": "https://github.com/cloudflare/mcp-server-cloudflare",
+    "published_at": "2026-08-22T19:37:35Z",
+    "raw_excerpt": "0 commits: "
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:36:44Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by n0vakovic"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:35:57Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by Xintong2022"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:35:30Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by numberyy"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:23:09Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by psykeus"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/computer",
+    "url": "https://github.com/cloudflare/computer",
+    "published_at": "2026-08-22T19:22:20Z",
+    "raw_excerpt": "Activity on repository cloudflare/computer by ashsidhu"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/ai",
+    "url": "https://github.com/cloudflare/ai",
+    "published_at": "2026-08-22T19:22:11Z",
+    "raw_excerpt": "Activity on repository cloudflare/ai by Sakib25800"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/mcp",
+    "url": "https://github.com/cloudflare/mcp",
+    "published_at": "2026-08-22T19:21:40Z",
+    "raw_excerpt": "Activity on repository cloudflare/mcp by Sakib25800"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/quiche",
+    "url": "https://github.com/cloudflare/quiche",
+    "published_at": "2026-08-22T19:21:05Z",
+    "raw_excerpt": "Activity on repository cloudflare/quiche by brayancruces"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:19:34Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by DaCon"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub ForkEvent forked in cloudflare/templates",
+    "url": "https://github.com/cloudflare/templates",
+    "published_at": "2026-08-22T19:18:06Z",
+    "raw_excerpt": "Activity on repository cloudflare/templates by adetoks"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:01:46Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by rojoca"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/cloudflare-os",
+    "url": "https://github.com/cloudflare/cloudflare-os",
+    "published_at": "2026-08-22T19:00:06Z",
+    "raw_excerpt": "Activity on repository cloudflare/cloudflare-os by neelshah400"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/security-audit-skill",
+    "url": "https://github.com/cloudflare/security-audit-skill",
+    "published_at": "2026-08-22T18:58:02Z",
+    "raw_excerpt": "Activity on repository cloudflare/security-audit-skill by stl314159"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub Created branch james/dev-binding-config in cloudflare/workers-sdk",
+    "url": "https://github.com/cloudflare/workers-sdk",
+    "published_at": "2026-08-22T18:08:05Z",
+    "raw_excerpt": "⛅️ Home to Wrangler, the CLI for Cloudflare Workers®"
+  },
+  {
+    "source": "github",
+    "company": "Cloudflare Workers",
+    "title": "GitHub WatchEvent started in cloudflare/agentic-inbox",
+    "url": "https://github.com/cloudflare/agentic-inbox",
+    "published_at": "2026-08-22T18:55:48Z",
+    "raw_excerpt": "Activity on repository cloudflare/agentic-inbox by maconstantin"
+  }
+]
