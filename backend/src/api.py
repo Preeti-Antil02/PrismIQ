@@ -13,12 +13,19 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Open CORS configuration for public read-only resume/portfolio project
+# Restricted CORS configuration locking access to production Vercel frontend and local dev
+ALLOWED_ORIGINS = [
+    "https://prism-iq-red.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -246,7 +253,7 @@ def get_brief_by_id(brief_id: str) -> Dict[str, Any]:
 
     try:
         content = target_file.read_text(encoding="utf-8")
-    except Exception:
+    except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to read brief.")
 
     date_str = _parse_date(target_file.name, target_file)

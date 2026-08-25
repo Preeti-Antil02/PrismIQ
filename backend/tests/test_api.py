@@ -134,14 +134,25 @@ def test_empty_data_directory_state(tmp_path, monkeypatch):
     assert r_latest.status_code == 404
 
 
-def test_cors_headers_open():
-    response = client.options(
+def test_cors_restricted_origins():
+    # Production Vercel origin
+    res_vercel = client.options(
+        "/briefs",
+        headers={
+            "Origin": "https://prism-iq-red.vercel.app",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert res_vercel.status_code == 200
+    assert res_vercel.headers.get("access-control-allow-origin") == "https://prism-iq-red.vercel.app"
+
+    # Localhost development origin
+    res_local = client.options(
         "/briefs",
         headers={
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "GET",
         },
     )
-    assert response.status_code == 200
-    allow_origin = response.headers.get("access-control-allow-origin")
-    assert allow_origin in ["*", "http://localhost:3000"]
+    assert res_local.status_code == 200
+    assert res_local.headers.get("access-control-allow-origin") == "http://localhost:3000"
