@@ -118,23 +118,6 @@ def health_check() -> Dict[str, str]:
     return {"status": "ok", "service": "PrismIQ Competitive Intelligence API"}
 
 
-@app.get("/debug")
-def debug_info() -> Dict[str, Any]:
-    """Diagnostic info for verifying paths and files on deployed host."""
-    backend_root = Path(__file__).resolve().parent.parent
-    active_data_dir = _get_data_dir()
-    return {
-        "cwd": str(Path.cwd()),
-        "file": str(Path(__file__).resolve()),
-        "backend_root": str(backend_root),
-        "backend_root_contents": [p.name for p in backend_root.glob("*")],
-        "data_dir": str(active_data_dir),
-        "data_dir_exists": active_data_dir.exists(),
-        "data_dir_contents": [p.name for p in active_data_dir.glob("*")] if active_data_dir.exists() else [],
-        "DATA_DIR_env": os.getenv("DATA_DIR"),
-    }
-
-
 @app.get("/briefs")
 def list_briefs() -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -212,8 +195,8 @@ def get_latest_brief() -> Dict[str, Any]:
 
     try:
         content = target_file.read_text(encoding="utf-8")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read brief file: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to read brief.")
 
     date_str = _parse_date(target_file.name, target_file)
     return {
@@ -263,8 +246,8 @@ def get_brief_by_id(brief_id: str) -> Dict[str, Any]:
 
     try:
         content = target_file.read_text(encoding="utf-8")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read brief file: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to read brief.")
 
     date_str = _parse_date(target_file.name, target_file)
     return {
