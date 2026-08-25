@@ -16,6 +16,8 @@ app = FastAPI(
 # Restricted CORS configuration locking access to production Vercel frontend and local dev
 ALLOWED_ORIGINS = [
     "https://prism-iq-red.vercel.app",
+    "https://prism-iq-git-main-preeti21.vercel.app",
+    "https://prism-iq-preeti21.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
