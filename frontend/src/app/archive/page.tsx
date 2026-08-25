@@ -1,20 +1,31 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, FileText } from "lucide-react";
+import { ArrowRight, Calendar, FileText, Loader2 } from "lucide-react";
 import { Footer } from "@/components/Footer";
 import { fetchBriefsList } from "@/lib/api";
 import { formatDateString } from "@/components/WeekSelector";
+import { BriefSummary } from "@/types/brief";
 
-export const dynamic = "force-dynamic";
+export default function ArchivePage() {
+  const [briefs, setBriefs] = useState<BriefSummary[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-export const metadata = {
-  title: "Archive — PrismIQ",
-  description:
-    "Browse historical competitive intelligence briefs and weekly summaries.",
-};
-
-export default async function ArchivePage() {
-  const briefs = await fetchBriefsList();
+  useEffect(() => {
+    async function load() {
+      setIsLoading(true);
+      try {
+        const data = await fetchBriefsList();
+        setBriefs(data);
+      } catch (err) {
+        console.error("Error loading archive briefs:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] justify-between bg-[#08090C] text-[#EDEDED]">
@@ -33,8 +44,12 @@ export default async function ArchivePage() {
           </p>
         </div>
 
-        {/* Briefs Grid */}
-        {briefs.length === 0 ? (
+        {/* Briefs Content */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          </div>
+        ) : briefs.length === 0 ? (
           <div className="rounded-xl border border-[#1F2023] bg-[#0D0E12] p-10 text-center space-y-3">
             <FileText className="h-8 w-8 text-[#71717A] mx-auto" />
             <div className="text-sm font-semibold text-white">

@@ -1,23 +1,35 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { Footer } from "@/components/Footer";
-import { fetchBriefById, fetchBriefsList } from "@/lib/api";
+import { fetchBriefById } from "@/lib/api";
 import { parseMarkdownBrief } from "@/lib/parser";
 
-export const dynamic = "force-dynamic";
+export default function HomePage() {
+  const [trackedCompanies, setTrackedCompanies] = useState<string[]>([
+    "Vercel",
+    "Netlify",
+    "Cloudflare Pages",
+    "Cloudflare Workers",
+  ]);
 
-export default async function HomePage() {
-  // Fetch real data to dynamically derive tracked companies list
-  const latestBriefData = await fetchBriefById("latest");
-  const parsed = latestBriefData?.content
-    ? parseMarkdownBrief(latestBriefData.content)
-    : null;
-
-  const trackedCompanies =
-    parsed && parsed.companies.length > 0
-      ? parsed.companies.map((c) => c.company)
-      : ["Vercel", "Netlify", "Cloudflare Pages", "Cloudflare Workers"];
+  useEffect(() => {
+    async function loadCompanies() {
+      try {
+        const latestBriefData = await fetchBriefById("latest");
+        if (latestBriefData?.content) {
+          const parsed = parseMarkdownBrief(latestBriefData.content);
+          if (parsed && parsed.companies.length > 0) {
+            setTrackedCompanies(parsed.companies.map((c) => c.company));
+          }
+        }
+      } catch {
+        // Fallback to default tracked companies
+      }
+    }
+    loadCompanies();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] justify-between bg-[#08090C] text-[#EDEDED]">
