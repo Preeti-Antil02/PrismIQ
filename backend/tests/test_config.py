@@ -15,10 +15,10 @@ def test_target_company():
 
 
 def test_competitors_exact_inclusion():
-    expected = ["Netlify", "Cloudflare Pages", "Cloudflare Workers"]
+    expected = ["Netlify", "Cloudflare Pages/Workers"]
     assert config.COMPETITORS == expected
-    assert set(config.COMPETITORS) == {"Netlify", "Cloudflare Pages", "Cloudflare Workers"}
-    assert len(config.COMPETITORS) == 3
+    assert set(config.COMPETITORS) == {"Netlify", "Cloudflare Pages/Workers"}
+    assert len(config.COMPETITORS) == 2
 
 
 def test_competitors_exclusions():
@@ -28,19 +28,15 @@ def test_competitors_exclusions():
 
 
 def test_sources_exact_inclusion():
-    expected = ["news", "github"]
+    expected = ["news", "github", "jobs", "pricing"]
     assert config.SOURCES == expected
-    assert set(config.SOURCES) == {"news", "github"}
-    assert len(config.SOURCES) == 2
+    assert set(config.SOURCES) == {"news", "github", "jobs", "pricing"}
+    assert len(config.SOURCES) == 4
 
 
 def test_sources_exclusions():
-    # Pricing, job postings, patents, and research papers are explicitly excluded
+    # Patents and research papers remain excluded
     excluded_sources = {
-        "pricing",
-        "jobs",
-        "job postings",
-        "job_postings",
         "patents",
         "research papers",
         "research_papers",

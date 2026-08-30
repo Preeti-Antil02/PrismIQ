@@ -156,17 +156,18 @@ def test_report_agent_tiered_structure_and_url_inclusion():
     # 1. Top 3 decisions header exists
     assert "## Top 3 decisions this informs" in report
 
-    # 2. Executive summary rollup exists with accurate counts
-    assert "### Executive Summary Rollup" in report
-    assert "Total Monitored**: 3 findings" in report
+    # 2. Executive summary theme rollup exists
+    assert "## Executive Summary & Theme Synthesis Rollup" in report
 
-    # 3. Company header exists
-    assert "### Vercel" in report
+    # 3. Theme & side-by-side company header exists
+    assert "## Strategic Themes & Cross-Competitor Analysis" in report
+    assert "### Theme: Product & Platform Development" in report
+    assert "#### Vercel" in report
 
     # 4. Must-Know, Should-Know, and Other Activity sections exist
-    assert "#### Must-Know" in report
-    assert "#### Should-Know" in report
-    assert "#### Other Activity (1 items)" in report
+    assert "##### Must-Know" in report
+    assert "##### Should-Know" in report
+    assert "##### Other Activity (1 items)" in report
 
     # 5. Every single finding URL appears in the report (DoD #2)
     for finding in findings:
@@ -214,11 +215,11 @@ def test_executive_summary_rollup_counts_match():
 
     report = report_agent.run(findings)
 
-    assert "### Executive Summary Rollup" in report
-    assert "Total Monitored**: 3 findings across 2 companies (1 Must-Know, 1 Should-Know, 1 Nice-to-Know)" in report
-    assert "**Vercel**: 0 Must-Know, 1 Should-Know, 1 Nice-to-Know" in report
-    assert "**Cloudflare Workers**: 1 Must-Know, 0 Should-Know, 0 Nice-to-Know" in report
-    assert "Cloudflare Workers recorded the highest critical activity with 1 Must-Know findings." in report
+    assert "## Executive Summary & Theme Synthesis Rollup" in report
+    assert "3 consolidated events synthesized across 5 strategic themes." in report
+    assert "## Per-Competitor Index" in report
+    assert "### Vercel" in report
+    assert "### Cloudflare Workers" in report
 
 
 def test_top_3_prioritizes_competitor_vulnerability_over_routine_changelogs():
@@ -327,4 +328,4 @@ def test_report_agent_empty_findings():
     report = report_agent.run([])
     assert isinstance(report, str)
     assert "## Top 3 decisions this informs" in report
-    assert "## Findings by Company" in report
+    assert "## Strategic Themes & Cross-Competitor Analysis" in report

@@ -33,14 +33,16 @@ def test_monitoring_agent_normalization_schema():
     ]
 
     with patch("src.monitoring_agent._fetch_news_from_currents", return_value=fake_news) as mock_news, \
-         patch("src.monitoring_agent._fetch_github_events", return_value=fake_github) as mock_github:
+         patch("src.monitoring_agent._fetch_github_events", return_value=fake_github) as mock_github, \
+         patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]):
 
         signals = monitoring_agent.run(["Vercel"])
 
         required_keys = {"source", "company", "title", "url", "published_at", "raw_excerpt"}
         for s in signals:
             assert required_keys.issubset(s.keys()), f"Missing keys in signal: {s}"
-            assert s["source"] in {"news", "github"}
+            assert s["source"] in {"news", "github", "jobs", "pricing"}
             assert isinstance(s["company"], str)
             assert isinstance(s["title"], str)
             assert isinstance(s["url"], str)
@@ -50,7 +52,9 @@ def test_monitoring_agent_normalization_schema():
 
 def test_monitoring_agent_queries_both_sources_for_all_companies():
     with patch("src.monitoring_agent._fetch_news_from_currents", return_value=[]) as mock_news, \
-         patch("src.monitoring_agent._fetch_github_events", return_value=[]) as mock_github:
+         patch("src.monitoring_agent._fetch_github_events", return_value=[]) as mock_github, \
+         patch("src.monitoring_agent._fetch_jobs", return_value=[]) as mock_jobs, \
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]) as mock_pricing:
 
         signals = monitoring_agent.run()
 
@@ -66,11 +70,21 @@ def test_monitoring_agent_queries_both_sources_for_all_companies():
         for company in expected_companies:
             assert company in github_calls
 
+        # Verify jobs was called for every company
+        jobs_calls = [call.args[0] for call in mock_jobs.call_args_list]
+        for company in expected_companies:
+            assert company in jobs_calls
+
+        # Verify pricing was called
+        assert mock_pricing.called
+
 
 def test_monitoring_agent_empty_results_no_fabrication():
     # If sources return empty lists, the agent must NOT fabricate placeholder signals
     with patch("src.monitoring_agent._fetch_news_from_currents", return_value=[]), \
-         patch("src.monitoring_agent._fetch_github_events", return_value=[]):
+         patch("src.monitoring_agent._fetch_github_events", return_value=[]), \
+         patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]):
 
         signals = monitoring_agent.run(["Vercel", "Netlify"])
         assert signals == []
@@ -78,6 +92,8 @@ def test_monitoring_agent_empty_results_no_fabrication():
 
 
 def test_fetch_news_from_currents_parsing():
+    from datetime import datetime, timezone
+    recent_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S +0000")
     fake_response = {
         "status": "ok",
         "news": [
@@ -85,7 +101,7 @@ def test_fetch_news_from_currents_parsing():
                 "title": "Next.js Conf Announced",
                 "description": "Details about Next.js Conf 2026.",
                 "url": "https://currents.api/article1",
-                "published": "2026-08-22 08:00:00 +0000"
+                "published": recent_ts
             }
         ]
     }
@@ -105,11 +121,13 @@ def test_fetch_news_from_currents_parsing():
 
 
 def test_fetch_github_events_parsing():
+    from datetime import datetime, timezone
+    recent_iso = datetime.now(timezone.utc).isoformat()
     fake_events = [
         {
             "id": "12345",
             "type": "ReleaseEvent",
-            "created_at": "2026-08-22T10:00:00Z",
+            "created_at": recent_iso,
             "repo": {"name": "vercel/next.js"},
             "payload": {
                 "release": {

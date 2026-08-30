@@ -112,3 +112,61 @@ def test_storage_nonexistent_file(tmp_path):
     file_path = tmp_path / "nonexistent.json"
     loaded = storage.load_signals(filepath=file_path)
     assert loaded == []
+
+
+def test_storage_discovery_sources_persistence(tmp_path, monkeypatch):
+    """
+    Verify save_discovery_sources and load_discovery_sources persist both timestamped and current files.
+    """
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    sources = [
+        {
+            "source_type": "discussion",
+            "title": "Datadog vs Grafana",
+            "url": "https://example.com/dd-vs-grafana",
+            "published_at": "2025-01-08",
+            "source_age": "dated",
+            "text": "Comparison text.",
+        }
+    ]
+
+    # Save
+    saved_path = storage.save_discovery_sources("Datadog", sources)
+    assert saved_path.exists()
+    assert saved_path.name.startswith("discovery_sources_datadog_")
+
+    # Load latest snapshot
+    loaded = storage.load_discovery_sources("Datadog")
+    assert len(loaded) == 1
+    assert loaded[0]["title"] == "Datadog vs Grafana"
+    assert loaded[0]["source_age"] == "dated"
+
+    # Load specific timestamped path
+    loaded_ts = storage.load_discovery_sources("Datadog", filepath=saved_path)
+    assert len(loaded_ts) == 1
+    assert loaded_ts[0]["url"] == "https://example.com/dd-vs-grafana"
+
+
+def test_isolation_guard_yields_mock_cursor_in_test_env(monkeypatch):
+    """Verify that during test runs, get_db_cursor yields an in-memory MockCursor with 0 DB writes."""
+    monkeypatch.setenv("PRISMIQ_ENV", "test")
+    monkeypatch.delenv("TEST_DATABASE_URL", raising=False)
+    
+    with storage.get_db_cursor() as cur:
+        assert isinstance(cur, storage.MockCursor)
+        cur.execute("SELECT 1;")
+        assert len(cur.queries) == 1
+
+
+def test_isolation_guard_blocks_prod_url_in_test_env(monkeypatch):
+    """Verify that if TEST_DATABASE_URL points to production SUPABASE_DB_URL, execution is strictly refused."""
+    fake_prod = "postgresql://postgres:secret@prod.supabase.com:5432/postgres"
+    monkeypatch.setenv("PRISMIQ_ENV", "test")
+    monkeypatch.setenv("SUPABASE_DB_URL", fake_prod)
+    monkeypatch.setenv("TEST_DATABASE_URL", fake_prod)
+    
+    import pytest
+    with pytest.raises(PermissionError, match="CRITICAL SECURITY GUARD"):
+        with storage.get_db_cursor():
+            pass
+

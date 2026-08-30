@@ -32,6 +32,11 @@ CONFIDENCE CALIBRATION:
 - "Low" confidence is appropriate when the finding relies heavily on speculative interpretation that the source does not directly establish.
 Do not default to "High" just because the source itself is an official announcement — if your "why_it_matters" explanation reaches beyond what the source documents into strategic speculation, that speculation lowers the overall confidence.
 
+JOB POSTINGS & HIRING SIGNALS CALIBRATION:
+- An individual routine job posting (e.g. routine Account Executive, Customer Success Manager, general Frontend Engineer, standard Technical Support) is almost never competitively significant on its own — companies hire constantly.
+- For individual routine job postings, DO NOT invent grandiose strategic narratives or forced speculation. Output a concise, factual summary of the open role (e.g. "Routine commercial hiring for Account Executive in EMEA.") and assign "Low" confidence.
+- ONLY flag a strategic pattern when the evidence demonstrates a significant hiring concentration (e.g. specialized AI/LLM systems team, new executive VP/Director leadership, a new regional engineering hub, or roles dedicated to a distinct new product area). Ground the inference directly in the specific job titles, department, and location provided.
+
 You must respond ONLY with a valid JSON object matching this schema:
 {
   "why_it_matters": "A 1-3 sentence explanation structured as described above.",
@@ -53,14 +58,18 @@ def _normalize_confidence(val: Any) -> str:
 
 
 def _build_prompts(signal: Dict[str, Any]) -> Tuple[str, str]:
-    """Construct the system and user prompts for Groq analysis."""
-    user_prompt = f"""Analyze the following competitive signal:
+    """Construct the system and user prompts for Groq analysis of an Event or Signal."""
+    corroboration_info = ""
+    if signal.get("corroboration_count", 1) > 1:
+        sources_list = ", ".join(signal.get("contributing_sources", []))
+        corroboration_info = f"\nCorroboration: {signal.get('corroboration_count')} independent signals ({sources_list})"
+
+    user_prompt = f"""Analyze the following competitive event:
 Company: {signal.get('company', 'Unknown')}
-Source: {signal.get('source', 'Unknown')}
 Title: {signal.get('title', '')}
 Published At: {signal.get('published_at', '')}
-URL: {signal.get('url', '')}
-Raw Excerpt:
+URL: {signal.get('url', '')}{corroboration_info}
+Raw Excerpt & Evidence:
 \"\"\"
 {signal.get('raw_excerpt', '')}
 \"\"\"
@@ -138,14 +147,45 @@ def _call_groq(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Di
     }
 
 
+STRATEGIC_HIRING_PATTERNS = [
+    r"\bvp\b", r"\bvice president\b", r"\bdirector\b", r"\bhead of\b", r"\bchief\b",
+    r"\bprincipal\b", r"\bfellow\b", r"\bdistinguished\b",
+    r"\bstaff ai\b", r"\bai research\b", r"\bred team\b", r"\bcompiler\b",
+    r"\bwasm\b", r"\bkernel\b", r"\bcryptograph\b", r"\bisolates\b",
+    r"\bfoundation model\b", r"\barchitect\b", r"\bai platform\b", r"\bai security\b",
+]
+
+
+def _is_strategic_hiring_signal(signal: Dict[str, Any]) -> bool:
+    """Check if a hiring signal represents a senior/strategic role requiring LLM analysis."""
+    title = signal.get("title", "").lower()
+    return any(re.search(pat, title) for pat in STRATEGIC_HIRING_PATTERNS)
+
+
 def run(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Analyze a list of normalized signals.
+    Analyze a list of normalized signals / consolidated events.
     Produces why_it_matters and confidence ('High', 'Medium', 'Low') for each finding.
+    Suppresses speculative LLM analysis on routine individual job postings, routing strategic
+    hiring and all news/GitHub signals to Groq for deep analysis.
     """
     findings: List[Dict[str, Any]] = []
 
     for signal in signals:
+        source = signal.get("source", "")
+        sources = signal.get("contributing_sources", [source] if source else [])
+        is_pure_job = sources == ["jobs"] or source == "jobs"
+        corroboration = signal.get("corroboration_count", 1)
+
+        # If it is an individual routine job posting without strategic keywords, suppress speculative why_it_matters
+        if is_pure_job and corroboration == 1 and not _is_strategic_hiring_signal(signal):
+            title = signal.get("title", "Job Posting").replace("Job Posting: ", "")
+            finding = dict(signal)
+            finding["why_it_matters"] = f"Routine operational hiring for {title}."
+            finding["confidence"] = "Low"
+            findings.append(finding)
+            continue
+
         system_prompt, user_prompt = _build_prompts(signal)
         analysis = _call_groq(system_prompt, user_prompt)
         

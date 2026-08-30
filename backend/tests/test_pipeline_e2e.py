@@ -48,8 +48,16 @@ def test_full_pipeline_e2e_mocked_custom_paths(tmp_path):
     report_out = tmp_path / "test_brief.md"
     signals_out = tmp_path / "test_signals.json"
 
-    with patch("src.monitoring_agent._fetch_news_from_currents", side_effect=[fake_news, [], [], []]), \
-         patch("src.monitoring_agent._fetch_github_events", side_effect=[[], fake_github, [], []]), \
+    def _fake_news_fetch(company, *args, **kwargs):
+        return fake_news if company == "Vercel" else []
+
+    def _fake_github_fetch(company, *args, **kwargs):
+        return fake_github if company == "Netlify" else []
+
+    with patch("src.monitoring_agent._fetch_news_from_currents", side_effect=_fake_news_fetch), \
+         patch("src.monitoring_agent._fetch_github_events", side_effect=_fake_github_fetch), \
+         patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]), \
          patch("src.analysis_agent._call_groq", side_effect=mock_analyses):
 
         brief_markdown = main.run_pipeline(
@@ -108,8 +116,13 @@ def test_full_pipeline_e2e_default_timestamped_run(tmp_path, monkeypatch):
         }
     ]
 
-    with patch("src.monitoring_agent._fetch_news_from_currents", side_effect=[fake_news, [], [], []]), \
+    def _fake_news_fetch_2(company, *args, **kwargs):
+        return fake_news if company == "Vercel" else []
+
+    with patch("src.monitoring_agent._fetch_news_from_currents", side_effect=_fake_news_fetch_2), \
          patch("src.monitoring_agent._fetch_github_events", return_value=[]), \
+         patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]), \
          patch("src.analysis_agent._call_groq", side_effect=mock_analysis):
 
         # Execute default pipeline run
@@ -121,17 +134,22 @@ def test_full_pipeline_e2e_default_timestamped_run(tmp_path, monkeypatch):
         # 1. Verify latest pointers exist
         latest_brief = test_data_dir / "brief.md"
         latest_signals = test_data_dir / "signals.json"
+        latest_events = test_data_dir / "events.json"
         assert latest_brief.exists(), "brief.md was not created"
         assert latest_signals.exists(), "signals.json was not created"
+        assert latest_events.exists(), "events.json was not created"
         assert latest_brief.read_text(encoding="utf-8") == brief_markdown
 
         # 2. Verify timestamped files exist
         timestamped_briefs = list(test_data_dir.glob("brief_*.md"))
         timestamped_signals = list(test_data_dir.glob("signals_*.json"))
+        timestamped_events = list(test_data_dir.glob("events_*.json"))
 
         assert len(timestamped_briefs) == 1, f"Expected 1 timestamped brief, found {len(timestamped_briefs)}"
         assert len(timestamped_signals) == 1, f"Expected 1 timestamped signals file, found {len(timestamped_signals)}"
+        assert len(timestamped_events) == 1, f"Expected 1 timestamped events file, found {len(timestamped_events)}"
 
         # 3. Verify timestamped content matches latest pointer content
         assert timestamped_briefs[0].read_text(encoding="utf-8") == brief_markdown
         assert timestamped_signals[0].read_text(encoding="utf-8") == latest_signals.read_text(encoding="utf-8")
+        assert timestamped_events[0].read_text(encoding="utf-8") == latest_events.read_text(encoding="utf-8")

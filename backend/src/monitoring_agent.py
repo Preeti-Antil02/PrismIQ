@@ -2,10 +2,12 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import requests
 
-from src import config
+from . import config
+from . import pricing_extractor
+from . import funding_classifier
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,8 @@ logger = logging.getLogger(__name__)
 GITHUB_ORG_MAPPING: Dict[str, str] = {
     "Vercel": "vercel",
     "Netlify": "netlify",
+    "Cloudflare Pages/Workers": "cloudflare",
+    "Cloudflare": "cloudflare",
     "Cloudflare Pages": "cloudflare",
     "Cloudflare Workers": "cloudflare",
 }
@@ -27,15 +31,11 @@ CLOUDFLARE_SUBPRODUCTS: Dict[str, str] = {
 
 def _check_cloudflare_attribution(signal: Dict[str, Any], queried_company: str) -> Optional[Dict[str, Any]]:
     """
-    For Cloudflare sub-products, verify that a news signal actually mentions
-    the specific sub-product it was fetched under. If it mentions the OTHER
-    Cloudflare sub-product but NOT the queried one, re-attribute it.
-    If it mentions neither specifically, keep it under the queried company.
-    Returns the signal (possibly with corrected company) or None if it should
-    be dropped (not currently used — we always keep or re-attribute).
+    For Cloudflare sub-products (if queried as separate entities), verify attribution.
+    When queried under unified 'Cloudflare Pages/Workers', preserves unified attribution.
     """
     if queried_company not in CLOUDFLARE_SUBPRODUCTS:
-        return signal  # Not a Cloudflare sub-product query; no filtering needed
+        return signal  # Not a separate sub-product query; no attribution splitting needed
 
     queried_keyword = CLOUDFLARE_SUBPRODUCTS[queried_company]
     text = (signal.get("title", "") + " " + signal.get("raw_excerpt", "")).lower()
@@ -50,17 +50,12 @@ def _check_cloudflare_attribution(signal: Dict[str, Any], queried_company: str) 
             break
 
     if mentions_queried:
-        # Signal does mention the queried product — keep it as-is
         return signal
     elif other_product:
-        # Signal mentions a DIFFERENT Cloudflare sub-product but NOT the queried one
-        # Re-attribute to the correct sub-product
         corrected = dict(signal)
         corrected["company"] = other_product
         return corrected
     else:
-        # Signal mentions neither specifically (just "Cloudflare" generically)
-        # Keep it under the queried company — generic Cloudflare news is relevant to both
         return signal
 
 
@@ -71,51 +66,67 @@ def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any
         logger.warning("CURRENTS_API_KEY not set. Skipping Currents news fetch.")
         return []
 
-    url = "https://api.currentsapi.services/v1/search"
-    params = {
-        "keywords": company,
-        "language": "en",
-        "apiKey": api_key.strip(),
-    }
+    # If querying unified Cloudflare Pages/Workers, run targeted searches for both subproducts
+    # to avoid Currents API 20-result per-query limit truncation and generic news displacement
+    if company == "Cloudflare Pages/Workers":
+        search_keywords = ["Cloudflare Pages", "Cloudflare Workers"]
+    else:
+        search_keywords = [company]
 
+    url = "https://api.currentsapi.services/v1/search"
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        articles = data.get("news", [])
-        
-        signals: List[Dict[str, Any]] = []
-        for article in articles:
-            published_str = article.get("published", "")
-            if published_str:
-                try:
-                    pub_clean = published_str.replace(" +0000", "+00:00").replace(" ", "T")
-                    pub_dt = datetime.fromisoformat(pub_clean)
-                    if pub_dt < cutoff_date:
-                        continue
-                except Exception:
-                    pass
+    seen_urls: set[str] = set()
+    signals: List[Dict[str, Any]] = []
 
-            raw_signal = {
-                "source": "news",
-                "company": company,
-                "title": article.get("title", ""),
-                "url": article.get("url", ""),
-                "published_at": published_str,
-                "raw_excerpt": article.get("description", "") or article.get("title", ""),
-            }
+    for kw in search_keywords:
+        params = {
+            "keywords": kw,
+            "language": "en",
+            "apiKey": api_key.strip(),
+        }
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            articles = data.get("news", [])
 
-            # Apply Cloudflare sub-product attribution check
-            checked = _check_cloudflare_attribution(raw_signal, company)
-            if checked is not None:
-                signals.append(checked)
+            for article in articles:
+                article_url = article.get("url", "")
+                if not article_url or article_url in seen_urls:
+                    continue
 
-        return signals
-    except Exception as e:
-        logger.error(f"Error fetching news for {company} from Currents API: {e}")
-        return []
+                published_str = article.get("published", "")
+                if published_str:
+                    try:
+                        pub_clean = published_str.replace(" +0000", "+00:00").replace(" ", "T")
+                        pub_dt = datetime.fromisoformat(pub_clean)
+                        if pub_dt < cutoff_date:
+                            continue
+                    except Exception:
+                        pass
+
+                seen_urls.add(article_url)
+                raw_signal = {
+                    "source": "news",
+                    "company": company,
+                    "title": article.get("title", ""),
+                    "url": article_url,
+                    "published_at": published_str,
+                    "raw_excerpt": article.get("description", "") or article.get("title", ""),
+                }
+                raw_signal = funding_classifier.classify_signal(raw_signal)
+
+                # Apply sub-product attribution check if running on legacy separate entities
+                checked = _check_cloudflare_attribution(raw_signal, company)
+                if checked is not None:
+                    signals.append(checked)
+
+        except Exception as e:
+            logger.error(f"Error fetching news for {kw} from Currents API: {e}")
+            raise
+
+    return signals
 
 
 def _fetch_github_events(company: str, days: int = 7) -> List[Dict[str, Any]]:
@@ -190,7 +201,7 @@ def _fetch_github_events(company: str, days: int = 7) -> List[Dict[str, Any]]:
         return signals
     except Exception as e:
         logger.error(f"Error fetching GitHub events for {company} ({org}): {e}")
-        return []
+        raise
 
 
 def consolidate_signals(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -272,10 +283,319 @@ def consolidate_signals(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return consolidated
 
 
-def run(companies: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+# ATS Platform Configuration Mapping
+# Maps company names to (ATS platform type, board slug)
+# Supported ATS platforms: "greenhouse", "lever", "ashby"
+ATS_COMPANY_MAPPING: Dict[str, Tuple[str, str]] = {
+    "Vercel": ("greenhouse", "vercel"),
+    "Netlify": ("greenhouse", "netlify"),
+    "Cloudflare Pages/Workers": ("greenhouse", "cloudflare"),
+    "Cloudflare": ("greenhouse", "cloudflare"),
+    "Cloudflare Pages": ("greenhouse", "cloudflare"),
+    "Cloudflare Workers": ("greenhouse", "cloudflare"),
+    "Stripe": ("greenhouse", "stripe"),
+    "Datadog": ("greenhouse", "datadog"),
+    "Supabase": ("ashby", "supabase"),
+    "Sentry": ("ashby", "sentry"),
+}
+
+
+def _detect_ats_platform(company: str) -> Optional[Tuple[str, str]]:
     """
-    Query both news and GitHub sources for each target and competitor company.
-    Normalizes all outputs and applies signal deduplication/aggregation.
+    Detect which public ATS platform a company uses.
+    Checks known mapping first, then probes public structured APIs (Greenhouse, Ashby, Lever).
+    Never scrapes bespoke careers websites.
+    """
+    if company in ATS_COMPANY_MAPPING:
+        return ATS_COMPANY_MAPPING[company]
+
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "", company.lower().split()[0])
+    if not slug:
+        return None
+
+    # 1. Probe Greenhouse
+    try:
+        gh_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/jobs"
+        r = requests.get(gh_url, timeout=4)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data.get("jobs"), list) and len(data["jobs"]) > 0:
+                return ("greenhouse", slug)
+    except Exception:
+        pass
+
+    # 2. Probe Ashby
+    try:
+        ashby_url = f"https://api.ashbyhq.com/posting-api/job-board/{slug}"
+        r = requests.get(ashby_url, timeout=4)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data.get("jobs"), list) and len(data["jobs"]) > 0:
+                return ("ashby", slug)
+    except Exception:
+        pass
+
+    # 3. Probe Lever
+    try:
+        lever_url = f"https://api.lever.co/v0/postings/{slug}?mode=json"
+        r = requests.get(lever_url, timeout=4)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data, list) and len(data) > 0:
+                return ("lever", slug)
+    except Exception:
+        pass
+
+    return None
+
+
+def _fetch_greenhouse_jobs(board_slug: str, company: str, days: int = 7) -> List[Dict[str, Any]]:
+    """Fetch structured job postings from Greenhouse public boards API."""
+    url = f"https://boards-api.greenhouse.io/v1/boards/{board_slug}/jobs?content=true"
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            logger.warning(f"Greenhouse API returned status {response.status_code} for board '{board_slug}'")
+            return []
+
+        data = response.json()
+        jobs = data.get("jobs", [])
+        if not isinstance(jobs, list):
+            return []
+
+        signals: List[Dict[str, Any]] = []
+        for job in jobs:
+            # Greenhouse provides `first_published` for when the job was originally posted to the public board.
+            # `updated_at` is frequently bumped by administrative re-syncs, bulk edits, or metadata changes.
+            posted_date_str = job.get("first_published") or job.get("updated_at") or ""
+            if posted_date_str:
+                try:
+                    dt = datetime.fromisoformat(posted_date_str)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if dt < cutoff_date:
+                        continue
+                except Exception:
+                    pass
+
+            job_title = job.get("title", "Untitled Role").strip()
+            job_url = job.get("absolute_url") or f"https://boards.greenhouse.io/{board_slug}/jobs/{job.get('id')}"
+            
+            departments = job.get("departments", [])
+            dept_names = ", ".join(d.get("name", "") for d in departments if d.get("name"))
+            location = job.get("location", {}).get("name", "Unspecified Location")
+
+            title_display = f"Job Posting: {job_title} ({dept_names})" if dept_names else f"Job Posting: {job_title}"
+            raw_excerpt = f"Department: {dept_names or 'General'} | Location: {location} | Role: {job_title}"
+
+            signals.append({
+                "source": "jobs",
+                "company": company,
+                "title": title_display,
+                "url": job_url,
+                "published_at": posted_date_str,
+                "raw_excerpt": raw_excerpt,
+            })
+
+        return signals
+    except Exception as e:
+        logger.error(f"Error fetching Greenhouse jobs for {company} ({board_slug}): {e}")
+        return []
+
+
+def _fetch_lever_jobs(board_slug: str, company: str, days: int = 7) -> List[Dict[str, Any]]:
+    """Fetch structured job postings from Lever public postings API."""
+    url = f"https://api.lever.co/v0/postings/{board_slug}?mode=json"
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            logger.warning(f"Lever API returned status {response.status_code} for board '{board_slug}'")
+            return []
+
+        jobs = response.json()
+        if not isinstance(jobs, list):
+            return []
+
+        signals: List[Dict[str, Any]] = []
+        for job in jobs:
+            created_at_ms = job.get("createdAt")
+            created_at_str = ""
+            if created_at_ms:
+                try:
+                    dt = datetime.fromtimestamp(created_at_ms / 1000.0, tz=timezone.utc)
+                    if dt < cutoff_date:
+                        continue
+                    created_at_str = dt.isoformat()
+                except Exception:
+                    pass
+
+            job_title = job.get("text", "Untitled Role").strip()
+            job_url = job.get("hostedUrl") or job.get("applyUrl") or f"https://jobs.lever.co/{board_slug}/{job.get('id')}"
+            
+            categories = job.get("categories", {})
+            team = categories.get("team") or categories.get("department") or ""
+            location = categories.get("location") or "Unspecified Location"
+
+            title_display = f"Job Posting: {job_title} ({team})" if team else f"Job Posting: {job_title}"
+            raw_excerpt = f"Department: {team or 'General'} | Location: {location} | Role: {job_title}"
+
+            signals.append({
+                "source": "jobs",
+                "company": company,
+                "title": title_display,
+                "url": job_url,
+                "published_at": created_at_str,
+                "raw_excerpt": raw_excerpt,
+            })
+
+        return signals
+    except Exception as e:
+        logger.error(f"Error fetching Lever jobs for {company} ({board_slug}): {e}")
+        return []
+
+
+def _fetch_ashby_jobs(board_slug: str, company: str, days: int = 7) -> List[Dict[str, Any]]:
+    """Fetch structured job postings from Ashby public job board API."""
+    url = f"https://api.ashbyhq.com/posting-api/job-board/{board_slug}"
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            logger.warning(f"Ashby API returned status {response.status_code} for board '{board_slug}'")
+            return []
+
+        data = response.json()
+        jobs = data.get("jobs", [])
+        if not isinstance(jobs, list):
+            return []
+
+        signals: List[Dict[str, Any]] = []
+        for job in jobs:
+            published_at_str = job.get("publishedAt", "")
+            if published_at_str:
+                try:
+                    dt = datetime.fromisoformat(published_at_str.replace("Z", "+00:00"))
+                    if dt < cutoff_date:
+                        continue
+                except Exception:
+                    pass
+
+            job_title = job.get("title", "Untitled Role").strip()
+            job_url = job.get("jobUrl") or f"https://jobs.ashbyhq.com/{board_slug}/{job.get('id')}"
+            
+            department = job.get("department", "")
+            location = job.get("location", "Unspecified Location")
+
+            title_display = f"Job Posting: {job_title} ({department})" if department else f"Job Posting: {job_title}"
+            raw_excerpt = f"Department: {department or 'General'} | Location: {location} | Role: {job_title}"
+
+            signals.append({
+                "source": "jobs",
+                "company": company,
+                "title": title_display,
+                "url": job_url,
+                "published_at": published_at_str,
+                "raw_excerpt": raw_excerpt,
+            })
+
+        return signals
+    except Exception as e:
+        logger.error(f"Error fetching Ashby jobs for {company} ({board_slug}): {e}")
+        return []
+
+
+def _fetch_jobs(company: str, days: int = 7) -> List[Dict[str, Any]]:
+    """
+    Fetch current structured job postings for a company from its detected public ATS platform.
+    If company is not on a supported structured platform, returns [] and logs honest gap (never scrapes).
+    """
+    ats_info = _detect_ats_platform(company)
+    if not ats_info:
+        logger.info(f"Job postings source not supported for '{company}' (no public Greenhouse/Lever/Ashby board found; scraping avoided).")
+        return []
+
+    ats_type, board_slug = ats_info
+    logger.info(f"Fetching job postings for '{company}' via {ats_type} board '{board_slug}'...")
+
+    if ats_type == "greenhouse":
+        return _fetch_greenhouse_jobs(board_slug, company, days=days)
+    elif ats_type == "lever":
+        return _fetch_lever_jobs(board_slug, company, days=days)
+    elif ats_type == "ashby":
+        return _fetch_ashby_jobs(board_slug, company, days=days)
+    else:
+        return []
+
+
+def fetch_source_with_retry(
+    source_name: str,
+    fetch_func: Any,
+    max_retries: int = 1,
+    backoff: float = 1.0,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Execute a source fetch function with conditional retry on failure.
+    - If attempt 1 fails, logs warning, waits with backoff, and retries once.
+    - If attempt 2 fails, logs error, records failure metadata, and engages graceful fallback.
+    """
+    import time
+    attempts = 0
+    last_error: Optional[str] = None
+    signals: List[Dict[str, Any]] = []
+
+    while attempts <= max_retries:
+        attempts += 1
+        try:
+            signals = fetch_func()
+            status = "healthy" if attempts == 1 else "recovered"
+            health = {
+                "source": source_name,
+                "status": status,
+                "attempts": attempts,
+                "signals_count": len(signals),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+            if attempts > 1:
+                logger.info(f"Source '{source_name}' successfully recovered on attempt {attempts}.")
+            return signals, health
+        except Exception as e:
+            last_error = str(e)
+            if attempts <= max_retries:
+                logger.warning(
+                    f"Source '{source_name}' failed on attempt {attempts}/{max_retries + 1}: {e}. "
+                    f"Retrying in {backoff:.1f}s..."
+                )
+                time.sleep(backoff)
+            else:
+                logger.error(
+                    f"Source '{source_name}' failed after {attempts} attempts: {e}. "
+                    f"Engaging fallback (continuing pipeline without {source_name})."
+                )
+
+    health = {
+        "source": source_name,
+        "status": "failed",
+        "attempts": attempts,
+        "error": last_error or "Unknown error",
+        "fallback": f"continued pipeline without {source_name}",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    return [], health
+
+
+def run(
+    companies: Optional[List[str]] = None,
+    active_sources: Optional[List[str]] = None,
+    supervisor_decisions: Optional[Dict[str, Any]] = None,
+    return_health: bool = False,
+) -> Union[List[Dict[str, Any]], Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]]:
+    """
+    Query news, GitHub, jobs, and pricing sources with conditional retry & graceful fallback.
     """
     if companies is None:
         all_companies: List[str] = []
@@ -284,15 +604,65 @@ def run(companies: Optional[List[str]] = None) -> List[Dict[str, Any]]:
                 all_companies.append(c)
         companies = all_companies
 
+    # Determine which sources are active
+    sources_to_run = list(active_sources) if active_sources is not None else list(config.SOURCES)
+
+    # Check supervisor skip decisions
+    if supervisor_decisions:
+        for src, dec in supervisor_decisions.items():
+            if dec.get("action") == "skip" and src in sources_to_run:
+                sources_to_run.remove(src)
+                logger.info(f"Supervisor skipped source '{src}': {dec.get('reason')}")
+
     all_signals: List[Dict[str, Any]] = []
+    source_health: Dict[str, Dict[str, Any]] = {}
 
-    for company in companies:
-        if "news" in config.SOURCES:
-            news_signals = _fetch_news_from_currents(company)
-            all_signals.extend(news_signals)
-        
-        if "github" in config.SOURCES:
-            github_signals = _fetch_github_events(company)
-            all_signals.extend(github_signals)
+    # 1. News Source
+    if "news" in sources_to_run:
+        def _fetch_all_news():
+            sigs = []
+            for c in companies:
+                sigs.extend(_fetch_news_from_currents(c))
+            return sigs
 
-    return consolidate_signals(all_signals)
+        news_sigs, health = fetch_source_with_retry("news", _fetch_all_news)
+        all_signals.extend(news_sigs)
+        source_health["news"] = health
+
+    # 2. GitHub Source
+    if "github" in sources_to_run:
+        def _fetch_all_github():
+            sigs = []
+            for c in companies:
+                sigs.extend(_fetch_github_events(c))
+            return sigs
+
+        gh_sigs, health = fetch_source_with_retry("github", _fetch_all_github)
+        all_signals.extend(gh_sigs)
+        source_health["github"] = health
+
+    # 3. Jobs Source
+    if "jobs" in sources_to_run:
+        def _fetch_all_jobs():
+            sigs = []
+            for c in companies:
+                sigs.extend(_fetch_jobs(c))
+            return sigs
+
+        job_sigs, health = fetch_source_with_retry("jobs", _fetch_all_jobs)
+        all_signals.extend(job_sigs)
+        source_health["jobs"] = health
+
+    # 4. Pricing Source
+    if "pricing" in sources_to_run:
+        def _fetch_all_pricing():
+            return pricing_extractor.fetch_pricing_signals(companies)
+
+        price_sigs, health = fetch_source_with_retry("pricing", _fetch_all_pricing)
+        all_signals.extend(price_sigs)
+        source_health["pricing"] = health
+
+    consolidated = consolidate_signals(all_signals)
+    if return_health:
+        return consolidated, source_health
+    return consolidated

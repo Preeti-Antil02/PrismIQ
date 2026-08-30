@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 # Ensure UTF-8 stdout on Windows
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -17,7 +17,7 @@ backend_root = Path(__file__).resolve().parent.parent
 if str(backend_root) not in sys.path:
     sys.path.insert(0, str(backend_root))
 
-from src import config, monitoring_agent, storage, analysis_agent, report_agent
+from src import config, monitoring_agent, noise_suppressor, event_consolidator, storage, analysis_agent, synthesis_agent, report_agent
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -40,60 +40,39 @@ def _get_data_dir() -> Path:
 def run_pipeline(
     output_report_path: Optional[Union[str, Path]] = None,
     signals_storage_path: Optional[Union[str, Path]] = None,
+    events_storage_path: Optional[Union[str, Path]] = None,
+    companies: Optional[List[str]] = None,
+    sources: Optional[List[str]] = None,
 ) -> str:
     """
-    Execute the Stage 1 Competitive Intelligence Pipeline:
-    1. Monitoring: Gather recent signals for target and competitors from News and GitHub.
-    2. Storage: Persist collected raw signals to flat JSON (both timestamped historical file and latest).
-    3. Analysis: Run LLM analysis to produce 'why it matters' and confidence scores.
-    4. Report: Render structured markdown brief starting with Top 3 decisions.
-    5. Output: Write the final brief to disk (both timestamped historical file and latest) and return content.
+    Execute the Stage 3 Competitive Intelligence Pipeline via LangGraph State Machine:
+    1. supervisor: Evaluates per-cycle run policies and skip conditions (e.g. 24h pricing cadence).
+    2. monitoring: Gathers signals across sources with conditional retry and graceful fallback.
+    3. noise_suppression: Upstream filtering of bot/CI noise with audit decisions.
+    4. event_consolidation: Clusters signals into events with root-signal identity anchoring.
+    5. analysis: Evaluates strategic impact and produces 'Why It Matters' insights.
+    6. synthesis: Cross-competitor theme rollups and pattern detection.
+    7. report: Renders structured brief with explicit health and supervisor disclosures.
     """
-    data_dir = _get_data_dir()
-    default_report_file = data_dir / "brief.md"
+    from src.workflow import create_pipeline_graph
 
-    logger.info(f"Starting PrismIQ pipeline for target: {config.TARGET_COMPANY}")
+    logger.info(f"Starting PrismIQ pipeline (LangGraph State Machine) for target: {config.TARGET_COMPANY}")
     logger.info(f"Competitors: {config.COMPETITORS}")
-    logger.info(f"Sources: {config.SOURCES}")
+    logger.info(f"Configured Sources: {config.SOURCES}")
 
-    # Stage 1: Monitoring
-    logger.info("Stage 1/4: Monitoring - Fetching signals...")
-    signals = monitoring_agent.run()
-    logger.info(f"Collected {len(signals)} signals across all sources.")
+    app = create_pipeline_graph()
+    initial_state = {
+        "target_company": config.TARGET_COMPANY,
+        "competitors": config.COMPETITORS,
+        "configured_sources": sources or list(config.SOURCES),
+        "companies": companies or [config.TARGET_COMPANY] + config.COMPETITORS,
+        "output_report_path": output_report_path,
+        "signals_storage_path": signals_storage_path,
+        "events_storage_path": events_storage_path,
+    }
 
-    # Stage 2: Storage
-    logger.info("Stage 2/4: Storage - Persisting raw signals...")
-    saved_signals_path = storage.save_signals(signals, filepath=signals_storage_path)
-    logger.info(f"Signals persisted to {saved_signals_path}")
-
-    # Stage 3: Analysis
-    logger.info("Stage 3/4: Analysis - Analyzing signals for strategic impact...")
-    findings = analysis_agent.run(signals)
-    logger.info(f"Analyzed {len(findings)} findings.")
-
-    # Stage 4: Report Generation
-    logger.info("Stage 4/4: Report - Generating markdown intelligence brief...")
-    report_content = report_agent.run(findings)
-
-    # Stage 5: Output Persistence
-    if output_report_path:
-        report_file = Path(output_report_path)
-        report_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(report_file, "w", encoding="utf-8") as f:
-            f.write(report_content)
-        logger.info(f"Competitive brief successfully written to {report_file}")
-    else:
-        data_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        timestamped_report = data_dir / f"brief_{timestamp}.md"
-
-        # Write timestamped historical brief
-        with open(timestamped_report, "w", encoding="utf-8") as f:
-            f.write(report_content)
-        # Write latest snapshot brief
-        with open(default_report_file, "w", encoding="utf-8") as f:
-            f.write(report_content)
-        logger.info(f"Competitive brief successfully written to {timestamped_report} and {default_report_file}")
+    final_state = app.invoke(initial_state)
+    report_content = final_state.get("report_content", "")
 
     return report_content
 
