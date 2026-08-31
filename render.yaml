@@ -13,21 +13,3 @@ services:
       - key: DATA_DIR
         value: published_briefs
 
-  - type: cron
-    name: prismiq-pipeline-cron
-    env: python
-    rootDir: backend
-    schedule: "*/10 * * * *"  # Temporary 10-minute validation cadence
-    buildCommand: pip install -r requirements.txt
-    startCommand: python src/cron_runner.py
-    autoDeploy: true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
-      - key: PIPELINE_TRIGGER_MODE
-        value: scheduled
-      - key: PIPELINE_CADENCE_NAME
-        value: 10-minute-validation
-      - key: PIPELINE_CRON_SCHEDULE
-        value: "*/10 * * * *"
-
