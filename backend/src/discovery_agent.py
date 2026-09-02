@@ -9,6 +9,14 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 import requests
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
+
 from src import config, storage
 
 logger = logging.getLogger(__name__)
@@ -309,6 +317,7 @@ Analyze the retrieved sources above and produce the comprehensive ranked candida
     return DISCOVERY_SYSTEM_PROMPT, user_prompt
 
 
+@traceable(run_type="llm", name="discovery_agent_llm_call")
 def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
     """Execute Groq completion with JSON object response format, retries, and rate limit backoff."""
     api_key = os.getenv("GROQ_API_KEY")

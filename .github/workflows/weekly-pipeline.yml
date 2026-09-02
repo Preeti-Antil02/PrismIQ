@@ -43,5 +43,9 @@ jobs:
           PIPELINE_TRIGGER_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }}
           PIPELINE_CADENCE_NAME: "weekly"
           PIPELINE_CRON_SCHEDULE: "0 0 * * 0"
+          LANGCHAIN_TRACING_V2: "true"
+          LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+          LANGCHAIN_PROJECT: "prismiq-production"
+          LANGCHAIN_ENDPOINT: "https://api.smith.langchain.com"
         run: |
           python backend/src/cron_runner.py

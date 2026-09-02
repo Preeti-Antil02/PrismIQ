@@ -6,6 +6,14 @@ import time
 from typing import Any, Dict, List, Tuple
 import requests
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
+
 logger = logging.getLogger(__name__)
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -81,6 +89,7 @@ Remember to:
     return SYSTEM_PROMPT, user_prompt
 
 
+@traceable(run_type="llm", name="analysis_agent_llm_call")
 def _call_groq(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
     """Execute API call to Groq to perform intelligence analysis with rate-limit retry handling."""
     api_key = os.getenv("GROQ_API_KEY")

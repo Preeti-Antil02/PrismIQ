@@ -4,4 +4,5 @@ fastapi>=0.100.0
 uvicorn>=0.20.0
 psycopg2-binary>=2.9.9
 langgraph>=0.2.0
+langsmith>=0.1.0
 beautifulsoup4>=4.12.0

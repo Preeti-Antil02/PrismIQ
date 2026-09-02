@@ -19,6 +19,14 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 import requests
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
+
 logger = logging.getLogger(__name__)
 
 # Task Identifiers
@@ -179,6 +187,7 @@ Output format:
     return system_prompt, user_prompt
 
 
+@traceable(run_type="llm", name="llm_judge_call")
 def _call_groq_judge(system_prompt: str, user_prompt: str, model: str = "openai/gpt-oss-120b") -> Dict[str, Any]:
     """Call Groq LLM API with deterministic temperature for evaluation."""
     api_key = os.getenv("GROQ_API_KEY")
