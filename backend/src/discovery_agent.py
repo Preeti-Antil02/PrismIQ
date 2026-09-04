@@ -11,11 +11,14 @@ import requests
 
 try:
     from langsmith import traceable
+    from langsmith.run_helpers import get_current_run_tree
 except ImportError:
     def traceable(*args, **kwargs):
         def decorator(f):
             return f
         return decorator
+    def get_current_run_tree():
+        return None
 
 from src import config, storage
 
@@ -317,6 +320,42 @@ Analyze the retrieved sources above and produce the comprehensive ranked candida
     return DISCOVERY_SYSTEM_PROMPT, user_prompt
 
 
+def _attach_langsmith_usage(usage: Optional[Dict[str, Any]], model: str = "") -> None:
+    """Extract token counts and estimated cost from Groq usage object and attach to the active LangSmith span."""
+    if not usage or not isinstance(usage, dict):
+        return
+    try:
+        run_tree = get_current_run_tree()
+        if not run_tree:
+            return
+
+        p_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+        c_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+        t_tokens = int(usage.get("total_tokens") or (p_tokens + c_tokens))
+
+        # Benchmark pricing for open-weight models on Groq Cloud ($0.59 / 1M prompt, $0.79 / 1M completion)
+        input_cost = (p_tokens / 1_000_000.0) * 0.59
+        output_cost = (c_tokens / 1_000_000.0) * 0.79
+        total_cost = round(input_cost + output_cost, 6)
+
+        usage_meta = {
+            "input_tokens": p_tokens,
+            "output_tokens": c_tokens,
+            "total_tokens": t_tokens,
+            "input_cost": round(input_cost, 6),
+            "output_cost": round(output_cost, 6),
+            "total_cost": total_cost,
+        }
+
+        if hasattr(run_tree, "set"):
+            run_tree.set(usage_metadata=usage_meta)
+        else:
+            run_tree.extra = run_tree.extra or {}
+            run_tree.extra.setdefault("metadata", {})["usage_metadata"] = usage_meta
+    except Exception as e:
+        logger.debug(f"Could not attach usage metadata to LangSmith span: {e}")
+
+
 @traceable(run_type="llm", name="discovery_agent_llm_call")
 def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
     """Execute Groq completion with JSON object response format, retries, and rate limit backoff."""
@@ -355,6 +394,12 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
 
             resp.raise_for_status()
             res_data = resp.json()
+
+            # Attach token usage and cost metadata to active LangSmith span
+            usage = res_data.get("usage")
+            if usage and isinstance(usage, dict):
+                _attach_langsmith_usage(usage, model=model)
+
             content = res_data["choices"][0]["message"]["content"]
 
             cleaned_content = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
