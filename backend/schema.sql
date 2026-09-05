@@ -97,7 +97,9 @@ CREATE TABLE IF NOT EXISTS findings (
     event_id VARCHAR(64) UNIQUE NOT NULL REFERENCES consolidated_events(event_id) ON DELETE CASCADE,
     company_name VARCHAR(255) NOT NULL REFERENCES competitors(name) ON UPDATE CASCADE,
     why_it_matters TEXT NOT NULL,
-    confidence VARCHAR(20) NOT NULL, -- 'High', 'Medium', 'Low'
+    confidence VARCHAR(20) NOT NULL, -- 'High', 'Medium', 'Low' (Legacy/Blended)
+    fact_confidence VARCHAR(20), -- 'High', 'Medium', 'Low' (verifiable fact confidence)
+    inference_confidence VARCHAR(20), -- 'High', 'Medium', 'Low' (speculative interpretation confidence)
     decision_score NUMERIC(5, 2),
     tier VARCHAR(50), -- 'must_know', 'should_know', 'nice_to_know'
     is_mock BOOLEAN DEFAULT FALSE, -- True for mock/test fixture findings

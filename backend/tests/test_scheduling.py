@@ -14,8 +14,8 @@ from src import config, cron_runner, lock_manager, report_agent
 
 def test_config_named_cadence():
     """Verify that scheduling cadence is explicitly named and configurable."""
-    assert config.DEFAULT_CRON_SCHEDULE == "0 0 * * 0"
-    assert config.SCHEDULE_CADENCE_NAME == "weekly"
+    assert config.DEFAULT_CRON_SCHEDULE == "0 0 * * *"
+    assert config.SCHEDULE_CADENCE_NAME == "daily"
     assert config.PIPELINE_LOCK_KEY == 74829103
 
 

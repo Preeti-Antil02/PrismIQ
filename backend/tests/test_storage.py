@@ -170,3 +170,31 @@ def test_isolation_guard_blocks_prod_url_in_test_env(monkeypatch):
         with storage.get_db_cursor():
             pass
 
+
+def test_fail_closed_posture_blocks_unauthorized_cli_writes(monkeypatch):
+    """Verify that ad hoc CLI invocations without ALLOW_LIVE_WRITE=true fail CLOSED to MockCursor."""
+    monkeypatch.delenv("ALLOW_LIVE_WRITE", raising=False)
+    monkeypatch.delenv("ALLOW_PROD_WRITE", raising=False)
+    monkeypatch.delenv("FORCE_LIVE_DB", raising=False)
+    monkeypatch.delenv("PRISMIQ_ENV", raising=False)
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+
+    # Force is_test_environment to return False to simulate an ad hoc script
+    monkeypatch.setattr(storage, "is_test_environment", lambda: False)
+
+    assert not storage.is_live_write_permitted()
+    with storage.get_db_cursor() as cur:
+        assert isinstance(cur, storage.MockCursor)
+        cur.execute("INSERT INTO findings VALUES ('fake');")
+        assert len(cur.queries) == 1
+
+
+def test_explicit_opt_in_authorizes_live_write(monkeypatch):
+    """Verify that explicit ALLOW_LIVE_WRITE=true authorizes production connection check."""
+    monkeypatch.setenv("ALLOW_LIVE_WRITE", "true")
+    monkeypatch.setenv("SUPABASE_DB_URL", "postgresql://test:test@localhost:5432/db")
+    monkeypatch.setattr(storage, "is_test_environment", lambda: False)
+
+    assert storage.is_live_write_permitted()
+
+

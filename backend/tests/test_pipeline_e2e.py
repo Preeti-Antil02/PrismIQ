@@ -58,6 +58,7 @@ def test_full_pipeline_e2e_mocked_custom_paths(tmp_path):
          patch("src.monitoring_agent._fetch_github_events", side_effect=_fake_github_fetch), \
          patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
          patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]), \
+         patch("src.monitoring_agent._fetch_research_signals", return_value=[]), \
          patch("src.analysis_agent._call_groq", side_effect=mock_analyses):
 
         brief_markdown = main.run_pipeline(
@@ -123,6 +124,7 @@ def test_full_pipeline_e2e_default_timestamped_run(tmp_path, monkeypatch):
          patch("src.monitoring_agent._fetch_github_events", return_value=[]), \
          patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
          patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]), \
+         patch("src.monitoring_agent._fetch_research_signals", return_value=[]), \
          patch("src.analysis_agent._call_groq", side_effect=mock_analysis):
 
         # Execute default pipeline run

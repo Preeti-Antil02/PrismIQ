@@ -105,6 +105,10 @@ def calculate_corroboration_confidence(finding: Dict[str, Any]) -> Dict[str, Any
     - Multi-Source: 2+ distinct source types (e.g. news + github) -> High
     - Multi-Signal Single-Source: 3+ signals from same source -> Medium
     - Single-Signal: 1-2 signals from same source -> Single-Source
+
+    Corroboration Bumping Invariant:
+    Corroboration ONLY bumps `fact_confidence` upward. It NEVER bumps or alters `inference_confidence`
+    or speculative analysis text.
     """
     corrob_count = finding.get("corroboration_count", 1)
     sources = finding.get("contributing_sources", [])
@@ -129,6 +133,27 @@ def calculate_corroboration_confidence(finding: Dict[str, Any]) -> Dict[str, Any
     enriched["corroboration_level"] = level
     enriched["corroboration_score"] = score
     enriched["corroboration_type"] = ctype
+
+    # Fact vs. Inference separation:
+    current_fact_conf = finding.get("fact_confidence") or finding.get("confidence", "Low")
+    current_infer_conf = finding.get("inference_confidence") or finding.get("confidence", "Low")
+
+    # Bump fact_confidence upward only
+    if level == "High":
+        bumped_fact_conf = "High"
+    elif level == "Medium":
+        bumped_fact_conf = "High" if current_fact_conf == "High" else "Medium"
+    else:
+        bumped_fact_conf = current_fact_conf
+
+    enriched["fact_confidence"] = bumped_fact_conf
+    # Inference confidence is strictly invariant under corroboration
+    enriched["inference_confidence"] = current_infer_conf
+    # Legacy blended confidence reflects updated fact strength
+    enriched["confidence"] = bumped_fact_conf if current_infer_conf == "High" else (
+        "Medium" if bumped_fact_conf in ("High", "Medium") else "Low"
+    )
+
     return enriched
 
 

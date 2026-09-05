@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import sys
 from pathlib import Path
 
@@ -6,6 +7,7 @@ backend_path = Path(__file__).resolve().parent.parent
 if str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
 
+import pytest
 from src import report_agent
 
 
@@ -329,3 +331,101 @@ def test_report_agent_empty_findings():
     assert isinstance(report, str)
     assert "## Top 3 decisions this informs" in report
     assert "## Strategic Themes & Cross-Competitor Analysis" in report
+
+
+def test_freshness_decay_multiplier_math():
+    """Verify decay multiplier values at Day 0, 1, 3, 7, 14 with 3.0-day half-life."""
+    ref_time = datetime(2026, 9, 4, 12, 0, 0, tzinfo=timezone.utc)
+    
+    # Day 0 (0 hours old) -> 1.000
+    f0 = {"published_at": "2026-09-04T12:00:00Z"}
+    assert pytest.approx(report_agent.calculate_freshness_decay_multiplier(f0, reference_time=ref_time), 0.001) == 1.000
+    assert report_agent.format_freshness_label(f0, reference_time=ref_time) == "New today"
+
+    # Day 1 (24 hours old) -> ~0.794
+    f1 = {"published_at": "2026-09-03T12:00:00Z"}
+    assert pytest.approx(report_agent.calculate_freshness_decay_multiplier(f1, reference_time=ref_time), 0.001) == 0.794
+    assert report_agent.format_freshness_label(f1, reference_time=ref_time) == "1 day old"
+
+    # Day 3 (72 hours old) -> 0.500 (Half-Life)
+    f3 = {"published_at": "2026-09-01T12:00:00Z"}
+    assert pytest.approx(report_agent.calculate_freshness_decay_multiplier(f3, reference_time=ref_time), 0.001) == 0.500
+    assert report_agent.format_freshness_label(f3, reference_time=ref_time) == "3 days old"
+
+    # Day 7 (168 hours old) -> ~0.198
+    f7 = {"published_at": "2026-08-28T12:00:00Z"}
+    assert pytest.approx(report_agent.calculate_freshness_decay_multiplier(f7, reference_time=ref_time), abs=1e-3) == 0.198
+    assert report_agent.format_freshness_label(f7, reference_time=ref_time) == "7 days old"
+
+    # Day 14 (336 hours old) -> ~0.039
+    f14 = {"published_at": "2026-08-21T12:00:00Z"}
+    assert pytest.approx(report_agent.calculate_freshness_decay_multiplier(f14, reference_time=ref_time), abs=1e-3) == 0.039
+    assert report_agent.format_freshness_label(f14, reference_time=ref_time) == "14 days old"
+
+    # Undated / Historical event (FAIL CLOSED fallback 14 days) -> ~0.039
+    f_undated = {"published_at": None, "published_timestamp": None}
+    assert pytest.approx(report_agent.calculate_freshness_decay_multiplier(f_undated, reference_time=ref_time), abs=1e-3) == 0.039
+    assert report_agent.format_freshness_label(f_undated, reference_time=ref_time) == "Historical / Undated"
+
+
+def test_part_6_7_vercel_launches_regression_check():
+    """
+    MANDATORY REGRESSION CHECK:
+    Verify that the exact original Vercel changelog product launches from Part 6.7 maintain
+    their Should-Know tier assignment under decay-adjusted scoring.
+    """
+    ref_time = datetime(2026, 8, 22, 0, 0, 0, tzinfo=timezone.utc)
+
+    # 1. Original Part 6.7 Finding: Always-on tracing
+    tracing_launch = {
+        "source": "news",
+        "company": "Vercel",
+        "title": "Always-on tracing for production and preview traffic - Vercel",
+        "url": "https://vercel.com/changelog/always-on-tracing-for-production-and-preview-traffic",
+        "published_at": "2026-08-21 00:00:00 +0000",
+        "raw_excerpt": "Observability sampling for preview environments.",
+        "why_it_matters": "Adds built-in observability for preview requests.",
+        "confidence": "High",
+    }
+
+    # 2. Original Part 6.7 Finding: Connect v0 apps
+    v0_launch = {
+        "source": "news",
+        "company": "Vercel",
+        "title": "Connect v0 apps to Slack, Google, and 100+ other services - Vercel",
+        "url": "https://vercel.com/changelog/connect-v0-apps-to-slack-google-and-100-other-services",
+        "published_at": "2026-08-21 00:00:00 +0000",
+        "raw_excerpt": "Enables OAuth connections for v0 apps.",
+        "why_it_matters": "Expands integration ecosystem for v0 generative apps.",
+        "confidence": "High",
+    }
+
+    # 3. Product Launch: Deploy Eve agents from dashboard
+    eve_launch = {
+        "source": "news",
+        "company": "Vercel",
+        "title": "Build and deploy eve agents from the Vercel dashboard - Vercel",
+        "url": "https://vercel.com/changelog/build-and-deploy-eve-agents-from-the-vercel-dashboard",
+        "published_at": "2026-08-21 00:00:00 +0000",
+        "raw_excerpt": "Build and deploy eve agents directly from the dashboard.",
+        "why_it_matters": "Extends Vercel native agent hosting capabilities.",
+        "confidence": "High",
+    }
+
+    # Verify base intrinsic tier without changelog penalty lands in should_know
+    assert report_agent._assign_finding_tier(tracing_launch, apply_freshness_decay=False) == "should_know"
+    assert report_agent._assign_finding_tier(v0_launch, apply_freshness_decay=False) == "should_know"
+    assert report_agent._assign_finding_tier(eve_launch, apply_freshness_decay=False) == "should_know"
+
+    # Verify that even with freshness decay at Day 1 (~24h old in cycle), score (2.0 * 0.794 = 1.59) >= 1.50
+    assert report_agent._assign_finding_tier(tracing_launch, apply_freshness_decay=True, reference_time=ref_time) == "should_know"
+    assert report_agent._assign_finding_tier(v0_launch, apply_freshness_decay=True, reference_time=ref_time) == "should_know"
+    assert report_agent._assign_finding_tier(eve_launch, apply_freshness_decay=True, reference_time=ref_time) == "should_know"
+
+    # Verify changelog penalty still prevents routine changelogs from hijacking Top-3
+    top3_tracing = report_agent._calculate_decision_score(tracing_launch, apply_changelog_penalty=True, apply_freshness_decay=False)
+    top3_v0 = report_agent._calculate_decision_score(v0_launch, apply_changelog_penalty=True, apply_freshness_decay=False)
+    top3_eve = report_agent._calculate_decision_score(eve_launch, apply_changelog_penalty=True, apply_freshness_decay=False)
+    assert top3_tracing == 1.0
+    assert top3_v0 == 1.0
+    assert top3_eve == 1.0

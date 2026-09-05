@@ -22,6 +22,8 @@ PUBLISHER_AND_GENERIC_DOMAINS: Set[str] = {
     # Target company corporate sites (hosting thousands of unrelated updates)
     "vercel.com", "netlify.com", "cloudflare.com", "datadog.com", "datadoghq.com",
     "stripe.com", "github.blog", "blog.cloudflare.com",
+    # Academic & Paper repositories
+    "arxiv.org", "export.arxiv.org",
 }
 
 # Stopwords and common generic tech words that must NEVER act as event anchors
@@ -62,6 +64,14 @@ def _extract_cve(text: str) -> Optional[str]:
     """Extract standard CVE identifier (e.g. CVE-2026-1234)."""
     m = re.search(r"\b(cve-\d{4}-\d{4,7})\b", text, re.IGNORECASE)
     return m.group(1).lower() if m else None
+
+
+def _extract_arxiv_id(text: str) -> Optional[str]:
+    """Extract standard arXiv paper identifier (e.g. 2401.12345 or arxiv:2401.12345)."""
+    m = re.search(r"(?:arxiv\.org/(?:abs|pdf)/|arxiv:\s*)(\d{4}\.\d{4,5}(?:v\d+)?)", text, re.IGNORECASE)
+    if m:
+        return f"arxiv_{m.group(1).lower()}"
+    return None
 
 
 def _extract_version_tag(text: str) -> Optional[str]:
@@ -206,6 +216,12 @@ def _should_merge_signals(sig1: Dict[str, Any], sig2: Dict[str, Any]) -> Tuple[b
     cve2 = _extract_cve(f"{t2} {sig2.get('raw_excerpt', '')}")
     if cve1 and cve2 and cve1 == cve2:
         return True, f"Matching CVE: {cve1}"
+
+    # Rule 3b: ArXiv Paper Match
+    arxiv1 = _extract_arxiv_id(f"{url1} {t1} {sig1.get('raw_excerpt', '')}")
+    arxiv2 = _extract_arxiv_id(f"{url2} {t2} {sig2.get('raw_excerpt', '')}")
+    if arxiv1 and arxiv2 and arxiv1 == arxiv2:
+        return True, f"Matching arXiv paper ID: {arxiv1}"
 
     # Rule 4: GitHub Specific Item Match (Exact Release, PR, Issue, or Branch)
     repo1, item1 = _extract_github_repo_and_item(url1, t1)

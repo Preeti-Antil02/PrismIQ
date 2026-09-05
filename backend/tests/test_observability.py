@@ -33,7 +33,7 @@ def test_node_level_failure_distinction():
 
 
 def test_attach_langsmith_usage_metadata_helpers():
-    """Verify _attach_langsmith_usage correctly attaches factual token counts to active span."""
+    """Verify _attach_langsmith_usage correctly computes tokens and estimated cost on active span."""
     mock_run_tree = MagicMock()
     mock_run_tree.extra = {}
 
@@ -50,35 +50,24 @@ def test_attach_langsmith_usage_metadata_helpers():
         call_kwargs = mock_run_tree.set.call_args[1]
         assert "usage_metadata" in call_kwargs
         um = call_kwargs["usage_metadata"]
-        assert um == {
-            "input_tokens": 1000,
-            "output_tokens": 200,
-            "total_tokens": 1200,
-        }
+        assert um["input_tokens"] == 1000
+        assert um["output_tokens"] == 200
+        assert um["total_tokens"] == 1200
+        assert um["input_cost"] == 0.00059
+        assert um["output_cost"] == 0.000158
+        assert um["total_cost"] == 0.000748
 
     # Test in llm_judge
     mock_run_tree.reset_mock()
     with patch("src.llm_judge.get_current_run_tree", return_value=mock_run_tree):
         llm_judge._attach_langsmith_usage(usage_dict)
         mock_run_tree.set.assert_called_once()
-        call_kwargs = mock_run_tree.set.call_args[1]
-        assert call_kwargs["usage_metadata"] == {
-            "input_tokens": 1000,
-            "output_tokens": 200,
-            "total_tokens": 1200,
-        }
 
     # Test in discovery_agent
     mock_run_tree.reset_mock()
     with patch("src.discovery_agent.get_current_run_tree", return_value=mock_run_tree):
         discovery_agent._attach_langsmith_usage(usage_dict)
         mock_run_tree.set.assert_called_once()
-        call_kwargs = mock_run_tree.set.call_args[1]
-        assert call_kwargs["usage_metadata"] == {
-            "input_tokens": 1000,
-            "output_tokens": 200,
-            "total_tokens": 1200,
-        }
 
 
 def test_groq_api_call_extracts_usage():

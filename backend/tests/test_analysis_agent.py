@@ -100,3 +100,45 @@ def test_analysis_agent_confidence_normalization():
 def test_analysis_agent_empty_signals():
     findings = analysis_agent.run([])
     assert findings == []
+
+
+def test_analysis_agent_dual_confidence_separation():
+    sample_signal = {
+        "source": "news",
+        "company": "Vercel",
+        "title": "Vercel Announces AI Gateway",
+        "url": "https://vercel.com/blog/ai-gateway",
+        "published_at": "2026-08-20T10:00:00Z",
+        "raw_excerpt": "AI Gateway introduces unified endpoint.",
+    }
+    mock_response = {
+        "why_it_matters": "Unified endpoint documents enterprise routing. This may suggest future unified metering.",
+        "fact_confidence": "High",
+        "inference_confidence": "Medium",
+        "confidence": "Medium",
+    }
+    with patch("src.analysis_agent._call_groq", return_value=mock_response):
+        findings = analysis_agent.run([sample_signal])
+        assert len(findings) == 1
+        f = findings[0]
+        assert f["fact_confidence"] == "High"
+        assert f["inference_confidence"] == "Medium"
+        assert f["confidence"] == "Medium"
+
+
+def test_analysis_agent_routine_job_confidence_calibration():
+    job_signal = {
+        "source": "jobs",
+        "company": "Vercel",
+        "title": "Job Posting: Account Executive - Enterprise EMEA",
+        "url": "https://vercel.com/careers/ae-emea",
+        "published_at": "2026-08-20T10:00:00Z",
+        "raw_excerpt": "Hiring standard quota-carrying account executive.",
+        "corroboration_count": 1,
+    }
+    findings = analysis_agent.run([job_signal])
+    assert len(findings) == 1
+    f = findings[0]
+    assert f["fact_confidence"] == "High"  # Sourced job posting is verified fact
+    assert f["inference_confidence"] == "Low"  # No speculative strategic inference
+    assert f["confidence"] == "Low"  # Low legacy ranking priority

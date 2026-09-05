@@ -121,6 +121,9 @@ def is_whitelisted(signal: Dict[str, Any]) -> Tuple[bool, str]:
     if signal.get("funding_related") or signal.get("source_subtype") == "funding":
         return True, "Funding-classified news signal"
 
+    if source == "research" or signal.get("source_subtype") == "research":
+        return True, "Research-classified academic paper or technical engineering writeup"
+
     return False, ""
 
 

@@ -45,8 +45,8 @@ def pipeline_concurrency_lock(
     global _IN_MEMORY_HELD
     key = lock_key if lock_key is not None else config.PIPELINE_LOCK_KEY
 
-    # Test environment isolation
-    if storage.is_test_environment() and not os.getenv("FORCE_LIVE_LOCK"):
+    # Fail-closed test and unpermitted CLI environment isolation
+    if (storage.is_test_environment() or not storage.is_live_write_permitted()) and not os.getenv("FORCE_LIVE_LOCK"):
         acquired = _IN_MEMORY_LOCK.acquire(blocking=False)
         if not acquired or _IN_MEMORY_HELD:
             logger.warning(f"In-memory test lock {key} is already held. Rejecting concurrent run.")

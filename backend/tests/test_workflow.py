@@ -14,9 +14,25 @@ from src import workflow, monitoring_agent, pricing_extractor, report_agent
 
 
 def test_langgraph_workflow_graph_compilation():
-    """Verify that the LangGraph StateGraph compiles successfully with all 7 nodes."""
+    """Verify that the LangGraph StateGraph compiles successfully with all 8 nodes."""
     app = workflow.create_pipeline_graph()
     assert app is not None
+    assert "delivery" in app.nodes
+
+
+def test_workflow_delivery_node_execution():
+    """Verify that delivery_node executes and produces delivery_status without error."""
+    state = {
+        "synthesis": {"themes": {}, "enriched_findings": []},
+        "supervisor_decisions": {},
+        "source_health": {},
+        "trigger_mode": "manual",
+        "slack_webhook_url": "",
+    }
+    result = workflow.delivery_node(state)
+    assert "slack_digest" in result
+    assert "delivery_status" in result
+    assert result["delivery_status"]["status"] == "skipped"
 
 
 def test_decision_point_1_source_retry_and_recovery():

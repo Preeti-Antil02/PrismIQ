@@ -37,20 +37,31 @@ FACT vs. INFERENCE SEPARATION — structure your "why_it_matters" as follows:
 - THEN, only if there is a genuinely meaningful strategic or competitive implication, add it as a clearly separate inference using explicit hedging language (e.g. "this could suggest," "if confirmed, this may indicate," "this might create an opportunity for"). Do NOT blend fact and speculation into one confident-sounding sentence.
 - If the source only supports a factual statement and no meaningful strategic inference exists, do NOT manufacture one — a purely factual "why_it_matters" is acceptable and preferred over forced speculation.
 
-CONFIDENCE CALIBRATION:
+CONFIDENCE CALIBRATION (DUAL FACT vs. INFERENCE DIMENSIONS):
 - "High" confidence is appropriate when the finding is mostly verifiable, documented fact with minimal or no speculative inference.
 - "Medium" confidence is appropriate when the finding mixes documented fact with a reasonable but unverified strategic inference.
 - "Low" confidence is appropriate when the finding relies heavily on speculative interpretation that the source does not directly establish.
 Do not default to "High" just because the source itself is an official announcement — if your "why_it_matters" explanation reaches beyond what the source documents into strategic speculation, that speculation lowers the overall confidence.
 
+- "fact_confidence" ("High" | "Medium" | "Low"): Confidence in the documented, sourced fact itself.
+  * "High": Documented in authoritative primary source (official release, github commit, verified CVE, direct pricing page).
+  * "Medium": Documented in reputable secondary source (news, third-party article).
+  * "Low": Documented in ambiguous, user-generated, or unverified source.
+- "inference_confidence" ("High" | "Medium" | "Low"): Confidence in the strategic or competitive interpretation.
+  * "High": Minimal speculation; the strategic implication directly follows from the documented fact.
+  * "Medium": Plausible strategic hypothesis grounded in evidence, but subject to unverified assumptions.
+  * "Low": Significant strategic speculation, or routine operational fact where no strategic conclusion is proven.
+
 JOB POSTINGS & HIRING SIGNALS CALIBRATION:
 - An individual routine job posting (e.g. routine Account Executive, Customer Success Manager, general Frontend Engineer, standard Technical Support) is almost never competitively significant on its own — companies hire constantly.
-- For individual routine job postings, DO NOT invent grandiose strategic narratives or forced speculation. Output a concise, factual summary of the open role (e.g. "Routine commercial hiring for Account Executive in EMEA.") and assign "Low" confidence.
+- For individual routine job postings, DO NOT invent grandiose strategic narratives or forced speculation. Output a concise, factual summary of the open role (e.g. "Routine commercial hiring for Account Executive in EMEA."), assign "High" fact_confidence, and "Low" inference_confidence.
 - ONLY flag a strategic pattern when the evidence demonstrates a significant hiring concentration (e.g. specialized AI/LLM systems team, new executive VP/Director leadership, a new regional engineering hub, or roles dedicated to a distinct new product area). Ground the inference directly in the specific job titles, department, and location provided.
 
 You must respond ONLY with a valid JSON object matching this schema:
 {
   "why_it_matters": "A 1-3 sentence explanation structured as described above.",
+  "fact_confidence": "High" | "Medium" | "Low",
+  "inference_confidence": "High" | "Medium" | "Low",
   "confidence": "High" | "Medium" | "Low"
 }
 """
@@ -93,7 +104,7 @@ Remember to:
 
 
 def _attach_langsmith_usage(usage: Optional[Dict[str, Any]], model: str = "") -> None:
-    """Extract token counts from Groq usage object and attach to the active LangSmith span."""
+    """Extract token counts and estimated cost from Groq usage object and attach to the active LangSmith span."""
     if not usage or not isinstance(usage, dict):
         return
     try:
@@ -105,10 +116,18 @@ def _attach_langsmith_usage(usage: Optional[Dict[str, Any]], model: str = "") ->
         c_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
         t_tokens = int(usage.get("total_tokens") or (p_tokens + c_tokens))
 
+        # Benchmark pricing for open-weight models on Groq Cloud ($0.59 / 1M prompt, $0.79 / 1M completion)
+        input_cost = (p_tokens / 1_000_000.0) * 0.59
+        output_cost = (c_tokens / 1_000_000.0) * 0.79
+        total_cost = round(input_cost + output_cost, 6)
+
         usage_meta = {
             "input_tokens": p_tokens,
             "output_tokens": c_tokens,
             "total_tokens": t_tokens,
+            "input_cost": round(input_cost, 6),
+            "output_cost": round(output_cost, 6),
+            "total_cost": total_cost,
         }
 
         if hasattr(run_tree, "set"):
@@ -174,21 +193,31 @@ def _call_groq(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Di
             cleaned_content = re.sub(r"\s*```$", "", cleaned_content.strip())
             
             parsed = json.loads(cleaned_content)
+            fact_conf = _normalize_confidence(parsed.get("fact_confidence") or parsed.get("confidence", "Low"))
+            infer_conf = _normalize_confidence(parsed.get("inference_confidence") or parsed.get("confidence", "Low"))
+            blended_conf = _normalize_confidence(parsed.get("confidence") or fact_conf)
+
             return {
                 "why_it_matters": str(parsed.get("why_it_matters", "")).strip(),
-                "confidence": _normalize_confidence(parsed.get("confidence", "Low")),
+                "fact_confidence": fact_conf,
+                "inference_confidence": infer_conf,
+                "confidence": blended_conf,
             }
         except Exception as e:
             if attempt == max_retries - 1:
                 logger.error(f"Error calling Groq API ({model}): {e}")
                 return {
                     "why_it_matters": f"Analysis failed due to error: {str(e)}",
+                    "fact_confidence": "Low",
+                    "inference_confidence": "Low",
                     "confidence": "Low",
                 }
             time.sleep(1.0)
 
     return {
         "why_it_matters": "Analysis unavailable due to rate limits.",
+        "fact_confidence": "Low",
+        "inference_confidence": "Low",
         "confidence": "Low",
     }
 
@@ -211,7 +240,7 @@ def _is_strategic_hiring_signal(signal: Dict[str, Any]) -> bool:
 def run(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Analyze a list of normalized signals / consolidated events.
-    Produces why_it_matters and confidence ('High', 'Medium', 'Low') for each finding.
+    Produces why_it_matters, fact_confidence, inference_confidence, and legacy confidence for each finding.
     Suppresses speculative LLM analysis on routine individual job postings, routing strategic
     hiring and all news/GitHub signals to Groq for deep analysis.
     """
@@ -228,21 +257,28 @@ def run(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             title = signal.get("title", "Job Posting").replace("Job Posting: ", "")
             finding = dict(signal)
             finding["why_it_matters"] = f"Routine operational hiring for {title}."
-            finding["confidence"] = "Low"
+            finding["fact_confidence"] = "High"  # Sourced job posting is a verified fact
+            finding["inference_confidence"] = "Low"  # No strategic extrapolation
+            finding["confidence"] = "Low"  # Legacy blended priority
             findings.append(finding)
             continue
 
         system_prompt, user_prompt = _build_prompts(signal)
         analysis = _call_groq(system_prompt, user_prompt)
         
-        confidence = _normalize_confidence(analysis.get("confidence", "Low"))
+        fact_conf = _normalize_confidence(analysis.get("fact_confidence") or analysis.get("confidence", "Low"))
+        infer_conf = _normalize_confidence(analysis.get("inference_confidence") or analysis.get("confidence", "Low"))
+        blended_conf = _normalize_confidence(analysis.get("confidence") or fact_conf)
+
         why_it_matters = analysis.get("why_it_matters", "").strip()
         if not why_it_matters:
             why_it_matters = f"Activity reported in {signal.get('title', 'source')}."
 
         finding = dict(signal)
         finding["why_it_matters"] = why_it_matters
-        finding["confidence"] = confidence
+        finding["fact_confidence"] = fact_conf
+        finding["inference_confidence"] = infer_conf
+        finding["confidence"] = blended_conf
         findings.append(finding)
 
     return findings

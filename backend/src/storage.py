@@ -57,6 +57,22 @@ def is_test_environment() -> bool:
     )
 
 
+def is_live_write_permitted() -> bool:
+    """
+    Fail-closed authorization check for live PostgreSQL database connections/writes.
+    Requires explicit opt-in via ALLOW_LIVE_WRITE=true, ALLOW_PROD_WRITE=true, or FORCE_LIVE_DB=1.
+    Any ad hoc CLI invocation, unconfigured script, or manual run without explicit opt-in
+    fails CLOSED by default to prevent production data pollution.
+    """
+    if is_test_environment() and not (os.getenv("FORCE_LIVE_DB") == "1"):
+        return False
+    return (
+        os.getenv("ALLOW_LIVE_WRITE", "").lower() in ("true", "1", "yes")
+        or os.getenv("ALLOW_PROD_WRITE", "").lower() in ("true", "1", "yes")
+        or os.getenv("FORCE_LIVE_DB") == "1"
+    )
+
+
 def get_db_url() -> Optional[str]:
     """Retrieve PostgreSQL connection URL from environment with test isolation guard."""
     if is_test_environment():
@@ -85,10 +101,16 @@ def get_db_cursor() -> Generator[Any, None, None]:
     Context manager yielding a PostgreSQL cursor within an ACID transaction.
     Commits on success, rolls back and raises on failure.
     
-    HARD SECURITY SAFEGUARD:
-    - If running under test mode and no TEST_DATABASE_URL is set, yields an isolated MockCursor.
-    - If running under test mode and TEST_DATABASE_URL points to production SUPABASE_DB_URL, raises PermissionError.
-    - In production, connects directly to SUPABASE_DB_URL.
+    FAIL-CLOSED PRODUCTION SECURITY SAFEGUARDS:
+    1. Test mode (pytest or PRISMIQ_ENV='test'):
+       - If TEST_DATABASE_URL is set and matches SUPABASE_DB_URL -> raises PermissionError.
+       - If TEST_DATABASE_URL is set -> connects to test database.
+       - Otherwise -> yields isolated in-memory MockCursor.
+    2. Ad hoc / CLI / Non-test invocations without explicit authorization:
+       - Fails CLOSED by default unless ALLOW_LIVE_WRITE=true (or FORCE_LIVE_DB=1).
+       - Yields MockCursor to guarantee zero production database pollution.
+    3. Production-authorized mode:
+       - Connects directly to SUPABASE_DB_URL.
     """
     if is_test_environment():
         test_url = get_db_url()
@@ -98,6 +120,14 @@ def get_db_cursor() -> Generator[Any, None, None]:
             return
         db_url = test_url
     else:
+        if not is_live_write_permitted():
+            logger.info(
+                "Live PostgreSQL access not authorized (ALLOW_LIVE_WRITE=true not set). "
+                "Failing CLOSED to isolated MockCursor to prevent production data pollution."
+            )
+            yield MockCursor()
+            return
+
         db_url = get_db_url()
         if not db_url:
             raise ConnectionError(
@@ -449,13 +479,15 @@ def save_findings(findings: List[Dict[str, Any]]) -> None:
         return
     with get_db_cursor() as cur:
         f_sql = """
-            INSERT INTO findings (event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock)
-            VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+            INSERT INTO findings (event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock, fact_confidence, inference_confidence)
+            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, %s)
             ON CONFLICT (event_id) DO UPDATE
             SET why_it_matters = EXCLUDED.why_it_matters,
                 confidence = EXCLUDED.confidence,
                 decision_score = EXCLUDED.decision_score,
-                tier = EXCLUDED.tier;
+                tier = EXCLUDED.tier,
+                fact_confidence = COALESCE(EXCLUDED.fact_confidence, findings.fact_confidence),
+                inference_confidence = COALESCE(EXCLUDED.inference_confidence, findings.inference_confidence);
         """
         f_params = []
         for f in findings:
@@ -467,7 +499,9 @@ def save_findings(findings: List[Dict[str, Any]]) -> None:
             conf = f.get("confidence", "Medium")
             score = f.get("decision_score", 1.0)
             tier = f.get("tier", "should_know")
-            f_params.append((eid, comp, why, conf, score, tier))
+            fact_conf = f.get("fact_confidence")
+            infer_conf = f.get("inference_confidence")
+            f_params.append((eid, comp, why, conf, score, tier, fact_conf, infer_conf))
 
         _execute_batch(cur, f_sql, f_params, page_size=200)
         logger.info(f"Dual-write: persisted {len(f_params)} findings to PostgreSQL.")
@@ -887,3 +921,65 @@ def save_pricing_snapshot(
         json.dump(snapshot_data, f, indent=2, ensure_ascii=False)
 
     return history_file
+
+
+def get_prior_research_activity(exclude_signal_ids: Optional[Set[str]] = None) -> Optional[Dict[str, Any]]:
+    """
+    Query PostgreSQL (or fallback flat file store) for the most recent prior research activity.
+    Used by Report Agent to evaluate change detection across cycles.
+    
+    Returns:
+        Dict with keys {"title", "company", "published_at", "url"} or None if no prior research activity.
+    """
+    if not is_test_environment():
+        try:
+            with get_db_cursor() as cur:
+                if exclude_signal_ids:
+                    placeholders = ", ".join(["%s"] * len(exclude_signal_ids))
+                    sql = f"""
+                        SELECT title, company_name, published_at, url, created_at
+                        FROM raw_signals
+                        WHERE source = 'research' AND id NOT IN ({placeholders})
+                        ORDER BY published_timestamp DESC NULLS LAST, created_at DESC
+                        LIMIT 1;
+                    """
+                    cur.execute(sql, tuple(exclude_signal_ids))
+                else:
+                    sql = """
+                        SELECT title, company_name, published_at, url, created_at
+                        FROM raw_signals
+                        WHERE source = 'research'
+                        ORDER BY published_timestamp DESC NULLS LAST, created_at DESC
+                        LIMIT 1;
+                    """
+                    cur.execute(sql)
+                row = cur.fetchone()
+                if row and row[0]:
+                    return {
+                        "title": row[0],
+                        "company": row[1],
+                        "published_at": row[2] or "recent cycle",
+                        "url": row[3],
+                    }
+        except Exception as e:
+            logger.warning(f"Failed to query prior research activity from Postgres: {e}")
+
+    # Fallback to local flat files
+    data_dir = _get_data_dir()
+    for sig_file in sorted(data_dir.glob("signals_*.json"), reverse=True):
+        try:
+            with open(sig_file, "r", encoding="utf-8") as f:
+                sigs = json.load(f)
+                for s in sigs:
+                    if s.get("source") == "research" or s.get("source_subtype") == "research":
+                        if exclude_signal_ids and s.get("id") in exclude_signal_ids:
+                            continue
+                        return {
+                            "title": s.get("title", ""),
+                            "company": s.get("company", ""),
+                            "published_at": s.get("published_at") or "recent cycle",
+                            "url": s.get("url", ""),
+                        }
+        except Exception:
+            continue
+    return None

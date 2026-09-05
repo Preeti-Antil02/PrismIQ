@@ -9,9 +9,10 @@ Renders executive markdown competitive intelligence briefs from synthesized find
 """
 
 from collections import defaultdict
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from . import synthesis_agent
+from . import config, synthesis_agent, storage
 
 # High-stakes risk & security keywords that warrant immediate executive attention
 SECURITY_KEYWORDS: Set[str] = {
@@ -33,9 +34,103 @@ CHANGELOG_INDICATORS: List[str] = [
 ]
 
 
+def _parse_datetime(val: Any) -> Optional[datetime]:
+    """Parse string/numeric timestamp into timezone-aware datetime."""
+    if not val:
+        return None
+    if isinstance(val, datetime):
+        if val.tzinfo is None:
+            return val.replace(tzinfo=timezone.utc)
+        return val
+    s = str(val).strip()
+    # Try ISO formats
+    try:
+        cleaned = s.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(cleaned)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        pass
+    # Try common formats
+    for fmt in (
+        "%Y-%m-%d %H:%M:%S %z",
+        "%Y-%m-%d %H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%d %b %Y %H:%M:%S %z",
+        "%a, %d %b %Y %H:%M:%S %z",
+    ):
+        try:
+            dt = datetime.strptime(s, fmt)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except Exception:
+            continue
+    return None
+
+
+def calculate_age_days(finding: Dict[str, Any], reference_time: Optional[datetime] = None) -> Optional[float]:
+    """Calculate the age in days of a finding relative to reference_time (or now)."""
+    ref_dt = reference_time or datetime.now(timezone.utc)
+    if ref_dt.tzinfo is None:
+        ref_dt = ref_dt.replace(tzinfo=timezone.utc)
+
+    dt = (
+        _parse_datetime(finding.get("published_timestamp"))
+        or _parse_datetime(finding.get("published_at"))
+        or _parse_datetime(finding.get("first_detected_at"))
+        or _parse_datetime(finding.get("created_at"))
+    )
+    if not dt:
+        return None
+    age_seconds = (ref_dt - dt).total_seconds()
+    return max(0.0, age_seconds / 86400.0)
+
+
+def format_freshness_label(finding: Dict[str, Any], reference_time: Optional[datetime] = None) -> str:
+    """Return a human-readable freshness label (e.g. 'New today', '1 day old', '3 days old')."""
+    age_days = calculate_age_days(finding, reference_time=reference_time)
+    if age_days is None:
+        return "Historical / Undated"
+    if age_days < 1.0:
+        return "New today"
+    elif age_days < 2.0:
+        return "1 day old"
+    else:
+        d = int(age_days)
+        return f"{d} days old"
+
+
+def calculate_freshness_decay_multiplier(
+    finding: Dict[str, Any],
+    half_life_days: float = config.FRESHNESS_DECAY_HALF_LIFE_DAYS,
+    reference_time: Optional[datetime] = None,
+) -> float:
+    """
+    Calculate exponential freshness decay multiplier: 0.5 ** (age_days / half_life_days).
+    FAIL CLOSED: Undated/historical events without verifiable timestamps receive a fallback age of
+    config.UNDATED_FALLBACK_AGE_DAYS (decaying to ~0.039 with 3d half-life), ensuring they never masquerade as fresh Breaking news.
+    """
+    age_days = calculate_age_days(finding, reference_time=reference_time)
+    if age_days is None:
+        # Fail closed: treat undated items as config.UNDATED_FALLBACK_AGE_DAYS old (heavy decay)
+        fallback_age = config.UNDATED_FALLBACK_AGE_DAYS
+        if half_life_days <= 0:
+            return 0.05
+        return float(0.5 ** (fallback_age / half_life_days))
+    if half_life_days <= 0:
+        return 1.0
+    return float(0.5 ** (age_days / half_life_days))
+
+
 def _calculate_decision_score(
     finding: Dict[str, Any],
     apply_changelog_penalty: bool = True,
+    apply_freshness_decay: bool = False,
+    reference_time: Optional[datetime] = None,
 ) -> float:
     """
     Calculate an intelligence priority score.
@@ -43,6 +138,8 @@ def _calculate_decision_score(
       self-reported changelogs to prevent them from crowding out high-stakes competitor news.
     - When apply_changelog_penalty=False (for tier assignment): measures underlying
       substantiveness without penalizing genuine feature announcements into Nice-to-Know.
+    - When apply_freshness_decay=True: applies exponential time-decay multiplier
+      (0.5 ** (age_days / half_life_days)) to prioritize breaking items over older items.
     """
     confidence = finding.get("confidence", "Low")
     if confidence == "High":
@@ -78,10 +175,19 @@ def _calculate_decision_score(
     if not is_self_domain:
         score += 0.5
 
-    return score
+    # Freshness decay weighting
+    if apply_freshness_decay:
+        decay_mult = calculate_freshness_decay_multiplier(finding, reference_time=reference_time)
+        score *= decay_mult
+
+    return round(score, 3)
 
 
-def _assign_finding_tier(finding: Dict[str, Any]) -> str:
+def _assign_finding_tier(
+    finding: Dict[str, Any],
+    apply_freshness_decay: bool = False,
+    reference_time: Optional[datetime] = None,
+) -> str:
     """
     Assign a finding to Must-know, Should-know, or Nice-to-know tier:
     - must_know: high decision score (>= 3.0) - security disclosures, strategic moves, pricing changes.
@@ -104,7 +210,12 @@ def _assign_finding_tier(finding: Dict[str, Any]) -> str:
     is_job = source == "jobs" or "job posting:" in title_lower
     is_leadership_job = any(k in title_lower for k in ["vp", "vice president", "director", "head of", "chief", "principal", "fellow"])
 
-    score = _calculate_decision_score(finding, apply_changelog_penalty=False)
+    score = _calculate_decision_score(
+        finding,
+        apply_changelog_penalty=False,
+        apply_freshness_decay=apply_freshness_decay,
+        reference_time=reference_time,
+    )
 
     if is_job and not is_leadership_job and score < 3.0:
         return "nice_to_know"
@@ -117,7 +228,12 @@ def _assign_finding_tier(finding: Dict[str, Any]) -> str:
         return "nice_to_know"
 
 
-def _select_top_decisions(findings: List[Dict[str, Any]], limit: int = 3) -> List[Dict[str, Any]]:
+def _select_top_decisions(
+    findings: List[Dict[str, Any]],
+    limit: int = 3,
+    apply_freshness_decay: bool = True,
+    reference_time: Optional[datetime] = None,
+) -> List[Dict[str, Any]]:
     """
     Select top decision items across all companies using scored priority,
     ensuring company diversity where qualifying cross-company findings exist.
@@ -126,7 +242,15 @@ def _select_top_decisions(findings: List[Dict[str, Any]], limit: int = 3) -> Lis
         return []
 
     scored_findings = [
-        (finding, _calculate_decision_score(finding, apply_changelog_penalty=True))
+        (
+            finding,
+            _calculate_decision_score(
+                finding,
+                apply_changelog_penalty=True,
+                apply_freshness_decay=apply_freshness_decay,
+                reference_time=reference_time,
+            ),
+        )
         for finding in findings
     ]
     scored_findings.sort(key=lambda x: x[1], reverse=True)
@@ -152,17 +276,72 @@ def _select_top_decisions(findings: List[Dict[str, Any]], limit: int = 3) -> Lis
     return selected
 
 
+def _render_research_activity_section(
+    findings: List[Dict[str, Any]],
+    prior_research_activity: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    """
+    Render Research Activity (Papers & Technical Write-ups) section with dynamic change detection:
+    1. If current cycle has research findings -> Show all findings.
+    2. If current cycle has zero findings AND prior cycle had findings -> Show brief transition note.
+    3. If current cycle has zero findings AND prior cycle had zero findings -> Suppress section entirely.
+    """
+    research_findings = [
+        f for f in findings
+        if f.get("source") == "research"
+        or f.get("source_subtype") == "research"
+        or "research" in f.get("contributing_sources", [])
+        or f.get("research_details")
+    ]
+
+    lines: List[str] = []
+
+    if research_findings:
+        lines.append("## Research Activity (Papers & Technical Write-ups)\n")
+        for finding in research_findings:
+            title = finding.get("title", "Untitled Research Signal")
+            url = finding.get("url", "#")
+            company = finding.get("company", "Competitor")
+            published_at = finding.get("published_at", "Recent")
+            why_it_matters = finding.get("why_it_matters", "")
+            r_details = finding.get("research_details") or {}
+            r_type = r_details.get("type", "technical_writeup")
+            type_label = "Academic Paper (arXiv)" if r_type == "arxiv_paper" else "Technical Engineering Deep-Dive"
+
+            lines.append(f"- **[{title}]({url})** — *{company}* ({type_label})")
+            if why_it_matters:
+                lines.append(f"  - **Why it matters**: {why_it_matters} (*Date: {published_at}*)")
+        lines.append("")
+        return lines
+
+    if prior_research_activity:
+        last_title = prior_research_activity.get("title", "Research Item")
+        last_date = prior_research_activity.get("published_at", "previous cycle")
+        last_comp = prior_research_activity.get("company", "")
+        comp_str = f" from {last_comp}" if last_comp else ""
+        lines.append("## Research Activity (Papers & Technical Write-ups)\n")
+        lines.append(f"*No new research activity detected this cycle (last research finding{comp_str}: \"{last_title}\" on {last_date}).*\n")
+        return lines
+
+    # Suppress entirely
+    return []
+
+
+_DEFAULT_RESEARCH_SENTINEL = object()
+
+
 def run(
     synthesis_or_findings: Any,
     supervisor_decisions: Optional[Dict[str, Any]] = None,
     source_health: Optional[Dict[str, Any]] = None,
     trigger_mode: Optional[str] = None,
     cadence_name: Optional[str] = None,
+    prior_research_activity: Any = _DEFAULT_RESEARCH_SENTINEL,
 ) -> str:
     """
     Generate a markdown competitive intelligence brief organized by Theme.
     Accepts either a synthesized dict from synthesis_agent.run() or a raw list of findings,
-    along with optional supervisor decisions, source health metadata, and trigger mode.
+    along with optional supervisor decisions, source health metadata, trigger mode, and prior research activity.
     """
     if isinstance(synthesis_or_findings, list):
         synthesis = synthesis_agent.run(synthesis_or_findings)
@@ -175,6 +354,16 @@ def run(
     themes = synthesis.get("themes", {})
     exec_summary = synthesis.get("executive_summary", {})
     competitor_index = synthesis.get("competitor_index", {})
+
+    # Resolve prior research activity from Postgres/flat storage if not explicitly supplied
+    if prior_research_activity is _DEFAULT_RESEARCH_SENTINEL:
+        current_sig_ids = set()
+        for f in findings:
+            if f.get("signal_id"):
+                current_sig_ids.add(f["signal_id"])
+            if f.get("event_id"):
+                current_sig_ids.add(f["event_id"])
+        prior_research_activity = storage.get_prior_research_activity(exclude_signal_ids=current_sig_ids)
 
     lines: List[str] = []
     lines.append("# PrismIQ Competitive Intelligence Brief\n")
@@ -300,13 +489,17 @@ def run(
             nice_to_know: List[Dict[str, Any]] = []
 
             for item in comp_items:
-                tier = _assign_finding_tier(item)
+                tier = _assign_finding_tier(item, apply_freshness_decay=False)
                 if tier == "must_know":
                     must_know.append(item)
                 elif tier == "should_know":
                     should_know.append(item)
                 else:
                     nice_to_know.append(item)
+
+            # Sort items within tiers by decay-adjusted priority score
+            must_know.sort(key=lambda x: _calculate_decision_score(x, apply_changelog_penalty=False, apply_freshness_decay=True), reverse=True)
+            should_know.sort(key=lambda x: _calculate_decision_score(x, apply_changelog_penalty=False, apply_freshness_decay=True), reverse=True)
 
             # Must-Know
             if must_know:
@@ -315,19 +508,23 @@ def run(
                     title = finding.get("title", "Untitled Signal")
                     url = finding.get("url", "#")
                     confidence = finding.get("confidence", "Low")
+                    fact_conf = finding.get("fact_confidence") or confidence
+                    infer_conf = finding.get("inference_confidence") or confidence
+                    conf_disp = fact_conf if fact_conf == infer_conf else f"Fact {fact_conf}, Inference {infer_conf}"
                     corrob_lvl = finding.get("corroboration_level", "Single-Source")
                     why_it_matters = finding.get("why_it_matters", "")
                     published_at = finding.get("published_at", "Recent")
+                    freshness_label = format_freshness_label(finding)
                     corrob_count = finding.get("corroboration_count", 1)
                     contrib_sources = finding.get("contributing_sources", [])
 
                     lines.append(f"- **[{title}]({url})**")
                     if corrob_count > 1:
                         sources_str = ", ".join(contrib_sources)
-                        lines.append(f"  - **Corroboration**: {corrob_count} signals ({sources_str} — {corrob_lvl}) | **Confidence**: {confidence} | **Date**: {published_at}")
+                        lines.append(f"  - **Corroboration**: {corrob_count} signals ({sources_str} — {corrob_lvl}) | **Confidence**: {conf_disp} | **Freshness**: {freshness_label} (*Date: {published_at}*)")
                     else:
                         source = finding.get("source") or (contrib_sources[0] if contrib_sources else "unknown")
-                        lines.append(f"  - **Source**: {source} ({corrob_lvl}) | **Confidence**: {confidence} | **Date**: {published_at}")
+                        lines.append(f"  - **Source**: {source} ({corrob_lvl}) | **Confidence**: {conf_disp} | **Freshness**: {freshness_label} (*Date: {published_at}*)")
                     lines.append(f"  - **Why it matters**: {why_it_matters}")
                 lines.append("")
 
@@ -338,18 +535,22 @@ def run(
                     title = finding.get("title", "Untitled Signal")
                     url = finding.get("url", "#")
                     confidence = finding.get("confidence", "Low")
+                    fact_conf = finding.get("fact_confidence") or confidence
+                    infer_conf = finding.get("inference_confidence") or confidence
+                    conf_disp = fact_conf if fact_conf == infer_conf else f"Fact {fact_conf} / Inference {infer_conf}"
                     corrob_lvl = finding.get("corroboration_level", "Single-Source")
                     why_it_matters = finding.get("why_it_matters", "")
                     published_at = finding.get("published_at", "Recent")
+                    freshness_label = format_freshness_label(finding)
                     corrob_count = finding.get("corroboration_count", 1)
                     contrib_sources = finding.get("contributing_sources", [])
 
                     if corrob_count > 1:
                         sources_str = ", ".join(contrib_sources)
-                        lines.append(f"- **[{title}]({url})** ({confidence} confidence | {corrob_lvl} corroboration [{sources_str}])")
+                        lines.append(f"- **[{title}]({url})** ({conf_disp} confidence | {freshness_label} | {corrob_lvl} corroboration [{sources_str}])")
                     else:
                         source = finding.get("source") or (contrib_sources[0] if contrib_sources else "unknown")
-                        lines.append(f"- **[{title}]({url})** ({confidence} confidence | {source})")
+                        lines.append(f"- **[{title}]({url})** ({conf_disp} confidence | {freshness_label} | {source})")
                     lines.append(f"  - **Why it matters**: {why_it_matters} (*Date: {published_at}*)")
                 lines.append("")
 
@@ -360,16 +561,24 @@ def run(
                     title = finding.get("title", "Untitled Signal")
                     url = finding.get("url", "#")
                     published_at = finding.get("published_at", "Recent")
+                    freshness_label = format_freshness_label(finding)
                     corrob_count = finding.get("corroboration_count", 1)
                     contrib_sources = finding.get("contributing_sources", [])
                     source = finding.get("source") or (contrib_sources[0] if contrib_sources else "unknown")
 
                     if corrob_count > 1:
                         sources_str = ", ".join(contrib_sources)
-                        lines.append(f"- [{title}]({url}) — *{corrob_count} signals ({sources_str}), {published_at}*")
+                        lines.append(f"- [{title}]({url}) — *{corrob_count} signals ({sources_str}), {freshness_label} ({published_at})*")
                     else:
-                        lines.append(f"- [{title}]({url}) — *{source}, {published_at}*")
+                        lines.append(f"- [{title}]({url}) — *{source}, {freshness_label} ({published_at})*")
                 lines.append("")
+
+    # ==========================================
+    # 3.5. Research Activity (Papers & Technical Write-ups)
+    # ==========================================
+    res_section_lines = _render_research_activity_section(findings, prior_research_activity=prior_research_activity)
+    if res_section_lines:
+        lines.extend(res_section_lines)
 
     # ==========================================
     # 4. Per-Competitor Index (Appendix)

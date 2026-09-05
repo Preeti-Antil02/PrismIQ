@@ -23,6 +23,7 @@ from . import event_consolidator
 from . import analysis_agent
 from . import synthesis_agent
 from . import report_agent
+from . import delivery_agent
 from . import pricing_extractor
 from . import storage
 
@@ -49,11 +50,14 @@ class PipelineState(TypedDict, total=False):
     synthesis: Dict[str, Any]
     report_content: str
     saved_brief_path: str
+    slack_digest: str
+    delivery_status: Dict[str, Any]
     output_report_path: Optional[Any]
     signals_storage_path: Optional[Any]
     events_storage_path: Optional[Any]
     trigger_mode: Optional[str]
     cadence_name: Optional[str]
+    slack_webhook_url: Optional[str]
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +207,7 @@ def synthesis_node(state: PipelineState) -> Dict[str, Any]:
 
 def report_node(state: PipelineState) -> Dict[str, Any]:
     """Renders executive brief with explicit health and supervisor disclosures."""
-    logger.info("LangGraph Node 7/7: Report - Generating executive markdown intelligence brief...")
+    logger.info("LangGraph Node 7/8: Report - Generating executive markdown intelligence brief...")
     synthesis = state.get("synthesis", {})
     supervisor_decisions = state.get("supervisor_decisions", {})
     source_health = state.get("source_health", {})
@@ -224,11 +228,47 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Node 8: Delivery Node (Never Skipped)
+# ---------------------------------------------------------------------------
+
+def delivery_node(state: PipelineState) -> Dict[str, Any]:
+    """
+    Posts a condensed daily intelligence digest to Slack via incoming webhook.
+    Fixed LangGraph pipeline step executed after Report Agent.
+    Strictly isolated: delivery failure never crashes the overall pipeline run.
+    """
+    logger.info("LangGraph Node 8/8: Delivery - Posting condensed intelligence digest to Slack...")
+    synthesis = state.get("synthesis", {})
+    supervisor_decisions = state.get("supervisor_decisions", {})
+    source_health = state.get("source_health", {})
+    trigger_mode = state.get("trigger_mode") or os.getenv("PIPELINE_TRIGGER_MODE", config.TRIGGER_MODE)
+    cadence_name = state.get("cadence_name") or config.SCHEDULE_CADENCE_NAME
+    webhook_url = state.get("slack_webhook_url") or config.SLACK_WEBHOOK_URL
+
+    delivery_result = delivery_agent.run(
+        synthesis_or_findings=synthesis,
+        supervisor_decisions=supervisor_decisions,
+        source_health=source_health,
+        trigger_mode=trigger_mode,
+        cadence_name=cadence_name,
+        webhook_url=webhook_url,
+    )
+
+    status = delivery_result.get("delivery_status", {}).get("status", "unknown")
+    logger.info(f"Delivery: Slack digest delivery status: {status}")
+
+    return {
+        "slack_digest": delivery_result.get("digest_text", ""),
+        "delivery_status": delivery_result.get("delivery_status", {}),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Graph Compilation
 # ---------------------------------------------------------------------------
 
 def create_pipeline_graph():
-    """Build and compile the LangGraph StateGraph pipeline."""
+    """Build and compile the LangGraph StateGraph pipeline with all 8 nodes."""
     graph = StateGraph(PipelineState)
 
     # Register Nodes
@@ -239,6 +279,7 @@ def create_pipeline_graph():
     graph.add_node("analysis", analysis_node)
     graph.add_node("synthesis", synthesis_node)
     graph.add_node("report", report_node)
+    graph.add_node("delivery", delivery_node)
 
     # Define Linear State Machine Edges
     graph.add_edge(START, "supervisor")
@@ -248,6 +289,7 @@ def create_pipeline_graph():
     graph.add_edge("event_consolidation", "analysis")
     graph.add_edge("analysis", "synthesis")
     graph.add_edge("synthesis", "report")
-    graph.add_edge("report", END)
+    graph.add_edge("report", "delivery")
+    graph.add_edge("delivery", END)
 
     return graph.compile()

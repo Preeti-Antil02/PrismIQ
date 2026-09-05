@@ -191,7 +191,7 @@ Output format:
 
 
 def _attach_langsmith_usage(usage: Optional[Dict[str, Any]], model: str = "") -> None:
-    """Extract token counts from Groq usage object and attach to the active LangSmith span."""
+    """Extract token counts and estimated cost from Groq usage object and attach to the active LangSmith span."""
     if not usage or not isinstance(usage, dict):
         return
     try:
@@ -203,10 +203,18 @@ def _attach_langsmith_usage(usage: Optional[Dict[str, Any]], model: str = "") ->
         c_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
         t_tokens = int(usage.get("total_tokens") or (p_tokens + c_tokens))
 
+        # Benchmark pricing for open-weight models on Groq Cloud ($0.59 / 1M prompt, $0.79 / 1M completion)
+        input_cost = (p_tokens / 1_000_000.0) * 0.59
+        output_cost = (c_tokens / 1_000_000.0) * 0.79
+        total_cost = round(input_cost + output_cost, 6)
+
         usage_meta = {
             "input_tokens": p_tokens,
             "output_tokens": c_tokens,
             "total_tokens": t_tokens,
+            "input_cost": round(input_cost, 6),
+            "output_cost": round(output_cost, 6),
+            "total_cost": total_cost,
         }
 
         if hasattr(run_tree, "set"):

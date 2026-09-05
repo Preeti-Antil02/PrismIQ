@@ -1,9 +1,9 @@
-name: Autonomous Weekly Intelligence Pipeline
+name: Autonomous Daily Intelligence Pipeline
 
 on:
   schedule:
-    # Run weekly on Sunday at midnight UTC (~7-day Stage 1 brief cadence)
-    - cron: "0 0 * * 0"
+    # Run daily at midnight UTC
+    - cron: "0 0 * * *"
   workflow_dispatch:
     # Allows manual trigger for validation and operational testing
 
@@ -41,8 +41,8 @@ jobs:
           COMPETITORS: "Netlify,Cloudflare Pages/Workers"
           SOURCES: "news,github,jobs,pricing"
           PIPELINE_TRIGGER_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }}
-          PIPELINE_CADENCE_NAME: "weekly"
-          PIPELINE_CRON_SCHEDULE: "0 0 * * 0"
+          PIPELINE_CADENCE_NAME: "daily"
+          PIPELINE_CRON_SCHEDULE: "0 0 * * *"
           LANGCHAIN_TRACING_V2: "true"
           LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
           LANGCHAIN_PROJECT: "prismiq-production"

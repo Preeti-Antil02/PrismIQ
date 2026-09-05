@@ -35,14 +35,15 @@ def test_monitoring_agent_normalization_schema():
     with patch("src.monitoring_agent._fetch_news_from_currents", return_value=fake_news) as mock_news, \
          patch("src.monitoring_agent._fetch_github_events", return_value=fake_github) as mock_github, \
          patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
-         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]):
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]), \
+         patch("src.monitoring_agent._fetch_research_signals", return_value=[]):
 
         signals = monitoring_agent.run(["Vercel"])
 
         required_keys = {"source", "company", "title", "url", "published_at", "raw_excerpt"}
         for s in signals:
             assert required_keys.issubset(s.keys()), f"Missing keys in signal: {s}"
-            assert s["source"] in {"news", "github", "jobs", "pricing"}
+            assert s["source"] in {"news", "github", "jobs", "pricing", "research"}
             assert isinstance(s["company"], str)
             assert isinstance(s["title"], str)
             assert isinstance(s["url"], str)
@@ -54,7 +55,8 @@ def test_monitoring_agent_queries_both_sources_for_all_companies():
     with patch("src.monitoring_agent._fetch_news_from_currents", return_value=[]) as mock_news, \
          patch("src.monitoring_agent._fetch_github_events", return_value=[]) as mock_github, \
          patch("src.monitoring_agent._fetch_jobs", return_value=[]) as mock_jobs, \
-         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]) as mock_pricing:
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]) as mock_pricing, \
+         patch("src.monitoring_agent._fetch_research_signals", return_value=[]) as mock_research:
 
         signals = monitoring_agent.run()
 
@@ -75,6 +77,11 @@ def test_monitoring_agent_queries_both_sources_for_all_companies():
         for company in expected_companies:
             assert company in jobs_calls
 
+        # Verify research was called for every company
+        research_calls = [call.args[0] for call in mock_research.call_args_list]
+        for company in expected_companies:
+            assert company in research_calls
+
         # Verify pricing was called
         assert mock_pricing.called
 
@@ -84,7 +91,8 @@ def test_monitoring_agent_empty_results_no_fabrication():
     with patch("src.monitoring_agent._fetch_news_from_currents", return_value=[]), \
          patch("src.monitoring_agent._fetch_github_events", return_value=[]), \
          patch("src.monitoring_agent._fetch_jobs", return_value=[]), \
-         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]):
+         patch("src.pricing_extractor.fetch_pricing_signals", return_value=[]), \
+         patch("src.monitoring_agent._fetch_research_signals", return_value=[]):
 
         signals = monitoring_agent.run(["Vercel", "Netlify"])
         assert signals == []

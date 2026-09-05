@@ -11,14 +11,19 @@ _raw_competitors: str = os.getenv(
 )
 COMPETITORS: list[str] = [c.strip() for c in _raw_competitors.split(",") if c.strip()]
 
-_raw_sources: str = os.getenv("SOURCES", "news,github,jobs,pricing")
+_raw_sources: str = os.getenv("SOURCES", "news,github,jobs,pricing,research")
 SOURCES: list[str] = [s.strip() for s in _raw_sources.split(",") if s.strip()]
 
 # Autonomous Scheduling Configuration
-DEFAULT_CRON_SCHEDULE: str = os.getenv("PIPELINE_CRON_SCHEDULE", "0 0 * * 0").strip()  # Weekly on Sunday 00:00 UTC
-SCHEDULE_CADENCE_NAME: str = os.getenv("PIPELINE_CADENCE_NAME", "weekly").strip()
+DEFAULT_CRON_SCHEDULE: str = os.getenv("PIPELINE_CRON_SCHEDULE", "0 0 * * *").strip()  # Daily at 00:00 UTC
+SCHEDULE_CADENCE_NAME: str = os.getenv("PIPELINE_CADENCE_NAME", "daily").strip()
 PIPELINE_LOCK_KEY: int = int(os.getenv("PIPELINE_LOCK_KEY", "74829103"))  # 64-bit PostgreSQL advisory lock ID
 TRIGGER_MODE: str = os.getenv("PIPELINE_TRIGGER_MODE", "manual").strip()
+FRESHNESS_DECAY_HALF_LIFE_DAYS: float = float(os.getenv("FRESHNESS_DECAY_HALF_LIFE_DAYS", "3.0"))
+UNDATED_FALLBACK_AGE_DAYS: float = float(os.getenv("UNDATED_FALLBACK_AGE_DAYS", "14.0"))
+
+# Slack Delivery Configuration
+SLACK_WEBHOOK_URL: str = os.getenv("SLACK_WEBHOOK_URL", "").strip()
 
 # LangSmith Observability & Tracing Configuration
 LANGCHAIN_TRACING_V2: bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() in ("true", "1", "yes")

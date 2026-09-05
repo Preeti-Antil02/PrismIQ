@@ -82,6 +82,34 @@ def test_corroboration_confidence_scoring():
     assert enriched_ss["corroboration_score"] == 1.0
 
 
+def test_corroboration_bumps_fact_confidence_only():
+    """
+    CRITICAL INVARIANT TEST:
+    Multi-source corroboration bumps fact_confidence upward (to High/Medium),
+    but NEVER modifies inference_confidence (which remains Low/speculative).
+    """
+    speculative_event = {
+        "title": "Cloudflare and Netlify simultaneously revise bandwidth quotas",
+        "fact_confidence": "Medium",
+        "inference_confidence": "Low",  # Highly speculative hypothesis
+        "why_it_matters": "This could suggest unconfirmed secret industry price coordination.",
+        "corroboration_count": 3,
+        "contributing_sources": ["news", "github"],  # Multi-source independent
+    }
+
+    enriched = synthesis_agent.calculate_corroboration_confidence(speculative_event)
+
+    # 1. Fact confidence is bumped to High due to multi-source evidence
+    assert enriched["fact_confidence"] == "High"
+    assert enriched["corroboration_level"] == "High"
+
+    # 2. Inference confidence MUST remain strictly Low
+    assert enriched["inference_confidence"] == "Low"
+
+    # 3. Speculative analysis text remains completely untouched
+    assert enriched["why_it_matters"] == "This could suggest unconfirmed secret industry price coordination."
+
+
 def test_cross_competitor_pattern_detection_true_positive():
     # Simulated true pattern: Vercel & Cloudflare both shipping AI Agent infrastructure
     competitor_findings = {

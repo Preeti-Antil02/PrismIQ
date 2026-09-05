@@ -1,13 +1,16 @@
 import logging
 import os
 import re
+import urllib.parse
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import requests
 
 from . import config
 from . import pricing_extractor
 from . import funding_classifier
+from . import research_classifier
 
 logger = logging.getLogger(__name__)
 
@@ -532,6 +535,326 @@ def _fetch_jobs(company: str, days: int = 7) -> List[Dict[str, Any]]:
         return []
 
 
+# Company to blog RSS/Atom feed mapping
+COMPANY_FEED_URLS: Dict[str, List[str]] = {
+    "Vercel": ["https://vercel.com/atom"],
+    "Netlify": ["https://www.netlify.com/feed.xml"],
+    "Cloudflare Pages/Workers": [
+        "https://blog.cloudflare.com/rss/",
+        "https://blog.cloudflare.com/tag/research/rss/",
+    ],
+    "Cloudflare": [
+        "https://blog.cloudflare.com/rss/",
+        "https://blog.cloudflare.com/tag/research/rss/",
+    ],
+    "Cloudflare Pages": ["https://blog.cloudflare.com/rss/"],
+    "Cloudflare Workers": ["https://blog.cloudflare.com/rss/"],
+}
+
+
+def _fetch_arxiv_papers(company: str, days: int = 30) -> List[Dict[str, Any]]:
+    """
+    Query the official arXiv API (export.arxiv.org/api/query) for formal papers.
+    Strictly verifies author affiliations against confirmed company research affiliations.
+    Never accepts third-party papers that merely mention the company name.
+    """
+    search_term = company.split()[0].replace("/", "")
+    encoded_query = urllib.parse.quote(f'all:"{search_term}"')
+    url = f"http://export.arxiv.org/api/query?search_query={encoded_query}&max_results=25&sortBy=submittedDate&sortOrder=descending"
+    headers = {"User-Agent": "PrismIQ-ResearchMonitor/1.0 (contact@prismiq.internal)"}
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            logger.warning(f"arXiv API returned status {response.status_code} for '{company}'")
+            return []
+
+        root = ET.fromstring(response.text)
+        ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+        entries = root.findall("atom:entry", ns)
+        signals: List[Dict[str, Any]] = []
+
+        for entry in entries:
+            pub_el = entry.find("atom:published", ns)
+            pub_str = pub_el.text.strip() if pub_el is not None else ""
+            if pub_str:
+                try:
+                    dt = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if dt < cutoff_date:
+                        continue
+                except Exception:
+                    pass
+
+            # Extract authors and affiliations
+            authors_display: List[str] = []
+            author_affiliations: List[str] = []
+            for a in entry.findall("atom:author", ns):
+                name_el = a.find("atom:name", ns)
+                name = name_el.text.strip() if name_el is not None and name_el.text else "Unknown"
+                aff_el = a.find("arxiv:affiliation", ns)
+                aff = aff_el.text.strip() if aff_el is not None and aff_el.text else ""
+                authors_display.append(name)
+                if aff:
+                    author_affiliations.append(aff)
+
+            # Strict author affiliation verification
+            if not research_classifier.is_verified_arxiv_affiliation(company, author_affiliations):
+                continue
+
+            title_el = entry.find("atom:title", ns)
+            title = title_el.text.strip().replace("\n", " ") if title_el is not None else "Untitled Paper"
+            link_el = entry.find("atom:id", ns)
+            link = link_el.text.strip() if link_el is not None else f"https://arxiv.org/abs/{company}"
+            summary_el = entry.find("atom:summary", ns)
+            summary = summary_el.text.strip().replace("\n", " ") if summary_el is not None else ""
+
+            signals.append({
+                "source": "research",
+                "source_subtype": "research",
+                "company": company,
+                "title": f"Research Paper: {title}",
+                "url": link,
+                "published_at": pub_str,
+                "raw_excerpt": f"Authors: {', '.join(authors_display)} (Affiliation: {', '.join(author_affiliations)}) | Abstract: {summary[:400]}",
+                "research_details": {
+                    "type": "arxiv_paper",
+                    "authors": authors_display,
+                    "affiliations": author_affiliations,
+                },
+            })
+
+        return signals
+    except Exception as e:
+        logger.error(f"Error querying arXiv API for '{company}': {e}")
+        return []
+
+
+def _normalize_canonical_url(url: str) -> str:
+    """Normalize article URL for reliable cross-feed and cross-source deduplication."""
+    if not url:
+        return ""
+    clean = url.strip()
+    if clean.startswith("http://"):
+        clean = "https://" + clean[7:]
+    clean = re.sub(r"[?#].*$", "", clean)
+    clean = clean.rstrip("/")
+    return clean
+
+
+def _fetch_article_content_fallback(url: str) -> str:
+    """
+    Lightweight single-page fetch for ambiguous feed entries with truncated/empty summaries (<80 chars).
+    Extracts article text or meta description to enable high-precision classification.
+    """
+    headers = {"User-Agent": "PrismIQ-ResearchMonitor/1.0", "Accept": "text/markdown, text/html"}
+    try:
+        r = requests.get(url, headers=headers, timeout=5)
+        if r.status_code == 200:
+            text = r.text
+            if "<html" in text.lower():
+                m_desc = re.search(r'<meta\s+name=["\']description["\']\s+content=["\']([^"\']+)["\']', text, re.IGNORECASE)
+                meta_desc = m_desc.group(1) if m_desc else ""
+                m_art = re.search(r'<(?:article|main)[^>]*>(.*?)</(?:article|main)>', text, re.DOTALL | re.IGNORECASE)
+                body = m_art.group(1) if m_art else text
+                clean_body = re.sub(r'<[^>]+>', ' ', body)
+                clean_body = re.sub(r'\s+', ' ', clean_body).strip()
+                return f"{meta_desc}. {clean_body[:2000]}".strip()
+            return text[:2000].strip()
+    except Exception as e:
+        logger.warning(f"Failed to fetch content fallback for '{url}': {e}")
+    return ""
+
+
+def _fetch_blog_feed(
+    company: str,
+    feed_url: str,
+    days: int = 14,
+    seen_urls: Optional[Set[str]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Fetch and parse a company's RSS/Atom blog feed.
+    Applies rule-based research classification, targeted full-content fallback for truncated
+    entries, and de-duplicates across all company feeds and news sources.
+    """
+    headers = {"User-Agent": "PrismIQ-ResearchMonitor/1.0 (contact@prismiq.internal)"}
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+    seen = seen_urls if seen_urls is not None else set()
+    if seen_urls is not None:
+        seen.update(_normalize_canonical_url(u) for u in list(seen) if u)
+
+    try:
+        response = requests.get(feed_url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            logger.warning(f"Blog feed returned status {response.status_code} for URL '{feed_url}'")
+            return []
+
+        root = ET.fromstring(response.text)
+        signals: List[Dict[str, Any]] = []
+
+        # Case A: Atom Feed (<feed><entry>...)
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        atom_entries = root.findall("atom:entry", ns)
+        if atom_entries:
+            for entry in atom_entries:
+                link_el = entry.find("atom:link", ns)
+                link = link_el.attrib.get("href", "").strip() if link_el is not None else ""
+                norm_link = _normalize_canonical_url(link)
+                if not norm_link or norm_link in seen or link in seen:
+                    continue
+
+                pub_el = entry.find("atom:published", ns)
+                if pub_el is None:
+                    pub_el = entry.find("atom:updated", ns)
+                pub_str = pub_el.text.strip() if pub_el is not None and pub_el.text else ""
+                if pub_str:
+                    try:
+                        dt = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        if dt < cutoff_date:
+                            continue
+                    except Exception:
+                        pass
+
+                title_el = entry.find("atom:title", ns)
+                title = title_el.text.strip().replace("\n", " ") if title_el is not None and title_el.text else "Untitled Post"
+                summary_el = entry.find("atom:summary", ns)
+                if summary_el is None:
+                    summary_el = entry.find("atom:content", ns)
+                summary = summary_el.text.strip().replace("\n", " ") if summary_el is not None and summary_el.text else ""
+
+                # Targeted full-content fallback if feed summary is truncated/empty/stub (< 50 chars or "...")
+                content_to_classify = summary
+                if len(summary.strip()) < 50 or summary.strip() == "..." or summary.strip().endswith("..."):
+                    fallback_text = _fetch_article_content_fallback(link)
+                    if fallback_text:
+                        content_to_classify = fallback_text
+
+                is_res, reason, indicators = research_classifier.classify_research_content(
+                    title, content_to_classify, url=link, source="blog"
+                )
+                if is_res:
+                    signals.append({
+                        "source": "research",
+                        "source_subtype": "research",
+                        "company": company,
+                        "title": title,
+                        "url": link,
+                        "published_at": pub_str,
+                        "raw_excerpt": content_to_classify[:500] if content_to_classify else title,
+                        "research_details": {
+                            "type": "technical_writeup",
+                            "reason": reason,
+                            "indicators": indicators,
+                        },
+                    })
+                seen.add(norm_link)
+            return signals
+
+        # Case B: RSS 2.0 Feed (<rss><channel><item>...)
+        channel = root.find("channel")
+        if channel is not None:
+            items = channel.findall("item")
+            for item in items:
+                link_el = item.find("link")
+                link = link_el.text.strip() if link_el is not None and link_el.text else ""
+                norm_link = _normalize_canonical_url(link)
+                if not norm_link or norm_link in seen or link in seen:
+                    continue
+
+                pub_el = item.find("pubDate")
+                pub_str = pub_el.text.strip() if pub_el is not None else ""
+                if pub_str:
+                    try:
+                        from email.utils import parsedate_to_datetime
+                        dt = parsedate_to_datetime(pub_str)
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        if dt < cutoff_date:
+                            continue
+                    except Exception:
+                        pass
+
+                title_el = item.find("title")
+                title = title_el.text.strip().replace("\n", " ") if title_el is not None and title_el.text else "Untitled Post"
+                desc_el = item.find("description")
+                desc = desc_el.text.strip().replace("\n", " ") if desc_el is not None and desc_el.text else ""
+                clean_desc = re.sub(r"<[^>]+>", " ", desc).strip()
+
+                # Targeted full-content fallback if feed summary is truncated/empty/stub (< 50 chars or "...")
+                content_to_classify = clean_desc
+                if len(clean_desc.strip()) < 50 or clean_desc.strip() == "..." or clean_desc.strip().endswith("..."):
+                    fallback_text = _fetch_article_content_fallback(link)
+                    if fallback_text:
+                        content_to_classify = fallback_text
+
+                is_res, reason, indicators = research_classifier.classify_research_content(
+                    title, content_to_classify, url=link, source="blog"
+                )
+                if is_res:
+                    signals.append({
+                        "source": "research",
+                        "source_subtype": "research",
+                        "company": company,
+                        "title": title,
+                        "url": link,
+                        "published_at": pub_str,
+                        "raw_excerpt": content_to_classify[:500] if content_to_classify else title,
+                        "research_details": {
+                            "type": "technical_writeup",
+                            "reason": reason,
+                            "indicators": indicators,
+                        },
+                    })
+                seen.add(norm_link)
+            return signals
+
+        return []
+    except Exception as e:
+        logger.error(f"Error fetching blog feed for '{company}' from '{feed_url}': {e}")
+        return []
+
+
+def _fetch_research_signals(
+    company: str,
+    days: int = 14,
+    seen_urls: Optional[Set[str]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Fetch all research activity signals (arXiv papers + Technical Blog write-ups).
+    Guarantees strict deduplication across all feeds and previous news signals.
+    """
+    signals: List[Dict[str, Any]] = []
+    seen = seen_urls if seen_urls is not None else set()
+    if seen_urls is not None:
+        seen.update(_normalize_canonical_url(u) for u in list(seen) if u)
+
+    # 1. Query arXiv papers
+    arxiv_papers = _fetch_arxiv_papers(company, days=days)
+    for p in arxiv_papers:
+        p_url = p.get("url", "")
+        norm_u = _normalize_canonical_url(p_url)
+        if norm_u and norm_u not in seen and p_url not in seen:
+            signals.append(p)
+            seen.add(norm_u)
+            seen.add(p_url)
+
+    # 2. Query company blog feeds
+    feed_urls = COMPANY_FEED_URLS.get(company, [])
+    if not feed_urls and not arxiv_papers:
+        logger.info(f"Research activity source not supported for '{company}' (no structured RSS feed or arXiv presence; scraping avoided).")
+        return []
+
+    for feed_url in feed_urls:
+        blog_signals = _fetch_blog_feed(company, feed_url, days=days, seen_urls=seen)
+        signals.extend(blog_signals)
+
+    return signals
+
+
 def fetch_source_with_retry(
     source_name: str,
     fetch_func: Any,
@@ -595,7 +918,7 @@ def run(
     return_health: bool = False,
 ) -> Union[List[Dict[str, Any]], Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]]:
     """
-    Query news, GitHub, jobs, and pricing sources with conditional retry & graceful fallback.
+    Query news, GitHub, jobs, pricing, and research sources with conditional retry & graceful fallback.
     """
     if companies is None:
         all_companies: List[str] = []
@@ -661,6 +984,20 @@ def run(
         price_sigs, health = fetch_source_with_retry("pricing", _fetch_all_pricing)
         all_signals.extend(price_sigs)
         source_health["pricing"] = health
+
+    # 5. Research Source (arXiv Papers & In-Depth Technical Blog Write-ups)
+    if "research" in sources_to_run:
+        seen_news_urls = set(_normalize_canonical_url(s.get("url", "")) for s in all_signals if s.get("url"))
+
+        def _fetch_all_research():
+            sigs = []
+            for c in companies:
+                sigs.extend(_fetch_research_signals(c, days=14, seen_urls=seen_news_urls))
+            return sigs
+
+        res_sigs, health = fetch_source_with_retry("research", _fetch_all_research)
+        all_signals.extend(res_sigs)
+        source_health["research"] = health
 
     consolidated = consolidate_signals(all_signals)
     if return_health:
