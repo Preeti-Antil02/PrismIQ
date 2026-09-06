@@ -32,14 +32,16 @@ jobs:
       - name: Run LangGraph Pipeline via Cron Runner
         env:
           PYTHONPATH: backend
+          ALLOW_LIVE_WRITE: "true"
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL || 'openai/gpt-oss-120b' }}
           CURRENTS_API_KEY: ${{ secrets.CURRENTS_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT_TOKEN || secrets.GITHUB_TOKEN }}
           TARGET_COMPANY: "Vercel"
           COMPETITORS: "Netlify,Cloudflare Pages/Workers"
-          SOURCES: "news,github,jobs,pricing"
+          SOURCES: "news,github,jobs,pricing,research"
           PIPELINE_TRIGGER_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }}
           PIPELINE_CADENCE_NAME: "daily"
           PIPELINE_CRON_SCHEDULE: "0 0 * * *"
