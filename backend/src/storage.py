@@ -47,30 +47,28 @@ def is_test_environment() -> bool:
     Returns True if running under pytest, PRISMIQ_ENV='test',
     or pytest is loaded in sys.modules.
     """
-    if os.getenv("FORCE_LIVE_DB") == "1":
-        return False
     return (
         os.getenv("PRISMIQ_ENV") == "test"
         or "PYTEST_CURRENT_TEST" in os.environ
         or "pytest" in sys.modules
-        or any("test" in arg.lower() for arg in sys.argv if arg.endswith(".py") or "pytest" in arg)
+        or any(arg.endswith("pytest") or "pytest" in arg for arg in sys.argv)
     )
 
 
 def is_live_write_permitted() -> bool:
     """
     Fail-closed authorization check for live PostgreSQL database connections/writes.
-    Requires explicit opt-in via ALLOW_LIVE_WRITE=true, ALLOW_PROD_WRITE=true, or FORCE_LIVE_DB=1.
+    Requires explicit, deliberate opt-in via ALLOW_LIVE_WRITE=true or ALLOW_PROD_WRITE=true.
     Any ad hoc CLI invocation, unconfigured script, or manual run without explicit opt-in
     fails CLOSED by default to prevent production data pollution.
     """
-    if is_test_environment() and not (os.getenv("FORCE_LIVE_DB") == "1"):
+    if is_test_environment():
         return False
     return (
         os.getenv("ALLOW_LIVE_WRITE", "").lower() in ("true", "1", "yes")
         or os.getenv("ALLOW_PROD_WRITE", "").lower() in ("true", "1", "yes")
-        or os.getenv("FORCE_LIVE_DB") == "1"
     )
+
 
 
 def get_db_url() -> Optional[str]:
