@@ -382,14 +382,19 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
     for attempt in range(max_retries):
         try:
             resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+            if resp.status_code in (401, 403):
+                logger.warning(f"Groq API authentication error ({resp.status_code}). Using structured fallback.")
+                return _deterministic_fallback(signal)
+
             if resp.status_code == 429:
                 retry_header = resp.headers.get("retry-after", "")
                 try:
                     retry_after = float(retry_header)
                 except ValueError:
                     retry_after = 2.0 * (attempt + 1)
-                logger.warning(f"Groq 429 rate limit hit. Backing off for {retry_after:.1f}s (attempt {attempt + 1}/{max_retries})...")
-                time.sleep(retry_after)
+                backoff = min(max(retry_after, 2.0), 6.0)
+                logger.warning(f"Groq 429 rate limit hit. Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(backoff)
                 continue
 
             resp.raise_for_status()

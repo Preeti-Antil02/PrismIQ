@@ -140,7 +140,7 @@ def _attach_langsmith_usage(usage: Optional[Dict[str, Any]], model: str = "") ->
 
 
 @traceable(run_type="llm", name="analysis_agent_llm_call")
-def _call_groq(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
+def _call_groq(system_prompt: str, user_prompt: str, max_retries: int = 2) -> Dict[str, Any]:
     """Execute API call to Groq to perform intelligence analysis with rate-limit retry handling."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
@@ -168,14 +168,25 @@ def _call_groq(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Di
     for attempt in range(max_retries):
         try:
             response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=25)
+            if response.status_code in (401, 403):
+                logger.warning(f"Groq API authentication error ({response.status_code}). Using structured fallback.")
+                return {
+                    "why_it_matters": "Analysis unavailable: LLM authentication failed.",
+                    "fact_confidence": "Low",
+                    "inference_confidence": "Low",
+                    "confidence": "Low",
+                }
+
             if response.status_code == 429:
                 retry_header = response.headers.get("retry-after", "")
                 try:
                     retry_after = float(retry_header)
                 except ValueError:
                     retry_after = 2.0 * (attempt + 1)
-                logger.warning(f"Groq 429 rate limit hit. Backing off for {retry_after:.1f}s (attempt {attempt + 1}/{max_retries})...")
-                time.sleep(retry_after)
+                # Cap backoff to max 3.0s to prevent stalling pipeline execution
+                backoff = min(max(retry_after, 1.0), 3.0)
+                logger.warning(f"Groq 429 rate limit hit. Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(backoff)
                 continue
 
             response.raise_for_status()
