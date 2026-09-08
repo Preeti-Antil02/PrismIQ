@@ -1,16 +1,22 @@
 import os
 import re
+import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+import jwt
+from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+from src import config, discovery_agent, storage
 
 app = FastAPI(
     title="PrismIQ API",
-    description="Read-only competitive intelligence API serving weekly markdown briefs and historical archives.",
-    version="1.0.0",
+    description="Multi-tenant competitive intelligence API serving markdown briefs, findings, and discovery onboarding under Row Level Security (RLS).",
+    version="2.0.0",
 )
 
 # Restricted CORS configuration locking access to production Vercel frontend and local dev
@@ -27,15 +33,124 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=False,
-    allow_methods=["GET", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
+# ============================================================================
+# Pydantic Schemas
+# ============================================================================
+
+class OnboardDiscoverRequest(BaseModel):
+    target_company: str = Field(..., min_length=1, description="Target company to run competitor discovery for")
+
+
+class OnboardConfirmRequest(BaseModel):
+    target_company: str = Field(..., min_length=1, description="Target company being confirmed")
+    confirmed_competitors: List[str] = Field(default_factory=list, description="List of confirmed competitor company names")
+
+
+# ============================================================================
+# JWT Authentication & Verification Dependency
+# ============================================================================
+
+def verify_jwt_token(token: str) -> Dict[str, Any]:
+    """
+    Validate and decode incoming Supabase / Auth JWT token.
+    1. Rejects malformed or non-JWT strings with 401.
+    2. Enforces expiration (exp claim).
+    3. Enforces valid UUID subject (sub claim) corresponding to auth.uid().
+    4. If SUPABASE_JWT_SECRET is configured, verifies HMAC-SHA256 signature.
+    """
+    if not token or not isinstance(token, str):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or empty authorization token",
+        )
+
+    jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
+
+    try:
+        if jwt_secret:
+            payload = jwt.decode(
+                token,
+                jwt_secret,
+                algorithms=["HS256", "RS256"],
+                options={"verify_signature": True, "verify_exp": True},
+            )
+        else:
+            # Decode without secret for testing/environments where secret is managed by Supabase API gateway
+            payload = jwt.decode(
+                token,
+                options={"verify_signature": False, "verify_exp": True},
+            )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        )
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or tampered token",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token verification error: {str(e)}",
+        )
+
+    # Validate subject UUID
+    sub = payload.get("sub")
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token missing subject ('sub') claim",
+        )
+
+    try:
+        uuid.UUID(str(sub))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token subject ('sub') is not a valid UUID",
+        )
+
+    return payload
+
+
+def get_current_tenant(authorization: Optional[str] = Header(None)) -> str:
+    """
+    FastAPI dependency extracting and verifying the authenticated tenant UUID.
+    Rejects missing, malformed, or unauthenticated requests with HTTP 401.
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing Authorization header",
+        )
+
+    parts = authorization.strip().split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Authorization header format. Expected 'Bearer <token>'",
+        )
+
+    token = parts[1]
+    payload = verify_jwt_token(token)
+    return str(payload["sub"])
+
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
 def _get_data_dir() -> Path:
     """
     Get the active data directory.
-    1. Checks DATA_DIR env override (cleaning any annotations/spaces).
+    1. Checks DATA_DIR env override.
     2. Falls back to backend/published_briefs if it exists.
     3. Defaults to backend/data.
     """
@@ -43,7 +158,6 @@ def _get_data_dir() -> Path:
     env_dir = os.getenv("DATA_DIR")
 
     if env_dir:
-        # Clean potential helper annotations like '(or ...)'
         clean_env = env_dir.split(" ")[0].strip()
         if clean_env:
             p = Path(clean_env)
@@ -68,21 +182,16 @@ def _get_data_dir() -> Path:
 
 
 def _extract_preview(content: str) -> Optional[str]:
-    """
-    Extract a concise preview headline from the Top 3 decisions section of a brief.
-    Matches the first item (e.g. '1. **Company** (Signal Title): ...')
-    """
+    """Extract a concise preview headline from Top 3 decisions section."""
     if not content:
         return None
 
-    # Try matching structured Top 1 item: '1. **Company** (Title): ...'
     match = re.search(r"(?:^|\n)1\.\s+\*\*([^*]+)\*\*\s*\(([^)]+)\)", content)
     if match:
         company = match.group(1).strip()
         title = match.group(2).strip()
         return f"{company}: {title}"
 
-    # Fallback: match any first item under Top 3
     match_fallback = re.search(r"(?:^|\n)1\.\s+([^\n]+)", content)
     if match_fallback:
         return match_fallback.group(1).strip()[:140]
@@ -91,18 +200,15 @@ def _extract_preview(content: str) -> Optional[str]:
 
 
 def _parse_date(filename: str, file_path: Path) -> str:
-    """Derive an ISO formatted UTC date string from a brief's filename or file mtime."""
-    # Match brief_YYYYMMDD_HHMMSS.md
+    """Derive an ISO formatted UTC date string from brief filename or file mtime."""
     m = re.match(r"brief_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.md$", filename)
     if m:
         return f"{m.group(1)}-{m.group(2)}-{m.group(3)}T{m.group(4)}:{m.group(5)}:{m.group(6)}Z"
 
-    # Match brief_YYYY-MM-DD.md
     m_date = re.match(r"brief_(\d{4}-\d{2}-\d{2})\.md$", filename)
     if m_date:
         return f"{m_date.group(1)}T00:00:00Z"
 
-    # Fallback to file modification time
     try:
         mtime = file_path.stat().st_mtime
         return datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -111,7 +217,7 @@ def _parse_date(filename: str, file_path: Path) -> str:
 
 
 def _get_brief_id(filename: str) -> str:
-    """Extract a clean identifier from a filename (e.g. '20260823_115500' or 'latest')."""
+    """Extract a clean identifier from a filename."""
     if filename == "brief.md":
         return "latest"
     m = re.match(r"brief_(.+)\.md$", filename)
@@ -120,48 +226,83 @@ def _get_brief_id(filename: str) -> str:
     return filename.replace(".md", "")
 
 
+# ============================================================================
+# Public Endpoints
+# ============================================================================
+
 @app.get("/")
 @app.get("/health")
 def health_check() -> Dict[str, str]:
-    """Root health check endpoint for monitoring and uptime verification."""
+    """Root public health check endpoint for monitoring and uptime verification."""
     return {"status": "ok", "service": "PrismIQ Competitive Intelligence API"}
 
 
+def _is_db_active() -> bool:
+    """Check if primary PostgreSQL database is configured and active."""
+    return bool(storage.get_db_url()) and (not storage.is_test_environment() or bool(os.getenv("TEST_DATABASE_URL")))
+
+
+# ============================================================================
+# Authenticated Multi-Tenant Endpoints (Enforced by PostgreSQL RLS)
+# ============================================================================
+
 @app.get("/briefs")
-def list_briefs() -> Dict[str, List[Dict[str, Any]]]:
+def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[Dict[str, Any]]]:
     """
-    List all available competitive briefs, sorted newest first.
-    Returns identifiers, formatted dates, and short preview headlines.
+    List all available competitive briefs visible to the authenticated tenant.
+    Executes under PostgreSQL RLS context (SET LOCAL "request.jwt.claim.sub" = tenant_id).
     """
+    if _is_db_active():
+        try:
+            with storage.get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT id, title, published_at, headline_preview, content
+                    FROM briefs
+                    ORDER BY published_at DESC NULLS LAST;
+                """)
+                rows = cur.fetchall()
+                brief_entries = []
+                for r in rows:
+                    bid = str(r[0])
+                    title = r[1] or "PrismIQ Competitive Intelligence Brief"
+                    pub_dt = r[2]
+                    date_str = pub_dt.isoformat() if pub_dt else datetime.now(timezone.utc).isoformat()
+                    preview = r[3] or _extract_preview(r[4] or "")
+                    brief_entries.append({
+                        "id": bid,
+                        "date": date_str,
+                        "title": title,
+                        "filename": f"brief_{bid}.md",
+                        "preview": preview,
+                    })
+                return {"briefs": brief_entries}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+
+    # Fallback to local files in offline / DB-less test mode
     data_dir = _get_data_dir()
     if not data_dir.exists():
         return {"briefs": []}
 
     brief_entries: List[Dict[str, Any]] = []
-    seen_ids = set()
-
-    # Find all timestamped brief files first
     timestamped_files = sorted(data_dir.glob("brief_*.md"), reverse=True)
     for file_path in timestamped_files:
         filename = file_path.name
-        brief_id = _get_brief_id(filename)
+        bid = _get_brief_id(filename)
         date_str = _parse_date(filename, file_path)
-        
         try:
             content = file_path.read_text(encoding="utf-8")
         except Exception:
             content = ""
 
         preview = _extract_preview(content)
-        seen_ids.add(brief_id)
         brief_entries.append({
-            "id": brief_id,
+            "id": bid,
             "date": date_str,
             "filename": filename,
             "preview": preview,
         })
 
-    # If no timestamped briefs exist but brief.md exists, include it
     latest_path = data_dir / "brief.md"
     if latest_path.exists() and not timestamped_files:
         date_str = _parse_date("brief.md", latest_path)
@@ -177,20 +318,45 @@ def list_briefs() -> Dict[str, List[Dict[str, Any]]]:
             "preview": preview,
         })
 
-    # Sort newest first by date string
     brief_entries.sort(key=lambda x: x["date"], reverse=True)
     return {"briefs": brief_entries}
 
 
 @app.get("/briefs/latest")
-def get_latest_brief() -> Dict[str, Any]:
+def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
     """
-    Get the most recent competitive intelligence brief as raw markdown content.
+    Get the most recent competitive intelligence brief for the authenticated tenant.
+    Enforces PostgreSQL RLS so tenant only receives their own latest brief.
     """
+    if _is_db_active():
+        try:
+            with storage.get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT id, title, published_at, content
+                    FROM briefs
+                    ORDER BY (id = 'data_latest') DESC, published_at DESC NULLS LAST
+                    LIMIT 1;
+                """)
+                row = cur.fetchone()
+                if row:
+                    bid = str(row[0])
+                    pub_dt = row[2]
+                    date_str = pub_dt.isoformat() if pub_dt else datetime.now(timezone.utc).isoformat()
+                    return {
+                        "id": bid,
+                        "date": date_str,
+                        "filename": f"brief_{bid}.md",
+                        "content": row[3],
+                    }
+                raise HTTPException(status_code=404, detail="No competitive briefs available.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+
+    # Fallback to local files in offline / DB-less test mode
     data_dir = _get_data_dir()
     latest_file = data_dir / "brief.md"
-
-    # If brief.md doesn't exist, check for the newest timestamped brief
     target_file: Optional[Path] = None
     if latest_file.exists():
         target_file = latest_file
@@ -217,18 +383,45 @@ def get_latest_brief() -> Dict[str, Any]:
 
 
 @app.get("/briefs/{brief_id}")
-def get_brief_by_id(brief_id: str) -> Dict[str, Any]:
+def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
     """
-    Get a specific historical competitive intelligence brief by date/identifier or filename.
+    Get a specific brief by ID for the authenticated tenant.
+    PostgreSQL RLS blocks cross-tenant access and returns 404.
     """
     if brief_id == "latest":
-        return get_latest_brief()
+        return get_latest_brief(tenant_id=tenant_id)
 
+    if _is_db_active():
+        try:
+            with storage.get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT id, title, published_at, content
+                    FROM briefs
+                    WHERE id = %s;
+                """, (brief_id,))
+                row = cur.fetchone()
+                if row:
+                    bid = str(row[0])
+                    pub_dt = row[2]
+                    date_str = pub_dt.isoformat() if pub_dt else datetime.now(timezone.utc).isoformat()
+                    return {
+                        "id": bid,
+                        "date": date_str,
+                        "filename": f"brief_{bid}.md",
+                        "content": row[3],
+                    }
+                # RLS filtered row or row does not exist -> strictly return 404 Not Found
+                raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+
+    # Fallback to local files in offline / DB-less test mode
     data_dir = _get_data_dir()
     if not data_dir.exists():
         raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
 
-    # Candidate file resolution paths
     candidate_names = [
         f"brief_{brief_id}.md",
         f"{brief_id}.md" if not brief_id.endswith(".md") else brief_id,
@@ -242,7 +435,6 @@ def get_brief_by_id(brief_id: str) -> Dict[str, Any]:
             target_file = candidate_path
             break
 
-    # If not found by exact candidate names, search by date prefix in filename
     if not target_file:
         clean_id = brief_id.replace("-", "").replace("T", "_").replace("Z", "").replace(":", "")
         for file_path in data_dir.glob("brief_*.md"):
@@ -255,7 +447,7 @@ def get_brief_by_id(brief_id: str) -> Dict[str, Any]:
 
     try:
         content = target_file.read_text(encoding="utf-8")
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Failed to read brief.")
 
     date_str = _parse_date(target_file.name, target_file)
@@ -264,4 +456,123 @@ def get_brief_by_id(brief_id: str) -> Dict[str, Any]:
         "date": date_str,
         "filename": target_file.name,
         "content": content,
+    }
+
+
+@app.get("/findings")
+def list_findings(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
+    """
+    List all strategic findings visible to the authenticated tenant under RLS.
+    """
+    try:
+        with storage.get_tenant_db_cursor(tenant_id) as cur:
+            cur.execute("""
+                SELECT f.id, f.event_id, f.company_name, f.tier, f.confidence,
+                       f.inference_confidence, ce.fact_confidence, f.why_it_matters, f.created_at
+                FROM findings f
+                JOIN consolidated_events ce ON f.event_id = ce.event_id
+                ORDER BY f.created_at DESC;
+            """)
+            rows = cur.fetchall()
+            findings = []
+            for r in rows:
+                findings.append({
+                    "id": str(r[0]),
+                    "event_id": str(r[1]),
+                    "company_name": r[2],
+                    "tier": r[3],
+                    "confidence": r[4],
+                    "inference_confidence": r[5],
+                    "fact_confidence": r[6],
+                    "why_it_matters": r[7],
+                    "created_at": r[8].isoformat() if r[8] else None,
+                })
+            return {"findings": findings, "count": len(findings)}
+    except Exception as e:
+        if not storage.is_test_environment():
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+        return {"findings": [], "count": 0}
+
+
+@app.get("/tracked-companies")
+def list_tracked_companies(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
+    """
+    List companies currently tracked by the authenticated tenant under RLS.
+    """
+    try:
+        with storage.get_tenant_db_cursor(tenant_id) as cur:
+            cur.execute("""
+                SELECT company_name, is_target, status, added_at
+                FROM tenant_tracked_companies
+                WHERE status = 'active'
+                ORDER BY is_target DESC, company_name ASC;
+            """)
+            rows = cur.fetchall()
+            comps = []
+            for r in rows:
+                comps.append({
+                    "company_name": r[0],
+                    "is_target": r[1],
+                    "status": r[2],
+                    "added_at": r[3].isoformat() if r[3] else None,
+                })
+            return {"tracked_companies": comps, "count": len(comps)}
+    except Exception as e:
+        if not storage.is_test_environment():
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+        return {"tracked_companies": [], "count": 0}
+
+
+# ============================================================================
+# Discovery Agent Onboarding Endpoints
+# ============================================================================
+
+@app.post("/api/onboarding/discover")
+def onboard_discover_candidates(
+    req: OnboardDiscoverRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Run Discovery Agent to propose grounded candidate competitors for a target company.
+    STRICT INVARIANT (Part 2.6): Saves discovery proposal under tenant_id, but NEVER
+    writes to tenant_tracked_companies without explicit tenant confirmation.
+    """
+    target = req.target_company.strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="Target company name cannot be empty")
+
+    candidates = discovery_agent.run(target, tenant_id=tenant_id)
+    return {
+        "status": "proposed",
+        "tenant_id": tenant_id,
+        "target_company": target,
+        "candidates_count": len(candidates),
+        "candidates": candidates,
+    }
+
+
+@app.post("/api/onboarding/confirm")
+def onboard_confirm_candidates(
+    req: OnboardConfirmRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Confirm and write human-reviewed competitor selections into tenant_tracked_companies.
+    Writes target company (is_target=True) and confirmed competitors (is_target=False).
+    """
+    target = req.target_company.strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="Target company name cannot be empty")
+
+    tracked = storage.save_tenant_confirmed_companies(
+        tenant_id=tenant_id,
+        target_company=target,
+        confirmed_competitors=req.confirmed_competitors,
+    )
+
+    return {
+        "status": "confirmed",
+        "tenant_id": tenant_id,
+        "target_company": target,
+        "tracked_companies": tracked,
     }
