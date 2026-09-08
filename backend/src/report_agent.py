@@ -337,6 +337,8 @@ def run(
     trigger_mode: Optional[str] = None,
     cadence_name: Optional[str] = None,
     prior_research_activity: Any = _DEFAULT_RESEARCH_SENTINEL,
+    tenant_id: Optional[str] = None,
+    tracked_companies: Optional[List[str]] = None,
 ) -> str:
     """
     Generate a markdown competitive intelligence brief organized by Theme.
@@ -363,7 +365,11 @@ def run(
                 current_sig_ids.add(f["signal_id"])
             if f.get("event_id"):
                 current_sig_ids.add(f["event_id"])
-        prior_research_activity = storage.get_prior_research_activity(exclude_signal_ids=current_sig_ids)
+        prior_research_activity = storage.get_prior_research_activity(
+            tenant_id=tenant_id,
+            tracked_companies=tracked_companies,
+            exclude_signal_ids=current_sig_ids,
+        )
 
     lines: List[str] = []
     lines.append("# PrismIQ Competitive Intelligence Brief\n")
