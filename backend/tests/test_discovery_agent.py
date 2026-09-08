@@ -478,3 +478,112 @@ def test_interactive_confirm_accept_all():
 
         confirmed = discovery_agent.interactive_confirm("TestCompany", candidates)
         assert confirmed == ["Comp1", "Comp2"]
+
+
+# ============================================================================
+# alternativeto.net Retrieval Source Tests (Part 2 — Prompt #52)
+# ============================================================================
+
+MOCK_ALTERNATIVETO_HTML = """
+<html><body>
+<div class="app-listing">
+  <a href="/software/mixpanel/">Mixpanel</a>
+  <a href="/software/amplitude/">Amplitude Analytics</a>
+  <a href="/software/heap/">Heap</a>
+  <a href="/software/google-analytics/">Google Analytics</a>
+  <a href="/software/posthog/">PostHog</a>
+</div>
+</body></html>
+"""
+
+
+def test_fetch_alternativeto_context_returns_alternatives():
+    """Verify alternativeto.net scraper extracts named alternatives from HTML."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = MOCK_ALTERNATIVETO_HTML
+
+    with patch("requests.get", return_value=mock_resp):
+        sources = discovery_agent._fetch_alternativeto_context("PostHog")
+
+    assert len(sources) > 0, "Should extract at least one alternative"
+    source_types = {s["source_type"] for s in sources}
+    assert "alternatives_listing" in source_types
+
+    # Should NOT include the target company itself
+    names_lower = [s["title"].lower() for s in sources]
+    assert not any("posthog" in n and "alternative to" not in n for n in names_lower), \
+        "Target company should be filtered out"
+
+    # Should include established competitors like Mixpanel, Amplitude
+    all_text = " ".join(s["title"] for s in sources).lower()
+    found_established = any(name in all_text for name in ["mixpanel", "amplitude", "heap"])
+    assert found_established, f"Expected at least one established competitor in: {all_text}"
+
+    # All sources should be undated (listing pages have no publication date)
+    for s in sources:
+        assert s["source_age"] == "undated"
+        assert s["published_at"] is None
+
+
+def test_fetch_alternativeto_context_handles_404():
+    """Verify alternativeto.net gracefully handles 404 (unknown company)."""
+    mock_resp_404 = MagicMock()
+    mock_resp_404.status_code = 404
+    mock_resp_search = MagicMock()
+    mock_resp_search.status_code = 404
+
+    with patch("requests.get", side_effect=[mock_resp_404, mock_resp_search]):
+        sources = discovery_agent._fetch_alternativeto_context("NonExistentCompanyXYZ123")
+
+    assert sources == [], "Should return empty list for unknown company"
+
+
+def test_fetch_alternativeto_context_handles_timeout():
+    """Verify alternativeto.net gracefully handles network timeouts."""
+    import requests as req_module
+    with patch("requests.get", side_effect=req_module.exceptions.Timeout("Connection timed out")):
+        sources = discovery_agent._fetch_alternativeto_context("PostHog")
+
+    assert sources == [], "Should return empty list on timeout"
+
+
+def test_fetch_alternativeto_slug_normalization():
+    """Verify company name to URL slug normalization."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = "<html><body></body></html>"
+
+    with patch("requests.get", return_value=mock_resp) as mock_get:
+        discovery_agent._fetch_alternativeto_context("Cloudflare Pages/Workers")
+        # Should normalize to 'cloudflare' (splits on '/', takes first part)
+        called_url = mock_get.call_args_list[0][0][0]
+        assert "cloudflare" in called_url.lower()
+        assert "workers" not in called_url.lower()
+
+
+def test_fetch_grounded_context_includes_alternativeto():
+    """Verify fetch_grounded_context now includes alternativeto.net sources."""
+    mock_alt_sources = [
+        {
+            "source_type": "alternatives_listing",
+            "title": "AlternativeTo: Mixpanel (alternative to PostHog)",
+            "url": "https://alternativeto.net/software/mixpanel/",
+            "published_at": None,
+            "source_age": "undated",
+            "text": "Mixpanel is listed as an alternative to PostHog on alternativeto.net.",
+        }
+    ]
+
+    with patch.object(discovery_agent, "_fetch_hn_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_github_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_wikipedia_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_currents_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_alternativeto_context", return_value=mock_alt_sources):
+
+        context = discovery_agent.fetch_grounded_context("PostHog")
+
+    assert len(context) == 1
+    assert context[0]["source_type"] == "alternatives_listing"
+    assert "Mixpanel" in context[0]["title"]
+
