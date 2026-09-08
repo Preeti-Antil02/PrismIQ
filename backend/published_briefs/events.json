@@ -1,0 +1,68 @@
+[
+  {
+    "event_id": "evt_e007cb3a7238e020",
+    "company": "Netlify",
+    "title": "Netlify SDK Release v3.0",
+    "event_summary": "Netlify SDK Release v3.0",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-08-22T11:00:00Z",
+    "latest_detected_at": "2026-08-22T11:00:00Z",
+    "published_at": "2026-08-22T11:00:00Z",
+    "url": "https://github.com/netlify/sdk",
+    "source_urls": [
+      "https://github.com/netlify/sdk"
+    ],
+    "raw_excerpt": "[GITHUB (2026-08-22T11:00:00Z)]: Netlify SDK Release v3.0 — Updated plugin ecosystem support for modern bundlers.",
+    "fact_confidence": "High",
+    "raw_signals": [
+      {
+        "source": "github",
+        "company": "Netlify",
+        "title": "Netlify SDK Release v3.0",
+        "url": "https://github.com/netlify/sdk",
+        "published_at": "2026-08-22T11:00:00Z",
+        "raw_excerpt": "Updated plugin ecosystem support for modern bundlers.",
+        "id": "sig_e007cb3a7238e020",
+        "is_noise": false,
+        "noise_category": null,
+        "noise_reason": "Substantive candidate signal (Preserved)"
+      }
+    ]
+  },
+  {
+    "event_id": "evt_9555f9b431095481",
+    "company": "Vercel",
+    "title": "Vercel Launches Enterprise Microfrontends",
+    "event_summary": "Vercel Launches Enterprise Microfrontends",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-21T10:00:00Z",
+    "latest_detected_at": "2026-08-21T10:00:00Z",
+    "published_at": "2026-08-21T10:00:00Z",
+    "url": "https://news.example.com/vercel-microfrontends",
+    "source_urls": [
+      "https://news.example.com/vercel-microfrontends"
+    ],
+    "raw_excerpt": "[NEWS (2026-08-21T10:00:00Z)]: Vercel Launches Enterprise Microfrontends — New microfrontends platform simplifies multi-team web app deployments.",
+    "fact_confidence": "Medium",
+    "raw_signals": [
+      {
+        "source": "news",
+        "company": "Vercel",
+        "title": "Vercel Launches Enterprise Microfrontends",
+        "url": "https://news.example.com/vercel-microfrontends",
+        "published_at": "2026-08-21T10:00:00Z",
+        "raw_excerpt": "New microfrontends platform simplifies multi-team web app deployments.",
+        "id": "sig_9555f9b431095481",
+        "is_noise": false,
+        "noise_category": null,
+        "noise_reason": "Substantive candidate signal (Preserved)"
+      }
+    ]
+  }
+]
