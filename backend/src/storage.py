@@ -147,6 +147,48 @@ def get_db_cursor() -> Generator[Any, None, None]:
         conn.close()
 
 
+@contextmanager
+def get_tenant_db_cursor(tenant_id: str) -> Generator[Any, None, None]:
+    """
+    Context manager yielding a PostgreSQL cursor scoped to the authenticated tenant's RLS context.
+    Executes:
+        SET LOCAL "request.jwt.claim.sub" = %s;
+        SET LOCAL ROLE authenticated;
+    Guarantees PostgreSQL Row Level Security (RLS) enforcement at the query level.
+    """
+    if is_test_environment():
+        test_url = get_db_url()
+        if not test_url:
+            yield MockCursor()
+            return
+        db_url = test_url
+    else:
+        db_url = get_db_url()
+        if not db_url:
+            if not is_live_write_permitted():
+                yield MockCursor()
+                return
+            raise ConnectionError("SUPABASE_DB_URL is not set.")
+
+    import psycopg2
+
+    conn = psycopg2.connect(db_url)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                'SET LOCAL "request.jwt.claim.sub" = %s; SET LOCAL ROLE authenticated;',
+                (str(tenant_id),)
+            )
+            yield cur
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"PostgreSQL tenant transaction failed (tenant {tenant_id}): {e}", exc_info=True)
+        raise
+    finally:
+        conn.close()
+
+
 def _execute_batch(cur: Any, sql: str, params_list: List[Any], page_size: int = 100) -> None:
     """Execute batched SQL inserts, supporting both MockCursor and psycopg2 real cursors."""
     if isinstance(cur, MockCursor):
@@ -225,11 +267,11 @@ def save_signals(
     # 1. Primary PostgreSQL Write
     if signals:
         with get_db_cursor() as cur:
-            # Ensure competitor records exist
+            # Ensure company records exist in canonical companies registry
             companies = set(s.get("company", "").strip() for s in signals if s.get("company"))
             comp_sql = """
-                INSERT INTO competitors (name, is_target, is_mock)
-                VALUES (%s, FALSE, FALSE)
+                INSERT INTO companies (name, status, is_mock)
+                VALUES (%s, 'active', FALSE)
                 ON CONFLICT (name) DO NOTHING;
             """
             _execute_batch(cur, comp_sql, [(c,) for c in companies if c], page_size=100)
@@ -361,16 +403,17 @@ def save_events(
                 INSERT INTO consolidated_events (
                     event_id, company_name, title, event_summary, corroboration_count,
                     contributing_sources, first_detected_at, latest_detected_at,
-                    published_at, published_timestamp, url, source_urls, raw_excerpt, is_mock
+                    published_at, published_timestamp, url, source_urls, raw_excerpt, fact_confidence, is_mock
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
                 ON CONFLICT (event_id) DO UPDATE
                 SET title = EXCLUDED.title,
                     event_summary = EXCLUDED.event_summary,
                     corroboration_count = EXCLUDED.corroboration_count,
                     contributing_sources = EXCLUDED.contributing_sources,
                     source_urls = EXCLUDED.source_urls,
-                    raw_excerpt = EXCLUDED.raw_excerpt;
+                    raw_excerpt = EXCLUDED.raw_excerpt,
+                    fact_confidence = COALESCE(EXCLUDED.fact_confidence, consolidated_events.fact_confidence);
             """
             ev_params = []
             es_params = []
@@ -389,10 +432,11 @@ def save_events(
                 url = ev.get("url", "")
                 source_urls = json.dumps(ev.get("source_urls", []))
                 excerpt = ev.get("raw_excerpt", "")
+                fact_conf = ev.get("fact_confidence") or "Medium"
 
                 ev_params.append((
                     eid, comp, title, summary, corr, contrib,
-                    first_det, latest_det, pub_at, pub_ts, url, source_urls, excerpt
+                    first_det, latest_det, pub_at, pub_ts, url, source_urls, excerpt, fact_conf
                 ))
 
                 for s in ev.get("raw_signals", []):
@@ -468,23 +512,29 @@ def load_events(
         return []
 
 
-def save_findings(findings: List[Dict[str, Any]]) -> None:
+def save_findings(
+    findings: List[Dict[str, Any]],
+    tenant_id: Optional[str] = None,
+) -> None:
     """
     Dual-write analyzed findings:
-    Primary write: PostgreSQL `findings` table (is_mock = FALSE).
+    Primary write: PostgreSQL `findings` table (is_mock = FALSE) scoped by tenant_id.
     """
     if not findings:
         return
+    
+    tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+
     with get_db_cursor() as cur:
         f_sql = """
-            INSERT INTO findings (event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock, fact_confidence, inference_confidence)
-            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, %s)
-            ON CONFLICT (event_id) DO UPDATE
-            SET why_it_matters = EXCLUDED.why_it_matters,
+            INSERT INTO findings (tenant_id, event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock, inference_confidence)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, %s)
+            ON CONFLICT (tenant_id, event_id) DO UPDATE
+            SET company_name = EXCLUDED.company_name,
+                why_it_matters = EXCLUDED.why_it_matters,
                 confidence = EXCLUDED.confidence,
                 decision_score = EXCLUDED.decision_score,
                 tier = EXCLUDED.tier,
-                fact_confidence = COALESCE(EXCLUDED.fact_confidence, findings.fact_confidence),
                 inference_confidence = COALESCE(EXCLUDED.inference_confidence, findings.inference_confidence);
         """
         f_params = []
@@ -497,12 +547,11 @@ def save_findings(findings: List[Dict[str, Any]]) -> None:
             conf = f.get("confidence", "Medium")
             score = f.get("decision_score", 1.0)
             tier = f.get("tier", "should_know")
-            fact_conf = f.get("fact_confidence")
             infer_conf = f.get("inference_confidence")
-            f_params.append((eid, comp, why, conf, score, tier, fact_conf, infer_conf))
+            f_params.append((tid, eid, comp, why, conf, score, tier, infer_conf))
 
         _execute_batch(cur, f_sql, f_params, page_size=200)
-        logger.info(f"Dual-write: persisted {len(f_params)} findings to PostgreSQL.")
+        logger.info(f"Dual-write: persisted {len(f_params)} findings for tenant {tid} to PostgreSQL.")
 
 
 def save_brief(
@@ -511,15 +560,17 @@ def save_brief(
     title: Optional[str] = None,
     headline_preview: Optional[str] = None,
     published_at: Optional[datetime] = None,
+    tenant_id: Optional[str] = None,
 ) -> Path:
     """
     Dual-write markdown intelligence brief:
-    1. Primary write: PostgreSQL `briefs` table with id='data_latest', source_path='data/brief.md', content_hash.
+    1. Primary write: PostgreSQL `briefs` table with id='data_latest', tenant_id, source_path='data/brief.md', content_hash.
     2. Secondary write: Flat markdown files (brief_YYYYMMDD_HHMMSS.md and brief.md).
     """
     c_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
     pub_dt = published_at or datetime.now(timezone.utc)
     b_title = title or "PrismIQ Competitive Intelligence Brief"
+    tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
     
     if not headline_preview:
         # Extract headline preview
@@ -532,9 +583,9 @@ def save_brief(
     # 1. Primary PostgreSQL Write
     with get_db_cursor() as cur:
         b_sql = """
-            INSERT INTO briefs (id, filename, source_path, content_hash, title, headline_preview, content, published_at)
-            VALUES ('data_latest', 'data/brief.md', 'data/brief.md', %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO UPDATE
+            INSERT INTO briefs (id, tenant_id, filename, source_path, content_hash, title, headline_preview, content, published_at)
+            VALUES ('data_latest', %s, 'data/brief.md', 'data/brief.md', %s, %s, %s, %s, %s)
+            ON CONFLICT (tenant_id, id) DO UPDATE
             SET filename = EXCLUDED.filename,
                 source_path = EXCLUDED.source_path,
                 content_hash = EXCLUDED.content_hash,
@@ -543,8 +594,8 @@ def save_brief(
                 content = EXCLUDED.content,
                 published_at = EXCLUDED.published_at;
         """
-        cur.execute(b_sql, (c_hash, b_title, headline_preview, content, pub_dt))
-        logger.info(f"Dual-write: persisted data_latest brief (hash: {c_hash[:16]}...) to PostgreSQL.")
+        cur.execute(b_sql, (tid, c_hash, b_title, headline_preview, content, pub_dt))
+        logger.info(f"Dual-write: persisted data_latest brief for tenant {tid} (hash: {c_hash[:16]}...) to PostgreSQL.")
 
     # 2. Secondary Flat File Write
     data_dir = _get_data_dir()
@@ -580,47 +631,49 @@ def save_brief(
 def save_discovery_proposal(
     target_company: str,
     candidates: List[Dict[str, Any]],
+    tenant_id: Optional[str] = None,
     filepath: Optional[Union[str, Path]] = None,
 ) -> Path:
     """
     Dual-write candidate competitor discovery proposals:
-    1. Primary write: PostgreSQL `discovery_proposals` and `discovery_candidates` tables.
+    1. Primary write: PostgreSQL `discovery_proposals` and `discovery_candidates` tables (tenant-scoped).
     2. Secondary write: Flat JSON file (discovery_proposal_{clean_company}.json).
     """
     data_dir = _get_data_dir()
     clean_name = _sanitize_filename(target_company)
     rel_filename = f"data/discovery_proposal_{clean_name}.json"
     now_dt = datetime.now(timezone.utc)
+    tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
 
     # 1. Primary PostgreSQL Write
     if candidates:
         with get_db_cursor() as cur:
-            # Ensure target competitor exists
+            # Ensure target company exists in companies registry
             cur.execute(
-                "INSERT INTO competitors (name, is_target) VALUES (%s, TRUE) ON CONFLICT (name) DO NOTHING;",
+                "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
                 (target_company,)
             )
 
             # Insert proposal record
             prop_sql = """
-                INSERT INTO discovery_proposals (target_company, generated_at, filename)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (target_company, filename) DO UPDATE
+                INSERT INTO discovery_proposals (tenant_id, target_company, generated_at, filename)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (tenant_id, target_company, filename) DO UPDATE
                 SET generated_at = EXCLUDED.generated_at
                 RETURNING id;
             """
-            cur.execute(prop_sql, (target_company, now_dt, rel_filename))
+            cur.execute(prop_sql, (tid, target_company, now_dt, rel_filename))
             prop_id_row = cur.fetchone()
             prop_id = prop_id_row[0] if prop_id_row else "00000000-0000-0000-0000-000000000000"
 
             # Insert candidates
             dc_sql = """
                 INSERT INTO discovery_candidates (
-                    proposal_id, target_company, name, rationale, confidence,
+                    tenant_id, proposal_id, target_company, name, rationale, confidence,
                     source, source_age, source_date, freshness_note, status
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (target_company, name, source) DO UPDATE
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (tenant_id, target_company, name, source) DO UPDATE
                 SET rationale = EXCLUDED.rationale,
                     confidence = EXCLUDED.confidence,
                     source_age = EXCLUDED.source_age,
@@ -633,25 +686,26 @@ def save_discovery_proposal(
                 cname = c.get("name", "").strip()
                 if not cname:
                     continue
-                # Ensure candidate competitor exists
+                # Ensure candidate company exists in companies registry
                 cur.execute(
-                    "INSERT INTO competitors (name, is_target, status) VALUES (%s, FALSE, 'candidate') ON CONFLICT (name) DO NOTHING;",
+                    "INSERT INTO companies (name, status) VALUES (%s, 'candidate') ON CONFLICT (name) DO NOTHING;",
                     (cname,)
                 )
                 dc_params.append((
-                    prop_id, target_company, cname, c.get("rationale", ""),
+                    tid, prop_id, target_company, cname, c.get("rationale", ""),
                     c.get("confidence", "Low"), c.get("source", ""),
                     c.get("source_age", "undated"),
                     str(c.get("source_date")) if c.get("source_date") else None,
                     c.get("freshness_note"), c.get("status", "proposed")
                 ))
             _execute_batch(cur, dc_sql, dc_params, page_size=50)
-            logger.info(f"Dual-write: persisted discovery proposal and {len(dc_params)} candidates to PostgreSQL.")
+            logger.info(f"Dual-write: persisted discovery proposal and {len(dc_params)} candidates for tenant {tid} to PostgreSQL.")
 
     # 2. Secondary Flat File Write
     target_file = Path(filepath) if filepath else (data_dir / f"discovery_proposal_{clean_name}.json")
     target_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
+        "tenant_id": tid,
         "target_company": target_company,
         "generated_at": now_dt.isoformat(),
         "candidates": candidates,
@@ -694,15 +748,15 @@ def save_confirmed_competitors(
 ) -> Path:
     """
     Dual-write human-confirmed competitors:
-    1. Primary write: PostgreSQL `competitors` table.
+    1. Primary write: PostgreSQL `companies` table.
     2. Secondary write: Flat JSON file (confirmed_competitors_{clean_company}.json).
     """
     # 1. Primary PostgreSQL Write
     if confirmed_competitors:
         with get_db_cursor() as cur:
             comp_sql = """
-                INSERT INTO competitors (name, is_target, status)
-                VALUES (%s, FALSE, 'confirmed')
+                INSERT INTO companies (name, status)
+                VALUES (%s, 'confirmed')
                 ON CONFLICT (name) DO UPDATE
                 SET status = 'confirmed',
                     updated_at = NOW();
@@ -724,6 +778,84 @@ def save_confirmed_competitors(
     with open(target_file, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
     return target_file
+
+
+def save_tenant_confirmed_companies(
+    tenant_id: str,
+    target_company: str,
+    confirmed_competitors: List[str],
+) -> List[Dict[str, Any]]:
+    """
+    Write confirmed onboarding company selection directly into tenant_tracked_companies.
+    1. Inserts target company as is_target = TRUE, status = 'active'.
+    2. Inserts confirmed competitors as is_target = FALSE, status = 'active'.
+    3. Ensures companies exist in global canonical registry.
+    4. Updates discovery_candidates status to 'confirmed' for selected, 'rejected' for omitted.
+    """
+    tid = str(tenant_id).strip()
+    target = str(target_company).strip()
+    competitors = [str(c).strip() for c in confirmed_competitors if str(c).strip()]
+    now_dt = datetime.now(timezone.utc)
+
+    # 1. Primary PostgreSQL Write
+    with get_db_cursor() as cur:
+        # Ensure target company in companies registry
+        cur.execute(
+            "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
+            (target,)
+        )
+        # Ensure competitor companies in companies registry
+        comp_registry_sql = """
+            INSERT INTO companies (name, status)
+            VALUES (%s, 'confirmed')
+            ON CONFLICT (name) DO UPDATE
+            SET status = 'confirmed', updated_at = NOW();
+        """
+        _execute_batch(cur, comp_registry_sql, [(c,) for c in competitors], page_size=50)
+
+        # Upsert target company into tenant_tracked_companies
+        target_ttc_sql = """
+            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
+            VALUES (%s, %s, TRUE, 'active', %s, %s)
+            ON CONFLICT (tenant_id, company_name) DO UPDATE
+            SET is_target = TRUE, status = 'active', updated_at = EXCLUDED.updated_at;
+        """
+        cur.execute(target_ttc_sql, (tid, target, now_dt, now_dt))
+
+        # Upsert confirmed competitors into tenant_tracked_companies
+        comp_ttc_sql = """
+            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
+            VALUES (%s, %s, FALSE, 'active', %s, %s)
+            ON CONFLICT (tenant_id, company_name) DO UPDATE
+            SET is_target = FALSE, status = 'active', updated_at = EXCLUDED.updated_at;
+        """
+        ttc_params = [(tid, c, now_dt, now_dt) for c in competitors]
+        _execute_batch(cur, comp_ttc_sql, ttc_params, page_size=50)
+
+        # Update candidate statuses in discovery_candidates if present
+        if competitors:
+            cur.execute("""
+                UPDATE discovery_candidates
+                SET status = 'confirmed'
+                WHERE tenant_id = %s AND target_company = %s AND name = ANY(%s);
+            """, (tid, target, competitors))
+
+            cur.execute("""
+                UPDATE discovery_candidates
+                SET status = 'rejected'
+                WHERE tenant_id = %s AND target_company = %s AND NOT (name = ANY(%s));
+            """, (tid, target, competitors))
+
+        logger.info(f"Persisted confirmed tracked companies for tenant {tid}: target={target}, competitors={competitors}")
+
+    # 2. Parity flat-file write
+    save_confirmed_competitors(target, competitors)
+
+    # Return structured tracked companies
+    tracked = [{"company_name": target, "is_target": True, "status": "active"}]
+    for c in competitors:
+        tracked.append({"company_name": c, "is_target": False, "status": "active"})
+    return tracked
 
 
 def load_confirmed_competitors(
@@ -755,25 +887,33 @@ def load_confirmed_competitors(
 def save_discovery_sources(
     target_company: str,
     sources: List[Dict[str, Any]],
+    tenant_id: Optional[str] = None,
     filepath: Optional[Union[str, Path]] = None,
 ) -> Path:
     """
     Dual-write raw retrieved discovery context sources:
-    1. Primary write: PostgreSQL `discovery_sources` table.
+    1. Primary write: PostgreSQL `discovery_sources` table (tenant-scoped).
     2. Secondary write: Flat JSON files.
     """
     data_dir = _get_data_dir()
     clean_name = _sanitize_filename(target_company)
     rel_filename = f"data/discovery_sources_{clean_name}.json"
     now_iso = datetime.now(timezone.utc).isoformat()
+    tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
 
     # 1. Primary PostgreSQL Write
     if sources:
         with get_db_cursor() as cur:
+            # Ensure target company exists in companies registry
+            cur.execute(
+                "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
+                (target_company,)
+            )
+
             ds_sql = """
-                INSERT INTO discovery_sources (target_company, source_type, title, url, published_at, source_age, text, source_file)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (target_company, url, title) DO UPDATE
+                INSERT INTO discovery_sources (tenant_id, target_company, source_type, title, url, published_at, source_age, text, source_file)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (tenant_id, target_company, url, title) DO UPDATE
                 SET source_type = EXCLUDED.source_type,
                     published_at = EXCLUDED.published_at,
                     source_age = EXCLUDED.source_age,
@@ -782,6 +922,7 @@ def save_discovery_sources(
             """
             ds_params = [
                 (
+                    tid,
                     target_company,
                     s.get("source_type", "web_search"),
                     s.get("title", ""),
@@ -794,7 +935,7 @@ def save_discovery_sources(
                 for s in sources
             ]
             _execute_batch(cur, ds_sql, ds_params, page_size=100)
-            logger.info(f"Dual-write: persisted {len(sources)} discovery_sources to PostgreSQL.")
+            logger.info(f"Dual-write: persisted {len(sources)} discovery_sources for tenant {tid} to PostgreSQL.")
 
     # 2. Secondary Flat File Write
     default_sources_file = data_dir / f"discovery_sources_{clean_name}.json"
@@ -921,9 +1062,112 @@ def save_pricing_snapshot(
     return history_file
 
 
-def get_prior_research_activity(exclude_signal_ids: Optional[Set[str]] = None) -> Optional[Dict[str, Any]]:
+def get_all_tracked_companies() -> List[str]:
+    """
+    Query DISTINCT company_name across all tenant_tracked_companies rows.
+    Union across every tenant, deduplicated.
+    Replaces hardcoded TARGET_COMPANY / COMPETITORS as source of what gets monitored in Phase 1.
+    """
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT company_name
+                    FROM tenant_tracked_companies
+                    WHERE status = 'active'
+                    ORDER BY company_name;
+                """)
+                rows = cur.fetchall()
+                if rows:
+                    comps = [r[0] for r in rows if r and r[0]]
+                    if comps:
+                        return comps
+        except Exception as e:
+            logger.warning(f"Failed to query distinct tracked companies from Postgres: {e}")
+
+    # Fallback to configured target and competitors
+    from . import config
+    comps = [config.TARGET_COMPANY] + list(config.COMPETITORS)
+    seen = set()
+    res = []
+    for c in comps:
+        if c and c not in seen:
+            seen.add(c)
+            res.append(c)
+    return res
+
+
+def get_active_tenants() -> List[Dict[str, Any]]:
+    """
+    Query all active tenants from tenant_tracked_companies and join with tenant_delivery_configs.
+    Returns structured list of tenant configuration contexts for Phase 2 processing.
+    """
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                sql = """
+                    SELECT 
+                        t.tenant_id,
+                        MAX(CASE WHEN t.is_target THEN t.company_name END) AS target_company,
+                        ARRAY_AGG(CASE WHEN NOT t.is_target THEN t.company_name END) FILTER (WHERE NOT t.is_target) AS competitors,
+                        ARRAY_AGG(t.company_name) AS all_tracked_companies,
+                        d.slack_webhook_url,
+                        d.delivery_cadence,
+                        d.is_enabled
+                    FROM tenant_tracked_companies t
+                    LEFT JOIN tenant_delivery_configs d ON t.tenant_id = d.tenant_id
+                    WHERE t.status = 'active'
+                    GROUP BY t.tenant_id, d.slack_webhook_url, d.delivery_cadence, d.is_enabled
+                    ORDER BY t.tenant_id;
+                """
+                cur.execute(sql)
+                rows = cur.fetchall()
+                if rows:
+                    tenants = []
+                    for r in rows:
+                        tid = str(r[0])
+                        target = r[1] or "Unknown"
+                        raw_comps = r[2] or []
+                        competitors = [c for c in raw_comps if c]
+                        tracked = [c for c in (r[3] or []) if c]
+                        webhook_url = r[4]
+                        cadence = r[5] or "daily"
+                        is_enabled = r[6] if r[6] is not None else True
+                        tenants.append({
+                            "tenant_id": tid,
+                            "target_company": target,
+                            "competitors": competitors,
+                            "tracked_companies": tracked,
+                            "slack_webhook_url": webhook_url,
+                            "delivery_cadence": cadence,
+                            "is_delivery_enabled": is_enabled,
+                        })
+                    return tenants
+        except Exception as e:
+            logger.warning(f"Failed to query active tenants from Postgres: {e}")
+
+    # Fallback to single owner tenant context
+    from . import config
+    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+    return [{
+        "tenant_id": owner_id,
+        "target_company": config.TARGET_COMPANY,
+        "competitors": list(config.COMPETITORS),
+        "tracked_companies": [config.TARGET_COMPANY] + list(config.COMPETITORS),
+        "slack_webhook_url": config.SLACK_WEBHOOK_URL or None,
+        "delivery_cadence": config.SCHEDULE_CADENCE_NAME,
+        "is_delivery_enabled": True,
+    }]
+
+
+def get_prior_research_activity(
+    tenant_id: Optional[str] = None,
+    tracked_companies: Optional[List[str]] = None,
+    exclude_signal_ids: Optional[Set[str]] = None,
+) -> Optional[Dict[str, Any]]:
     """
     Query PostgreSQL (or fallback flat file store) for the most recent prior research activity.
+    Scoped per-tenant and to that tenant's tracked companies.
     Used by Report Agent to evaluate change detection across cycles.
     
     Returns:
@@ -932,25 +1176,27 @@ def get_prior_research_activity(exclude_signal_ids: Optional[Set[str]] = None) -
     if not is_test_environment():
         try:
             with get_db_cursor() as cur:
+                conditions = ["source = 'research'"]
+                params: List[Any] = []
+
+                if tracked_companies:
+                    conditions.append("company_name = ANY(%s)")
+                    params.append(list(tracked_companies))
+
                 if exclude_signal_ids:
                     placeholders = ", ".join(["%s"] * len(exclude_signal_ids))
-                    sql = f"""
-                        SELECT title, company_name, published_at, url, created_at
-                        FROM raw_signals
-                        WHERE source = 'research' AND id NOT IN ({placeholders})
-                        ORDER BY published_timestamp DESC NULLS LAST, created_at DESC
-                        LIMIT 1;
-                    """
-                    cur.execute(sql, tuple(exclude_signal_ids))
-                else:
-                    sql = """
-                        SELECT title, company_name, published_at, url, created_at
-                        FROM raw_signals
-                        WHERE source = 'research'
-                        ORDER BY published_timestamp DESC NULLS LAST, created_at DESC
-                        LIMIT 1;
-                    """
-                    cur.execute(sql)
+                    conditions.append(f"id NOT IN ({placeholders})")
+                    params.extend(list(exclude_signal_ids))
+
+                where_clause = " AND ".join(conditions)
+                sql = f"""
+                    SELECT title, company_name, published_at, url, created_at
+                    FROM raw_signals
+                    WHERE {where_clause}
+                    ORDER BY published_timestamp DESC NULLS LAST, created_at DESC
+                    LIMIT 1;
+                """
+                cur.execute(sql, tuple(params))
                 row = cur.fetchone()
                 if row and row[0]:
                     return {
@@ -972,6 +1218,8 @@ def get_prior_research_activity(exclude_signal_ids: Optional[Set[str]] = None) -
                     if s.get("source") == "research" or s.get("source_subtype") == "research":
                         if exclude_signal_ids and s.get("id") in exclude_signal_ids:
                             continue
+                        if tracked_companies and s.get("company") not in tracked_companies:
+                            continue
                         return {
                             "title": s.get("title", ""),
                             "company": s.get("company", ""),
@@ -981,3 +1229,4 @@ def get_prior_research_activity(exclude_signal_ids: Optional[Set[str]] = None) -
         except Exception:
             continue
     return None
+
