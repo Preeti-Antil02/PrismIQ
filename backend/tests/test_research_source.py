@@ -1,5 +1,8 @@
+from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock
 from src import monitoring_agent
+
+_RECENT_PUB_DATE = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 MOCK_ARXIV_XML_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
@@ -30,20 +33,20 @@ MOCK_ARXIV_XML_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 </feed>
 """
 
-MOCK_BLOG_RSS_XML = """<?xml version="1.0" encoding="UTF-8"?>
+MOCK_BLOG_RSS_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
     <title>Cloudflare Blog</title>
     <item>
       <title>How we saved 100 terabytes of memory by optimizing 1.1.1.1's DNS cache</title>
       <link>https://blog.cloudflare.com/dns-cache-memory-optimization-1111/</link>
-      <pubDate>Mon, 25 Aug 2026 10:00:00 +0000</pubDate>
+      <pubDate>{_RECENT_PUB_DATE}</pubDate>
       <description>&lt;p&gt;Five Rust-level memory optimizations to DNS cache layout cut memory by 56%.&lt;/p&gt;</description>
     </item>
     <item>
       <title>Say it once: Introducing Bot Preference Sync</title>
       <link>https://blog.cloudflare.com/bot-preference-sync/</link>
-      <pubDate>Mon, 25 Aug 2026 09:00:00 +0000</pubDate>
+      <pubDate>{_RECENT_PUB_DATE}</pubDate>
       <description>&lt;p&gt;Toggle robots.txt in dashboard settings.&lt;/p&gt;</description>
     </item>
   </channel>
@@ -131,39 +134,39 @@ def test_research_source_retry_and_graceful_fallback():
 
 def test_cross_feed_deduplication_cloudflare():
     """Verify that posts syndicated across multiple Cloudflare feeds yield exactly 1 raw signal."""
-    feed_1_xml = """<?xml version="1.0" encoding="UTF-8"?>
+    feed_1_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
     <title>Cloudflare Blog Main</title>
     <item>
       <title>A revisit of remote Spectre attacks on Cloudflare Workers</title>
       <link>https://blog.cloudflare.com/spectre-research-workers-revisit/</link>
-      <pubDate>Mon, 25 Aug 2026 10:00:00 +0000</pubDate>
+      <pubDate>{_RECENT_PUB_DATE}</pubDate>
       <description>We evaluated microarchitectural side-channel attacks on isolated V8 workers.</description>
     </item>
     <item>
       <title>BGP Role model: tracking the adoption of RFC 9234</title>
       <link>https://blog.cloudflare.com/bgp-role-model-rfc-9234/</link>
-      <pubDate>Mon, 25 Aug 2026 09:00:00 +0000</pubDate>
+      <pubDate>{_RECENT_PUB_DATE}</pubDate>
       <description>Analysis of Autonomous System Provider Authorization and BGP route leak prevention.</description>
     </item>
   </channel>
 </rss>"""
 
-    feed_2_xml = """<?xml version="1.0" encoding="UTF-8"?>
+    feed_2_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
     <title>Cloudflare Blog Research Tag</title>
     <item>
       <title>A revisit of remote Spectre attacks on Cloudflare Workers</title>
       <link>https://blog.cloudflare.com/spectre-research-workers-revisit/</link>
-      <pubDate>Mon, 25 Aug 2026 10:00:00 +0000</pubDate>
+      <pubDate>{_RECENT_PUB_DATE}</pubDate>
       <description>We evaluated microarchitectural side-channel attacks on isolated V8 workers.</description>
     </item>
     <item>
       <title>BGP Role model: tracking the adoption of RFC 9234</title>
       <link>https://blog.cloudflare.com/bgp-role-model-rfc-9234/</link>
-      <pubDate>Mon, 25 Aug 2026 09:00:00 +0000</pubDate>
+      <pubDate>{_RECENT_PUB_DATE}</pubDate>
       <description>Analysis of Autonomous System Provider Authorization and BGP route leak prevention.</description>
     </item>
   </channel>
