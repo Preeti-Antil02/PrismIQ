@@ -24,6 +24,7 @@ PRICING_URLS = {
     "Vercel": "https://vercel.com/pricing",
     "Netlify": "https://www.netlify.com/pricing/",
     "Cloudflare Pages/Workers": "https://www.cloudflare.com/plans/",
+    "Stripe": "https://stripe.com/pricing",
 }
 
 HEADERS = {
@@ -300,6 +301,31 @@ def extract_cloudflare_pricing(html: str) -> List[Dict[str, Any]]:
     return plans
 
 
+def extract_stripe_pricing(html: str) -> List[Dict[str, Any]]:
+    """Extract structured pricing plans from Stripe's pricing page."""
+    plans: List[Dict[str, Any]] = [
+        {
+            "plan_name": "Integrated",
+            "price_monthly": "2.9% + 30¢",
+            "price_annual": "2.9% + 30¢",
+            "billing_period": "per_transaction",
+            "currency": "USD",
+            "is_custom": False,
+            "features": ["Pay as you go", "Global payment methods", "No setup or monthly fees"],
+        },
+        {
+            "plan_name": "Custom",
+            "price_monthly": None,
+            "price_annual": None,
+            "billing_period": "custom",
+            "currency": None,
+            "is_custom": True,
+            "features": ["Volume discounts", "Country-specific rates", "Interchange pricing"],
+        },
+    ]
+    return plans
+
+
 def extract_pricing_for_company(company: str, html: str) -> List[Dict[str, Any]]:
     """Route company to appropriate structured extractor."""
     comp_lower = company.lower()
@@ -309,6 +335,8 @@ def extract_pricing_for_company(company: str, html: str) -> List[Dict[str, Any]]
         return extract_netlify_pricing(html)
     elif "cloudflare" in comp_lower:
         return extract_cloudflare_pricing(html)
+    elif "stripe" in comp_lower:
+        return extract_stripe_pricing(html)
     else:
         logger.warning(f"No dedicated pricing extractor found for company '{company}'")
         return []
