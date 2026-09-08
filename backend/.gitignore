@@ -15,19 +15,12 @@ env/
 *.sqlite3
 
 # Local scratch data
-backend/data/*.json
-backend/data/*.md
-backend/data/*.db
-!backend/data/.gitkeep
+data/*.json
+data/*.md
+data/*.db
+!data/.gitkeep
 
-# Ephemeral deployment seeded briefs (tracked in git)
-!backend/published_briefs/
-!backend/published_briefs/brief.md
-!backend/published_briefs/signals.json
-!backend/published_briefs/events.json
-backend/published_briefs/events_*.json
-backend/published_briefs/signals_*.json
-backend/published_briefs/discovery_sources_*.json
-backend/published_briefs/discovery_proposal_*.json
-backend/published_briefs/confirmed_competitors_*.json
-backend/published_briefs/brief_*.md
+# Ignore all generated briefs, signals, events, and source dumps
+published_briefs/*.json
+published_briefs/*.md
+!published_briefs/.gitkeep
