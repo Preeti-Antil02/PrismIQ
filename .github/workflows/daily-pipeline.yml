@@ -39,8 +39,7 @@ jobs:
           GROQ_MODEL: ${{ secrets.GROQ_MODEL || 'openai/gpt-oss-120b' }}
           CURRENTS_API_KEY: ${{ secrets.CURRENTS_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT_TOKEN || secrets.GITHUB_TOKEN }}
-          TARGET_COMPANY: "Vercel"
-          COMPETITORS: "Netlify,Cloudflare Pages/Workers"
+          OWNER_TENANT_ID: ${{ secrets.OWNER_TENANT_ID }}
           SOURCES: "news,github,jobs,pricing,research"
           PIPELINE_TRIGGER_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }}
           PIPELINE_CADENCE_NAME: "daily"
