@@ -79,14 +79,23 @@ def _normalize_confidence(val: Any) -> str:
     return "Low"
 
 
-def _build_prompts(signal: Dict[str, Any]) -> Tuple[str, str]:
-    """Construct the system and user prompts for Groq analysis of an Event or Signal."""
+def _build_prompts(
+    signal: Dict[str, Any],
+    target_company: Optional[str] = None,
+    competitors: Optional[List[str]] = None,
+) -> Tuple[str, str]:
+    """Construct the system and user prompts for Groq analysis of an Event or Signal, contextualized to the requesting tenant."""
     corroboration_info = ""
     if signal.get("corroboration_count", 1) > 1:
         sources_list = ", ".join(signal.get("contributing_sources", []))
         corroboration_info = f"\nCorroboration: {signal.get('corroboration_count')} independent signals ({sources_list})"
 
-    user_prompt = f"""Analyze the following competitive event:
+    tenant_context = ""
+    if target_company:
+        comps_str = ", ".join(competitors) if competitors else "none"
+        tenant_context = f"Tenant Context: You are performing this analysis for '{target_company}' (tracked competitors: {comps_str}). Analyze how this event affects '{target_company}' strategically.\n\n"
+
+    user_prompt = f"""{tenant_context}Analyze the following competitive event:
 Company: {signal.get('company', 'Unknown')}
 Title: {signal.get('title', '')}
 Published At: {signal.get('published_at', '')}
@@ -99,7 +108,7 @@ Raw Excerpt & Evidence:
 Remember to:
 - Ground your analysis strictly in the title and excerpt above.
 - Avoid generic filler, unhedged causation, and cherry-picking.
-- Return JSON with 'why_it_matters' and 'confidence' (High, Medium, or Low)."""
+- Return JSON with 'why_it_matters', 'inference_confidence' (High, Medium, or Low), and 'confidence' (High, Medium, or Low)."""
     return SYSTEM_PROMPT, user_prompt
 
 
@@ -248,10 +257,15 @@ def _is_strategic_hiring_signal(signal: Dict[str, Any]) -> bool:
     return any(re.search(pat, title) for pat in STRATEGIC_HIRING_PATTERNS)
 
 
-def run(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def run(
+    signals: List[Dict[str, Any]],
+    target_company: Optional[str] = None,
+    competitors: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
     """
-    Analyze a list of normalized signals / consolidated events.
-    Produces why_it_matters, fact_confidence, inference_confidence, and legacy confidence for each finding.
+    Analyze a list of normalized signals / consolidated events for a specific tenant context.
+    Option A Single Source of Truth: Reads fact_confidence directly from the consolidated event (never recomputed).
+    Evaluates strategic impact (why_it_matters, inference_confidence, legacy blended confidence).
     Suppresses speculative LLM analysis on routine individual job postings, routing strategic
     hiring and all news/GitHub signals to Groq for deep analysis.
     """
@@ -263,21 +277,27 @@ def run(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         is_pure_job = sources == ["jobs"] or source == "jobs"
         corroboration = signal.get("corroboration_count", 1)
 
+        # Fact confidence is single ground truth from Phase 1 consolidated_events
+        fact_conf = _normalize_confidence(signal.get("fact_confidence") or "High")
+
         # If it is an individual routine job posting without strategic keywords, suppress speculative why_it_matters
         if is_pure_job and corroboration == 1 and not _is_strategic_hiring_signal(signal):
             title = signal.get("title", "Job Posting").replace("Job Posting: ", "")
             finding = dict(signal)
             finding["why_it_matters"] = f"Routine operational hiring for {title}."
-            finding["fact_confidence"] = "High"  # Sourced job posting is a verified fact
+            finding["fact_confidence"] = fact_conf  # Preserved from consolidated event
             finding["inference_confidence"] = "Low"  # No strategic extrapolation
             finding["confidence"] = "Low"  # Legacy blended priority
             findings.append(finding)
             continue
 
-        system_prompt, user_prompt = _build_prompts(signal)
+        system_prompt, user_prompt = _build_prompts(
+            signal,
+            target_company=target_company,
+            competitors=competitors,
+        )
         analysis = _call_groq(system_prompt, user_prompt)
         
-        fact_conf = _normalize_confidence(analysis.get("fact_confidence") or analysis.get("confidence", "Low"))
         infer_conf = _normalize_confidence(analysis.get("inference_confidence") or analysis.get("confidence", "Low"))
         blended_conf = _normalize_confidence(analysis.get("confidence") or fact_conf)
 
@@ -287,7 +307,7 @@ def run(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
         finding = dict(signal)
         finding["why_it_matters"] = why_it_matters
-        finding["fact_confidence"] = fact_conf
+        finding["fact_confidence"] = fact_conf  # Preserved from Phase 1 event
         finding["inference_confidence"] = infer_conf
         finding["confidence"] = blended_conf
         findings.append(finding)
