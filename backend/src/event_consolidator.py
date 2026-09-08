@@ -326,6 +326,33 @@ def _build_canonical_event(company: str, cluster: List[Dict[str, Any]]) -> Dict[
             prio += 5
         return prio
 
+    def _determine_fact_confidence(cluster_signals: List[Dict[str, Any]]) -> str:
+        """
+        Compute single canonical fact_confidence on consolidated events:
+        - 'High': Documented in authoritative primary source (github, pricing, jobs, verified CVE) or multi-source corroboration (2+ distinct sources or >=2 signals).
+        - 'Medium': Documented in reputable secondary source (news, third-party article, tech write-up).
+        - 'Low': Ambiguous or unverified source.
+        """
+        if len(cluster_signals) >= 2:
+            return "High"
+        
+        sources = set(s.get("source", "").lower() for s in cluster_signals)
+        if "github" in sources or "pricing" in sources or "jobs" in sources:
+            return "High"
+        
+        for s in cluster_signals:
+            t = s.get("title", "").lower()
+            ex = s.get("raw_excerpt", "").lower()
+            if "cve-" in t or "cve-" in ex:
+                return "High"
+            if re.search(r"\bv?\d+\.\d+\.\d+\b", t):
+                return "High"
+                
+        if "news" in sources or "research" in sources:
+            return "Medium"
+            
+        return "Medium"
+
     best_signal = max(cluster, key=_title_priority)
     canonical_title = best_signal.get("title", "Consolidated Business Event")
     canonical_url = best_signal.get("url", source_urls[0] if source_urls else "")
@@ -340,6 +367,7 @@ def _build_canonical_event(company: str, cluster: List[Dict[str, Any]]) -> Dict[
 
     combined_excerpt = "\n\n".join(excerpts)
     event_id = _generate_event_id(company, cluster)
+    fact_conf = _determine_fact_confidence(cluster)
 
     return {
         "event_id": event_id,
@@ -354,6 +382,7 @@ def _build_canonical_event(company: str, cluster: List[Dict[str, Any]]) -> Dict[
         "url": canonical_url,
         "source_urls": source_urls,
         "raw_excerpt": combined_excerpt,
+        "fact_confidence": fact_conf,
         "raw_signals": cluster,
     }
 
