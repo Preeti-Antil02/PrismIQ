@@ -273,16 +273,158 @@ def _fetch_currents_context(company: str) -> List[Dict[str, Any]]:
     return sources
 
 
+def _fetch_alternativeto_context(company: str) -> List[Dict[str, Any]]:
+    """
+    Fetch established competitors from alternativeto.net structured listing pages.
+    Addresses the retrieval blind spot identified in Prompt #51: for companies
+    without Wikipedia competitor sections, HN/GitHub queries skew toward
+    self-promotional posts rather than surfacing established alternatives.
+    
+    alternativeto.net directly lists known alternatives with descriptions,
+    providing the structured competitor signal that keyword-based searches miss.
+    """
+    sources: List[Dict[str, Any]] = []
+    
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        logger.warning("BeautifulSoup not available. Skipping alternativeto.net source.")
+        return sources
+
+    # Normalize company name to URL slug (e.g. "PostHog" -> "posthog", "Cloudflare Pages/Workers" -> "cloudflare")
+    slug = re.sub(r'[^a-zA-Z0-9]+', '-', company.strip().split('/')[0].split('(')[0]).strip('-').lower()
+    if not slug:
+        return sources
+
+    url = f"https://alternativeto.net/software/{slug}/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code == 404:
+            logger.info(f"alternativeto.net: No listing found for '{slug}' (404). Trying search fallback.")
+            # Fallback: try search page
+            search_url = f"https://alternativeto.net/browse/search/?q={requests.utils.quote(company.strip())}"
+            resp = requests.get(search_url, headers=headers, timeout=15)
+            if resp.status_code != 200:
+                logger.info(f"alternativeto.net search also returned {resp.status_code}. Skipping.")
+                return sources
+
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            # Extract alternative app cards from the listing page
+            # alternativeto.net uses data-app-slug attributes or specific card classes
+            alt_cards = soup.select("[data-app-slug]")
+            if not alt_cards:
+                # Fallback selectors for different page structures
+                alt_cards = soup.select(".app-list-item, .listing-item, article.app-card")
+            
+            if not alt_cards:
+                # Final fallback: find links that look like alternative software entries
+                alt_links = soup.select('a[href*="/software/"]')
+                seen_names = set()
+                for link in alt_links[:20]:
+                    name = link.get_text(strip=True)
+                    href = link.get("href", "")
+                    # Skip self-referential links and navigation
+                    if not name or len(name) < 2 or len(name) > 80:
+                        continue
+                    if slug in href.lower() and href.count('/') <= 3:
+                        continue  # Skip link to the target company itself
+                    if name.lower() == company.strip().lower():
+                        continue
+                    if name.lower() in seen_names:
+                        continue
+                    seen_names.add(name.lower())
+                    full_url = f"https://alternativeto.net{href}" if href.startswith("/") else href
+                    sources.append({
+                        "source_type": "alternatives_listing",
+                        "title": f"AlternativeTo: {name} (alternative to {company})",
+                        "url": full_url,
+                        "published_at": None,
+                        "source_age": "undated",
+                        "text": f"{name} is listed as an alternative to {company} on alternativeto.net. (undated structured listing)",
+                    })
+                    if len(sources) >= 10:
+                        break
+            else:
+                for card in alt_cards[:10]:
+                    app_slug = card.get("data-app-slug", "")
+                    name_el = card.select_one(".app-name, h3, [data-app-name]")
+                    desc_el = card.select_one(".app-description, .listing-text, p")
+                    
+                    name = name_el.get_text(strip=True) if name_el else (app_slug.replace("-", " ").title() if app_slug else "")
+                    desc = desc_el.get_text(strip=True) if desc_el else ""
+                    
+                    if not name or name.lower() == company.strip().lower():
+                        continue
+
+                    alt_url = f"https://alternativeto.net/software/{app_slug}/" if app_slug else url
+                    text_parts = [f"{name} is listed as an alternative to {company} on alternativeto.net."]
+                    if desc:
+                        text_parts.append(f"Description: {desc[:200]}")
+                    text_parts.append("(undated structured listing)")
+
+                    sources.append({
+                        "source_type": "alternatives_listing",
+                        "title": f"AlternativeTo: {name} (alternative to {company})",
+                        "url": alt_url,
+                        "published_at": None,
+                        "source_age": "undated",
+                        "text": " ".join(text_parts),
+                    })
+
+        if not sources:
+            # Fallback to structured comparison index if direct listing is blocked (e.g. Cloudflare) or empty
+            logger.info(f"alternativeto.net unavailable or empty for '{company}'. Trying structured comparison index fallback.")
+            search_url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(company.strip())}+alternatives"
+            s_resp = requests.get(search_url, headers=headers, timeout=10)
+            if s_resp.status_code == 200:
+                s_soup = BeautifulSoup(s_resp.text, "html.parser")
+                for res in s_soup.select(".result")[:10]:
+                    title_a = res.select_one(".result__title a")
+                    snippet = res.select_one(".result__snippet")
+                    if not title_a:
+                        continue
+                    t_text = title_a.get_text(strip=True)
+                    s_text = snippet.get_text(strip=True) if snippet else ""
+                    href = title_a.get("href", "")
+                    sources.append({
+                        "source_type": "alternatives_listing",
+                        "title": f"Alternative Listing: {t_text}",
+                        "url": href,
+                        "published_at": None,
+                        "source_age": "undated",
+                        "text": f"{t_text}: {s_text} (undated comparison index)",
+                    })
+
+    except requests.exceptions.Timeout:
+        logger.warning(f"alternativeto.net request timed out for '{slug}'.")
+    except requests.exceptions.ConnectionError:
+        logger.warning(f"alternativeto.net connection error for '{slug}'.")
+    except Exception as e:
+        logger.warning(f"Error fetching alternativeto.net for '{company}': {e}")
+
+    logger.info(f"alternativeto.net: Retrieved {len(sources)} alternative listings for '{company}'.")
+    return sources
+
+
 def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
     """
     Gather and deduplicate multi-source grounded intelligence context across
-    Hacker News, GitHub, Wikipedia, and Currents news, retaining source timestamps.
+    Hacker News, GitHub, Wikipedia, Currents news, and AlternativeTo structured
+    listings, retaining source timestamps.
     """
     raw_sources: List[Dict[str, Any]] = []
     raw_sources.extend(_fetch_hn_context(company))
     raw_sources.extend(_fetch_github_context(company))
     raw_sources.extend(_fetch_wikipedia_context(company))
     raw_sources.extend(_fetch_currents_context(company))
+    raw_sources.extend(_fetch_alternativeto_context(company))
 
     # Deduplicate sources by URL or Title
     seen = set()
@@ -294,6 +436,7 @@ def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
             deduped.append(s)
 
     return deduped
+
 
 
 def _build_prompts(company: str, sources: List[Dict[str, Any]]) -> Tuple[str, str]:
@@ -442,7 +585,11 @@ def _match_source_metadata(source_ref: str, sources: List[Dict[str, Any]]) -> Tu
     return "undated", None
 
 
-def run(company: str, sources: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+def run(
+    company: str,
+    sources: Optional[List[Dict[str, Any]]] = None,
+    tenant_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """
     Run Discovery Agent for the specified target company.
     1. Uses provided sources or fetches grounded intelligence context across all sources with timestamps.
@@ -451,17 +598,17 @@ def run(company: str, sources: Optional[List[Dict[str, Any]]] = None) -> List[Di
     4. Normalizes candidate schema (name, rationale, confidence, source, source_age, source_date, freshness_note).
     5. Programmatic freshness guardrail: downgrades High confidence to Medium for 'dated' sources.
     6. Filters out target company itself.
-    7. Saves proposal snapshot to data storage.
+    7. Saves proposal snapshot to data storage (scoped to tenant_id).
     """
     company_clean = company.strip()
     if not company_clean:
         return []
 
-    logger.info(f"Running Discovery Agent for target company: '{company_clean}'")
+    logger.info(f"Running Discovery Agent for target company: '{company_clean}' (tenant: {tenant_id})")
     if sources is None:
         sources = fetch_grounded_context(company_clean)
         # Persist raw retrieved sources for deterministic reproduction
-        storage.save_discovery_sources(company_clean, sources)
+        storage.save_discovery_sources(company_clean, sources, tenant_id=tenant_id)
     logger.info(f"Processing {len(sources)} grounded context snippets for '{company_clean}'")
 
     if not sources:
@@ -518,7 +665,7 @@ def run(company: str, sources: Optional[List[Dict[str, Any]]] = None) -> List[Di
         })
 
     # Save discovery proposal to storage
-    storage.save_discovery_proposal(company_clean, normalized_candidates)
+    storage.save_discovery_proposal(company_clean, normalized_candidates, tenant_id=tenant_id)
     return normalized_candidates
 
 
