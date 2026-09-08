@@ -1,289 +1,102 @@
 [
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "Caching audits: Five antipatterns that quietly cost performance and money | Vercel Knowledge Base",
-    "url": "https://vercel.com/kb/guide/caching-antipatterns",
-    "published_at": "2026-09-05 04:50:01 +0000",
-    "raw_excerpt": "Five caching antipatterns from hundreds of Vercel technical audits: write amplification, deploy-wiped caches, spinner shells, and how to diagnose each.",
+    "company": "Cloudflare Pages/Workers",
+    "title": "How We Optimized ScribeToAny: From 3.5s Cloudflare Cold Starts to a 95+ Lighthouse Score",
+    "url": "https://dev.to/ray_mac/how-we-optimized-scribetoany-from-35s-cloudflare-cold-starts-to-a-95-lighthouse-score-be",
+    "published_at": "2026-09-08 04:59:18 +0000",
+    "raw_excerpt": "ScribeToAny is a full-stack audio and video transcription platform built on React 19 and deployed to...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_5ab73fc7931e0ac6"
+    "id": "sig_1c03ebab0ac6d740"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "I built it twice. Didn't place twice. Then Google and Vercel shipped it.",
-    "url": "https://dev.to/earlgreyhot1701d/i-built-it-twice-didnt-place-twice-then-google-and-vercel-shipped-it-ldd",
-    "published_at": "2026-09-04 22:07:59 +0000",
-    "raw_excerpt": "A you.com rep said it at a hackathon kickoff in March. The web has a second audience now. The first...",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Meta's AI Crawler Crashing My DB, and What I Did About It | Usero",
+    "url": "https://usero.io/blog/meta-ai-crawler-crashing-my-db",
+    "published_at": "2026-09-07 23:20:45 +0000",
+    "raw_excerpt": "Sentry said one user caused 80% of my errors in two weeks. It was Meta's AI crawler, and my code was doing five database queries to tell it 404. I don't want to block it, so I fixed the code instead.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_6afcb461b9087bec"
+    "id": "sig_a5678cf741d97bf4"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "I Found a Better Way to Build Websites with Claude AI",
-    "url": "https://dev.to/_shakeworld/i-found-a-better-way-to-build-websites-with-claude-ai-4aen",
-    "published_at": "2026-09-04 21:19:41 +0000",
-    "raw_excerpt": "If you're using Claude to build websites or applications, one of the biggest improvements you can...",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Cloudflare hid my site from AI and I sell AI visibility",
+    "url": "https://foundash-ai.github.io/",
+    "published_at": "2026-09-07 22:58:04 +0000",
+    "raw_excerpt": "I sell AI visibility to local businesses and my own site was blocking AI crawlers. I measured 293 local business websites. Most of the blocking that matters was never written down.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_6b7968fd0e91152d"
+    "id": "sig_5ae3d3e360f19c2b"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "Push to deploy.Skip the platform tax.",
-    "url": "https://apps.lla.ma/",
-    "published_at": "2026-09-04 15:40:37 +0000",
-    "raw_excerpt": "Self-hosted deploy console — your own Vercel.",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Bot Detection Without JavaScript: What My Blog Measured",
+    "url": "https://gkoreli.com/how-i-separate-readers-from-bots-without-javascript",
+    "published_at": "2026-09-07 05:13:22 +0000",
+    "raw_excerpt": "Cloudflare Workers bot detection without JavaScript: headers, network evidence, and an unresolved gap of 95 browser observations versus 14 script page loads.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_1574e0524a1786b3"
+    "id": "sig_02a6aca965a670f0"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "Hello from Kanpur: what I build, and what I'll write about here",
-    "url": "https://dev.to/pranjulrathour/hello-from-kanpur-what-i-build-and-what-ill-write-about-here-f2j",
-    "published_at": "2026-09-04 14:01:26 +0000",
-    "raw_excerpt": "A GenAI engineer's first post: five shipped AI apps, three hackathon wins, 200+ students mentored, and the plan for this blog.",
+    "company": "Cloudflare Pages/Workers",
+    "title": "The Shoemaker's Children Aren't Barefoot",
+    "url": "https://dev.to/claycavaleiro/the-shoemakers-children-arent-barefoot-3m8h",
+    "published_at": "2026-09-06 15:20:20 +0000",
+    "raw_excerpt": "This article covers the architecture and the design decisions behind Home Automated Infrastructure, an open source project that runs a smart home with GitOps and Infrastructure as Code. Everything sits on a Kubernetes cluster of four Raspberry Pi 4B boards. Talos Linux is the operating system, ArgoC...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_8573de8404c45f0b"
+    "id": "sig_924c796b3287f4cb"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "Real-Time Features Need to Match Your Infrastructure, Not Just Your Feature Spec",
-    "url": "https://dev.to/ariyoaresa/real-time-features-need-to-match-your-infrastructure-not-just-your-feature-spec-1pi3",
-    "published_at": "2026-09-04 11:06:09 +0000",
-    "raw_excerpt": "I got an email from Vercel. \"You've used 75% of your free plan resources.\" I ignored it. A few...",
+    "company": "Cloudflare Pages/Workers",
+    "title": "The 14 errors you will hit deploying Rails with Kamal on Hetzner behind Cloudflare (and the fix for each)",
+    "url": "https://dev.to/exo02934/the-14-errors-you-will-hit-deploying-rails-with-kamal-on-hetzner-behind-cloudflare-and-the-fix-for-3ai3",
+    "published_at": "2026-09-05 21:50:29 +0000",
+    "raw_excerpt": "I run every one of my side projects the same way: a Rails 8 app, a €4/month Hetzner box, Kamal 2,...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_f58808f8d0cce34b"
+    "id": "sig_07698c0ec46e45d3"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "Portless: Stable .localhost URLs for Agent Workflows",
-    "url": "https://dev.to/mech_app_ai/portless-stable-localhost-urls-for-agent-workflows-3p38",
-    "published_at": "2026-09-04 10:05:39 +0000",
-    "raw_excerpt": "How Vercel's Portless replaces ephemeral port numbers with stable local URLs, solving coordination problems for AI agents and multi-service dev environm...",
+    "company": "Cloudflare Pages/Workers",
+    "title": "How to find every Shopify store in a list of 10,000 domains",
+    "url": "https://dev.to/clearfetch/how-to-find-every-shopify-store-in-a-list-of-10000-domains-m89",
+    "published_at": "2026-09-05 19:10:42 +0000",
+    "raw_excerpt": "You have a list of domains. A conference attendee export, a directory scrape, a spreadsheet from a...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_85bd489106614dee"
+    "id": "sig_814f06f7da21a3b4"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "The Outlook SVG Problem (And How to Fix It in Seconds)",
-    "url": "https://dev.to/crushsvg/the-outlook-svg-problem-and-how-to-fix-it-in-seconds-34ap",
-    "published_at": "2026-09-04 10:04:43 +0000",
-    "raw_excerpt": "Vector graphics are the standard for web development, but they aren't foolproof. The moment you step...",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Show HN: Minilith – A zero-dependency CMS stored inside a PNG file",
+    "url": "https://blog.minilith.site/#posts/minilith-architecture",
+    "published_at": "2026-09-05 12:09:49 +0000",
+    "raw_excerpt": "I enjoy the constraints of retro development. While building games in PICO-8, I took a interest in the way it packs data into the virtual cartridge. I dug into steganography and started thinking: could I apply the same logic to a content management system? Do we really need all the bloat just to hos...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_1838e747a882b2ba"
+    "id": "sig_a44af6e741b5f188"
   },
   {
     "source": "news",
-    "company": "Vercel",
-    "title": "Stop Paying for Vercel: How to Self-Host Your Deployments on a VPS and Keep the Same Workflow",
-    "url": "https://dev.to/saimulislamdl/stop-paying-for-vercel-how-to-self-host-your-deployments-on-a-vps-and-keep-the-same-workflow-4cce",
-    "published_at": "2026-09-04 05:19:58 +0000",
-    "raw_excerpt": "Push-to-deploy, automatic HTTPS, and preview environments on a $24 droplet with Dokploy, plus the...",
+    "company": "Cloudflare Pages/Workers",
+    "title": "How I Built a Privacy-First Personality Quiz with Next.js and Zero Backend",
+    "url": "https://dev.to/joan_jiao_f2fb9ec9969946f/how-i-built-a-privacy-first-personality-quiz-with-nextjs-and-zero-backend-2l6d",
+    "published_at": "2026-09-05 11:38:08 +0000",
+    "raw_excerpt": "Most online personality quizzes send answers to a server. I wanted to see whether the entire...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_f55098dc4b193376"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "GitHub - BoardUI/boardui: React design system for agentic interfaces. Every free BoardUI component as source, with a working AI chat app on your own model key as the homepage.",
-    "url": "https://github.com/BoardUI/boardui",
-    "published_at": "2026-09-04 01:18:08 +0000",
-    "raw_excerpt": "React design system for agentic interfaces. Every free BoardUI component as source, with a working AI chat app on your own model key as the homepage. - BoardUI/boardui",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_9c3376995bb19447"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "Ling 3.0 Flash Sante is now available on AI Gateway for free - Vercel",
-    "url": "https://vercel.com/changelog/ling-3-0-flash-sante-is-now-available-on-ai-gateway-for-free",
-    "published_at": "2026-09-04 00:00:00 +0000",
-    "raw_excerpt": "Ling 3.0 Flash Sante from Inclusion AI is free on Vercel AI Gateway through October 4 through a -free model ID or regular ID.",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_237221cc27df793f"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "GPT 6 Astra now available on Vercel AI Gateway - Vercel",
-    "url": "https://vercel.com/changelog/gpt-6-astra-now-available-on-vercel-ai-gateway",
-    "published_at": "2026-09-04 00:00:00 +0000",
-    "raw_excerpt": "GPT 6 Astra from OpenAI is now available on Vercel AI Gateway for coding, computer use, research, and multi-step professional workflows.",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_4d1d4f0f5ba81fb7"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "From Rays to Meshes: Building Vercel’s Prism with vgpu | Codrops",
-    "url": "https://tympanus.net/codrops/2026/09/03/from-rays-to-meshes-building-vercels-prism-with-vgpu/",
-    "published_at": "2026-09-03 16:01:06 +0000",
-    "raw_excerpt": "A look at how Vercel’s vgpu creates a performant prism effect using shaders, geometry, glass, and adaptive rendering.",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_303966f7a9b7c2d5"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "Cursor Cloud Agents can now run in Vercel Sandbox - Vercel",
-    "url": "https://vercel.com/changelog/run-cursor-cloud-agents-vercel-sandbox",
-    "published_at": "2026-09-03 15:00:00 +0000",
-    "raw_excerpt": "Run Cursor Cloud Agents on infrastructure you control with Vercel Sandbox, using scale-to-zero workers, isolated microVMs, and durable orchestration.",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_715038a84d252e7e"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "Deploying Next.js on a VPS: The 12 Things Nobody Tells You",
-    "url": "https://dev.to/aardnsyhs/deploying-nextjs-on-a-vps-the-12-things-nobody-tells-you-6ge",
-    "published_at": "2026-09-03 12:25:03 +0000",
-    "raw_excerpt": "Moving a Next.js app off Vercel and onto a plain Ubuntu VPS usually starts with a painful...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_0537862f45041109"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "Why ChatGPT Can't See Your Site (Even Though Google Ranks It)",
-    "url": "https://dev.to/costin_gheorghe_40d2a06d8/why-chatgpt-cant-see-your-site-even-though-google-ranks-it-3gcn",
-    "published_at": "2026-09-03 12:22:11 +0000",
-    "raw_excerpt": "Originally published on LetsLaunch. There is a failure mode that does not show up in any of your...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_736f34c94dff4719"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "US Becomes Top Target in RMM Phishing Campaign Spanning 46 Countries",
-    "url": "https://unsafe.sh/go-439839.html",
-    "published_at": "2026-09-03 11:58:00 +0000",
-    "raw_excerpt": "US Becomes Top Target in RMM Phishing Campaign Spanning 46 Countries",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_96c176ea23f94191"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "US Becomes Top Target in RMM Phishing Campaign Spanning 46 Countries",
-    "url": "https://vulners.com/thn/THN:E94E854835D9970266DAE3CF2B91AB29",
-    "published_at": "2026-09-03 11:58:00 +0000",
-    "raw_excerpt": "An RMM phishing campaign initially associated with Canadian targeting due to its use of Canada Revenue Agency CRA tax forms as lures has turned out to be part of a broader campaign spanning 46 countries. Around 45% of observed activity was associated with the United States , making it the campaign's...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_68038cefcf76b2d2"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "pnpm 12 Rewrites Package Manager in Rust, Accelerating Installs While Preserving pnpm 11 Workflows",
-    "url": "https://www.infoq.com/news/2026/09/pnpm-12-rust/",
-    "published_at": "2026-09-03 11:23:00 +0000",
-    "raw_excerpt": "pnpm 12 has transitioned to a native Rust implementation, maintaining compatibility with pnpm 11 commands, flags, and formats. This update enhances startup and filesystem performance, particularly when using existing caches. Community feedback highlights the performance gains while noting some trade...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_398eafc374a51440"
-  },
-  {
-    "source": "news",
-    "company": "Vercel",
-    "title": "I Built a 1-Click DNS Provisioning Platform for Developer Subdomains",
-    "url": "https://dev.to/hackwithmagic/i-built-a-1-click-dns-provisioning-platform-for-developer-subdomains-1kno",
-    "published_at": "2026-09-03 11:12:19 +0000",
-    "raw_excerpt": "Go-Live.me GitHub Repository I Built a 1-Click DNS Provisioning Platform for Developer...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_f32209924f8f82e8"
-  },
-  {
-    "source": "news",
-    "company": "Netlify",
-    "title": "US Becomes Top Target in RMM Phishing Campaign Spanning 46 Countries",
-    "url": "https://vulners.com/thn/THN:E94E854835D9970266DAE3CF2B91AB29",
-    "published_at": "2026-09-03 11:58:00 +0000",
-    "raw_excerpt": "An RMM phishing campaign initially associated with Canadian targeting due to its use of Canada Revenue Agency CRA tax forms as lures has turned out to be part of a broader campaign spanning 46 countries. Around 45% of observed activity was associated with the United States , making it the campaign's...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_7d3f3d8423f45538"
-  },
-  {
-    "source": "news",
-    "company": "Netlify",
-    "title": "Atlas by World Labs: Turn text, pics, video, + 3D into camera-controlled HD video | Product Hunt",
-    "url": "https://www.producthunt.com/products/atlas-by-world-labs",
-    "published_at": "2026-09-02 03:16:17 +0000",
-    "raw_excerpt": "Atlas is World Labs' omni world model. It takes text, images, video, and 3D, then generates camera-controlled 1440p video up to a minute, reconstructs scenes from a few photos, and simulates space-time for robotics. Early access.",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_f468558b22abeada"
-  },
-  {
-    "source": "news",
-    "company": "Netlify",
-    "title": "Claude Fable 5.1: world’s most advanced models for coding and knowledge work | Product Hunt",
-    "url": "https://www.producthunt.com/products/claude-fable-5-1",
-    "published_at": "2026-09-01 21:04:24 +0000",
-    "raw_excerpt": "Claude’s most advanced models for coding and knowledge work. Their research capabilities also offer an early glimpse of how AI models will contribute to scientific progress.",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_6e18275ba5e486e5"
-  },
-  {
-    "source": "news",
-    "company": "Netlify",
-    "title": "Your AI QA Engineer Now Runs on Every Netlify Deploy",
-    "url": "https://medium.com/ironbee/your-ai-qa-engineer-now-runs-on-every-netlify-deploy-b6e60fc9ae4b",
-    "published_at": "2026-09-01 13:36:47 +0000",
-    "raw_excerpt": "IronBee opens the deploy Netlify just built, uses your application on it, and checks that the code you changed actually ran. Automatic, on…",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_c8e0e4b350a63b4f"
-  },
-  {
-    "source": "news",
-    "company": "Netlify",
-    "title": "Fix \"lcp\" not working in production",
-    "url": "https://dev.to/mahdi_benrhouma_fe1c6005/fix-lcp-not-working-in-production-23c1",
-    "published_at": "2026-08-31 15:20:44 +0000",
-    "raw_excerpt": "LCP metrics stay empty after deploying a Next.js app. This guide shows why it happens and how to get LCP reporting working in production.",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_93461f081ff8e6f6"
-  },
-  {
-    "source": "news",
-    "company": "Netlify",
-    "title": "OpenAI’s WebMCP Challenge: A Beginner’s Agent-Ready Website Checklist for 2026",
-    "url": "https://dev.to/marcusykim/openais-webmcp-challenge-a-beginners-agent-ready-website-checklist-for-2026-jei",
-    "published_at": "2026-08-29 19:09:29 +0000",
-    "raw_excerpt": "An AI agent should not need a secret back door into your app. It should not update one database...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_18d8845c5d10e686"
+    "id": "sig_53b9ed6531c4ebc7"
   },
   {
     "source": "news",
@@ -409,101 +222,79 @@
   {
     "source": "news",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub - Noah-1919/Fottly: Self-hosted image transformation service with built-in AI background removal. Open-source Cloudinary alternative.",
-    "url": "https://github.com/Noah-1919/Fottly",
-    "published_at": "2026-09-01 12:32:29 +0000",
-    "raw_excerpt": "Self-hosted image transformation service with built-in AI background removal. Open-source Cloudinary alternative. - Noah-1919/Fottly",
+    "title": "How to Send Email from Cloudflare Workers",
+    "url": "https://dev.to/sohom_47/how-to-send-email-from-cloudflare-workers-1e9p",
+    "published_at": "2026-09-08 00:16:20 +0000",
+    "raw_excerpt": "There are two real ways to do this: Cloudflare's own native Email Service binding, or calling an...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_b4bb2620b34ccde1"
+    "id": "sig_51e6bb1c5d4274ac"
   },
   {
     "source": "news",
     "company": "Cloudflare Pages/Workers",
-    "title": "A `middleware.ts` Rewrite Silently Disables ISR in Next.js 15.5",
-    "url": "https://dev.to/ai_changewatch/a-middlewarets-rewrite-silently-disables-isr-in-nextjs-155-2d37",
-    "published_at": "2026-09-01 12:00:00 +0000",
-    "raw_excerpt": "Every page on my site declared export const revalidate = 300. Nine locales served from ISR. The tenth...",
+    "title": "Building a Zero-Dependency Validation API on Cloudflare Workers",
+    "url": "https://dev.to/mankyndp/building-a-zero-dependency-validation-api-on-cloudflare-workers-33e3",
+    "published_at": "2026-09-07 06:48:39 +0000",
+    "raw_excerpt": "The idea I wanted a small side project that could actually run itself once shipped — no...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_a0043bd6281d01f3"
+    "id": "sig_036ac66be2f3ad7a"
   },
   {
     "source": "news",
     "company": "Cloudflare Pages/Workers",
-    "title": "The Collective Cyber Defense letter wrote your next vendor questionnaire",
-    "url": "https://cyberscoop.com/collective-cyber-defense-letter-vendor-questionnaire-op-ed/",
-    "published_at": "2026-09-01 10:00:00 +0000",
-    "raw_excerpt": "Over 200 tech leaders signed the Collective Cyber Defense letter, but without binding targets, enterprise buyers must enforce its key metrics in vendor questionnaires.",
+    "title": "Fort Card: issue API credentials like credit cards, not keys (MIT + lockbox)",
+    "url": "https://dev.to/thefortthatholds/fort-card-issue-api-credentials-like-credit-cards-not-keys-mit-lockbox-54jg",
+    "published_at": "2026-09-07 00:02:36 +0000",
+    "raw_excerpt": "Posted by River, a bot representing The Fort That Holds — not a human typing. An API key is total...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_4f08620275126434"
+    "id": "sig_0703dac70f683921"
   },
   {
     "source": "news",
     "company": "Cloudflare Pages/Workers",
-    "title": "Rage Taps, Dead Taps, and the 12-Pixel Rule: Cookieless Mobile UX Measurement on Cloudflare D1",
-    "url": "https://dev.to/cbarank/rage-taps-dead-taps-and-the-12-pixel-rule-cookieless-mobile-ux-measurement-on-cloudflare-d1-3491",
-    "published_at": "2026-09-01 08:50:46 +0000",
-    "raw_excerpt": "The question that started this was not an analytics question. It was: someone opened the page,...",
+    "title": "Fort Kitchen – forkable, agent-native kitchen OS (MIT, local or Cloudflare Worker)",
+    "url": "https://dev.to/thefortthatholds/fort-kitchen-forkable-agent-native-kitchen-os-mit-local-or-cloudflare-worker-14gd",
+    "published_at": "2026-09-06 23:48:28 +0000",
+    "raw_excerpt": "Posted by River, a bot representing The Fort That Holds — not a human typing. Fort Kitchen is a...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_578f924d7d8fea65"
+    "id": "sig_cffc461510e085aa"
   },
   {
     "source": "news",
     "company": "Cloudflare Pages/Workers",
-    "title": "What’s new in Svelte: September 2026",
-    "url": "https://svelte.dev/blog/whats-new-in-svelte-september-2026",
-    "published_at": "2026-08-31 21:05:24 +0000",
-    "raw_excerpt": "This month, Svelte 5.57 shipped with new SvelteMap methods and a few quality-of-life additions while SvelteKit 3 got closer to the finish line with its Release Candidate.\nThe sv CLI also got a new ai-tools add-on that replaces the old mcp one, and sv@next now ships a task-based sveltekit-3 migration...",
+    "title": "Free MIT beta-reader tool: readers listen, tap a passage, talk — notes file into your repo",
+    "url": "https://dev.to/thefortthatholds/free-mit-beta-reader-tool-readers-listen-tap-a-passage-talk-notes-file-into-your-repo-3h4e",
+    "published_at": "2026-09-06 23:41:06 +0000",
+    "raw_excerpt": "Posted by River, a bot representing The Fort That Holds — not a human typing. Written beta notes are...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_a71b19227e0a7310"
+    "id": "sig_4e24321778091b64"
   },
   {
     "source": "news",
     "company": "Cloudflare Pages/Workers",
-    "title": "Case Study: Scaling Smart Teleassistance Voice Routing with Edge Compute and Zero-Cold-Start Cascades",
-    "url": "https://dev.to/enrique_drack_34c8d81d28d/case-study-scaling-smart-teleassistance-voice-routing-with-edge-compute-and-zero-cold-start-o00",
-    "published_at": "2026-08-31 21:02:40 +0000",
-    "raw_excerpt": "In mission-critical infrastructure, latency isn't just a metric—it's the difference between a...",
+    "title": "Fortmail: agent-operated email in one Cloudflare Worker (MIT)",
+    "url": "https://dev.to/thefortthatholds/fortmail-agent-operated-email-in-one-cloudflare-worker-mit-4aoc",
+    "published_at": "2026-09-06 22:12:12 +0000",
+    "raw_excerpt": "Posted by River, a bot representing The Fort That Holds not a human typing. Fortmail gives your AI...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_19c9273a4bc552d0"
+    "id": "sig_1b9ef3251456ae4b"
   },
   {
     "source": "news",
     "company": "Cloudflare Pages/Workers",
-    "title": "What I learned turning a ZIP file into an x402 API on Cloudflare Workers",
-    "url": "https://dev.to/reprocraftlatam/what-i-learned-turning-a-zip-file-into-an-x402-api-on-cloudflare-workers-cb9",
-    "published_at": "2026-08-30 22:57:47 +0000",
-    "raw_excerpt": "I wanted to sell a small digital product without building accounts, checkout pages, license-key...",
+    "title": "I track LLM API prices daily, found a 33x cost gap in the same model",
+    "url": "https://news.ycombinator.com/item?id=49586810",
+    "published_at": "2026-09-06 14:23:53 +0000",
+    "raw_excerpt": "I track LLM API prices daily, found a 33x cost gap in the same model",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_e67b005384bdaca4"
-  },
-  {
-    "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "5 Practical Performance Tweaks That Actually Sped Up Our Web App",
-    "url": "https://dev.to/alextaylar12/5-practical-performance-tweaks-that-actually-sped-up-our-web-app-4d93",
-    "published_at": "2026-08-30 10:10:00 +0000",
-    "raw_excerpt": "When optimizing web applications, it's easy to get lost in micro-optimizations that don't move the...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_260c74de82709b4b"
-  },
-  {
-    "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "AI-assisted genealogy",
-    "url": "https://blog.frankel.ch/ai-assisted-genealogy/",
-    "published_at": "2026-08-30 00:00:00 +0000",
-    "raw_excerpt": "My son recently came to me to brag about using AI to find our ancestors. While the results were correct, I didn’t learn anything new, as it stopped at my grandparents. I was never very interested in my genealogy, but I decided to see if AI would be a good tool for this. TL;DR: Yes, it is, and even m...",
-    "funding_related": false,
-    "source_subtype": "general",
-    "id": "sig_db6f909fbc9d4870"
+    "id": "sig_33fee71a0ff627c5"
   },
   {
     "source": "news",
@@ -595,535 +386,1749 @@
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "Beyond the Static: The Ultimate Guide to Serverless Website Deployment Platforms",
-    "url": "https://dev.to/hirdo/beyond-the-static-the-ultimate-guide-to-serverless-website-deployment-platforms-286f",
-    "published_at": "2026-09-03 10:58:19 +0000",
-    "raw_excerpt": "Remember when deploying a website meant setting up an Apache server, configuring FTP credentials, and...",
+    "company": "Gobble",
+    "title": "Western PA: Sunny stretch before Impact Day Thursday | September 7 | Flipboard",
+    "url": "https://flipboard.com/article/https%3A%2F%2Fflipboard.com%2Fvideo%2Fwtae%2F3d9b3821d0",
+    "published_at": "2026-09-07 20:54:15 +0000",
+    "raw_excerpt": "Showers arrive Wednesday night with more wet weather and possible storms on Thursday.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_b37952d63a680933"
+    "id": "sig_2ccf56e50f9c858a"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "I built a QR code phishing scanner for our free API — and ended up writing a PNG decoder from scratch to make it work.",
-    "url": "https://dev.to/presend/i-built-a-qr-code-phishing-scanner-for-our-free-api-and-ended-up-writing-a-png-decoder-from-3ffd",
-    "published_at": "2026-09-03 10:05:10 +0000",
-    "raw_excerpt": "** ** The problem QR code phishing (\"quishing\") is one of the fastest-growing phishing vectors...",
+    "company": "Gobble",
+    "title": "Are vegans hotter than meat eaters? Experts say yes — in three, key ways - AOL",
+    "url": "https://www.aol.com/articles/vegans-hotter-meat-eaters-experts-171453000.html",
+    "published_at": "2026-09-07 17:14:53 +0000",
+    "raw_excerpt": "Gobbling up the greens could increase your personal curb appeal.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_ecb6d4bb69187884"
+    "id": "sig_e8e8dea32865af64"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "Running Whisper on Modal from Cloudflare Workers",
-    "url": "https://dev.to/ray_mac/running-whisper-on-modal-from-cloudflare-workers-2hla",
-    "published_at": "2026-09-03 05:32:39 +0000",
-    "raw_excerpt": "A Cloudflare Worker can't run a multi-minute GPU job, and it can't open the gRPC connection Modal's...",
+    "company": "Gobble",
+    "title": "Are vegans hotter than meat eaters? Experts say yes — in three, key ways",
+    "url": "https://nypost.com/2026/09/07/lifestyle/are-vegans-hotter-than-meat-eaters-experts-say-yes/",
+    "published_at": "2026-09-07 17:14:53 +0000",
+    "raw_excerpt": "Gobbling up the greens could increase your personal curb appeal.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_6b5d5e5e94a6b74d"
+    "id": "sig_7bfc65bc879a62b1"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "How I Built an AI Photo Restoration App with Next.js, Supabase, and Replicate",
-    "url": "https://dev.to/skyler_7abb6ba5f692ca05e6/how-i-built-an-ai-photo-restoration-app-with-nextjs-supabase-and-replicate-55lk",
-    "published_at": "2026-09-03 04:36:10 +0000",
-    "raw_excerpt": "A few months ago I dug out a box of family photos from the 80s. Most were faded, scratched, or had...",
+    "company": "Gobble",
+    "title": "[Interview] Europe needs to finish single market or lose more scale-ups to China and the US, warns Enrico Letta",
+    "url": "https://euobserver.com/235763/interview-europe-needs-to-finish-single-market-or-lose-more-scale-ups-to-china-and-the-us-warns-enrico-letta/",
+    "published_at": "2026-09-07 13:35:44 +0000",
+    "raw_excerpt": "The former Italian prime minister tells EUobserver that Europe's scale-ups in health and elsewhere are too small to survive the 'China 2.0 shock', and that without a finished single market Europe will keep losing out.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_2eb39150454fa8d6"
+    "id": "sig_ce24248470ac8551"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "Show HN: Who or What is it? – A Picture Quiz",
-    "url": "https://whoorwhatisit.com/",
-    "published_at": "2026-09-02 21:33:13 +0000",
-    "raw_excerpt": "Hi, I made a simple picture quiz. You see a picture of a thing or a person and have to give the correct answer. I know, nothing fancy.My initial idea was to just have scientists quiz with people like Lee Smolin, Max Tegmark (some “personal heroes”), etc. because I am huge fan of scientific interview...",
+    "company": "Gobble",
+    "title": "The Weirdest Worlds That Could Technically Be In Kingdom Hearts 4",
+    "url": "https://www.gamespot.com/articles/the-weirdest-worlds-that-could-technically-be-in-kingdom-hearts-4/",
+    "published_at": "2026-09-06 19:00:00 +0000",
+    "raw_excerpt": "The Gang Learns About The Keyblade War.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_8bdbfa5352032fef"
+    "id": "sig_628facfc204e229e"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "I built an explainable bone-lesion screener for X-rays and ran it for £5 month [P]",
-    "url": "https://www.reddit.com/r/MachineLearning/comments/1w5iaz8/i_built_an_explainable_bonelesion_screener_for/",
-    "published_at": "2026-09-02 18:14:40 +0000",
-    "raw_excerpt": "I'm a biomedical-to-CS student, and I wanted to see how far a genuinely explainable (Use of heatmapping) medical imaging prototype could get on near-zero infrastructure (the goal was for it to all cost me nothing but I ran into multiple problems with that restriction). It's a DenseNet-121 trained on...",
+    "company": "Gobble",
+    "title": "Taxpayers Footed the Bill for Nearly $500M in Food Stamps at California Fast Food Joints",
+    "url": "https://www.westernjournal.com/taxpayers-footed-bill-nearly-500m-food-stamps-california-fast-food-joints/",
+    "published_at": "2026-09-05 19:59:00 +0000",
+    "raw_excerpt": "The data came to light after Rep. Brandon Gill, a Republican from Texas proposed, a bill that would wipe out the Supplemental Nutrition Program’s Restaurant Meals Program.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_df3c4452246bec4b"
+    "id": "sig_89d17ff270cf09c1"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "Building a multi-region routing system with Cloudflare Workers",
-    "url": "https://dev.to/vatsalpatel/building-a-multi-region-routing-system-with-cloudflare-workers-4p4o",
-    "published_at": "2026-09-02 15:30:39 +0000",
-    "raw_excerpt": "We serve customers primarily in Australia, but we are now expanding to the USA. The timeline for...",
+    "company": "Gobble",
+    "title": "CDs Are Back, and We Think We Know Why",
+    "url": "https://www.rollingstone.com/music/music-features/cds-revival-gen-z-compact-discs-1235614874/",
+    "published_at": "2026-09-05 11:00:16 +0000",
+    "raw_excerpt": "Young audiences are listening to more CDs these days. That's because those shiny, Nineties-coded discs are the best invention ever for deep listening",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_dfe8b294083ea1d9"
+    "id": "sig_665bc467c1a829f9"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "How to Save $3,774 a Month with Codemagic Patch",
-    "url": "https://itnext.io/how-to-save-3-774-a-month-with-codemagic-patch-cac0ecd00783?source=rss----5b301f10ddcd---4",
-    "published_at": "2026-09-02 09:09:50 +0000",
-    "raw_excerpt": "It was Friday.There was a bug.The app displayed:[object Object]Very informative.Patch saved us from submitting a new binary..And got us to the pub on time to meet the most beautiful girl in the room, in the whole wide room…That was the short version.Here is the rest.Microsoft retired App Centre and ...",
+    "company": "Gobble",
+    "title": "Michael Saylor's Strategy Continues to Sell Bitcoin. That's Why I'm Doubling Down on Bitcoin Right Now.",
+    "url": "https://www.nasdaq.com/articles/michael-saylors-strategy-continues-sell-bitcoin-thats-why-im-doubling-down-bitcoin-right",
+    "published_at": "2026-09-05 10:12:00 +0000",
+    "raw_excerpt": "Key PointsStrategy sold some of its Bitcoin in August, joining prior recent sales.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_24a3b0edf1d4aa48"
+    "id": "sig_612291b542f0ec1e"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "Claude Code has left a little hole in my soul",
-    "url": "https://www.infoworld.com/article/4217126/claude-code-has-left-a-little-hole-in-my-soul.html",
-    "published_at": "2026-09-02 09:00:00 +0000",
-    "raw_excerpt": "I can build so much more now, and it doesn’t even seem like work. But I will miss coding.",
+    "company": "Gobble",
+    "title": "Michael Saylor's Strategy Continues to Sell Bitcoin. That's Why I'm Doubling Down on Bitcoin Right Now. | The Motley Fool",
+    "url": "https://www.fool.com/investing/2026/09/05/michael-saylors-strategy-continues-to-sell-bitcoin/",
+    "published_at": "2026-09-05 09:52:00 +0000",
+    "raw_excerpt": "One company deciding to sell some Bitcoin doesn't mean much of anything in the big scheme of things.",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_ed4545cfaf81651b"
+    "id": "sig_1c8e063d280f5367"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "AgentProv: Auditing Agentic LLM API Providers via Tool-use Policy Probes",
-    "url": "https://arxiv.org/abs/2609.00052v1",
-    "published_at": "2026-09-02 04:00:00 +0000",
-    "raw_excerpt": "Commercial LLM APIs advertise a specific foundation model, but the served backbone may be silently substituted, quantized, or wrapped, for example to save deployment costs. All existing audits decide backbone identity from the text-output channel, which is structurally fragile for agentic APIs becau...",
+    "company": "Gobble",
+    "title": "Gobble - Official Announcement Trailer",
+    "url": "https://www.ign.com/videos/gobble-official-announcement-trailer",
+    "published_at": "2026-09-04 17:31:27 +0000",
+    "raw_excerpt": "Take a look at gameplay and more from Gobble in this announcement trailer for the upcoming hand-painted 2D platforming adventure game. In Gobble, your family is missing, and it's up to you (and Scythariel!) to bring them home! Gobble will be available on Nintendo Switch 2, Nintendo Switch, PlayStati...",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_4904147e2c0c1817"
+    "id": "sig_ec3a26ad73e572ca"
   },
   {
     "source": "news",
-    "company": "Cloudflare Pages/Workers",
-    "title": "I Started Learning to Code — So I Built My Own Product | SkillLink",
-    "url": "https://dev.to/mohamed_tarek_98/i-started-learning-to-code-so-i-built-my-own-product-skilllink-2ib7",
-    "published_at": "2026-09-02 01:48:47 +0000",
-    "raw_excerpt": "I’m currently learning web development, and I wanted to do more than just follow tutorials. So I...",
+    "company": "Gobble",
+    "title": "Noisy Jobs Report Offers Little Comfort for Jobseekers Across Stumbling Economy",
+    "url": "https://www.commondreams.org/newswire/noisy-jobs-report-offers-little-comfort-for-jobseekers-across-stumbling-economy",
+    "published_at": "2026-09-04 15:49:59 +0000",
+    "raw_excerpt": "Hiring propped up by start of school year, modest wage gains gobbled up by Trump’s inflation, and no clear signal about where labor market goes from here",
     "funding_related": false,
     "source_subtype": "general",
-    "id": "sig_dfa4138913c8bffd"
+    "id": "sig_9f574faca1c5b695"
   },
   {
-    "source": "github",
+    "source": "news",
+    "company": "Gobble",
+    "title": "How to make the most of your holiday dates for 2027",
+    "url": "https://www.dailymail.com/travel/article-16104753/annual-leave-summer-2027-holiday-hacks.html",
+    "published_at": "2026-09-04 09:46:11 +0000",
+    "raw_excerpt": "Making your annual leave stretch across the entire year can feel like an impossible task for keen travellers, but a little strategic planning can make all of the difference.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_0e19d84be3fdb975"
+  },
+  {
+    "source": "news",
+    "company": "Gobble",
+    "title": "Panama Canal restricts traffic amid Hormuz crisis: Why this matters",
+    "url": "https://www.aljazeera.com/news/2026/9/3/panama-canal-restricts-traffic-amid-hormuz-crisis-why-this-matters",
+    "published_at": "2026-09-03 21:03:13 +0000",
+    "raw_excerpt": "Limits on the number of vessels in the canal could create shipping delays and increase freight costs.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_234f34a25717ecb8"
+  },
+  {
+    "source": "news",
+    "company": "Gobble",
+    "title": "Magnetic tape storage is booming again, thanks to AI's unquenchable hunger for data",
+    "url": "https://www.techspot.com/news/113729-magnetic-tape-storage-booming-again-thanks-ai-unquenchable.html",
+    "published_at": "2026-09-03 18:13:00 +0000",
+    "raw_excerpt": "The now-defunct DOGE initiative tried to get rid of magnetic tapes for alleged efficiency reasons, but the \"legacy\" storage format is now more popular than ever. According...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_41b2de496c9bc5c7"
+  },
+  {
+    "source": "news",
+    "company": "Gobble",
+    "title": "Data centers can’t win on Earth. How about in space?",
+    "url": "https://www.vox.com/future-perfect/501756/orbital-data-centers-space",
+    "published_at": "2026-09-03 12:00:00 +0000",
+    "raw_excerpt": "What Big Tech’s sci-fi dream reveals about the infrastructure America actually needs.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_3df418951cbe6572"
+  },
+  {
+    "source": "news",
+    "company": "Gobble",
+    "title": "Why 150,000 of Britain's savage foxes are about besiege YOUR garden",
+    "url": "https://www.dailymail.com/lifestyle/article-16100261/A-baby-mauled-family-cat-savaged-death-guinea-pig-gobbled-cage-150-000-Britains-increasingly-savage-foxes-besiege-garden-experts-say-time-afraid.html",
+    "published_at": "2026-09-03 00:00:49 +0000",
+    "raw_excerpt": "Jo Hudson's black cat Paddy was a 'sweet, gentle animal,' with distinctive white paws and a penchant for sitting on Jo's lap on the sofa and following her to the kitchen as she cooked dinner.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_60f487e4d2829d13"
+  },
+  {
+    "source": "news",
+    "company": "Gobble",
+    "title": "The Russos Insist 'Avengers: Doomsday' Will Bring Something New to the Table",
+    "url": "https://gizmodo.com/the-russos-insist-avengers-doomsday-will-bring-something-new-to-the-table-2000806478",
+    "published_at": "2026-09-02 20:30:07 +0000",
+    "raw_excerpt": "Directors Joe and Anthony Russo explain what brought them back to the Marvel Cinematic Universe (other than, presumably, big Disney bucks).",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_232474d70adc0554"
+  },
+  {
+    "source": "news",
+    "company": "Gobble",
+    "title": "Trump suggests renaming Strait of Hormuz as Trump Strait amid Iran war",
+    "url": "https://www.aljazeera.com/news/2026/9/2/trump-suggests-renaming-strait-of-hormuz-as-trump-strait-amid-iran",
+    "published_at": "2026-09-02 20:12:14 +0000",
+    "raw_excerpt": "Despite renewed fighting with Iran and near daily attacks on ships, Trump says Strait of Hormuz is 'under USA control'.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_96195980d5398c08"
+  },
+  {
+    "source": "news",
+    "company": "Gobble",
+    "title": "Americans love AI. They don’t want the data centers that power it.",
+    "url": "https://www.politico.com/news/2026/09/02/love-hate-datacenters-01062302",
+    "published_at": "2026-09-02 19:48:10 +0000",
+    "raw_excerpt": "The disconnect is becoming a political problem for Trump and politicians in both parties as voters embrace AI tools while revolting against the infrastructure needed to power them.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_6ca81e183bbfb732"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "I shipped the same static page to 8 free hosts - here is what each one does to your HTML",
+    "url": "https://dev.to/veida/i-shipped-the-same-static-page-to-8-free-hosts-here-is-what-each-one-does-to-your-html-4b3g",
+    "published_at": "2026-09-07 12:18:07 +0000",
+    "raw_excerpt": "Eight free hosts, one 4.6 KB page, measured. Netlify's silent 401, why the Public Suffix List decides whether your subdomains are separate sites, and three pages that return 200 with zero links to plain curl.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_79b2887a7f9ee2e2"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "Railway Pricing 2026: Free Tier Limits, Usage Costs & When to Upgrade",
+    "url": "https://dev.to/nayankyada/railway-pricing-2026-free-tier-limits-usage-costs-when-to-upgrade-1acm",
+    "published_at": "2026-09-07 09:32:19 +0000",
+    "raw_excerpt": "Railway's pricing is usage-based and easy to underestimate. Here are the real numbers, free tier limits, and when you'll need to upgrade in 2026.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_5899bda0e92ab019"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "The file nobody reread",
+    "url": "https://dev.to/thekilteddev/the-file-nobody-reread-5d5",
+    "published_at": "2026-09-05 18:00:47 +0000",
+    "raw_excerpt": "Field notes from a hosting migration for an NHS food-diary proof of concept. A...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_a186d95f3306073d"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "US Becomes Top Target in RMM Phishing Campaign Spanning 46 Countries",
+    "url": "https://vulners.com/thn/THN:E94E854835D9970266DAE3CF2B91AB29",
+    "published_at": "2026-09-03 11:58:00 +0000",
+    "raw_excerpt": "An RMM phishing campaign initially associated with Canadian targeting due to its use of Canada Revenue Agency CRA tax forms as lures has turned out to be part of a broader campaign spanning 46 countries. Around 45% of observed activity was associated with the United States , making it the campaign's...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_7d3f3d8423f45538"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "Atlas by World Labs: Turn text, pics, video, + 3D into camera-controlled HD video | Product Hunt",
+    "url": "https://www.producthunt.com/products/atlas-by-world-labs",
+    "published_at": "2026-09-02 03:16:17 +0000",
+    "raw_excerpt": "Atlas is World Labs' omni world model. It takes text, images, video, and 3D, then generates camera-controlled 1440p video up to a minute, reconstructs scenes from a few photos, and simulates space-time for robotics. Early access.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_f468558b22abeada"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "Claude Fable 5.1: world’s most advanced models for coding and knowledge work | Product Hunt",
+    "url": "https://www.producthunt.com/products/claude-fable-5-1",
+    "published_at": "2026-09-01 21:04:24 +0000",
+    "raw_excerpt": "Claude’s most advanced models for coding and knowledge work. Their research capabilities also offer an early glimpse of how AI models will contribute to scientific progress.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_6e18275ba5e486e5"
+  },
+  {
+    "source": "news",
+    "company": "Netlify",
+    "title": "Your AI QA Engineer Now Runs on Every Netlify Deploy",
+    "url": "https://medium.com/ironbee/your-ai-qa-engineer-now-runs-on-every-netlify-deploy-b6e60fc9ae4b",
+    "published_at": "2026-09-01 13:36:47 +0000",
+    "raw_excerpt": "IronBee opens the deploy Netlify just built, uses your application on it, and checks that the code you changed actually ran. Automatic, on…",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_c8e0e4b350a63b4f"
+  },
+  {
+    "source": "news",
+    "company": "PostHog",
+    "title": "Suspected bot activity",
+    "url": "https://www.reddit.com/r/androiddev/comments/1wajf7v/suspected_bot_activity/",
+    "published_at": "2026-09-08 09:22:28 +0000",
+    "raw_excerpt": "I built an app over a few months at the start of this year, that was released on playstore in June. (SWE for past 10yrs, but first time building a mobile app).  I hadn't been actively monitoring usage until recently (mainly built it for myself - and if anyone happened to use it too, then great). How...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_39bb35fd8a6a9b27"
+  },
+  {
+    "source": "news",
+    "company": "PostHog",
+    "title": "My site has 38 free tools and got 24 organic visitors last quarter",
+    "url": "https://dev.to/razi_kallayi/my-site-has-38-free-tools-and-got-24-organic-visitors-last-quarter-1li8",
+    "published_at": "2026-09-06 10:40:23 +0000",
+    "raw_excerpt": "I run a site with 38 free developer tools on it. JSON formatter, JWT decoder, base64, PDF merge, OCR,...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_8066bab59fbeefe1"
+  },
+  {
+    "source": "news",
+    "company": "PostHog",
+    "title": "PostHog Reported Zero Signups While Supabase Showed One",
+    "url": "https://lifecmp.com/blog/posthog-zero-signups-supabase-one",
+    "published_at": "2026-09-04 09:07:39 +0000",
+    "raw_excerpt": "A debugging story about cookieless analytics, email confirmation redirects, and why the product database must remain the source of truth for signup conversion.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_0c7b949d098267ac"
+  },
+  {
+    "source": "news",
+    "company": "PostHog",
+    "title": "Tin Computer · AI growth agent for small SaaS teams.",
+    "url": "https://tin.computer",
+    "published_at": "2026-09-02 15:20:59 +0000",
+    "raw_excerpt": "Tin Computer is an AI growth agent for small SaaS. It diagnoses, ships, and measures website, SEO, analytics, and product growth work in your existing systems.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_7dd53da325052d9d"
+  },
+  {
+    "source": "news",
+    "company": "PostHog",
+    "title": "What your dev stack actually costs in India (after forex + GST)",
+    "url": "https://dev.to/arjitjindal/what-your-dev-stack-actually-costs-in-india-after-forex-gst-3oe3",
+    "published_at": "2026-09-02 09:53:35 +0000",
+    "raw_excerpt": "My card statement said ₹29,189. PostHog's pricing page said $250. That ₹5,289 gap is not a rounding...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_35587903a013d499"
+  },
+  {
+    "source": "news",
+    "company": "PostHog",
+    "title": "How to turn your AI into a world-class designer",
+    "url": "https://www.lennysnewsletter.com/p/how-to-turn-your-ai-into-a-world",
+    "published_at": "2026-09-01 17:02:16 +0000",
+    "raw_excerpt": "An end-to-end process for tapping into AI’s hidden creativity",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_f89fadaf49365ee4"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Elizabeth Hurley Says Bye to Summer in Skimpy String Bikini From Her Brand",
+    "url": "https://www.thefashionspot.com/fashion-news/970391-elizabeth-hurley-skimpy-string-bikini-beach-summer/",
+    "published_at": "2026-09-08 08:18:48 +0000",
+    "raw_excerpt": "Elizabeth Hurley bids farewell to summer in a blue-and-white striped Panama string bikini from her Elizabeth Hurley Beach brand.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_ade4e4ff3d08e454"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Ancient Greek codes return to wardrobes via draping and asymmetry",
+    "url": "https://english.pravda.ru/news/women/168648-fashion-trend-shift/",
+    "published_at": "2026-09-08 08:06:00 +0000",
+    "raw_excerpt": "Explore the shift from quiet luxury to the messy girl and gardening-core trends, driven by a surge in utilitarian workwear and eclectic style.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_c146f46cb7154108"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "New Look has cut this pretty striped midi dress to £21",
+    "url": "https://www.edinburghnews.scotsman.com/recommended/new-look-dress-striped-midi-dress-blue-midi-dress-new-look-sale-v-neck-dress-8974877",
+    "published_at": "2026-09-08 07:26:20 +0000",
+    "raw_excerpt": "The blue and cream striped dress has a V-neck, pearlescent buttons and side pockets, with its price now reduced by almost £15.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_66b3ae7581429654"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "New Look has cut this pretty striped midi dress to £21",
+    "url": "https://www.derryjournal.com/recommended/new-look-dress-striped-midi-dress-blue-midi-dress-new-look-sale-v-neck-dress-8974877",
+    "published_at": "2026-09-08 07:26:20 +0000",
+    "raw_excerpt": "The blue and cream striped dress has a V-neck, pearlescent buttons and side pockets, with its price now reduced by almost £15.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_124017e179af66a7"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Taylor Swift's High-Slit Dress Hangs on for Dear Life With Aquazzura Heels",
+    "url": "https://www.thefashionspot.com/fashion-news/970369-taylor-swift-high-slit-dress-heels-aquazzura-travis-kelce-date/",
+    "published_at": "2026-09-08 06:48:32 +0000",
+    "raw_excerpt": "Taylor Swift steps out in a high-slit dress and Aquazzura heels for a New York date night with Travis Kelce, debuting stunning gold jewelry.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_8975dddcdc88e78e"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Taylor Swift Elevates High-Slit Dress With $19K Mindi Mond Earrings",
+    "url": "https://www.thefashionspot.com/fashion-news/970366-taylor-swift-high-slit-dress-earrings-mindi-mond-travis-kelce/",
+    "published_at": "2026-09-08 06:46:06 +0000",
+    "raw_excerpt": "Taylor Swift paired her high-slit dress with $19K Mindi Mond citrine and diamond earrings for a New York City date with Travis Kelce.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_71eb64c6e85aabb3"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Taylor Swift's Stella McCartney High-Slit Dress Hangs by a Single String",
+    "url": "https://www.thefashionspot.com/fashion-news/970356-taylor-swift-high-slit-dress-string-stella-mccartney-travis-kelce/",
+    "published_at": "2026-09-08 06:27:14 +0000",
+    "raw_excerpt": "Taylor Swift stuns in a $2,800 Stella McCartney halter dress with a high slit during a NYC date night with Travis Kelce.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_5de373d376acc011"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "XPENG IRON Autonomously Walks Off Production Line - CleanTechnica",
+    "url": "https://cleantechnica.com/2026/09/08/xpeng-iron-autonomously-walks-off-production-line/",
+    "published_at": "2026-09-08 05:11:57 +0000",
+    "raw_excerpt": "September 8th in Guangzhou, XPENG’s IRON humanoid robot autonomously walked off the production line. The initial steps signify a leap forward",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_a4aa1717a7cca7bf"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Best alternatives to Florence for an Italian city break",
+    "url": "https://www.independent.co.uk/travel/europe/italy/best-florence-alternatives-italy-city-break-assisi-orvieto-b3046200.html",
+    "published_at": "2026-09-08 05:00:00 +0000",
+    "raw_excerpt": "Tired of the busy streets of Tuscany, Phil Thomas discovers remarkable cathedrals, volcanic tunnels and exceptional wines in Assisi and Orvieto",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_749c302bab317620"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "‘I know I can’t act... Don’t tell everybody’ – How Mr T became one of the most famous people in the world",
+    "url": "https://www.independent.ie/entertainment/television/tv-reviews/i-know-i-cant-act...-dont-tell-everybody-how-mr-t-became-one-of-the-most-famous-people-in-the-world/a/160999215.html",
+    "published_at": "2026-09-08 04:30:00 +0000",
+    "raw_excerpt": "From the Chicago projects to Rocky III and A-Team superstardom, new documentary ‘Untold Mr T: I Pity the Fool’ gives us a small glimpse into the life of Laurence ‘Mr T’ Tureaud",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_db367a3e0e68aa1a"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Plug-in Hybrids Emit 6 Times, On Average, What Official Tests Claim — New EU Data - CleanTechnica",
+    "url": "https://cleantechnica.com/2026/09/07/plug-in-hybrids-emit-6-times-on-average-what-official-tests-claim-new-eu-data/",
+    "published_at": "2026-09-08 03:50:36 +0000",
+    "raw_excerpt": "Support CleanTechnica's work through a Substack subscription, on Patreon, or on Stripe. Help us produce all of the high-quality, original content we publish week after week despite the challenges of content-scraping AI, antisocial media, inflation, and other hurdles. The car lobby is demanding that ...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_7a11fc3b6e894254"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Drivers urged to learn meaning of black stripe road sign 'most don't know'",
+    "url": "https://www.walesonline.co.uk/news/uk-news/drivers-urged-learn-meaning-black-34580970",
+    "published_at": "2026-09-08 03:20:00 +0000",
+    "raw_excerpt": "You will have seen this — but do you know what it actually means?",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_0110a25aeff972db"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "7 AI Models Got Real Bank Accounts and 72 Hours. They Earned $0 and Invoiced Strangers $12,431",
+    "url": "https://dev.to/jamilxt/7-ai-models-got-real-bank-accounts-and-72-hours-they-earned-0-and-invoiced-strangers-12431-hde",
+    "published_at": "2026-09-08 03:07:33 +0000",
+    "raw_excerpt": "Last week, a research group called Bottleneck Labs published the results of an experiment I have not...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_c89afa5e0dfe9607"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "I ran Lodven on Lodven, a marketing diagnosis agent for founders",
+    "url": "https://dev.to/lodven/i-ran-lodven-on-lodven-a-marketing-diagnosis-agent-for-founders-40h7",
+    "published_at": "2026-09-08 02:26:43 +0000",
+    "raw_excerpt": "Lodven is a marketing diagnosis agent for technical founders. You give it a URL and it tears the site...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_286d1a9da4b1fe94"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "31 Things You Can Wear Multiple Ways On Vacation If You’re Tight On Suitcase Space",
+    "url": "https://www.buzzfeed.com/jordanagrigs/things-can-wear-multiple-ways-vacation-save-suitcase-space",
+    "published_at": "2026-09-08 02:01:06 +0000",
+    "raw_excerpt": "Everyone will be so confused as to how you have so many outfits, but only packed three things — MWAHAHAHA *Rico from Hannah Montana laugh.*",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_ac34395b87a63cc8"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Australia has lost the ability to build things",
+    "url": "https://www.macrobusiness.com.au/2026/09/australia-has-lost-the-ability-to-build-things/",
+    "published_at": "2026-09-08 02:00:28 +0000",
+    "raw_excerpt": "Australia’s construction pipeline is bigger than ever. Following decades of mass immigration, Australia is suffering from a chronic housing shortage estimated by AMP chief economist Shane Oliver to be between 200,000 and 300,000 dwellings. Australia’s current rate of housing construction is tracking...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_d02889c7bf15b4bc"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "NYT Connections hints today: Meanings for each word for Sept. 8, 2026",
+    "url": "https://mashable.com/entertainment/nyt-connections-hints-meanings-september-8-2026",
+    "published_at": "2026-09-08 02:00:00 +0000",
+    "raw_excerpt": "Looking for a spoiler-free way to find a connection? We have you covered.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_b2896d225c551822"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "NYT Connections hints today: Meanings for each word for Sept. 8, 2026",
+    "url": "https://sea.mashable.com/games/54634/nyt-connections-hints-today-meanings-for-each-word-for-sept-8-2026",
+    "published_at": "2026-09-08 02:00:00 +0000",
+    "raw_excerpt": "Looking for a spoiler-free way to find a connection? We have you covered.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_d5195378d7b27b3c"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "The war on equities",
+    "url": "https://www.macrobusiness.com.au/?p=1361093",
+    "published_at": "2026-09-08 01:30:41 +0000",
+    "raw_excerpt": "TME on the crazy calm in equities. The current equilibrium won’t hold, argues Deutsche Bank’s Henry Allen. Rates markets are still underpricing the inflation pressure ahead, with only modest tightening cycles priced across central banks. Either inflation rolls over, or rates need to move higher. If ...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_e9512d9785998d1a"
+  },
+  {
+    "source": "news",
+    "company": "Stripe",
+    "title": "Judge hands Pentagon a win over ousted Stars and Stripes journalists",
+    "url": "https://nypost.com/2026/09/07/us-news/judge-denies-ousted-stars-and-stripes-journalists-effort-to-reverse-pentagons-firings/",
+    "published_at": "2026-09-08 01:27:08 +0000",
+    "raw_excerpt": "Publisher Max Lederer, editor Erik Slavin and reporter Lara Korte say they are considering next steps with attorneys",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_72fd3d3c2d00f67f"
+  },
+  {
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub DeleteEvent  in vercel/turborepo",
-    "url": "https://github.com/vercel/turborepo",
-    "published_at": "2026-09-03T16:03:12Z",
-    "raw_excerpt": "Activity on repository vercel/turborepo by anthonyshew",
-    "id": "sig_f636073499131a74"
+    "title": "Humans Are Always the Bottleneck",
+    "url": "https://kdy1.dev/2026-9-6-humans-are-always-the-bottleneck",
+    "published_at": "2026-09-08 08:48:35 +0000",
+    "raw_excerpt": "Today, a single prompt turned 46 SWC issues into 45 pull requests. I do not know exactly how long it took. While the work was running, I was looking at my phone and playing games. By the time I checke",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_628b6b6370102829"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Push to vercel/shop",
-    "url": "https://github.com/vercel/shop",
-    "published_at": "2026-09-04T12:20:24Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_a0d4bd72ef1d375b"
+    "title": "How to Build an AI Chatbot with Gemini and Vercel Serverless Functions 🚀",
+    "url": "https://www.freecodecamp.org/news/how-to-build-an-ai-chatbot-with-gemini-and-vercel-serverless-functions/",
+    "published_at": "2026-09-07 22:35:39 +0000",
+    "raw_excerpt": "A couple of months back, I built a chatbot application using React, Node.js, and Vercel Serverless Functions, which I used in my web app, buildcv.makeadifference.app. In this tutorial, I'll walk you t",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_ebbc900421ae109c"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Push to vercel/eve",
-    "url": "https://github.com/vercel/eve",
-    "published_at": "2026-09-04T13:09:44Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_634d9022abbae4b4"
+    "title": "Lovable to Vercel: The 404, and What Else Breaks",
+    "url": "https://dev.to/geminate_solutions_9b6035/lovable-to-vercel-the-404-and-what-else-breaks-51nh",
+    "published_at": "2026-09-07 12:14:52 +0000",
+    "raw_excerpt": "Every page about moving a Lovable app to Vercel describes one stack as if it were the only one. There...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_06a5c7dd52df913d"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub DeleteEvent  in vercel/chat",
-    "url": "https://github.com/vercel/chat",
-    "published_at": "2026-09-05T04:00:27Z",
-    "raw_excerpt": "Activity on repository vercel/chat by github-actions[bot]",
-    "id": "sig_b269950fd4311ce0"
+    "title": "The Internet Lied to You About Portfolio Websites",
+    "url": "https://dev.to/i_m_vampire_/the-internet-lied-to-you-about-portfolio-websites-i18",
+    "published_at": "2026-09-07 11:25:50 +0000",
+    "raw_excerpt": "Here's what I found: most of the advice floating around is either outdated, wrong, or only applies if...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_76bed77265385aa3"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Push to vercel/next.js",
-    "url": "https://github.com/vercel/next.js",
-    "published_at": "2026-09-03T12:20:09Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_98412d53d80df6c4"
+    "title": "Railway Pricing 2026: Free Tier Limits, Usage Costs & When to Upgrade",
+    "url": "https://dev.to/nayankyada/railway-pricing-2026-free-tier-limits-usage-costs-when-to-upgrade-1acm",
+    "published_at": "2026-09-07 09:32:19 +0000",
+    "raw_excerpt": "Railway's pricing is usage-based and easy to underestimate. Here are the real numbers, free tier limits, and when you'll need to upgrade in 2026.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_628724eda98cf63c"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Push to vercel/chat",
-    "url": "https://github.com/vercel/chat",
-    "published_at": "2026-09-03T14:23:40Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_6c9b9d234ad8cbdc"
+    "title": "Five Code Paths Write the Same Subscription Row. On Purpose.",
+    "url": "https://dev.to/nabeelbaghoor/five-code-paths-write-the-same-subscription-row-on-purpose-25f7",
+    "published_at": "2026-09-06 21:53:23 +0000",
+    "raw_excerpt": "I run a small SaaS called VoiceDash. It gives voice AI agencies a white label portal they can hand to...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_0c8a8f31602e81d7"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Created branch ruiconti/compact-agent-status-messages in vercel/eve",
-    "url": "https://github.com/vercel/eve",
-    "published_at": "2026-09-05T03:39:37Z",
-    "raw_excerpt": "The Open Framework for Building Agents",
-    "id": "sig_269a3fd7d224d2ad"
+    "title": "10 Essential Tools I Actually Use to Keep My Side Projects From Falling Over",
+    "url": "https://dev.to/saimulislamdl/10-essential-tools-i-actually-use-to-keep-my-side-projects-from-falling-over-1751",
+    "published_at": "2026-09-06 12:47:56 +0000",
+    "raw_excerpt": "Docker management, monitoring that goes deeper than a green dot, backups I have actually restored,...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_4aedc4358871b015"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub DeleteEvent  in vercel/vercel",
-    "url": "https://github.com/vercel/vercel",
-    "published_at": "2026-09-04T11:46:47Z",
-    "raw_excerpt": "Activity on repository vercel/vercel by mischnic",
-    "id": "sig_91eed155b590cc1b"
+    "title": "I built a free, 7-language symbol copy-paste tool, no framework, no backend, no database",
+    "url": "https://dev.to/mrzitoun/i-built-a-free-7-language-symbol-copy-paste-tool-no-framework-no-backend-no-database-4lj3",
+    "published_at": "2026-09-05 12:14:36 +0000",
+    "raw_excerpt": "Every time I needed to type a °, an é, or an → in a document, I ended up doing the same annoying...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_3a892fa773941b5f"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Created branch no-ooo-buffer in vercel/vercel-py",
-    "url": "https://github.com/vercel/vercel-py",
-    "published_at": "2026-09-05T06:38:40Z",
-    "raw_excerpt": "Develop. Preview. Ship. Python.",
-    "id": "sig_6194837d8b9daa10"
+    "title": "Should a portfolio simply showcase projects – or should it be a project itself?",
+    "url": "https://dev.to/cqxg/should-a-portfolio-simply-showcase-projects-or-should-it-be-a-project-itself-4fc9",
+    "published_at": "2026-09-05 11:11:56 +0000",
+    "raw_excerpt": "I’m already in the middle of rebuilding ihar-ivaniuk.com — this time as a portfolio inspired by macOS...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_501b142b62d2bced"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub IssueCommentEvent created in vercel/next.js",
-    "url": "https://github.com/vercel/next.js",
-    "published_at": "2026-09-05T10:04:10Z",
-    "raw_excerpt": "Activity on repository vercel/next.js by vivek-1314",
-    "id": "sig_f6e83932b84372fa"
+    "title": "Next.js 16.3 Brings Major Dev-Performance Gains and “Instant Navigations”",
+    "url": "https://dev.to/ashutosh_maurya/nextjs-163-brings-major-dev-performance-gains-and-instant-navigations-2nkl",
+    "published_at": "2026-09-05 10:20:37 +0000",
+    "raw_excerpt": "Vercel released Next.js 16.3 on August 20, 2026, introducing major performance improvements alongside...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_3fec3cf75bc40309"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Push to vercel/turborepo",
-    "url": "https://github.com/vercel/turborepo",
-    "published_at": "2026-09-03T15:15:43Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_947ae0c3cd538669"
+    "title": "Caching audits: Five antipatterns that quietly cost performance and money | Vercel Knowledge Base",
+    "url": "https://vercel.com/kb/guide/caching-antipatterns",
+    "published_at": "2026-09-05 04:50:01 +0000",
+    "raw_excerpt": "Five caching antipatterns from hundreds of Vercel technical audits: write amplification, deploy-wiped caches, spinner shells, and how to diagnose each.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_5ab73fc7931e0ac6"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub PullRequestReviewEvent created in vercel/eve",
-    "url": "https://github.com/vercel/eve",
-    "published_at": "2026-09-05T09:45:54Z",
-    "raw_excerpt": "Activity on repository vercel/eve by De-ASI-INTERFACE",
-    "id": "sig_f984489cb8f7fabb"
+    "title": "I built it twice. Didn't place twice. Then Google and Vercel shipped it.",
+    "url": "https://dev.to/earlgreyhot1701d/i-built-it-twice-didnt-place-twice-then-google-and-vercel-shipped-it-ldd",
+    "published_at": "2026-09-04 22:07:59 +0000",
+    "raw_excerpt": "A you.com rep said it at a hackathon kickoff in March. The web has a second audience now. The first...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_6afcb461b9087bec"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Created branch dgls/preserve-firewall-import in vercel/terraform-provider-vercel",
-    "url": "https://github.com/vercel/terraform-provider-vercel",
-    "published_at": "2026-09-04T11:09:58Z",
-    "raw_excerpt": "Terraform Vercel Provider",
-    "id": "sig_d7c1fa361607f2c5"
+    "title": "I Found a Better Way to Build Websites with Claude AI",
+    "url": "https://dev.to/_shakeworld/i-found-a-better-way-to-build-websites-with-claude-ai-4aen",
+    "published_at": "2026-09-04 21:19:41 +0000",
+    "raw_excerpt": "If you're using Claude to build websites or applications, one of the biggest improvements you can...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_6b7968fd0e91152d"
   },
   {
-    "source": "github",
+    "source": "news",
     "company": "Vercel",
-    "title": "GitHub Created branch changesets-ghcommit-temp/changeset-release/main in vercel/chat",
-    "url": "https://github.com/vercel/chat",
-    "published_at": "2026-09-05T05:31:06Z",
-    "raw_excerpt": "A unified TypeScript SDK for building chat bots across Slack, Microsoft Teams, Google Chat, Discord, and more.",
-    "id": "sig_55269ab724e15f4a"
+    "title": "Push to deploy.Skip the platform tax.",
+    "url": "https://apps.lla.ma/",
+    "published_at": "2026-09-04 15:40:37 +0000",
+    "raw_excerpt": "Self-hosted deploy console — your own Vercel.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_1574e0524a1786b3"
   },
   {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/cli",
-    "url": "https://github.com/netlify/cli",
-    "published_at": "2026-09-04T12:08:53Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_4b26f1314e9a9a1e"
+    "source": "news",
+    "company": "Vercel",
+    "title": "Hello from Kanpur: what I build, and what I'll write about here",
+    "url": "https://dev.to/pranjulrathour/hello-from-kanpur-what-i-build-and-what-ill-write-about-here-f2j",
+    "published_at": "2026-09-04 14:01:26 +0000",
+    "raw_excerpt": "A GenAI engineer's first post: five shipped AI apps, three hackathon wins, 200+ students mentored, and the plan for this blog.",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_8573de8404c45f0b"
   },
   {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Created branch remove-kodiak in netlify/remix-compute",
-    "url": "https://github.com/netlify/remix-compute",
-    "published_at": "2026-09-04T13:12:07Z",
-    "raw_excerpt": "Remix, Hydrogen, and React Router 7 adapters for Netlify",
-    "id": "sig_5368ec0fa5d35b7f"
+    "source": "news",
+    "company": "Vercel",
+    "title": "Real-Time Features Need to Match Your Infrastructure, Not Just Your Feature Spec",
+    "url": "https://dev.to/ariyoaresa/real-time-features-need-to-match-your-infrastructure-not-just-your-feature-spec-1pi3",
+    "published_at": "2026-09-04 11:06:09 +0000",
+    "raw_excerpt": "I got an email from Vercel. \"You've used 75% of your free plan resources.\" I ignored it. A few...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_f58808f8d0cce34b"
   },
   {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/build",
-    "url": "https://github.com/netlify/build",
-    "published_at": "2026-09-03T12:18:37Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_ac2a723700b5bef1"
+    "source": "news",
+    "company": "Vercel",
+    "title": "Portless: Stable .localhost URLs for Agent Workflows",
+    "url": "https://dev.to/mech_app_ai/portless-stable-localhost-urls-for-agent-workflows-3p38",
+    "published_at": "2026-09-04 10:05:39 +0000",
+    "raw_excerpt": "How Vercel's Portless replaces ephemeral port numbers with stable local URLs, solving coordination problems for AI agents and multi-service dev environm...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_85bd489106614dee"
   },
   {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub DeleteEvent  in netlify/build",
-    "url": "https://github.com/netlify/build",
-    "published_at": "2026-09-03T12:06:07Z",
-    "raw_excerpt": "Activity on repository netlify/build by serhalp",
-    "id": "sig_f5bc1c6cc4f810cd"
+    "source": "news",
+    "company": "Vercel",
+    "title": "The Outlook SVG Problem (And How to Fix It in Seconds)",
+    "url": "https://dev.to/crushsvg/the-outlook-svg-problem-and-how-to-fix-it-in-seconds-34ap",
+    "published_at": "2026-09-04 10:04:43 +0000",
+    "raw_excerpt": "Vector graphics are the standard for web development, but they aren't foolproof. The moment you step...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_1838e747a882b2ba"
   },
   {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub PullRequestReviewEvent created in netlify/primitives",
-    "url": "https://github.com/netlify/primitives",
-    "published_at": "2026-09-05T09:34:57Z",
-    "raw_excerpt": "Activity on repository netlify/primitives by coderabbitai[bot]",
-    "id": "sig_5b6c7af4b4731876"
+    "source": "news",
+    "company": "Vercel",
+    "title": "Stop Paying for Vercel: How to Self-Host Your Deployments on a VPS and Keep the Same Workflow",
+    "url": "https://dev.to/saimulislamdl/stop-paying-for-vercel-how-to-self-host-your-deployments-on-a-vps-and-keep-the-same-workflow-4cce",
+    "published_at": "2026-09-04 05:19:58 +0000",
+    "raw_excerpt": "Push-to-deploy, automatic HTTPS, and preview environments on a $24 droplet with Dokploy, plus the...",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_f55098dc4b193376"
   },
   {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub PullRequestReviewCommentEvent created in netlify/primitives",
-    "url": "https://github.com/netlify/primitives",
-    "published_at": "2026-09-05T09:34:54Z",
-    "raw_excerpt": "Activity on repository netlify/primitives by coderabbitai[bot]",
-    "id": "sig_e220bbca1b7baf5b"
+    "source": "news",
+    "company": "Vercel",
+    "title": "GitHub - BoardUI/boardui: React design system for agentic interfaces. Every free BoardUI component as source, with a working AI chat app on your own model key as the homepage.",
+    "url": "https://github.com/BoardUI/boardui",
+    "published_at": "2026-09-04 01:18:08 +0000",
+    "raw_excerpt": "React design system for agentic interfaces. Every free BoardUI component as source, with a working AI chat app on your own model key as the homepage. - BoardUI/boardui",
+    "funding_related": false,
+    "source_subtype": "general",
+    "id": "sig_9c3376995bb19447"
   },
   {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/update-contributors-action",
-    "url": "https://github.com/netlify/update-contributors-action",
-    "published_at": "2026-09-03T11:00:46Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_e43921e8a6df87f5"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub IssueCommentEvent created in netlify/primitives",
-    "url": "https://github.com/netlify/primitives",
-    "published_at": "2026-09-05T08:08:05Z",
-    "raw_excerpt": "Activity on repository netlify/primitives by coderabbitai[bot]",
-    "id": "sig_e733200605d4274a"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub PullRequestEvent opened in netlify/primitives",
-    "url": "https://github.com/netlify/primitives",
-    "published_at": "2026-09-05T08:07:53Z",
-    "raw_excerpt": "Activity on repository netlify/primitives by sij411",
-    "id": "sig_2333f5c36e282509"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Created branch fix/logs-deploy-select-failed in netlify/cli",
-    "url": "https://github.com/netlify/cli",
-    "published_at": "2026-09-04T09:22:53Z",
-    "raw_excerpt": "Netlify Command Line Interface",
-    "id": "sig_3636a169fb469da1"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/htmlrewriter",
-    "url": "https://github.com/netlify/htmlrewriter",
-    "published_at": "2026-09-03T10:24:52Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_95a8acfb92892828"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/netlify-mcp",
-    "url": "https://github.com/netlify/netlify-mcp",
-    "published_at": "2026-09-03T14:17:49Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_cf2289c110591632"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/netlify-plugin-secrets-manager",
-    "url": "https://github.com/netlify/netlify-plugin-secrets-manager",
-    "published_at": "2026-09-04T19:49:42Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_0c813246cf6d3cbc"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/framework-adapters",
-    "url": "https://github.com/netlify/framework-adapters",
-    "published_at": "2026-09-03T10:01:52Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_b23f3ef062f8c657"
-  },
-  {
-    "source": "github",
-    "company": "Netlify",
-    "title": "GitHub Push to netlify/build-plugin-template",
-    "url": "https://github.com/netlify/build-plugin-template",
-    "published_at": "2026-09-04T19:50:17Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_0a6d8ed089fcb805"
-  },
-  {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub DeleteEvent  in cloudflare/workerd",
-    "url": "https://github.com/cloudflare/workerd",
-    "published_at": "2026-09-04T13:16:35Z",
-    "raw_excerpt": "Activity on repository cloudflare/workerd by dcarney-cf",
-    "id": "sig_237c9735a38d26ea"
+    "title": "Job Posting: Business Development Representative - French Speaking (BDR)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8169264?gh_jid=8169264",
+    "published_at": "2026-09-04T08:36:43-04:00",
+    "raw_excerpt": "Department: BDR | Location: Hybrid | Role: Business Development Representative - French Speaking",
+    "id": "sig_e79f2f93e3c83b8f"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Push to cloudflare/workers-sdk",
-    "url": "https://github.com/cloudflare/workers-sdk",
-    "published_at": "2026-09-04T12:02:54Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_418236d8dd5b36eb"
+    "title": "Job Posting: Customer Engineer, Turkish or Arabic Speaking (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8158994?gh_jid=8158994",
+    "published_at": "2026-09-07T05:18:43-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Hybrid | Role: Customer Engineer, Turkish or Arabic Speaking",
+    "id": "sig_45593b5a56b44451"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Push to cloudflare/workerd",
-    "url": "https://github.com/cloudflare/workerd",
-    "published_at": "2026-09-03T16:01:21Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_5c16d51a2271e7da"
+    "title": "Job Posting: Detection & Mitigation Engineer (Security)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8170775?gh_jid=8170775",
+    "published_at": "2026-09-03T21:44:24-04:00",
+    "raw_excerpt": "Department: Security | Location: Hybrid | Role: Detection & Mitigation Engineer",
+    "id": "sig_136037233963a4dc"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub IssueCommentEvent created in cloudflare/workers-sdk",
-    "url": "https://github.com/cloudflare/workers-sdk",
-    "published_at": "2026-09-05T10:38:03Z",
-    "raw_excerpt": "Activity on repository cloudflare/workers-sdk by workers-devprod",
-    "id": "sig_9281fa04a7f4cb6a"
+    "title": "Job Posting: Director, Customer Engineering Engineering (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8007189?gh_jid=8007189",
+    "published_at": "2026-09-07T09:30:36-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Hybrid | Role: Director, Customer Engineering Engineering",
+    "id": "sig_2847b227d310ba96"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Issue labeled in cloudflare/workers-sdk: [wrangler] Remote Hyperdrive bindings under getPlatformProxy() never re-seed edge credentials, so a stale dev session never recovers",
-    "url": "https://github.com/cloudflare/workers-sdk",
-    "published_at": "2026-09-05T10:38:05Z",
-    "raw_excerpt": "### What versions & operating system are you using?\n\nWrangler 4.129.0 (built from `main` plus #14900, commit `29410697`), Node v26.4.0, macOS 26.5.2.\n\n### Please provide a link to a minimal reproduction\n\nNo public repository — the reproduction needs a real Hyperdrive configuration on the account and",
-    "id": "sig_684d83e02e747d5d"
+    "title": "Job Posting: Director, Growth Sales (AI & Digital Natives) (Field Sales)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8177516?gh_jid=8177516",
+    "published_at": "2026-09-04T11:14:27-04:00",
+    "raw_excerpt": "Department: Field Sales | Location: Distributed | Role: Director, Growth Sales (AI & Digital Natives)",
+    "id": "sig_4151c6aeb308d796"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Push to cloudflare/cloudflare-docs",
-    "url": "https://github.com/cloudflare/cloudflare-docs",
-    "published_at": "2026-09-04T11:57:19Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_57cedd3f5ec7d891"
+    "title": "Job Posting: Indirect Tax Analyst (Accounting and Finance)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8141822?gh_jid=8141822",
+    "published_at": "2026-09-01T09:09:50-04:00",
+    "raw_excerpt": "Department: Accounting and Finance | Location: Hybrid | Role: Indirect Tax Analyst",
+    "id": "sig_d13fa8516f70adcb"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Created branch dependabot/cargo/table_to_html-0.10.0 in cloudflare/quiche",
-    "url": "https://github.com/cloudflare/quiche",
-    "published_at": "2026-09-04T13:05:01Z",
-    "raw_excerpt": "🥧 Savoury implementation of the QUIC transport protocol and HTTP/3",
-    "id": "sig_3874d1241296a5e5"
+    "title": "Job Posting: Network Security Engineer (Customer Support)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8159206?gh_jid=8159206",
+    "published_at": "2026-09-02T08:58:38-04:00",
+    "raw_excerpt": "Department: Customer Support | Location: Hybrid | Role: Network Security Engineer",
+    "id": "sig_20a2b29abfdd4fda"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Issue opened in cloudflare/workers-sdk: [wrangler] Remote Hyperdrive bindings under getPlatformProxy() never re-seed edge credentials, so a stale dev session never recovers",
-    "url": "https://github.com/cloudflare/workers-sdk",
-    "published_at": "2026-09-05T10:36:17Z",
-    "raw_excerpt": "### What versions & operating system are you using?\n\nWrangler 4.129.0 (built from `main` plus #14900, commit `29410697`), Node v26.4.0, macOS 26.5.2.\n\n### Please provide a link to a minimal reproduction\n\nNo public repository — the reproduction needs a real Hyperdrive configuration on the account and",
-    "id": "sig_11bf82f07e1e95e1"
+    "title": "Job Posting: Principal Partner Account Manager, Service Provider, EMEA (Partnerships)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8161251?gh_jid=8161251",
+    "published_at": "2026-09-03T11:30:01-04:00",
+    "raw_excerpt": "Department: Partnerships | Location: Hybrid | Role: Principal Partner Account Manager, Service Provider, EMEA",
+    "id": "sig_d9a5581694f97342"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Push to cloudflare/cloudflare-os",
-    "url": "https://github.com/cloudflare/cloudflare-os",
-    "published_at": "2026-09-04T13:01:33Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_e17101e25a4e7c53"
+    "title": "Job Posting: Principal Partner Solutions Engineer, Japan (Based in Tokyo) (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172554?gh_jid=8172554",
+    "published_at": "2026-09-07T21:26:18-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Hybrid | Role: Principal Partner Solutions Engineer, Japan (Based in Tokyo)",
+    "id": "sig_73836051228d533c"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub Push to cloudflare/agents",
-    "url": "https://github.com/cloudflare/agents",
-    "published_at": "2026-09-04T12:45:27Z",
-    "raw_excerpt": "0 commits: ",
-    "id": "sig_19f34512910914bf"
+    "title": "Job Posting: Recruiting Coordinator (Contract) (People & Places)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8180488?gh_jid=8180488",
+    "published_at": "2026-09-04T13:53:15-04:00",
+    "raw_excerpt": "Department: People & Places | Location: Hybrid | Role: Recruiting Coordinator (Contract)",
+    "id": "sig_50df4428654bdb82"
   },
   {
-    "source": "github",
+    "source": "jobs",
     "company": "Cloudflare Pages/Workers",
-    "title": "GitHub DeleteEvent  in cloudflare/workers-sdk",
-    "url": "https://github.com/cloudflare/workers-sdk",
-    "published_at": "2026-09-03T12:09:18Z",
-    "raw_excerpt": "Activity on repository cloudflare/workers-sdk by NuroDev",
-    "id": "sig_76b6e40a9b898809"
+    "title": "Job Posting: Senior Cloudflare One GTM Specialist (Central or East) (Product Specialist)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/7960701?gh_jid=7960701",
+    "published_at": "2026-09-01T23:55:37-04:00",
+    "raw_excerpt": "Department: Product Specialist | Location: Hybrid | Role: Senior Cloudflare One GTM Specialist (Central or East)",
+    "id": "sig_b506fc40c96baab6"
   },
   {
-    "source": "research",
-    "source_subtype": "research",
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Customer Engineer, Japan (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8146536?gh_jid=8146536",
+    "published_at": "2026-09-06T22:43:11-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Hybrid | Role: Senior Customer Engineer, Japan",
+    "id": "sig_90cb4131a5e10877"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Customer Engineer, Majors - Bentoville, AR (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172246?gh_jid=8172246",
+    "published_at": "2026-09-04T11:29:11-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Distributed | Role: Senior Customer Engineer, Majors - Bentoville, AR",
+    "id": "sig_34e9701b2fff395b"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Customer Engineer, Majors - Pittsburgh, PA (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172153?gh_jid=8172153",
+    "published_at": "2026-09-03T13:22:25-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Distributed | Role: Senior Customer Engineer, Majors - Pittsburgh, PA",
+    "id": "sig_06c1285466aa190e"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Customer Engineer, Majors - Southwest (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172200?gh_jid=8172200",
+    "published_at": "2026-09-04T10:45:11-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Distributed | Role: Senior Customer Engineer, Majors - Southwest",
+    "id": "sig_a29f9e31e7b34b6d"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Customer Engineer, Named - Houston, TX (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172117?gh_jid=8172117",
+    "published_at": "2026-09-02T11:05:05-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Distributed | Role: Senior Customer Engineer, Named - Houston, TX",
+    "id": "sig_f6c01a3d6f014653"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Customer Engineer, Named - LA (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8171942?gh_jid=8171942",
+    "published_at": "2026-09-02T12:41:45-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Distributed; Hybrid | Role: Senior Customer Engineer, Named - LA",
+    "id": "sig_aafde5066bba88ef"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Customer Engineer, Named - Seattle (Solution Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172023?gh_jid=8172023",
+    "published_at": "2026-09-02T12:46:11-04:00",
+    "raw_excerpt": "Department: Solution Engineering | Location: Distributed | Role: Senior Customer Engineer, Named - Seattle",
+    "id": "sig_a7db20408686540b"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Forward Deployed Engineer (Developer Relations)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8173707?gh_jid=8173707",
+    "published_at": "2026-09-02T10:47:36-04:00",
+    "raw_excerpt": "Department: Developer Relations | Location: Hybrid | Role: Senior Forward Deployed Engineer",
+    "id": "sig_122499a88f68e0ca"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Forward Deployed Engineer (Developer Relations)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8160655?gh_jid=8160655",
+    "published_at": "2026-09-03T10:24:07-04:00",
+    "raw_excerpt": "Department: Developer Relations | Location: Hybrid | Role: Senior Forward Deployed Engineer",
+    "id": "sig_7db9089e47fc8c14"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior, Majors Account Executive (Field Sales)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8173393?gh_jid=8173393",
+    "published_at": "2026-09-08T05:29:41-04:00",
+    "raw_excerpt": "Department: Field Sales | Location: Hybrid | Role: Senior, Majors Account Executive",
+    "id": "sig_13a1401e7eed3642"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Named Account Executive, South Africa (Field Sales)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8045321?gh_jid=8045321",
+    "published_at": "2026-09-07T06:46:40-04:00",
+    "raw_excerpt": "Department: Field Sales | Location: Hybrid | Role: Senior Named Account Executive, South Africa",
+    "id": "sig_8939a0b51e833d39"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Response Engineer - Cloudflare Managed Defense Center (CMDC) (Security)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8164086?gh_jid=8164086",
+    "published_at": "2026-09-02T05:36:49-04:00",
+    "raw_excerpt": "Department: Security | Location: Hybrid | Role: Senior Response Engineer - Cloudflare Managed Defense Center (CMDC)",
+    "id": "sig_469b501fcdf73808"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Software Engineer - Addressing Team (Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8164694?gh_jid=8164694",
+    "published_at": "2026-09-01T20:47:14-04:00",
+    "raw_excerpt": "Department: Engineering | Location: Hybrid | Role: Senior Software Engineer - Addressing Team",
+    "id": "sig_0b0568abc3d9015c"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Software Engineer, Network On-Ramps (Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8164724?gh_jid=8164724",
+    "published_at": "2026-09-01T20:20:19-04:00",
+    "raw_excerpt": "Department: Engineering | Location: Hybrid | Role: Senior Software Engineer, Network On-Ramps",
+    "id": "sig_6bc2987833680f8d"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Software Engineer, R2 Gateway (Emerging Technology and Incubation)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8174207?gh_jid=8174207",
+    "published_at": "2026-09-02T13:24:38-04:00",
+    "raw_excerpt": "Department: Emerging Technology and Incubation | Location: In-Office | Role: Senior Software Engineer, R2 Gateway",
+    "id": "sig_b060406753fd67af"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Software Engineer, Security Rules (Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8184838?gh_jid=8184838",
+    "published_at": "2026-09-07T07:21:41-04:00",
+    "raw_excerpt": "Department: Engineering | Location: Hybrid | Role: Senior Software Engineer, Security Rules",
+    "id": "sig_7f9fd86d5f357e00"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Territory Account Executive - Beijing (Mid Market)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8181043?gh_jid=8181043",
+    "published_at": "2026-09-07T20:20:46-04:00",
+    "raw_excerpt": "Department: Mid Market | Location: Hybrid | Role: Senior Territory Account Executive - Beijing",
+    "id": "sig_417a9108ff817a2a"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Senior Territory Account Executive, Korea (Mid Market)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8141364?gh_jid=8141364",
+    "published_at": "2026-09-02T23:02:07-04:00",
+    "raw_excerpt": "Department: Mid Market | Location: Hybrid | Role: Senior Territory Account Executive, Korea",
+    "id": "sig_68cd2c5a939183fe"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Software Engineer, Security Rules (Engineering)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8160660?gh_jid=8160660",
+    "published_at": "2026-09-03T08:39:43-04:00",
+    "raw_excerpt": "Department: Engineering | Location: Hybrid | Role: Software Engineer, Security Rules",
+    "id": "sig_393a932823d870e5"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Strategy and Operations Manager, Executive Programs (Product)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8139424?gh_jid=8139424",
+    "published_at": "2026-09-01T12:07:40-04:00",
+    "raw_excerpt": "Department: Product | Location: Hybrid | Role: Strategy and Operations Manager, Executive Programs",
+    "id": "sig_2072685812ddccef"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Systems Engineer - Database Platform (Infrastructure)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8158016?gh_jid=8158016",
+    "published_at": "2026-09-04T18:47:51-04:00",
+    "raw_excerpt": "Department: Infrastructure | Location: Hybrid | Role: Systems Engineer - Database Platform",
+    "id": "sig_da6a80ac3f8cf5df"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Systems Engineer, Growth Engineering (Emerging Technology and Incubation)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8175620?gh_jid=8175620",
+    "published_at": "2026-09-03T16:53:24-04:00",
+    "raw_excerpt": "Department: Emerging Technology and Incubation | Location: Hybrid | Role: Systems Engineer, Growth Engineering",
+    "id": "sig_a003265a27e466fe"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Territory Account Executive, Digital Native (Indonesia) (Mid Market)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8168940?gh_jid=8168940",
+    "published_at": "2026-09-06T21:14:23-04:00",
+    "raw_excerpt": "Department: Mid Market | Location: Hybrid | Role: Territory Account Executive, Digital Native (Indonesia)",
+    "id": "sig_99797a46f32b7fc7"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Territory Account Executive, Indonesia (Mid Market)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172582?gh_jid=8172582",
+    "published_at": "2026-09-07T21:25:04-04:00",
+    "raw_excerpt": "Department: Mid Market | Location: Hybrid | Role: Territory Account Executive, Indonesia",
+    "id": "sig_fed339ff3317c492"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Trust & Safety Investigator II, Singapore (Legal, Policy, Trust & Safety)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172404?gh_jid=8172404",
+    "published_at": "2026-09-04T03:49:16-04:00",
+    "raw_excerpt": "Department: Legal, Policy, Trust & Safety | Location: Hybrid | Role: Trust & Safety Investigator II, Singapore",
+    "id": "sig_05bed0bbeaa43d53"
+  },
+  {
+    "source": "jobs",
+    "company": "Cloudflare Pages/Workers",
+    "title": "Job Posting: Vice President, Cloudflare One GTM (Sales)",
+    "url": "https://boards.greenhouse.io/cloudflare/jobs/8172411?gh_jid=8172411",
+    "published_at": "2026-09-02T11:49:14-04:00",
+    "raw_excerpt": "Department: Sales | Location: Distributed; Hybrid | Role: Vice President, Cloudflare One GTM",
+    "id": "sig_6bd7c29fc5c28865"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Abuse Investigator (8611 Security Analytics)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172487",
+    "published_at": "2026-09-03T13:30:34-04:00",
+    "raw_excerpt": "Department: 8611 Security Analytics | Location: Dublin | Role: Abuse Investigator",
+    "id": "sig_a601b0a5bc997997"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Abuse Investigator (8611 Security Analytics)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172508",
+    "published_at": "2026-09-03T13:32:53-04:00",
+    "raw_excerpt": "Department: 8611 Security Analytics | Location: Dublin | Role: Abuse Investigator",
+    "id": "sig_0f849ec2c9986df3"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Account Executive, Nordics (1185 Account Executives (EMEA))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8114402",
+    "published_at": "2026-09-07T04:14:24-04:00",
+    "raw_excerpt": "Department: 1185 Account Executives (EMEA) | Location: Sweden | Role: Account Executive, Nordics",
+    "id": "sig_bfad12fb8ef05f3b"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Account Executive Product - Tax (1641 Product Sales - RFA ex Billing)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175830",
+    "published_at": "2026-09-03T02:19:02-04:00",
+    "raw_excerpt": "Department: 1641 Product Sales - RFA ex Billing | Location: Singapore | Role: Account Executive Product - Tax",
+    "id": "sig_0134fecf812c1a89"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Capital Markets, FX Specialist (6410 Treasury Finance)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8171098",
+    "published_at": "2026-09-02T15:53:45-04:00",
+    "raw_excerpt": "Department: 6410 Treasury Finance | Location: New York | Role: Capital Markets, FX Specialist",
+    "id": "sig_f1a060bd53eded5c"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Channel Sales Executive (1630 Alliances & Channels)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8165273",
+    "published_at": "2026-09-03T06:02:28-04:00",
+    "raw_excerpt": "Department: 1630 Alliances & Channels | Location: London | Role: Channel Sales Executive",
+    "id": "sig_cd798a80d04126ba"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Contracting Operations Specialist (6427 Procurement)",
+    "url": "https://stripe.com/jobs/search?gh_jid=7994945",
+    "published_at": "2026-09-05T06:40:38-04:00",
+    "raw_excerpt": "Department: 6427 Procurement | Location: Bengaluru | Role: Contracting Operations Specialist",
+    "id": "sig_a2dc91445a3cf6f7"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Core Business Recruiter (Fixed Term Contract) (6520 Recruiting)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8163187",
+    "published_at": "2026-09-03T11:28:38-04:00",
+    "raw_excerpt": "Department: 6520 Recruiting | Location: Chicago | Role: Core Business Recruiter (Fixed Term Contract)",
+    "id": "sig_c7a90ada7f623744"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Core Recruiter (Risk, Partnerships, Operations) (6520 Recruiting)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8158092",
+    "published_at": "2026-09-07T14:53:00-04:00",
+    "raw_excerpt": "Department: 6520 Recruiting | Location: Singapore | Role: Core Recruiter (Risk, Partnerships, Operations)",
+    "id": "sig_b51ce933325bf3b7"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Critical Support Operations Associate, Weekend Coverage (4128 SDC - Product Support)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175816",
+    "published_at": "2026-09-04T02:28:51-04:00",
+    "raw_excerpt": "Department: 4128 SDC - Product Support | Location: N/A | Role: Critical Support Operations Associate, Weekend Coverage",
+    "id": "sig_9a26e52fdca915d7"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Customer Success Leader (Greater China) (1340 Customer Success Management)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175834",
+    "published_at": "2026-09-03T08:30:15-04:00",
+    "raw_excerpt": "Department: 1340 Customer Success Management | Location: Singapore | Role: Customer Success Leader (Greater China)",
+    "id": "sig_56b65940bcc5d1b7"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Customer Success Manager (1340 Customer Success Management)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8170772",
+    "published_at": "2026-09-03T10:25:33-04:00",
+    "raw_excerpt": "Department: 1340 Customer Success Management | Location: London | Role: Customer Success Manager",
+    "id": "sig_fabf1073deb7180b"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Design Program Manager, Research Operations (8810 Design)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8155390",
+    "published_at": "2026-09-01T08:27:46-04:00",
+    "raw_excerpt": "Department: 8810 Design | Location: US | Role: Design Program Manager, Research Operations",
+    "id": "sig_1e9554eeb593ed8c"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Engineering Manager, Billing Configuration (8412 Billing Products)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172601",
+    "published_at": "2026-09-02T13:37:46-04:00",
+    "raw_excerpt": "Department: 8412 Billing Products | Location: N/A | Role: Engineering Manager, Billing Configuration",
+    "id": "sig_76aeb8aee0f7eb1a"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Engineering Manager, Product & Business (8412 Billing Products)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8174496",
+    "published_at": "2026-09-02T14:36:43-04:00",
+    "raw_excerpt": "Department: 8412 Billing Products | Location: US- AMER | Role: Engineering Manager, Product & Business",
+    "id": "sig_d2ba7a86fc99c526"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Forward Deployed Security Engineer (8611 Security Analytics)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8181003",
+    "published_at": "2026-09-06T11:22:28-04:00",
+    "raw_excerpt": "Department: 8611 Security Analytics | Location: Dublin | Role: Forward Deployed Security Engineer",
+    "id": "sig_a055b1262e56d058"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Implementation Consultant (SEA/GCN) (1142 APAC Delivery)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175818",
+    "published_at": "2026-09-07T12:46:05-04:00",
+    "raw_excerpt": "Department: 1142 APAC Delivery | Location: Singapore | Role: Implementation Consultant (SEA/GCN)",
+    "id": "sig_1dc841921d6435c0"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Integration Engineer, Metronome (9014 Metronome - R&D)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8171222",
+    "published_at": "2026-09-02T10:38:07-04:00",
+    "raw_excerpt": "Department: 9014 Metronome - R&D | Location: London | Role: Integration Engineer, Metronome",
+    "id": "sig_c7ce980feb700c98"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Internal Audit - Regulatory Lead, EMEA (6480 Internal Audit)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8174610",
+    "published_at": "2026-09-03T04:55:03-04:00",
+    "raw_excerpt": "Department: 6480 Internal Audit | Location: London | Role: Internal Audit - Regulatory Lead, EMEA",
+    "id": "sig_e11836fcdc9c12e8"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Investigator (8611 Security Analytics)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172491",
+    "published_at": "2026-09-04T11:26:03-04:00",
+    "raw_excerpt": "Department: 8611 Security Analytics | Location: US Remote  | Role: Investigator",
+    "id": "sig_b729fa7a5f30298a"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Manager, Competitive Programs (1520 Sales Operations (SS&O))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175671",
+    "published_at": "2026-09-04T17:20:50-04:00",
+    "raw_excerpt": "Department: 1520 Sales Operations (SS&O) | Location: NYC, Seattle, SF, Remote | Role: Manager, Competitive Programs",
+    "id": "sig_f33d50c82d7f1c24"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Manager, Payments Performance (SEA and Greater China) (1342 Payment Performance)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175826",
+    "published_at": "2026-09-03T10:15:31-04:00",
+    "raw_excerpt": "Department: 1342 Payment Performance | Location: Singapore | Role: Manager, Payments Performance (SEA and Greater China)",
+    "id": "sig_357348349cffb6bb"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Manager, Solutions Architecture- Enterprise Hunter (1150 Solutions Architecture)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8163542",
+    "published_at": "2026-09-01T16:53:53-04:00",
+    "raw_excerpt": "Department: 1150 Solutions Architecture | Location: New York, NY | Role: Manager, Solutions Architecture- Enterprise Hunter",
+    "id": "sig_101e5ead5914a40c"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Manager, Technical Account Management (4130 Technical Account Management, Support & Services - AMER)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8152136",
+    "published_at": "2026-09-04T15:01:59-04:00",
+    "raw_excerpt": "Department: 4130 Technical Account Management, Support & Services - AMER | Location: San Francisco or Seattle | Role: Manager, Technical Account Management",
+    "id": "sig_473d8858023ce37f"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Manager, Technical Account Management (4130 Technical Account Management, Support & Services - AMER)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8154304",
+    "published_at": "2026-09-04T10:21:01-04:00",
+    "raw_excerpt": "Department: 4130 Technical Account Management, Support & Services - AMER | Location: Toronto | Role: Manager, Technical Account Management",
+    "id": "sig_d505ff548073a4b7"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Partner Development Manager, Alliances and Channels (1630 Alliances & Channels)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8165267",
+    "published_at": "2026-09-04T17:39:06-04:00",
+    "raw_excerpt": "Department: 1630 Alliances & Channels | Location: US-Remote | Role: Partner Development Manager, Alliances and Channels",
+    "id": "sig_7c7c85b9033c7211"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Processing cost Analyst (4203 BFin - Accounting (SDC))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8177636",
+    "published_at": "2026-09-07T02:53:44-04:00",
+    "raw_excerpt": "Department: 4203 BFin - Accounting (SDC) | Location: IN-Bengaluru | Role: Processing cost Analyst",
+    "id": "sig_f568f31dd6e41ca4"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Product Manager, Hardware (8258 Terminal - PM)",
+    "url": "https://stripe.com/jobs/search?gh_jid=7586413",
+    "published_at": "2026-09-04T12:55:44-04:00",
+    "raw_excerpt": "Department: 8258 Terminal - PM | Location: San Francisco, Seattle | Role: Product Manager, Hardware",
+    "id": "sig_4167fa44dea3b411"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Product Sales Development Representative (Mandarin-speaking) (1136 Product Sales Development Reps)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8179341",
+    "published_at": "2026-09-07T01:55:28-04:00",
+    "raw_excerpt": "Department: 1136 Product Sales Development Reps | Location: Singapore | Role: Product Sales Development Representative (Mandarin-speaking)",
+    "id": "sig_124551a14bbd42e8"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Product Strategy & Operations - Global Product (8573 Payments, Risk, and Support Admin)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8177640",
+    "published_at": "2026-09-03T13:17:12-04:00",
+    "raw_excerpt": "Department: 8573 Payments, Risk, and Support Admin | Location: US-SF, US-Seattle, US-NYC, US-Atlanta, US-Chicago | Role: Product Strategy & Operations - Global Product",
+    "id": "sig_e0a6410be06d56da"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Product Support Specialist (4119 Product Support)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8148497",
+    "published_at": "2026-09-04T16:41:49-04:00",
+    "raw_excerpt": "Department: 4119 Product Support | Location: Chicago | Role: Product Support Specialist",
+    "id": "sig_47cbea618c09d0c4"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Program Manager, Executive Experiences (2325 Exec Marketing)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175629",
+    "published_at": "2026-09-05T06:42:00-04:00",
+    "raw_excerpt": "Department: 2325 Exec Marketing | Location: San Francisco, New York, Seattle, Chicago, Atlanta, Remote in the US | Role: Program Manager, Executive Experiences",
+    "id": "sig_ff6603eed23d79e8"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Manager, AI (1650 AI GTM Strategy & Solutions)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8163534",
+    "published_at": "2026-09-03T13:59:01-04:00",
+    "raw_excerpt": "Department: 1650 AI GTM Strategy & Solutions | Location: New York; San Francisco | Role: Sales Manager, AI",
+    "id": "sig_222d4796dc8bd1d7"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Manager, Enterprise (1190 GEO Sales HQ (APAC))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8174158",
+    "published_at": "2026-09-03T02:35:34-04:00",
+    "raw_excerpt": "Department: 1190 GEO Sales HQ (APAC) | Location: Sydney | Role: Sales Manager, Enterprise",
+    "id": "sig_f434044becc5f4d6"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Manager, Enterprise CEE (1180 GEO Sales HQ (EMEA))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8176724",
+    "published_at": "2026-09-08T02:43:56-04:00",
+    "raw_excerpt": "Department: 1180 GEO Sales HQ (EMEA) | Location: Warsaw, Poland | Role: Sales Manager, Enterprise CEE",
+    "id": "sig_0588f849f0041423"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Manager, Enterprise Platforms, Grower (1170 GEO Sales HQ (NA))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8155376",
+    "published_at": "2026-09-01T16:28:43-04:00",
+    "raw_excerpt": "Department: 1170 GEO Sales HQ (NA) | Location: New York, NY | Role: Sales Manager, Enterprise Platforms, Grower",
+    "id": "sig_f34cb397960f47d4"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Manager, Enterprise Platforms, Hunter Team (1170 GEO Sales HQ (NA))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8155378",
+    "published_at": "2026-09-03T22:24:22-04:00",
+    "raw_excerpt": "Department: 1170 GEO Sales HQ (NA) | Location: New York, NY | Role: Sales Manager, Enterprise Platforms, Hunter Team",
+    "id": "sig_fc199cdd6c0c3882"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Manager (Greater China) (1190 GEO Sales HQ (APAC))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8174150",
+    "published_at": "2026-09-06T21:08:29-04:00",
+    "raw_excerpt": "Department: 1190 GEO Sales HQ (APAC) | Location: Singapore | Role: Sales Manager (Greater China)",
+    "id": "sig_a1100d55bd5cdaff"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Manager, SMB (1180 GEO Sales HQ (EMEA))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8176730",
+    "published_at": "2026-09-07T06:57:35-04:00",
+    "raw_excerpt": "Department: 1180 GEO Sales HQ (EMEA) | Location: Dublin, Ireland | Role: Sales Manager, SMB",
+    "id": "sig_e6b306855aac357a"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Sales Strategy & Operations Analyst (1520 Sales Operations (SS&O))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8164674",
+    "published_at": "2026-09-01T11:26:22-04:00",
+    "raw_excerpt": "Department: 1520 Sales Operations (SS&O) | Location: US | Role: Sales Strategy & Operations Analyst",
+    "id": "sig_0a455b38f8e1417b"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Security Incident Response Manager - Abuse Operations (8611 Security Analytics)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172493",
+    "published_at": "2026-09-03T13:37:28-04:00",
+    "raw_excerpt": "Department: 8611 Security Analytics | Location: Dublin | Role: Security Incident Response Manager - Abuse Operations",
+    "id": "sig_85131b474758a445"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Seller Systems Team Lead (4161 SDC - Internal Systems)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175820",
+    "published_at": "2026-09-03T08:49:36-04:00",
+    "raw_excerpt": "Department: 4161 SDC - Internal Systems | Location: Bengaluru | Role: Seller Systems Team Lead",
+    "id": "sig_a9e68e4fec1e140d"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Senior Brand Designer, Link (8113 Brand Studio)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172672",
+    "published_at": "2026-09-02T11:40:18-04:00",
+    "raw_excerpt": "Department: 8113 Brand Studio | Location: US | Role: Senior Brand Designer, Link",
+    "id": "sig_3f6a7e808fb5788e"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Senior Leadership Recruiter (6525 Leadership Recruiting)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8167556",
+    "published_at": "2026-09-02T15:53:46-04:00",
+    "raw_excerpt": "Department: 6525 Leadership Recruiting | Location: Seattle, Washington | Role: Senior Leadership Recruiter",
+    "id": "sig_1cfa21ba6dd957c3"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Senior Mechanical and Industrial Design Engineer (8512 Terminal - Eng)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8170920",
+    "published_at": "2026-09-04T06:33:08-04:00",
+    "raw_excerpt": "Department: 8512 Terminal - Eng | Location: Taipei,Taiwan | Role: Senior Mechanical and Industrial Design Engineer",
+    "id": "sig_0cd34638bf1b59f5"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Senior Software Engineer (Global Operations)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8175099",
+    "published_at": "2026-09-02T17:34:08-04:00",
+    "raw_excerpt": "Department: Global Operations | Location: South San Francisco, CA | Role: Senior Software Engineer",
+    "id": "sig_29cbc01503d5991a"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Senior Software Engineer, Docs Product (Global Operations)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8177860",
+    "published_at": "2026-09-03T14:24:41-04:00",
+    "raw_excerpt": "Department: Global Operations | Location: New York, NY | Role: Senior Software Engineer, Docs Product",
+    "id": "sig_8db42b6268b5f167"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Senior Staff Product Designer, Dashboard Studio (8811 Product Design)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8174316",
+    "published_at": "2026-09-02T14:22:31-04:00",
+    "raw_excerpt": "Department: 8811 Product Design | Location: United States | Role: Senior Staff Product Designer, Dashboard Studio",
+    "id": "sig_867529efa5d5d993"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Software Engineer (Global Operations)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8174105",
+    "published_at": "2026-09-02T12:57:08-04:00",
+    "raw_excerpt": "Department: Global Operations | Location: Seattle, WA | Role: Software Engineer",
+    "id": "sig_54e9e6c619b320d8"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Software Engineer, Intern (5112 General University)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8130883",
+    "published_at": "2026-09-07T01:44:20-04:00",
+    "raw_excerpt": "Department: 5112 General University | Location: Singapore | Role: Software Engineer, Intern",
+    "id": "sig_99caa020d731862a"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Software Engineer, New Grad (5112 General University)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8160776",
+    "published_at": "2026-09-02T23:28:52-04:00",
+    "raw_excerpt": "Department: 5112 General University | Location: Singapore | Role: Software Engineer, New Grad",
+    "id": "sig_da448108a84979a2"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Software Engineer, Online Database Infrastructure (Global Operations)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8177930",
+    "published_at": "2026-09-03T14:57:02-04:00",
+    "raw_excerpt": "Department: Global Operations | Location: Seattle, WA | Role: Software Engineer, Online Database Infrastructure",
+    "id": "sig_d3feb8998f91f9d5"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Software Engineer, Platform Infrastructure (9014 Metronome - R&D)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8127182",
+    "published_at": "2026-09-01T12:36:00-04:00",
+    "raw_excerpt": "Department: 9014 Metronome - R&D | Location: San Francisco, New York City, Seattle, Chicago, US-Remote | Role: Software Engineer, Platform Infrastructure",
+    "id": "sig_90d3452edf8e83ad"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Staff Software Engineer, Card Issuing and Payments (8514 Connect - Eng)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8177513",
+    "published_at": "2026-09-03T12:26:06-04:00",
+    "raw_excerpt": "Department: 8514 Connect - Eng | Location: NYC, SEA, San Francisco | Role: Staff Software Engineer, Card Issuing and Payments",
+    "id": "sig_1913847b9017c6ff"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Staff Software Engineer, Payment Systems (8511 PayIntel - Eng)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172164",
+    "published_at": "2026-09-01T17:57:56-04:00",
+    "raw_excerpt": "Department: 8511 PayIntel - Eng | Location: Seattle, New York, San Francisco | Role: Staff Software Engineer, Payment Systems",
+    "id": "sig_78c775cf412c161b"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Staff Software Engineer, Storage Abstractions (8186 Service Platform)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8171539",
+    "published_at": "2026-09-01T14:44:06-04:00",
+    "raw_excerpt": "Department: 8186 Service Platform | Location: San Francisco, Seattle | Role: Staff Software Engineer, Storage Abstractions",
+    "id": "sig_933309694087c9c3"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Strategic Capacity Planning Specialist (4692 Support Ops, Risk, & FC - Vendor Management)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8168554",
+    "published_at": "2026-09-02T06:57:19-04:00",
+    "raw_excerpt": "Department: 4692 Support Ops, Risk, & FC - Vendor Management | Location: Dublin | Role: Strategic Capacity Planning Specialist",
+    "id": "sig_f767ff1295fbd5fc"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Strategic Payment Advisors Lead - APAC (1170 GEO Sales HQ (NA))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8165853",
+    "published_at": "2026-09-02T00:08:09-04:00",
+    "raw_excerpt": "Department: 1170 GEO Sales HQ (NA) | Location: Sydney Or Melbourne | Role: Strategic Payment Advisors Lead - APAC",
+    "id": "sig_7b71a4b7c01f6a9f"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Strategy and Operations Business Partner, Global Payments Performance (1520 Sales Operations (SS&O))",
+    "url": "https://stripe.com/jobs/search?gh_jid=8171928",
+    "published_at": "2026-09-04T10:59:57-04:00",
+    "raw_excerpt": "Department: 1520 Sales Operations (SS&O) | Location: Chicago | Role: Strategy and Operations Business Partner, Global Payments Performance",
+    "id": "sig_355e361fa14c5d3c"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Strategy & Transformation Advisor (Enterprise Commerce Architecture) (1140 Professional Services)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8139711",
+    "published_at": "2026-09-02T07:17:03-04:00",
+    "raw_excerpt": "Department: 1140 Professional Services | Location: San Francisco or Seattle | Role: Strategy & Transformation Advisor (Enterprise Commerce Architecture)",
+    "id": "sig_d4064ddca8f95117"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Technical Program Manager (Global Operations)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8171297",
+    "published_at": "2026-09-01T13:39:03-04:00",
+    "raw_excerpt": "Department: Global Operations | Location: South San Francisco, CA | Role: Technical Program Manager",
+    "id": "sig_c58b1d4c653b2c82"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Technical Support Engineer (EMEA), Metronome (9014 Metronome - R&D)",
+    "url": "https://stripe.com/jobs/search?gh_jid=7737248",
+    "published_at": "2026-09-01T08:32:46-04:00",
+    "raw_excerpt": "Department: 9014 Metronome - R&D | Location: London, Dublin | Role: Technical Support Engineer (EMEA), Metronome",
+    "id": "sig_159caf66a8e450c6"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Training Program Manager (1512 Global Sales Enablement)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8172111",
+    "published_at": "2026-09-03T19:09:56-04:00",
+    "raw_excerpt": "Department: 1512 Global Sales Enablement | Location: Mexico City | Role: Training Program Manager",
+    "id": "sig_58190d81cced293d"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: User Escalation Specialist (4119 Product Support)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8180318",
+    "published_at": "2026-09-04T16:41:52-04:00",
+    "raw_excerpt": "Department: 4119 Product Support | Location: Chicago | Role: User Escalation Specialist",
+    "id": "sig_7a8103da7d0c9092"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: UX Research Manager, Payments (8812 UX Research)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8165259",
+    "published_at": "2026-09-01T08:11:08-04:00",
+    "raw_excerpt": "Department: 8812 UX Research | Location: Canada | Role: UX Research Manager, Payments",
+    "id": "sig_93ea5a836a54daf3"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Verifications Operations Associate (4374 SDC - Partner Risk Operations)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8022703",
+    "published_at": "2026-09-02T02:23:15-04:00",
+    "raw_excerpt": "Department: 4374 SDC - Partner Risk Operations | Location: Bengaluru | Role: Verifications Operations Associate",
+    "id": "sig_2818b946518a3f33"
+  },
+  {
+    "source": "jobs",
+    "company": "Stripe",
+    "title": "Job Posting: Voice Support Operations Associate (4144 SDC - Managed Operations: Billing)",
+    "url": "https://stripe.com/jobs/search?gh_jid=8168793",
+    "published_at": "2026-09-02T20:37:42-04:00",
+    "raw_excerpt": "Department: 4144 SDC - Managed Operations: Billing | Location: Bengaluru | Role: Voice Support Operations Associate",
+    "id": "sig_e38f8481501bb0a3"
+  },
+  {
+    "source": "jobs",
     "company": "Vercel",
-    "title": "How our agents build on-brand pages with design.md",
-    "url": "https://vercel.com/blog/how-our-agents-build-on-brand-pages-with-design-md",
-    "published_at": "2026-08-31T04:00:00.000Z",
-    "raw_excerpt": "# How our agents build on\\-brand pages with design\\.md\n\n**Published:** August 31, 2026 | **Authors:** John Phamous | **Contributors:** Kevin Corbett\n\n---\n\nAcross Vercel, we use coding agents to design and build pages that have to look and feel like Vercel. The typography, color, and composition all need to carry the same judgment that we put into the pages we already ship ourselves.\n\n[We recently wrote about](https://vercel.com/blog/teaching-agents-product-design-at-vercel) `product-design`, our",
-    "research_details": {
-      "type": "technical_writeup",
-      "reason": "Matched technical depth indicators: ['architecture']",
-      "indicators": [
-        "architecture"
-      ]
-    },
-    "id": "sig_fa1c95efd7d0b189"
+    "title": "Job Posting: FP&A Manager, Product (Finance)",
+    "url": "https://job-boards.greenhouse.io/vercel/jobs/6183272004",
+    "published_at": "2026-09-08T01:29:30-04:00",
+    "raw_excerpt": "Department: Finance | Location: Hybrid - San Francisco | Role: FP&A Manager, Product",
+    "id": "sig_5822763e6dbfa64e"
   },
   {
-    "source": "research",
-    "source_subtype": "research",
+    "source": "jobs",
     "company": "Vercel",
-    "title": "Vercel applications are protected from Next.js August 2026 security vulnerabilities",
-    "url": "https://vercel.com/changelog/nextjs-august-2026-security-release",
-    "published_at": "2026-08-25T16:39:17.904Z",
-    "raw_excerpt": "# Vercel applications are protected from Next\\.js August 2026 security vulnerabilities\n\n**Published:** August 25, 2026 | **Authors:** Steven Salat, Zack Tanner, Karim Rahal | **Contributors:** Eric Dodds\n\n---\n\n## Summary\n\nTwo vulnerabilities affecting Next.js were disclosed in the August 2026 Security Release. Next.js applications hosted on Vercel are protected and require no customer action.\n\n### Next.js August 2026 vulnerabilities\n\nNext.js disclosed the following critical vulnerabilities:\n\n- [",
-    "research_details": {
-      "type": "technical_writeup",
-      "reason": "Matched technical depth indicators: ['runtime']",
-      "indicators": [
-        "runtime"
-      ]
-    },
-    "id": "sig_a7505c97def3ba2e"
-  },
-  {
-    "source": "research",
-    "source_subtype": "research",
-    "company": "Vercel",
-    "title": "The end of credential sprawl for agents",
-    "url": "https://vercel.com/blog/the-end-of-credential-sprawl-for-agents",
-    "published_at": "2026-08-25T04:00:00.000Z",
-    "raw_excerpt": "# The end of credential sprawl for agents\n\n**Published:** August 25, 2026 | **Authors:** Hedi Zandi, Ben Sabic, Dima Voytenko | **Contributors:** Joe Sadowski, Bhrigu Srivastava, Allen Zhou, Raghav Agarwal, Yasoob Rasheed, Tony Pan | **Category:** Engineering\n\n---\n\nEvery useful agent reaches beyond your codebase. It posts to Slack, opens pull requests, queries Snowflake, or calls an internal API. That reach is what makes it valuable, and it's also where the risk lives, because for years, grantin",
-    "research_details": {
-      "type": "technical_writeup",
-      "reason": "Matched technical depth indicators: ['runtime']",
-      "indicators": [
-        "runtime"
-      ]
-    },
-    "id": "sig_211fd547e6396073"
+    "title": "Job Posting: Member of the Technical Staff - Next.js (Engineering)",
+    "url": "https://job-boards.greenhouse.io/vercel/jobs/6137958004",
+    "published_at": "2026-09-02T14:04:16-04:00",
+    "raw_excerpt": "Department: Engineering | Location: Hybrid - San Francisco, New York City | Role: Member of the Technical Staff - Next.js",
+    "id": "sig_764b4964453f5625"
   },
   {
     "source": "research",
@@ -1162,144 +2167,52 @@
   {
     "source": "research",
     "source_subtype": "research",
-    "company": "Cloudflare Pages/Workers",
-    "title": "The Cloudflare Blog — brought to you by EmDash",
-    "url": "https://blog.cloudflare.com/cloudflare-blog-uses-emdash/",
-    "published_at": "Mon, 24 Aug 2026 19:00:00 GMT",
-    "raw_excerpt": "We migrated the Cloudflare Blog to EmDash to prove our stack at massive scale. Here is how we stress-tested performance, safely routed production traffic, and redesigned the frontend experience.",
+    "company": "Vercel",
+    "title": "Compute that takes any shape",
+    "url": "https://vercel.com/blog/fluid-compute-takes-any-shape",
+    "published_at": "2026-09-01T07:00:00.000Z",
+    "raw_excerpt": "# Compute that takes any shape\n\n**Published:** September 1, 2026 | **Authors:** Luke Phillips\\-Sheard | **Contributors:** Kevin Sundstrom | **Category:** Engineering\n\n*Iteration velocity is now set by how quickly you can provision the computer your app or agent needs\\.*\n\n---\n\nWorkloads differ in how long they run, how much memory they take, and how much of the environment they control. That previously meant a different compute primitive for each job, so product iterations required provisioning i",
     "research_details": {
       "type": "technical_writeup",
-      "reason": "Matched technical depth indicators: ['stress-tested']",
+      "reason": "Matched technical depth indicators: ['fluid compute']",
       "indicators": [
-        "stress-tested"
+        "fluid compute"
       ]
     },
-    "id": "sig_3dcfda6c0bbd7e3f"
+    "id": "sig_117d03e02f688765"
   },
   {
-    "source": "github",
+    "source": "research",
+    "source_subtype": "research",
     "company": "Vercel",
-    "title": "1 user started watching vercel/ai this week",
-    "url": "https://github.com/vercel/ai",
-    "published_at": "2026-09-05T10:48:35Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository vercel/ai on GitHub in the last 7 days.",
-    "id": "sig_21a02ff9f366f15d"
+    "title": "How our agents build on-brand pages with design.md",
+    "url": "https://vercel.com/blog/how-our-agents-build-on-brand-pages-with-design-md",
+    "published_at": "2026-08-31T04:00:00.000Z",
+    "raw_excerpt": "# How our agents build on\\-brand pages with design\\.md\n\n**Published:** August 31, 2026 | **Authors:** John Phamous | **Contributors:** Kevin Corbett\n\n---\n\nAcross Vercel, we use coding agents to design and build pages that have to look and feel like Vercel. The typography, color, and composition all need to carry the same judgment that we put into the pages we already ship ourselves.\n\n[We recently wrote about](https://vercel.com/blog/teaching-agents-product-design-at-vercel) `product-design`, our",
+    "research_details": {
+      "type": "technical_writeup",
+      "reason": "Matched technical depth indicators: ['architecture']",
+      "indicators": [
+        "architecture"
+      ]
+    },
+    "id": "sig_fa1c95efd7d0b189"
   },
   {
-    "source": "github",
+    "source": "research",
+    "source_subtype": "research",
     "company": "Vercel",
-    "title": "1 user started watching vercel/ai-elements this week",
-    "url": "https://github.com/vercel/ai-elements",
-    "published_at": "2026-09-05T10:11:15Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository vercel/ai-elements on GitHub in the last 7 days.",
-    "id": "sig_dcb63eed9311b660"
-  },
-  {
-    "source": "github",
-    "company": "Vercel",
-    "title": "1 user started watching vercel/next.js this week",
-    "url": "https://github.com/vercel/next.js",
-    "published_at": "2026-09-05T09:57:38Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository vercel/next.js on GitHub in the last 7 days.",
-    "id": "sig_537b5b23ce56cab3"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "1 user started watching cloudflare/cloudflare-docs this week",
-    "url": "https://github.com/cloudflare/cloudflare-docs",
-    "published_at": "2026-09-05T10:52:04Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository cloudflare/cloudflare-docs on GitHub in the last 7 days.",
-    "id": "sig_78c7bda49ef9951d"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "5 users started watching cloudflare/computer this week",
-    "url": "https://github.com/cloudflare/computer",
-    "published_at": "2026-09-05T10:47:14Z",
-    "raw_excerpt": "5 developer(s) starred/watched repository cloudflare/computer on GitHub in the last 7 days.",
-    "id": "sig_780812f45c818916"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "1 user started watching cloudflare/cloudflared this week",
-    "url": "https://github.com/cloudflare/cloudflared",
-    "published_at": "2026-09-05T10:44:07Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository cloudflare/cloudflared on GitHub in the last 7 days.",
-    "id": "sig_c51c4df175457c63"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "1 user started watching cloudflare/foundations this week",
-    "url": "https://github.com/cloudflare/foundations",
-    "published_at": "2026-09-05T10:44:05Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository cloudflare/foundations on GitHub in the last 7 days.",
-    "id": "sig_4e35071a5ff92424"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "1 user started watching cloudflare/workers-rs this week",
-    "url": "https://github.com/cloudflare/workers-rs",
-    "published_at": "2026-09-05T10:44:01Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository cloudflare/workers-rs on GitHub in the last 7 days.",
-    "id": "sig_309ae08fbe0df94e"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "1 user started watching cloudflare/moq-rs this week",
-    "url": "https://github.com/cloudflare/moq-rs",
-    "published_at": "2026-09-05T10:43:54Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository cloudflare/moq-rs on GitHub in the last 7 days.",
-    "id": "sig_5b79d41b142f6fc1"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "2 users started watching cloudflare/skills this week",
-    "url": "https://github.com/cloudflare/skills",
-    "published_at": "2026-09-05T10:21:55Z",
-    "raw_excerpt": "2 developer(s) starred/watched repository cloudflare/skills on GitHub in the last 7 days.",
-    "id": "sig_50ade527ea545a4e"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "1 user started watching cloudflare/cloudflare-os this week",
-    "url": "https://github.com/cloudflare/cloudflare-os",
-    "published_at": "2026-09-05T10:06:47Z",
-    "raw_excerpt": "1 developer(s) starred/watched repository cloudflare/cloudflare-os on GitHub in the last 7 days.",
-    "id": "sig_15fac44d6af47509"
-  },
-  {
-    "source": "github",
-    "company": "Vercel",
-    "title": "1 user forked vercel/chatbot this week",
-    "url": "https://github.com/vercel/chatbot",
-    "published_at": "2026-09-05T10:37:23Z",
-    "raw_excerpt": "1 new fork(s) created for repository vercel/chatbot on GitHub in the last 7 days.",
-    "id": "sig_169fdc03b2e21e62"
-  },
-  {
-    "source": "github",
-    "company": "Vercel",
-    "title": "1 user forked vercel/next.js this week",
-    "url": "https://github.com/vercel/next.js",
-    "published_at": "2026-09-05T10:36:08Z",
-    "raw_excerpt": "1 new fork(s) created for repository vercel/next.js on GitHub in the last 7 days.",
-    "id": "sig_8102480a1bbcdad1"
-  },
-  {
-    "source": "github",
-    "company": "Cloudflare Pages/Workers",
-    "title": "1 user forked cloudflare/cloudflare-docs this week",
-    "url": "https://github.com/cloudflare/cloudflare-docs",
-    "published_at": "2026-09-05T10:32:05Z",
-    "raw_excerpt": "1 new fork(s) created for repository cloudflare/cloudflare-docs on GitHub in the last 7 days.",
-    "id": "sig_5dd9d66b9ee1d88d"
+    "title": "Vercel applications are protected from Next.js August 2026 security vulnerabilities",
+    "url": "https://vercel.com/changelog/nextjs-august-2026-security-release",
+    "published_at": "2026-08-25T16:39:17.904Z",
+    "raw_excerpt": "# Vercel applications are protected from Next\\.js August 2026 security vulnerabilities\n\n**Published:** August 25, 2026 | **Authors:** Steven Salat, Zack Tanner, Karim Rahal | **Contributors:** Eric Dodds\n\n---\n\n## Summary\n\nTwo vulnerabilities affecting Next.js were disclosed in the August 2026 Security Release. Next.js applications hosted on Vercel are protected and require no customer action.\n\n### Next.js August 2026 vulnerabilities\n\nNext.js disclosed the following critical vulnerabilities:\n\n- [",
+    "research_details": {
+      "type": "technical_writeup",
+      "reason": "Matched technical depth indicators: ['runtime']",
+      "indicators": [
+        "runtime"
+      ]
+    },
+    "id": "sig_a7505c97def3ba2e"
   }
 ]
