@@ -1,5 +1,7 @@
 import sys
+import time
 from pathlib import Path
+import jwt
 import pytest
 from fastapi.testclient import TestClient
 
@@ -11,6 +13,28 @@ if str(backend_path) not in sys.path:
 from src.api import app
 
 client = TestClient(app)
+
+OWNER_TENANT_ID = "c8f13b91-46ef-4682-9975-f85764d8a12e"
+TEST_TENANT_2_ID = "e4b2a7d1-1234-4567-89ab-cdef01234567"
+
+
+def make_test_jwt(tenant_id: str = OWNER_TENANT_ID, exp_delta: int = 3600, secret: str = "test_secret") -> str:
+    """Helper to generate well-formed test Supabase JWT tokens."""
+    payload = {
+        "sub": tenant_id,
+        "aud": "authenticated",
+        "role": "authenticated",
+        "email": f"{tenant_id[:8]}@prismiq.ai",
+        "exp": int(time.time()) + exp_delta,
+        "iat": int(time.time()),
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
+
+
+@pytest.fixture
+def auth_headers():
+    token = make_test_jwt(OWNER_TENANT_ID)
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
@@ -73,8 +97,66 @@ def test_health_endpoint():
     assert "PrismIQ" in data["service"]
 
 
-def test_list_briefs_sorting_and_preview(mock_data_dir):
-    response = client.get("/briefs")
+# ============================================================================
+# Adversarial Auth Tests
+# ============================================================================
+
+def test_missing_auth_header_rejected():
+    """Unauthenticated requests to tenant-facing endpoints must return HTTP 401."""
+    r1 = client.get("/briefs")
+    assert r1.status_code == 401
+    assert "missing" in r1.json()["detail"].lower()
+
+    r2 = client.get("/briefs/latest")
+    assert r2.status_code == 401
+
+    r3 = client.get("/findings")
+    assert r3.status_code == 401
+
+    r4 = client.get("/tracked-companies")
+    assert r4.status_code == 401
+
+    r5 = client.post("/api/onboarding/discover", json={"target_company": "PostHog"})
+    assert r5.status_code == 401
+
+
+def test_malformed_auth_header_rejected():
+    """Malformed Authorization headers must return HTTP 401."""
+    r1 = client.get("/briefs", headers={"Authorization": "Basic 12345"})
+    assert r1.status_code == 401
+    assert "invalid authorization header format" in r1.json()["detail"].lower()
+
+    r2 = client.get("/briefs", headers={"Authorization": "Bearer not-a-jwt"})
+    assert r2.status_code == 401
+    assert "invalid or tampered token" in r2.json()["detail"].lower()
+
+
+def test_expired_jwt_rejected():
+    """Expired JWT tokens must return HTTP 401."""
+    expired_token = make_test_jwt(OWNER_TENANT_ID, exp_delta=-3600)
+    resp = client.get("/briefs", headers={"Authorization": f"Bearer {expired_token}"})
+    assert resp.status_code == 401
+    assert "expired" in resp.json()["detail"].lower()
+
+
+def test_non_uuid_subject_rejected():
+    """Tokens with non-UUID subjects must return HTTP 401."""
+    bad_sub_token = jwt.encode(
+        {"sub": "not-a-uuid", "exp": int(time.time()) + 3600},
+        "test_secret",
+        algorithm="HS256",
+    )
+    resp = client.get("/briefs", headers={"Authorization": f"Bearer {bad_sub_token}"})
+    assert resp.status_code == 401
+    assert "valid uuid" in resp.json()["detail"].lower()
+
+
+# ============================================================================
+# Authenticated Tenant Endpoint Tests
+# ============================================================================
+
+def test_list_briefs_sorting_and_preview(mock_data_dir, auth_headers):
+    response = client.get("/briefs", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert "briefs" in data
@@ -93,8 +175,8 @@ def test_list_briefs_sorting_and_preview(mock_data_dir):
     assert "Netlify: Netlify Launches New Edge Functions" in briefs[1]["preview"]
 
 
-def test_get_latest_brief(mock_data_dir):
-    response = client.get("/briefs/latest")
+def test_get_latest_brief(mock_data_dir, auth_headers):
+    response = client.get("/briefs/latest", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "latest"
@@ -103,34 +185,33 @@ def test_get_latest_brief(mock_data_dir):
     assert "## Top 3 decisions this informs" in data["content"]
 
 
-def test_get_historical_brief_by_id(mock_data_dir):
-    # Fetch older brief by ID
-    response = client.get("/briefs/20260816_100000")
+def test_get_historical_brief_by_id(mock_data_dir, auth_headers):
+    response = client.get("/briefs/20260816_100000", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "20260816_100000"
     assert "Netlify Launches New Edge Functions" in data["content"]
 
 
-def test_get_nonexistent_brief_404(mock_data_dir):
-    response = client.get("/briefs/nonexistent_id")
+def test_get_nonexistent_brief_404(mock_data_dir, auth_headers):
+    response = client.get("/briefs/nonexistent_id", headers=auth_headers)
     assert response.status_code == 404
     data = response.json()
     assert "not found" in data["detail"].lower()
 
 
-def test_empty_data_directory_state(tmp_path, monkeypatch):
+def test_empty_data_directory_state(tmp_path, monkeypatch, auth_headers):
     empty_dir = tmp_path / "empty_data"
     empty_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("DATA_DIR", str(empty_dir))
 
     # GET /briefs should return empty list
-    r_list = client.get("/briefs")
+    r_list = client.get("/briefs", headers=auth_headers)
     assert r_list.status_code == 200
     assert r_list.json() == {"briefs": []}
 
     # GET /briefs/latest should return 404
-    r_latest = client.get("/briefs/latest")
+    r_latest = client.get("/briefs/latest", headers=auth_headers)
     assert r_latest.status_code == 404
 
 
@@ -156,3 +237,63 @@ def test_cors_restricted_origins():
     )
     assert res_local.status_code == 200
     assert res_local.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_onboarding_discover_and_confirm_endpoints(monkeypatch, auth_headers):
+    # Mock discovery agent run to return sample candidates
+    def mock_run(target, sources=None, tenant_id=None):
+        return [
+            {
+                "name": "Mixpanel",
+                "rationale": "Product analytics and user event tracking",
+                "confidence": "High",
+                "source": "https://mixpanel.com",
+                "source_age": "recent",
+                "source_date": "2026-08-01",
+                "freshness_note": "Recent source (2026-08-01)",
+            },
+            {
+                "name": "Amplitude",
+                "rationale": "Digital analytics platform with behavioural tracking",
+                "confidence": "High",
+                "source": "https://amplitude.com",
+                "source_age": "recent",
+                "source_date": "2026-08-01",
+                "freshness_note": "Recent source (2026-08-01)",
+            },
+        ]
+
+    monkeypatch.setattr("src.discovery_agent.run", mock_run)
+
+    # 1. Test POST /api/onboarding/discover
+    disc_res = client.post(
+        "/api/onboarding/discover",
+        json={"target_company": "PostHog"},
+        headers=auth_headers,
+    )
+    assert disc_res.status_code == 200
+    disc_data = disc_res.json()
+    assert disc_data["status"] == "proposed"
+    assert disc_data["target_company"] == "PostHog"
+    assert disc_data["candidates_count"] == 2
+    assert len(disc_data["candidates"]) == 2
+    assert disc_data["candidates"][0]["name"] == "Mixpanel"
+
+    # 2. Test POST /api/onboarding/confirm
+    conf_res = client.post(
+        "/api/onboarding/confirm",
+        json={
+            "target_company": "PostHog",
+            "confirmed_competitors": ["Mixpanel"],
+        },
+        headers=auth_headers,
+    )
+    assert conf_res.status_code == 200
+    conf_data = conf_res.json()
+    assert conf_data["status"] == "confirmed"
+    assert conf_data["target_company"] == "PostHog"
+    assert len(conf_data["tracked_companies"]) == 2
+    assert conf_data["tracked_companies"][0]["company_name"] == "PostHog"
+    assert conf_data["tracked_companies"][0]["is_target"] is True
+    assert conf_data["tracked_companies"][1]["company_name"] == "Mixpanel"
+    assert conf_data["tracked_companies"][1]["is_target"] is False
