@@ -25,20 +25,12 @@ backend/.env
 backend/.env.*.local
 frontend/.env.local
 
-# Local scratch data
+# Runtime intelligence data (persisted in PostgreSQL, ignored in Git)
 backend/data/*.json
 backend/data/*.md
 backend/data/*.db
+backend/published_briefs/*.json
+backend/published_briefs/*.md
 !backend/data/.gitkeep
+!backend/published_briefs/.gitkeep
 
-# Deployed snapshots (tracked for ephemeral deployments)
-!backend/published_briefs/
-!backend/published_briefs/brief.md
-!backend/published_briefs/signals.json
-!backend/published_briefs/events.json
-backend/published_briefs/events_*.json
-backend/published_briefs/signals_*.json
-backend/published_briefs/discovery_sources_*.json
-backend/published_briefs/discovery_proposal_*.json
-backend/published_briefs/confirmed_competitors_*.json
-backend/published_briefs/brief_*.md
