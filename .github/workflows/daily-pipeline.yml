@@ -11,7 +11,7 @@ jobs:
   run-pipeline:
     name: Execute PrismIQ Pipeline
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
