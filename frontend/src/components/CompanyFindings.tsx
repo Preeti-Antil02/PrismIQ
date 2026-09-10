@@ -1,5 +1,5 @@
 import React from "react";
-import { CompanySection, Finding, OtherActivityItem } from "@/types/brief";
+import { CompanySection } from "@/types/brief";
 import {
   Building2,
   ChevronDown,

@@ -33,4 +33,5 @@ backend/published_briefs/*.json
 backend/published_briefs/*.md
 !backend/data/.gitkeep
 !backend/published_briefs/.gitkeep
-
+# Scratch / Local Verification Artifacts
+scratch/

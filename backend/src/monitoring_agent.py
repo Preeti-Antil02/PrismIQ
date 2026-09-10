@@ -632,6 +632,47 @@ def _fetch_arxiv_papers(company: str, days: int = 30) -> List[Dict[str, Any]]:
         return []
 
 
+RESERVED_PLACEHOLDER_DOMAINS: Set[str] = {
+    "example.com",
+    "example.org",
+    "example.net",
+    "example.edu",
+    "test.com",
+    "placeholder.com",
+    "localhost",
+    "127.0.0.1",
+}
+RESERVED_TLDS: Set[str] = {".example", ".invalid", ".test", ".localhost", ".local"}
+
+
+def is_valid_grounded_url(url: str) -> bool:
+    """
+    Validate that a URL is well-formed, uses http/https, has a valid domain,
+    and does NOT belong to reserved placeholder domains (e.g. example.com).
+    """
+    if not url or not isinstance(url, str):
+        return False
+    clean = url.strip()
+    try:
+        parsed = urllib.parse.urlparse(clean)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        netloc = parsed.netloc.lower().split(":")[0]
+        if not netloc or "." not in netloc:
+            return False
+        if netloc in RESERVED_PLACEHOLDER_DOMAINS:
+            return False
+        for ph in RESERVED_PLACEHOLDER_DOMAINS:
+            if netloc.endswith("." + ph):
+                return False
+        for tld in RESERVED_TLDS:
+            if netloc.endswith(tld):
+                return False
+        return True
+    except Exception:
+        return False
+
+
 def _normalize_canonical_url(url: str) -> str:
     """Normalize article URL for reliable cross-feed and cross-source deduplication."""
     if not url:
@@ -642,6 +683,7 @@ def _normalize_canonical_url(url: str) -> str:
     clean = re.sub(r"[?#].*$", "", clean)
     clean = clean.rstrip("/")
     return clean
+
 
 
 def _fetch_article_content_fallback(url: str) -> str:
@@ -853,6 +895,238 @@ def _fetch_research_signals(
         signals.extend(blog_signals)
 
     return signals
+
+
+def _fetch_arxiv_topic_papers(
+    topic_label: str,
+    keywords: List[str],
+    days: int = 14,
+    seen_urls: Optional[Set[str]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Query the official arXiv API (export.arxiv.org/api/query) for formal academic
+    papers matching topic keywords (domain-scoped, independent of company affiliation).
+    """
+    clean_kws = [k.strip() for k in keywords if k and k.strip()]
+    if clean_kws:
+        query_terms = " AND ".join(f'all:"{kw}"' for kw in clean_kws)
+    else:
+        query_terms = f'all:"{topic_label.strip()}"'
+
+    encoded_query = urllib.parse.quote(query_terms)
+    url = f"http://export.arxiv.org/api/query?search_query={encoded_query}&max_results=25&sortBy=submittedDate&sortOrder=descending"
+    headers = {"User-Agent": "PrismIQ-ResearchRadar/1.0 (contact@prismiq.internal)"}
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+    seen = seen_urls if seen_urls is not None else set()
+    if seen_urls is not None:
+        seen.update(_normalize_canonical_url(u) for u in list(seen) if u)
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            logger.warning(f"arXiv API returned status {response.status_code} for topic '{topic_label}'")
+            return []
+
+        root = ET.fromstring(response.text)
+        ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
+        entries = root.findall("atom:entry", ns)
+        items: List[Dict[str, Any]] = []
+
+        for entry in entries:
+            pub_el = entry.find("atom:published", ns)
+            pub_str = pub_el.text.strip() if pub_el is not None else ""
+            if pub_str:
+                try:
+                    dt = datetime.fromisoformat(pub_str.replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if dt < cutoff_date:
+                        continue
+                except Exception:
+                    pass
+
+            link_el = entry.find("atom:id", ns)
+            link = link_el.text.strip() if link_el is not None else ""
+            canonical_url = _normalize_canonical_url(link)
+            if not canonical_url or not is_valid_grounded_url(canonical_url) or canonical_url in seen or link in seen:
+                continue
+
+            title_el = entry.find("atom:title", ns)
+            raw_title = title_el.text.strip().replace("\n", " ") if title_el is not None else "Untitled Paper"
+            title = f"Research Paper: {raw_title}" if not raw_title.lower().startswith("research paper:") else raw_title
+
+            summary_el = entry.find("atom:summary", ns)
+            summary = summary_el.text.strip().replace("\n", " ") if summary_el is not None else ""
+
+            # Extract authors and affiliations
+            authors_display: List[str] = []
+            author_affiliations: List[str] = []
+            for a in entry.findall("atom:author", ns):
+                name_el = a.find("atom:name", ns)
+                name = name_el.text.strip() if name_el is not None and name_el.text else "Unknown"
+                aff_el = a.find("arxiv:affiliation", ns)
+                aff = aff_el.text.strip() if aff_el is not None and aff_el.text else ""
+                authors_display.append(name)
+                if aff:
+                    author_affiliations.append(aff)
+
+            res_item = {
+                "title": title,
+                "url": link,
+                "canonical_url": canonical_url,
+                "published_at": pub_str,
+                "raw_excerpt": f"Authors: {', '.join(authors_display)} | Abstract: {summary[:500]}",
+                "source": "arxiv",
+                "source_subtype": "research",
+                "authors": authors_display,
+                "matched_topics": [topic_label],
+                "research_details": {
+                    "type": "arxiv_paper",
+                    "authors": authors_display,
+                    "affiliations": author_affiliations,
+                    "matched_keywords": [kw for kw in clean_kws if kw.lower() in f"{title} {summary}".lower()],
+                },
+            }
+            items.append(res_item)
+            seen.add(canonical_url)
+            seen.add(link)
+
+        return items
+    except Exception as e:
+        logger.error(f"Error querying arXiv API for topic '{topic_label}': {e}")
+        return []
+
+
+def _fetch_industry_topic_articles(
+    topic_label: str,
+    keywords: List[str],
+    days: int = 14,
+    seen_urls: Optional[Set[str]] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Search engineering/industry RSS feeds for articles matching topic keywords.
+    Applies research_classifier discipline to distinguish genuine technical depth
+    from routine marketing/changelogs.
+    """
+    clean_kws = [k.strip().lower() for k in keywords if k and k.strip()]
+    seen = seen_urls if seen_urls is not None else set()
+    if seen_urls is not None:
+        seen.update(_normalize_canonical_url(u) for u in list(seen) if u)
+
+    items: List[Dict[str, Any]] = []
+
+    # Query feeds across known technical engineering blogs
+    all_feed_urls: List[Tuple[str, str]] = []
+    for comp, urls in COMPANY_FEED_URLS.items():
+        for u in urls:
+            all_feed_urls.append((comp, u))
+
+    for source_name, feed_url in all_feed_urls:
+        feed_signals = _fetch_blog_feed(source_name, feed_url, days=days, seen_urls=seen)
+        for sig in feed_signals:
+            s_url = sig.get("url", "")
+            can_url = _normalize_canonical_url(s_url)
+            if not can_url or not is_valid_grounded_url(can_url) or can_url in seen or s_url in seen:
+                continue
+
+            text_corpus = f"{sig.get('title', '')} {sig.get('raw_excerpt', '')}".lower()
+            matched_kws = [kw for kw in clean_kws if kw in text_corpus]
+            if not matched_kws and topic_label.lower() not in text_corpus:
+                continue
+
+            # Must satisfy research depth classifier
+            is_res, reason, indicators = research_classifier.classify_research_content(
+                sig.get("title", ""),
+                sig.get("raw_excerpt", ""),
+                url=s_url,
+                source="blog",
+            )
+            if not is_res:
+                continue
+
+            item = {
+                "title": sig.get("title", "Untitled Technical Article"),
+                "url": s_url,
+                "canonical_url": can_url,
+                "published_at": sig.get("published_at", ""),
+                "raw_excerpt": sig.get("raw_excerpt", ""),
+                "source": "industry_blog",
+                "source_subtype": "research",
+                "authors": [source_name],
+                "matched_topics": [topic_label],
+                "research_details": {
+                    "type": "technical_writeup",
+                    "reason": reason,
+                    "indicators": indicators,
+                    "matched_keywords": matched_kws,
+                    "publisher": source_name,
+                },
+            }
+            items.append(item)
+            seen.add(can_url)
+            seen.add(s_url)
+
+    return items
+
+
+def fetch_topic_research_items(
+    topics: Optional[List[Dict[str, Any]]] = None,
+    days: int = 14,
+) -> List[Dict[str, Any]]:
+    """
+    Ingest domain-scoped research items across configured topics (arXiv & industry engineering feeds).
+    Applies canonical URL deduplication globally and persists shared research items.
+    """
+    from . import storage
+
+    if topics is None:
+        topics = storage.get_all_active_research_topics()
+
+    if not topics:
+        return []
+
+    global_seen_urls: Set[str] = set()
+    aggregated_items: Dict[str, Dict[str, Any]] = {}
+
+    for t in topics:
+        label = t.get("topic_label", "").strip()
+        if not label:
+            continue
+        kws = t.get("keywords", [])
+
+        # 1. arXiv papers for topic
+        arxiv_items = _fetch_arxiv_topic_papers(label, kws, days=days, seen_urls=global_seen_urls)
+        for it in arxiv_items:
+            can = it.get("canonical_url", "")
+            if can in aggregated_items:
+                if label not in aggregated_items[can]["matched_topics"]:
+                    aggregated_items[can]["matched_topics"].append(label)
+            else:
+                aggregated_items[can] = it
+                global_seen_urls.add(can)
+
+        # 2. Industry blog/feed writeups for topic
+        industry_items = _fetch_industry_topic_articles(label, kws, days=days, seen_urls=global_seen_urls)
+        for it in industry_items:
+            can = it.get("canonical_url", "")
+            if can in aggregated_items:
+                if label not in aggregated_items[can]["matched_topics"]:
+                    aggregated_items[can]["matched_topics"].append(label)
+            else:
+                aggregated_items[can] = it
+                global_seen_urls.add(can)
+
+    # Strict fail-closed validation: ensure no placeholder or malformed URLs enter research_items
+    final_items = [
+        it for it in aggregated_items.values()
+        if is_valid_grounded_url(it.get("canonical_url") or it.get("url", ""))
+    ]
+    if final_items:
+        storage.save_research_items(final_items)
+        logger.info(f"Field Research Radar: Ingested {len(final_items)} shared research items across {len(topics)} topics.")
+
+    return final_items
 
 
 def fetch_source_with_retry(

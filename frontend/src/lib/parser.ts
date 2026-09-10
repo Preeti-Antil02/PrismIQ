@@ -1,9 +1,10 @@
 import {
-  CompanyRollup,
   CompanySection,
   Finding,
   OtherActivityItem,
   ParsedBrief,
+  RadarEvaluation,
+  RadarSource,
   RollupStats,
   TopDecision,
 } from "@/types/brief";
@@ -197,7 +198,7 @@ export function parseMarkdownBrief(markdown: string): ParsedBrief {
           if (!titleMatch) continue;
           const itemTitle = titleMatch[1];
           const url = titleMatch[2];
-          let confidence = titleMatch[3] || "Medium";
+          const confidence = titleMatch[3] || "Medium";
 
           let source = "news";
           let date = "Recent";
@@ -262,10 +263,72 @@ export function parseMarkdownBrief(markdown: string): ParsedBrief {
     }
   }
 
+  // 4. Extract Field Research Radar
+  const radarEvaluations: RadarEvaluation[] = [];
+  const radarSectionMatch = markdown.match(/## Field Research Radar\n\n([\s\S]*?)(?=\n## Per-Competitor Index|\n## Findings by Company|$)/);
+  if (radarSectionMatch && radarSectionMatch[1]) {
+    const radarBlock = radarSectionMatch[1];
+    const topicChunks = radarBlock.split(/\n(?=### 🔬 Emerging Research: )/);
+    for (const chunk of topicChunks) {
+      const trimmed = chunk.trim();
+      if (!trimmed.startsWith("### 🔬 Emerging Research: ")) continue;
+
+      const tLines = trimmed.split("\n");
+      const headerLine = tLines[0].replace("### 🔬 Emerging Research: ", "").trim();
+      let topic = headerLine;
+      if (headerLine.includes(" is gaining research activity.")) {
+        topic = headerLine.replace(" is gaining research activity.", "").trim();
+      } else if (headerLine.startsWith("no new research activity detected for ")) {
+        topic = headerLine.replace("no new research activity detected for ", "").replace(" this cycle", "").trim();
+      }
+
+      let competitorConnectionSummary = "";
+      let whyItMatters = "";
+      const sources: RadarSource[] = [];
+
+      for (const line of tLines) {
+        const l = line.trim();
+        if (l.startsWith("**Competitor connection**:")) {
+          competitorConnectionSummary = l.replace("**Competitor connection**:", "").trim();
+        } else if (l.startsWith("- **Why it matters**:")) {
+          whyItMatters = l.replace("- **Why it matters**:", "").trim();
+        } else if (l.startsWith("- **Sources**:")) {
+          const rawSources = l.replace("- **Sources**:", "").trim();
+          if (rawSources && rawSources !== "None") {
+            const linkRegex = /\[(.*?)\]\((.*?)\)(?:\s*\((.*?)\))?/g;
+            let m: RegExpExecArray | null;
+            while ((m = linkRegex.exec(rawSources)) !== null) {
+              sources.push({
+                title: m[1].trim(),
+                url: m[2].trim(),
+                authors: m[3] ? [m[3].trim()] : undefined,
+              });
+            }
+          }
+        }
+      }
+
+      let count = sources.length;
+      const countMatch = competitorConnectionSummary.match(/^(\d+)\s+relevant/);
+      if (countMatch) {
+        count = parseInt(countMatch[1], 10);
+      }
+
+      radarEvaluations.push({
+        topic,
+        researchItemCount: count,
+        competitorConnectionSummary,
+        whyItMatters,
+        sources,
+      });
+    }
+  }
+
   return {
     title,
     topDecisions,
     rollup,
     companies,
+    radarEvaluations: radarEvaluations.length > 0 ? radarEvaluations : undefined,
   };
 }

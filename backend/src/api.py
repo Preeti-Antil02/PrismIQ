@@ -51,6 +51,11 @@ class OnboardConfirmRequest(BaseModel):
     confirmed_competitors: List[str] = Field(default_factory=list, description="List of confirmed competitor company names")
 
 
+class CreateResearchTopicRequest(BaseModel):
+    topic_label: str = Field(..., min_length=1, description="Topic label to monitor")
+    keywords: List[str] = Field(default_factory=list, description="Keywords or embedding terms for topic")
+
+
 # ============================================================================
 # JWT Authentication & Verification Dependency
 # ============================================================================
@@ -576,3 +581,94 @@ def onboard_confirm_candidates(
         "target_company": target,
         "tracked_companies": tracked,
     }
+
+
+# ============================================================================
+# Field Research Radar Endpoints (Stage 3/4)
+# ============================================================================
+
+@app.get("/research-radar/topics")
+def list_research_topics(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
+    """List configured research topics for the authenticated tenant under RLS."""
+    topics = storage.get_tenant_research_topics(tenant_id)
+    return {"topics": topics, "count": len(topics)}
+
+
+@app.post("/research-radar/topics")
+def create_research_topic(
+    req: CreateResearchTopicRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Configure a new research topic for the tenant.
+    Stage 1: Manual entry only.
+    """
+    clean_label = req.topic_label.strip()
+    if not clean_label:
+        raise HTTPException(status_code=400, detail="Topic label cannot be empty")
+    topic = storage.save_tenant_research_topic(
+        tenant_id=tenant_id,
+        topic_label=clean_label,
+        keywords=req.keywords,
+        source="manual",
+    )
+    return {"status": "created", "topic": topic}
+
+
+@app.delete("/research-radar/topics/{topic_id}")
+def delete_research_topic(
+    topic_id: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """Delete or deactivate a configured research topic."""
+    success = storage.delete_tenant_research_topic(tenant_id, topic_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Topic '{topic_id}' not found or already deleted")
+    return {"status": "deleted", "topic_id": topic_id}
+
+
+@app.get("/research-radar/history")
+def get_radar_history_endpoint(
+    topic_label: Optional[str] = None,
+    competitor: Optional[str] = None,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Query historical radar evaluation records for the authenticated tenant.
+    Filterable by topic_label and competitor.
+    """
+    history = storage.get_radar_history(tenant_id, topic_label=topic_label, competitor=competitor)
+    return {"history": history, "count": len(history)}
+
+
+@app.get("/research-radar/latest")
+def get_latest_radar_endpoint(
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Fetch the latest radar evaluation snapshot across active topics for the authenticated tenant.
+    """
+    from src import research_radar
+    topics = storage.get_tenant_research_topics(tenant_id)
+    if not topics:
+        return {"evaluations": [], "count": 0}
+
+    evals = []
+    for top in topics:
+        lbl = top.get("topic_label", "")
+        prior = storage.get_prior_radar_evaluation(tenant_id, lbl)
+        if prior:
+            evals.append(prior)
+        else:
+            topic_items = storage.get_research_items_for_topics([lbl])
+            competitors = list(config.COMPETITORS)
+            ev = research_radar.evaluate_topic_radar(
+                topic=top,
+                research_items=topic_items,
+                competitors=competitors,
+                pipeline_signals=[],
+                tenant_id=tenant_id,
+            )
+            evals.append(ev)
+
+    return {"evaluations": evals, "count": len(evals)}

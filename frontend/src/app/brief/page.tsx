@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { WeekSelector } from "@/components/WeekSelector";
 import { ExecutiveRollup } from "@/components/ExecutiveRollup";
@@ -11,7 +12,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { Footer } from "@/components/Footer";
 import { parseMarkdownBrief } from "@/lib/parser";
 import { BriefSummary, ParsedBrief } from "@/types/brief";
-import { Info, Sparkles } from "lucide-react";
+import { Info } from "lucide-react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -24,7 +25,6 @@ function BriefContent() {
   const [briefs, setBriefs] = useState<BriefSummary[]>([]);
   const [selectedId, setSelectedId] = useState<string>(queryId);
   const [parsedBrief, setParsedBrief] = useState<ParsedBrief | null>(null);
-  const [briefDate, setBriefDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -63,11 +63,11 @@ function BriefContent() {
 
         const briefData = await briefRes.json();
         const md = briefData.content || "";
-        setBriefDate(briefData.date || "");
         setSelectedId(briefData.id || queryId);
         setParsedBrief(parseMarkdownBrief(md));
-      } catch (err: any) {
-        setError(err.message || "Could not connect to PrismIQ intelligence API.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Could not connect to PrismIQ intelligence API.";
+        setError(message);
       } finally {
         setIsLoading(false);
       }
@@ -143,6 +143,67 @@ function BriefContent() {
 
             {/* Top 3 Decisions Informed */}
             <Top3Decisions decisions={parsedBrief.topDecisions} />
+
+            {/* Field Research Radar Section */}
+            {parsedBrief.radarEvaluations && parsedBrief.radarEvaluations.length > 0 && (
+              <div className="rounded-2xl border border-[#1F2023] bg-[#0E0F14] p-6 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#1C1D23]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🔬</span>
+                    <h2 className="text-lg font-bold text-white tracking-tight">
+                      Field Research Radar
+                    </h2>
+                  </div>
+                  <Link
+                    href="/research-radar"
+                    className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition"
+                  >
+                    View Full Radar &rarr;
+                  </Link>
+                </div>
+
+                <div className="space-y-4">
+                  {parsedBrief.radarEvaluations.map((rev, rIdx) => (
+                    <div key={rIdx} className="rounded-xl bg-[#13141B] border border-[#24252E] p-4">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-semibold text-sm text-white">{rev.topic}</span>
+                        <span className="text-xs text-[#A1A1AA] font-mono">
+                          {rev.researchItemCount} research items
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#8E8F99] leading-relaxed mb-3">
+                        {rev.competitorConnectionSummary}
+                      </p>
+                      {rev.whyItMatters && (
+                        <div className="text-xs text-indigo-200 bg-indigo-950/30 rounded-lg p-3 border border-indigo-900/40 mb-3">
+                          <strong className="text-indigo-300">Why it matters:</strong> {rev.whyItMatters}
+                        </div>
+                      )}
+                      {rev.sources && rev.sources.length > 0 && (
+                        <div className="pt-2 border-t border-[#1D1E26] text-xs text-[#A1A1AA]">
+                          <span className="text-[#71717A] text-[11px] uppercase tracking-wider font-semibold block mb-1">
+                            Verified Sources:
+                          </span>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1">
+                            {rev.sources.map((s, sIdx) => (
+                              <a
+                                key={sIdx}
+                                href={s.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-400 hover:underline hover:text-indigo-300 flex items-center gap-1"
+                              >
+                                <span>↗</span> {s.title}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Per-Company Findings */}
             <CompanyFindings companies={parsedBrief.companies} />

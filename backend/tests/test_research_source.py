@@ -199,12 +199,13 @@ def test_cross_feed_deduplication_cloudflare():
 
 def test_targeted_fallback_for_truncated_feed_summary():
     """Verify that posts with empty or truncated summary (<80 chars) trigger targeted fallback."""
-    truncated_atom_xml = """<?xml version="1.0" encoding="UTF-8"?>
+    recent_iso = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    truncated_atom_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <entry>
     <title>Compute that takes any shape</title>
     <link href="https://vercel.com/blog/compute-that-takes-any-shape" />
-    <published>2026-08-25T12:00:00Z</published>
+    <published>{recent_iso}</published>
     <summary>...</summary>
   </entry>
 </feed>"""

@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import sys
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1229,4 +1230,624 @@ def get_prior_research_activity(
         except Exception:
             continue
     return None
+
+
+# ============================================================================
+# Field Research Radar Storage Functions (Stage 3/4)
+# ============================================================================
+
+def _generate_research_item_id(canonical_url: str) -> str:
+    """Deterministic 16-character research item ID hash from canonical URL."""
+    clean = (canonical_url or "").strip().lower()
+    return "res_" + hashlib.sha256(clean.encode("utf-8")).hexdigest()[:16]
+
+
+def get_tenant_research_topics(tenant_id: str) -> List[Dict[str, Any]]:
+    """
+    Retrieve configured research topics for the authenticated tenant.
+    Enforces RLS in PostgreSQL or falls back to tenant-scoped JSON file.
+    """
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT id, topic_label, keywords, source, is_active, created_at, updated_at
+                    FROM tenant_research_topics
+                    WHERE is_active = TRUE
+                    ORDER BY created_at ASC;
+                """)
+                rows = cur.fetchall()
+                topics = []
+                for r in rows:
+                    topics.append({
+                        "id": str(r[0]),
+                        "tenant_id": str(tenant_id),
+                        "topic_label": r[1],
+                        "keywords": r[2] if isinstance(r[2], list) else (json.loads(r[2]) if r[2] else []),
+                        "source": r[3] or "manual",
+                        "is_active": r[4],
+                        "created_at": r[5].isoformat() if hasattr(r[5], "isoformat") else str(r[5]),
+                        "updated_at": r[6].isoformat() if hasattr(r[6], "isoformat") else str(r[6]),
+                    })
+                return topics
+        except Exception as e:
+            logger.warning(f"Failed to query tenant research topics from Postgres: {e}")
+
+    # Fallback to local flat file
+    data_dir = _get_data_dir()
+    topic_file = data_dir / f"research_topics_{tenant_id}.json"
+    if not topic_file.exists():
+        topic_file = data_dir / "research_topics.json"
+    if topic_file.exists():
+        try:
+            with open(topic_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return [t for t in data if t.get("tenant_id") == tenant_id or "tenant_id" not in t]
+        except Exception as e:
+            logger.warning(f"Failed to read local research topics: {e}")
+
+    return []
+
+
+def save_tenant_research_topic(
+    tenant_id: str,
+    topic_label: str,
+    keywords: List[str],
+    source: str = "manual",
+) -> Dict[str, Any]:
+    """
+    Configure or update a research topic for a tenant.
+    Stage 1: source='manual' only.
+    """
+    clean_label = topic_label.strip()
+    clean_keywords = [k.strip() for k in keywords if k and k.strip()]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    topic_id = str(uuid.uuid4())
+
+    record = {
+        "id": topic_id,
+        "tenant_id": str(tenant_id),
+        "topic_label": clean_label,
+        "keywords": clean_keywords,
+        "source": source,
+        "is_active": True,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    INSERT INTO tenant_research_topics (
+                        id, tenant_id, topic_label, keywords, source, is_active, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s::jsonb, %s, TRUE, NOW(), NOW())
+                    ON CONFLICT (tenant_id, topic_label) DO UPDATE SET
+                        keywords = EXCLUDED.keywords,
+                        source = EXCLUDED.source,
+                        is_active = TRUE,
+                        updated_at = NOW()
+                    RETURNING id, created_at, updated_at;
+                """, (
+                    topic_id,
+                    tenant_id,
+                    clean_label,
+                    json.dumps(clean_keywords),
+                    source,
+                ))
+                row = cur.fetchone()
+                if row:
+                    record["id"] = str(row[0])
+                    record["created_at"] = row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1])
+                    record["updated_at"] = row[2].isoformat() if hasattr(row[2], "isoformat") else str(row[2])
+                    return record
+        except Exception as e:
+            logger.warning(f"Failed to save tenant research topic to Postgres: {e}")
+
+    # Fallback to local flat file
+    data_dir = _get_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    topic_file = data_dir / f"research_topics_{tenant_id}.json"
+    existing = []
+    if topic_file.exists():
+        try:
+            with open(topic_file, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except Exception:
+            existing = []
+
+    # Upsert by topic_label
+    updated = False
+    for idx, item in enumerate(existing):
+        if item.get("topic_label", "").lower() == clean_label.lower():
+            item["keywords"] = clean_keywords
+            item["source"] = source
+            item["is_active"] = True
+            item["updated_at"] = now_iso
+            record = item
+            updated = True
+            break
+    if not updated:
+        existing.append(record)
+
+    with open(topic_file, "w", encoding="utf-8") as f:
+        json.dump(existing, f, indent=2, ensure_ascii=False)
+
+    return record
+
+
+def delete_tenant_research_topic(tenant_id: str, topic_id_or_label: str) -> bool:
+    """Delete or deactivate a tenant research topic."""
+    target = topic_id_or_label.strip()
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    DELETE FROM tenant_research_topics
+                    WHERE (id::text = %s OR topic_label = %s);
+                """, (target, target))
+                return cur.rowcount > 0
+        except Exception as e:
+            logger.warning(f"Failed to delete research topic from Postgres: {e}")
+
+    data_dir = _get_data_dir()
+    topic_file = data_dir / f"research_topics_{tenant_id}.json"
+    if topic_file.exists():
+        try:
+            with open(topic_file, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+            remaining = [
+                t for t in existing
+                if t.get("id") != target and t.get("topic_label") != target
+            ]
+            if len(remaining) != len(existing):
+                with open(topic_file, "w", encoding="utf-8") as f:
+                    json.dump(remaining, f, indent=2, ensure_ascii=False)
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def get_all_active_research_topics() -> List[Dict[str, Any]]:
+    """
+    Retrieve union of distinct active research topics across all tenants for Phase 1 global ingestion.
+    """
+    topics_by_label: Dict[str, Dict[str, Any]] = {}
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                cur.execute("""
+                    SELECT topic_label, jsonb_agg(DISTINCT kw) AS all_keywords
+                    FROM tenant_research_topics, jsonb_array_elements_text(keywords) kw
+                    WHERE is_active = TRUE
+                    GROUP BY topic_label;
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    label = r[0]
+                    kws = r[1] if isinstance(r[1], list) else (json.loads(r[1]) if r[1] else [])
+                    topics_by_label[label] = {
+                        "topic_label": label,
+                        "keywords": kws,
+                    }
+                if topics_by_label:
+                    return list(topics_by_label.values())
+        except Exception as e:
+            logger.warning(f"Failed to query distinct active topics from Postgres: {e}")
+
+    # Fallback to local flat files
+    data_dir = _get_data_dir()
+    for fpath in data_dir.glob("research_topics*.json"):
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                items = json.load(f)
+                for item in items:
+                    if not item.get("is_active", True):
+                        continue
+                    lbl = item.get("topic_label", "").strip()
+                    if not lbl:
+                        continue
+                    kws = item.get("keywords", [])
+                    if lbl not in topics_by_label:
+                        topics_by_label[lbl] = {"topic_label": lbl, "keywords": list(kws)}
+                    else:
+                        existing_kws = set(topics_by_label[lbl]["keywords"])
+                        for kw in kws:
+                            if kw not in existing_kws:
+                                topics_by_label[lbl]["keywords"].append(kw)
+        except Exception:
+            continue
+
+    return list(topics_by_label.values())
+
+
+def save_research_items(items: List[Dict[str, Any]]) -> int:
+    """
+    Persist global research items (arXiv papers, technical deep dives).
+    Deduplicates by canonical URL once globally.
+    """
+    if not items:
+        return 0
+
+    inserted_count = 0
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                params_list = []
+                for item in items:
+                    can_url = item.get("canonical_url") or item.get("url", "")
+                    if not can_url:
+                        continue
+                    res_id = item.get("id") or _generate_research_item_id(can_url)
+                    pub_ts = _parse_timestamp(item.get("published_at"))
+                    params_list.append((
+                        res_id,
+                        item.get("title", "Untitled Research Paper"),
+                        item.get("url", can_url),
+                        can_url,
+                        str(item.get("published_at", "")),
+                        pub_ts,
+                        item.get("raw_excerpt", ""),
+                        item.get("source", "arxiv"),
+                        json.dumps(item.get("authors", [])),
+                        json.dumps(item.get("matched_topics", [])),
+                        json.dumps(item.get("research_details", {})),
+                        item.get("is_mock", False),
+                    ))
+
+                sql = """
+                    INSERT INTO research_items (
+                        id, title, url, canonical_url, published_at, published_timestamp,
+                        raw_excerpt, source, authors, matched_topics, research_details, is_mock, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s, NOW())
+                    ON CONFLICT (canonical_url) DO UPDATE SET
+                        matched_topics = (
+                            SELECT jsonb_agg(DISTINCT elem)
+                            FROM jsonb_array_elements(research_items.matched_topics || EXCLUDED.matched_topics) elem
+                        )
+                """
+                _execute_batch(cur, sql, params_list)
+                inserted_count = len(params_list)
+                return inserted_count
+        except Exception as e:
+            logger.warning(f"Failed to batch insert research_items to Postgres: {e}")
+
+    # Fallback to local flat file
+    data_dir = _get_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    res_file = data_dir / "research_items.json"
+    existing_items: Dict[str, Dict[str, Any]] = {}
+    if res_file.exists():
+        try:
+            with open(res_file, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                for it in loaded:
+                    can = it.get("canonical_url", "")
+                    if can:
+                        existing_items[can] = it
+        except Exception:
+            existing_items = {}
+
+    for item in items:
+        can_url = item.get("canonical_url") or item.get("url", "")
+        if not can_url:
+            continue
+        res_id = item.get("id") or _generate_research_item_id(can_url)
+        item["id"] = res_id
+        item["canonical_url"] = can_url
+        if can_url in existing_items:
+            # Merge matched_topics
+            cur_topics = set(existing_items[can_url].get("matched_topics", []))
+            for t in item.get("matched_topics", []):
+                cur_topics.add(t)
+            existing_items[can_url]["matched_topics"] = sorted(list(cur_topics))
+        else:
+            item["created_at"] = now_iso
+            existing_items[can_url] = item
+            inserted_count += 1
+
+    with open(res_file, "w", encoding="utf-8") as f:
+        json.dump(list(existing_items.values()), f, indent=2, ensure_ascii=False)
+
+    return inserted_count
+
+
+def get_research_items_for_topics(
+    topic_labels: List[str],
+    days: int = 14,
+) -> List[Dict[str, Any]]:
+    """
+    Retrieve global research items matching the given topic labels.
+    """
+    labels_set = set(l.lower() for l in topic_labels if l)
+    results = []
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                cur.execute("""
+                    SELECT id, title, url, canonical_url, published_at, raw_excerpt,
+                           source, authors, matched_topics, research_details, created_at
+                    FROM research_items
+                    WHERE matched_topics ?| %s
+                    ORDER BY published_timestamp DESC NULLS LAST, created_at DESC;
+                """, (list(topic_labels),))
+                rows = cur.fetchall()
+                for r in rows:
+                    results.append({
+                        "id": r[0],
+                        "title": r[1],
+                        "url": r[2],
+                        "canonical_url": r[3],
+                        "published_at": r[4],
+                        "raw_excerpt": r[5],
+                        "source": r[6],
+                        "authors": r[7] if isinstance(r[7], list) else (json.loads(r[7]) if r[7] else []),
+                        "matched_topics": r[8] if isinstance(r[8], list) else (json.loads(r[8]) if r[8] else []),
+                        "research_details": r[9] if isinstance(r[9], dict) else (json.loads(r[9]) if r[9] else {}),
+                        "created_at": r[10].isoformat() if hasattr(r[10], "isoformat") else str(r[10]),
+                    })
+                return results
+        except Exception as e:
+            logger.warning(f"Failed to query research_items from Postgres: {e}")
+
+    # Fallback to local flat file
+    data_dir = _get_data_dir()
+    res_file = data_dir / "research_items.json"
+    if res_file.exists():
+        try:
+            with open(res_file, "r", encoding="utf-8") as f:
+                items = json.load(f)
+                for it in items:
+                    matched = it.get("matched_topics", [])
+                    if any(m.lower() in labels_set for m in matched):
+                        results.append(it)
+        except Exception:
+            pass
+
+    return results
+
+
+def save_radar_evaluations(evaluations: List[Dict[str, Any]], tenant_id: str) -> None:
+    """
+    Persist per-tenant radar evaluations and competitor connection matrices.
+    """
+    if not evaluations:
+        return
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                params_list = []
+                for ev in evaluations:
+                    ev_id = ev.get("id") or str(uuid.uuid4())
+                    params_list.append((
+                        ev_id,
+                        tenant_id,
+                        ev.get("topic_id"),
+                        ev.get("topic_label", "Unknown Topic"),
+                        ev.get("cycle_id", "latest"),
+                        ev.get("research_item_count", len(ev.get("verified_sources", []))),
+                        json.dumps(ev.get("research_item_ids", [])),
+                        json.dumps(ev.get("competitor_connections", {})),
+                        ev.get("why_it_matters", ""),
+                        json.dumps(ev.get("verified_sources", [])),
+                        ev.get("state_change_detected", False),
+                        json.dumps(ev.get("previous_status", {})),
+                    ))
+
+                sql = """
+                    INSERT INTO research_radar_evaluations (
+                        id, tenant_id, topic_id, topic_label, cycle_id, research_item_count,
+                        research_item_ids, competitor_connections, why_it_matters, verified_sources,
+                        state_change_detected, previous_status, created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s::jsonb, %s, %s::jsonb, NOW())
+                """
+                _execute_batch(cur, sql, params_list)
+                return
+        except Exception as e:
+            logger.warning(f"Failed to batch insert research_radar_evaluations to Postgres: {e}")
+
+    # Fallback to local flat file
+    data_dir = _get_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
+    history = []
+    if eval_file.exists():
+        try:
+            with open(eval_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        except Exception:
+            history = []
+
+    for ev in evaluations:
+        if "id" not in ev:
+            ev["id"] = str(uuid.uuid4())
+        ev["tenant_id"] = str(tenant_id)
+        if "created_at" not in ev:
+            ev["created_at"] = now_iso
+        history.append(ev)
+
+    with open(eval_file, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2, ensure_ascii=False)
+
+
+def get_latest_radar_evaluations(tenant_id: str) -> List[Dict[str, Any]]:
+    """
+    Retrieve radar evaluations from the latest cycle for the authenticated tenant.
+    """
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
+                           why_it_matters, verified_sources, state_change_detected, previous_status, created_at
+                    FROM research_radar_evaluations
+                    WHERE cycle_id = (
+                        SELECT cycle_id FROM research_radar_evaluations
+                        WHERE tenant_id = %s
+                        ORDER BY created_at DESC LIMIT 1
+                    )
+                    ORDER BY created_at DESC;
+                """, (tenant_id,))
+                rows = cur.fetchall()
+                evals = []
+                for r in rows:
+                    evals.append({
+                        "id": str(r[0]),
+                        "topic_label": r[1],
+                        "cycle_id": r[2],
+                        "research_item_count": r[3],
+                        "competitor_connections": r[4] if isinstance(r[4], dict) else (json.loads(r[4]) if r[4] else {}),
+                        "why_it_matters": r[5],
+                        "verified_sources": r[6] if isinstance(r[6], list) else (json.loads(r[6]) if r[6] else []),
+                        "state_change_detected": r[7],
+                        "previous_status": r[8] if isinstance(r[8], dict) else (json.loads(r[8]) if r[8] else {}),
+                        "created_at": r[9].isoformat() if hasattr(r[9], "isoformat") else str(r[9]),
+                    })
+                return evals
+        except Exception as e:
+            logger.warning(f"Failed to query latest radar evaluations from Postgres: {e}")
+
+    # Fallback to local flat file
+    data_dir = _get_data_dir()
+    eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
+    if eval_file.exists():
+        try:
+            with open(eval_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+                if not history:
+                    return []
+                latest_cycle = history[-1].get("cycle_id")
+                return [h for h in history if h.get("cycle_id") == latest_cycle]
+        except Exception:
+            pass
+
+    return []
+
+
+def get_prior_radar_evaluation(tenant_id: str, topic_label: str) -> Optional[Dict[str, Any]]:
+    """
+    Get the most recent prior radar evaluation for a tenant and topic.
+    Used for change detection and per-tenant continuity across cycles.
+    """
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
+                           why_it_matters, verified_sources, state_change_detected, created_at
+                    FROM research_radar_evaluations
+                    WHERE topic_label = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1;
+                """, (topic_label,))
+                row = cur.fetchone()
+                if row:
+                    return {
+                        "id": str(row[0]),
+                        "topic_label": row[1],
+                        "cycle_id": row[2],
+                        "research_item_count": row[3],
+                        "competitor_connections": row[4] if isinstance(row[4], dict) else json.loads(row[4]),
+                        "why_it_matters": row[5],
+                        "verified_sources": row[6] if isinstance(row[6], list) else json.loads(row[6]),
+                        "state_change_detected": row[7],
+                        "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8]),
+                    }
+        except Exception as e:
+            logger.warning(f"Failed to query prior radar evaluation from Postgres: {e}")
+
+    # Fallback to flat file
+    data_dir = _get_data_dir()
+    eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
+    if eval_file.exists():
+        try:
+            with open(eval_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+                matches = [
+                    h for h in history
+                    if h.get("topic_label", "").lower() == topic_label.lower()
+                ]
+                if matches:
+                    matches.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+                    return matches[0]
+        except Exception:
+            pass
+
+    return None
+
+
+def get_radar_history(
+    tenant_id: str,
+    topic_label: Optional[str] = None,
+    competitor: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Query historical radar evaluation records for a tenant, optionally filtered by topic or competitor.
+    Powers the browsable historical view.
+    """
+    records: List[Dict[str, Any]] = []
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                query = """
+                    SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
+                           why_it_matters, verified_sources, state_change_detected, previous_status, created_at
+                    FROM research_radar_evaluations
+                    WHERE 1=1
+                """
+                params: List[Any] = []
+                if topic_label:
+                    query += " AND topic_label = %s"
+                    params.append(topic_label)
+                query += " ORDER BY created_at DESC;"
+                cur.execute(query, tuple(params))
+                rows = cur.fetchall()
+                for r in rows:
+                    conns = r[4] if isinstance(r[4], dict) else (json.loads(r[4]) if r[4] else {})
+                    if competitor and competitor not in conns:
+                        continue
+                    records.append({
+                        "id": str(r[0]),
+                        "topic_label": r[1],
+                        "cycle_id": r[2],
+                        "research_item_count": r[3],
+                        "competitor_connections": conns,
+                        "why_it_matters": r[5],
+                        "verified_sources": r[6] if isinstance(r[6], list) else (json.loads(r[6]) if r[6] else []),
+                        "state_change_detected": r[7],
+                        "previous_status": r[8] if isinstance(r[8], dict) else (json.loads(r[8]) if r[8] else {}),
+                        "created_at": r[9].isoformat() if hasattr(r[9], "isoformat") else str(r[9]),
+                    })
+                return records
+        except Exception as e:
+            logger.warning(f"Failed to query radar history from Postgres: {e}")
+
+    # Fallback to flat file
+    data_dir = _get_data_dir()
+    eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
+    if eval_file.exists():
+        try:
+            with open(eval_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+                for h in sorted(history, key=lambda x: x.get("created_at", ""), reverse=True):
+                    if topic_label and h.get("topic_label", "").lower() != topic_label.lower():
+                        continue
+                    conns = h.get("competitor_connections", {})
+                    if competitor and competitor not in conns:
+                        continue
+                    records.append(h)
+        except Exception:
+            pass
+
+    return records
+
 

@@ -327,6 +327,86 @@ def _render_research_activity_section(
     return []
 
 
+def _render_field_research_radar_section(
+    radar_evaluations: List[Dict[str, Any]],
+) -> List[str]:
+    """
+    Render Field Research Radar section in executive brief (Stage 3/4).
+    Fixed section (not supervisor-skippable). Follows exact output spec,
+    strict footing check (N == len(sources)), and per-tenant continuity.
+    """
+    if not radar_evaluations:
+        return []
+
+    lines: List[str] = []
+    lines.append("## Field Research Radar\n")
+
+    # Filter to topics with state changes or new research items this cycle (per-tenant continuity)
+    active_or_changed = [
+        ev for ev in radar_evaluations
+        if ev.get("state_change_detected", True) or ev.get("research_item_count", 0) > 0
+    ]
+
+    if not active_or_changed:
+        lines.append("*No new research activity or competitor state changes detected across configured topics this cycle.*\n")
+        return lines
+
+    for ev in active_or_changed:
+        topic = ev.get("topic_label", "Domain Topic")
+        n_items = ev.get("research_item_count", 0)
+        sources = ev.get("verified_sources", [])
+
+        # Strict Footing Check
+        if len(sources) != n_items:
+            logger.warning(
+                f"Footing mismatch in Field Research Radar for topic '{topic}': "
+                f"header count is {n_items} but verified sources list contains {len(sources)} items. Footing to {len(sources)}."
+            )
+            n_items = len(sources)
+
+        conns = ev.get("competitor_connections", {})
+        active_comps = ev.get("active_competitors", [])
+        why_it_matters = ev.get("why_it_matters", "Early domain emergence.")
+
+        # Spec: Required output shape
+        if n_items > 0:
+            lines.append(f"### 🔬 Emerging Research: {topic} is gaining research activity.\n")
+        else:
+            lines.append(f"### 🔬 Emerging Research: no new research activity detected for {topic} this cycle\n")
+
+        # Competitor connection line
+        if active_comps:
+            comp_descs = []
+            for ac in active_comps:
+                c_name = ac.get("competitor", "Competitor")
+                c_st = ac.get("status", "mentioning")
+                c_src = ac.get("source_type", "blog")
+                comp_descs.append(f"{c_name} ({c_st}: {c_src})")
+            comp_str = f"activity detected among tracked competitors — {', '.join(comp_descs)}."
+        else:
+            comp_str = "no corresponding activity detected among tracked competitors."
+
+        lines.append(f"**Competitor connection**: {n_items} relevant research items found this cycle; {comp_str}")
+        lines.append(f"- **Why it matters**: {why_it_matters}")
+
+        # Verified sources line
+        if sources:
+            source_links = []
+            for s in sources:
+                s_title = s.get("title", "Research Source")
+                s_url = s.get("url", "#")
+                authors = s.get("authors", [])
+                auth_str = f" ({', '.join(authors[:2])})" if authors else ""
+                source_links.append(f"[{s_title}]({s_url}){auth_str}")
+            lines.append(f"- **Sources**: {'; '.join(source_links)}")
+        else:
+            lines.append("- **Sources**: None")
+
+        lines.append("")
+
+    return lines
+
+
 _DEFAULT_RESEARCH_SENTINEL = object()
 
 
@@ -339,6 +419,7 @@ def run(
     prior_research_activity: Any = _DEFAULT_RESEARCH_SENTINEL,
     tenant_id: Optional[str] = None,
     tracked_companies: Optional[List[str]] = None,
+    radar_evaluations: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Generate a markdown competitive intelligence brief organized by Theme.
@@ -585,6 +666,16 @@ def run(
     res_section_lines = _render_research_activity_section(findings, prior_research_activity=prior_research_activity)
     if res_section_lines:
         lines.extend(res_section_lines)
+
+    # ==========================================
+    # 3.6. Field Research Radar (Emerging Research by Domain Topic)
+    # ==========================================
+    if radar_evaluations is None and tenant_id:
+        radar_evaluations = storage.get_latest_radar_evaluations(tenant_id)
+    if radar_evaluations:
+        radar_section_lines = _render_field_research_radar_section(radar_evaluations)
+        if radar_section_lines:
+            lines.extend(radar_section_lines)
 
     # ==========================================
     # 4. Per-Competitor Index (Appendix)

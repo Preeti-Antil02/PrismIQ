@@ -43,6 +43,7 @@ from . import report_agent
 from . import delivery_agent
 from . import pricing_extractor
 from . import storage
+from . import research_radar
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +186,14 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
     # Persist raw signals (dual-write to global raw_signals table)
     storage.save_signals(signals, filepath=state.get("signals_storage_path"))
     logger.info(f"Monitoring completed: {len(signals)} raw signals collected for {len(companies)} companies.")
+
+    # Phase 1: Ingest shared domain research items across all active tenant topics
+    try:
+        topic_research_items = monitoring_agent.fetch_topic_research_items(days=14)
+        if topic_research_items:
+            logger.info(f"Phase 1: Ingested {len(topic_research_items)} global domain research items across active topics.")
+    except Exception as e:
+        logger.warning(f"Failed to fetch global topic research items: {e}")
 
     return {"raw_signals": signals, "source_health": source_health, "companies": companies}
 
@@ -359,6 +368,30 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
         tracked = tdata.get("tracked_companies")
         is_owner = (tid == owner_id or len(tenant_results) == 1)
 
+        # Phase 2: Per-tenant Field Research Radar evaluation
+        radar_evals = []
+        try:
+            tenant_topics = storage.get_tenant_research_topics(tid)
+            if tenant_topics:
+                topic_labels = [t["topic_label"] for t in tenant_topics]
+                topic_items = storage.get_research_items_for_topics(topic_labels)
+                comps = tdata.get("competitors") or [c for c in (tracked or []) if c != tdata.get("target_company")]
+                pipeline_sigs = state.get("raw_signals", [])
+                for top in tenant_topics:
+                    ev = research_radar.evaluate_topic_radar(
+                        topic=top,
+                        research_items=topic_items,
+                        competitors=comps,
+                        pipeline_signals=pipeline_sigs,
+                        source_health=source_health,
+                        tenant_id=tid,
+                    )
+                    radar_evals.append(ev)
+                storage.save_radar_evaluations(radar_evals, tenant_id=tid)
+                tdata["radar_evaluations"] = radar_evals
+        except Exception as e:
+            logger.warning(f"Error evaluating research radar for tenant {tid}: {e}")
+
         t_report = report_agent.run(
             t_synthesis,
             supervisor_decisions=supervisor_decisions,
@@ -367,6 +400,7 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
             cadence_name=cadence_name,
             tenant_id=tid,
             tracked_companies=tracked,
+            radar_evaluations=radar_evals if radar_evals else None,
         )
 
         custom_path = state.get("output_report_path") if is_owner else None

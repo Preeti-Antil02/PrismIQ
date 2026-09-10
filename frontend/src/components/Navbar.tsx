@@ -10,6 +10,7 @@ export function Navbar() {
 
   const navLinks = [
     { name: "Live Brief", href: "/brief" },
+    { name: "Research Radar", href: "/research-radar" },
     { name: "How it works", href: "/how-it-works" },
     { name: "Archive", href: "/archive" },
   ];

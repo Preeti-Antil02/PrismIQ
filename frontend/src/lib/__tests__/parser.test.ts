@@ -133,6 +133,44 @@ describe("parseMarkdownBrief", () => {
     expect(parsed.rollup.totalMonitored).toBe(0);
     expect(parsed.companies).toEqual([]);
   });
+
+  it("parses Field Research Radar section into structured evaluations", () => {
+    const briefWithRadar = `# PrismIQ Competitive Intelligence Brief
+
+## Top 3 decisions this informs
+1. **Vercel** (WASM Runtime): Early bet on wasm edge execution.
+
+## Field Research Radar
+
+### 🔬 Emerging Research: WASM at the edge is gaining research activity.
+
+**Competitor connection**: 2 relevant research items found this cycle; activity detected among tracked competitors — Cloudflare (researching: research).
+- **Why it matters**: Commercial validation & accelerating traction.
+- **Sources**: [Benchmarking WebAssembly Runtimes](https://arxiv.org/abs/2608.11111) (Alice Researcher); [MicroVM Sandboxing with WASM](https://arxiv.org/abs/2608.11112) (Bob Engineer)
+
+### 🔬 Emerging Research: no new research activity detected for Edge database consistency this cycle
+
+**Competitor connection**: 0 relevant research items found this cycle; no corresponding activity detected among tracked competitors.
+- **Why it matters**: Dormant cycle across all sources.
+- **Sources**: None
+`;
+    const parsed = parseMarkdownBrief(briefWithRadar);
+    expect(parsed.radarEvaluations).toBeDefined();
+    expect(parsed.radarEvaluations).toHaveLength(2);
+
+    const wasmEval = parsed.radarEvaluations![0];
+    expect(wasmEval.topic).toBe("WASM at the edge");
+    expect(wasmEval.researchItemCount).toBe(2);
+    expect(wasmEval.competitorConnectionSummary).toContain("activity detected among tracked competitors");
+    expect(wasmEval.sources).toHaveLength(2);
+    expect(wasmEval.sources[0].title).toBe("Benchmarking WebAssembly Runtimes");
+    expect(wasmEval.sources[0].url).toBe("https://arxiv.org/abs/2608.11111");
+
+    const edgeDbEval = parsed.radarEvaluations![1];
+    expect(edgeDbEval.topic).toBe("Edge database consistency");
+    expect(edgeDbEval.researchItemCount).toBe(0);
+    expect(edgeDbEval.sources).toHaveLength(0);
+  });
 });
 
 describe("isSecurityRelated", () => {

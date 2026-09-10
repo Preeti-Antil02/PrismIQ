@@ -253,8 +253,69 @@ CREATE INDEX IF NOT EXISTS idx_eval_target ON eval_grading_records(target_compan
 CREATE INDEX IF NOT EXISTS idx_eval_task ON eval_grading_records(task);
 CREATE INDEX IF NOT EXISTS idx_eval_grade ON eval_grading_records(grade);
 
+-- 16. Tenant Research Topics Table (Per-Tenant Topic Areas for Field Research Radar)
+CREATE TABLE IF NOT EXISTS tenant_research_topics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    topic_label VARCHAR(255) NOT NULL,
+    keywords JSONB NOT NULL DEFAULT '[]'::jsonb,
+    source VARCHAR(50) NOT NULL DEFAULT 'manual', -- 'manual', 'suggested' (manual entry only in Stage 1)
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT uq_tenant_topic UNIQUE (tenant_id, topic_label)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tenant_topics_tenant ON tenant_research_topics(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_topics_label ON tenant_research_topics(topic_label);
+CREATE INDEX IF NOT EXISTS idx_tenant_topics_active ON tenant_research_topics(is_active);
+
+-- 17. Research Items Table (Shared / Global Domain Research Layer)
+CREATE TABLE IF NOT EXISTS research_items (
+    id VARCHAR(64) PRIMARY KEY, -- Deterministic hash: res_{sha256(canonical_url)[:16]}
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    canonical_url TEXT UNIQUE NOT NULL,
+    published_at VARCHAR(100),
+    published_timestamp TIMESTAMPTZ,
+    raw_excerpt TEXT NOT NULL,
+    source VARCHAR(50) NOT NULL, -- 'arxiv', 'industry_blog'
+    authors JSONB NOT NULL DEFAULT '[]'::jsonb,
+    matched_topics JSONB NOT NULL DEFAULT '[]'::jsonb,
+    research_details JSONB NOT NULL DEFAULT '{}'::jsonb,
+    is_mock BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_research_items_canonical ON research_items(canonical_url);
+CREATE INDEX IF NOT EXISTS idx_research_items_source ON research_items(source);
+CREATE INDEX IF NOT EXISTS idx_research_items_pub_ts ON research_items(published_timestamp);
+CREATE INDEX IF NOT EXISTS idx_research_items_topics_gin ON research_items USING gin(matched_topics);
+
+-- 18. Research Radar Evaluations Table (Per-Tenant Historical Radar & Competitor Connection History)
+CREATE TABLE IF NOT EXISTS research_radar_evaluations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    topic_id UUID REFERENCES tenant_research_topics(id) ON DELETE CASCADE,
+    topic_label VARCHAR(255) NOT NULL,
+    cycle_id VARCHAR(100) NOT NULL, -- e.g. run id or brief id
+    research_item_count INT NOT NULL DEFAULT 0,
+    research_item_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    competitor_connections JSONB NOT NULL DEFAULT '{}'::jsonb,
+    why_it_matters TEXT NOT NULL,
+    verified_sources JSONB NOT NULL DEFAULT '[]'::jsonb,
+    state_change_detected BOOLEAN DEFAULT FALSE,
+    previous_status JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_radar_evals_tenant ON research_radar_evaluations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_radar_evals_topic ON research_radar_evaluations(topic_label);
+CREATE INDEX IF NOT EXISTS idx_radar_evals_cycle ON research_radar_evaluations(cycle_id);
+CREATE INDEX IF NOT EXISTS idx_radar_evals_created ON research_radar_evaluations(created_at DESC);
+
 -- ============================================================================
--- 16. Row Level Security (RLS) Policies
+-- 19. Row Level Security (RLS) Policies
 -- Enforces database-level multi-tenant isolation for authenticated clients
 -- ============================================================================
 
@@ -266,6 +327,8 @@ ALTER TABLE discovery_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE discovery_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenant_tracked_companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenant_delivery_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tenant_research_topics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE research_radar_evaluations ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_all ON findings;
 CREATE POLICY tenant_isolation_all ON findings FOR ALL TO authenticated
@@ -295,6 +358,14 @@ DROP POLICY IF EXISTS tenant_isolation_all ON tenant_delivery_configs;
 CREATE POLICY tenant_isolation_all ON tenant_delivery_configs FOR ALL TO authenticated
     USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
 
+DROP POLICY IF EXISTS tenant_isolation_all ON tenant_research_topics;
+CREATE POLICY tenant_isolation_all ON tenant_research_topics FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON research_radar_evaluations;
+CREATE POLICY tenant_isolation_all ON research_radar_evaluations FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
 -- B. Shared Global Tables (Read-Only to authenticated; Writes restricted to service_role / postgres)
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE raw_signals ENABLE ROW LEVEL SECURITY;
@@ -303,6 +374,7 @@ ALTER TABLE consolidated_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_signals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pricing_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eval_grading_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE research_items ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS shared_read_all ON companies;
 CREATE POLICY shared_read_all ON companies FOR SELECT TO authenticated USING (true);
@@ -324,4 +396,8 @@ CREATE POLICY shared_read_all ON pricing_snapshots FOR SELECT TO authenticated U
 
 DROP POLICY IF EXISTS shared_read_all ON eval_grading_records;
 CREATE POLICY shared_read_all ON eval_grading_records FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS shared_read_all ON research_items;
+CREATE POLICY shared_read_all ON research_items FOR SELECT TO authenticated USING (true);
+
 

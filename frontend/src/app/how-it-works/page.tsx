@@ -2,14 +2,11 @@ import React from "react";
 import Link from "next/link";
 import {
   Activity,
-  ArrowRight,
   CheckCircle2,
   Database,
   Eye,
   FileText,
   Flame,
-  Globe,
-  Layers,
   Sparkles,
 } from "lucide-react";
 import { Footer } from "@/components/Footer";
