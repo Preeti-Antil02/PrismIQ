@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import jwt
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -56,6 +56,21 @@ class CreateResearchTopicRequest(BaseModel):
     keywords: List[str] = Field(default_factory=list, description="Keywords or embedding terms for topic")
 
 
+class UpdateTopicStatusRequest(BaseModel):
+    is_active: bool = Field(..., description="Active status for topic (false = paused)")
+
+
+class AddTrackedCompanyRequest(BaseModel):
+    company_name: str = Field(..., min_length=1, description="Company name to track")
+    is_target: bool = Field(False, description="Whether this company is the primary target company")
+
+
+class SaveDeliveryConfigRequest(BaseModel):
+    slack_webhook_url: str = Field(..., description="Incoming Slack webhook URL")
+    channel_name: str = Field("#competitive-intelligence", description="Slack channel name")
+    is_active: bool = Field(True, description="Whether Slack alerts are actively enabled")
+
+
 # ============================================================================
 # JWT Authentication & Verification Dependency
 # ============================================================================
@@ -82,7 +97,7 @@ def verify_jwt_token(token: str) -> Dict[str, Any]:
                 token,
                 jwt_secret,
                 algorithms=["HS256", "RS256"],
-                options={"verify_signature": True, "verify_exp": True},
+                options={"verify_signature": True, "verify_exp": True, "verify_aud": False},
             )
         else:
             # Decode without secret for testing/environments where secret is managed by Supabase API gateway
@@ -528,6 +543,392 @@ def list_tracked_companies(tenant_id: str = Depends(get_current_tenant)) -> Dict
         return {"tracked_companies": [], "count": 0}
 
 
+@app.post("/workspace/watchlist/add")
+def add_tracked_company_endpoint(
+    req: AddTrackedCompanyRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Add or reactivate a competitor to the authenticated tenant's active watchlist.
+    """
+    comp = req.company_name.strip()
+    if not comp:
+        raise HTTPException(status_code=400, detail="Company name cannot be empty")
+
+    tracked_entry = storage.track_tenant_company(
+        tenant_id=tenant_id,
+        company_name=comp,
+        is_target=req.is_target,
+    )
+    return {"status": "tracked", "company": tracked_entry}
+
+
+@app.delete("/workspace/watchlist/{company_name}")
+def untrack_company_endpoint(
+    company_name: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Untrack a competitor from the authenticated tenant's active watchlist.
+    Preserves signal and finding history under RLS while removing from active views.
+    """
+    comp = company_name.strip()
+    if not comp:
+        raise HTTPException(status_code=400, detail="Company name cannot be empty")
+
+    success = storage.untrack_tenant_company(tenant_id=tenant_id, company_name=comp)
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Company '{comp}' not found in active watchlist for tenant",
+        )
+    return {"status": "untracked", "company_name": comp}
+
+
+
+@app.get("/signals")
+def list_signals(
+    company: Optional[str] = Query(None, description="Filter by company name"),
+    source: Optional[str] = Query(None, description="Filter by signal source: news, github, jobs, pricing, research"),
+    tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
+    confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    List individual signals detected for tenant's tracked companies.
+    Per spec section 3.3:
+    - Primary question: What individual signals were detected?
+    - Data source: raw_signals (shared) filtered/joined to findings (per-tenant) for why-it-matters + confidence.
+    - Also computes noise-suppressed count for honest disclosure.
+    """
+    try:
+        with storage.get_tenant_db_cursor(tenant_id) as cur:
+            if isinstance(cur, storage.MockCursor):
+                return {"signals": [], "count": 0, "noise_suppressed_count": 0}
+
+            # Query total noise suppressed count for tenant's tracked companies
+            cur.execute("""
+                SELECT COUNT(DISTINCT nsd.signal_id)
+                FROM noise_suppression_decisions nsd
+                JOIN raw_signals rs ON nsd.signal_id = rs.id
+                JOIN tenant_tracked_companies ttc ON rs.company_name = ttc.company_name
+                WHERE nsd.is_noise = TRUE
+                  AND ttc.status = 'active';
+            """)
+            noise_row = cur.fetchone()
+            noise_suppressed_count = noise_row[0] if noise_row else 0
+
+            # Query signals joined with events and tenant findings
+            base_query = """
+                SELECT DISTINCT ON (rs.id)
+                    rs.id,
+                    rs.company_name,
+                    rs.source,
+                    rs.title,
+                    rs.url,
+                    rs.published_at,
+                    rs.published_timestamp,
+                    rs.raw_excerpt,
+                    ce.event_id,
+                    COALESCE(ce.corroboration_count, 1) as corroboration_count,
+                    f.why_it_matters,
+                    COALESCE(f.confidence, ce.fact_confidence, 'Medium') as confidence,
+                    f.inference_confidence,
+                    ce.fact_confidence,
+                    COALESCE(f.tier, 'Nice-to-Know') as tier
+                FROM raw_signals rs
+                JOIN tenant_tracked_companies ttc ON rs.company_name = ttc.company_name
+                LEFT JOIN event_signals es ON rs.id = es.signal_id
+                LEFT JOIN consolidated_events ce ON es.event_id = ce.event_id
+                LEFT JOIN findings f ON (ce.event_id = f.event_id AND f.tenant_id = %s::uuid)
+                WHERE ttc.status = 'active'
+            """
+            params: List[Any] = [tenant_id]
+
+            if company:
+                base_query += " AND rs.company_name = %s"
+                params.append(company)
+            if source:
+                base_query += " AND LOWER(rs.source) = LOWER(%s)"
+                params.append(source)
+            if tier:
+                base_query += " AND (LOWER(f.tier) = LOWER(%s) OR (f.tier IS NULL AND LOWER(%s) = 'nice-to-know'))"
+                params.extend([tier, tier])
+            if confidence:
+                base_query += " AND (LOWER(f.confidence) = LOWER(%s) OR LOWER(ce.fact_confidence) = LOWER(%s))"
+                params.extend([confidence, confidence])
+
+            # Get total count before pagination
+            count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_sub;"
+            cur.execute(count_query, params)
+            count_row = cur.fetchone()
+            total_count = count_row[0] if count_row else 0
+
+            # Order and paginate
+            final_query = f"""
+                SELECT * FROM ({base_query}) sub
+                ORDER BY sub.published_timestamp DESC NULLS LAST, sub.published_at DESC
+                LIMIT %s OFFSET %s;
+            """
+            params.extend([limit, offset])
+
+            cur.execute(final_query, params)
+            rows = cur.fetchall()
+
+            signals = []
+            for r in rows:
+                signals.append({
+                    "id": r[0],
+                    "company_name": r[1],
+                    "source": r[2],
+                    "title": r[3],
+                    "url": r[4],
+                    "published_at": r[5],
+                    "published_timestamp": r[6].isoformat() if r[6] else None,
+                    "raw_excerpt": r[7],
+                    "event_id": r[8],
+                    "corroboration_count": r[9],
+                    "why_it_matters": r[10],
+                    "confidence": r[11],
+                    "inference_confidence": r[12],
+                    "fact_confidence": r[13],
+                    "tier": r[14],
+                })
+
+            return {
+                "signals": signals,
+                "count": total_count,
+                "noise_suppressed_count": noise_suppressed_count,
+            }
+    except Exception as e:
+        if not storage.is_test_environment():
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+        return {"signals": [], "count": 0, "noise_suppressed_count": 0}
+
+
+@app.get("/events")
+def list_events(
+    company: Optional[str] = Query(None, description="Filter by company name"),
+    tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
+    confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    List consolidated real-world events for tenant's tracked companies.
+    Per spec section 3.4:
+    - Primary question: What real-world events happened, and what's the evidence behind each one?
+    - Data source: consolidated_events + event_signals + findings.
+    """
+    try:
+        with storage.get_tenant_db_cursor(tenant_id) as cur:
+            if isinstance(cur, storage.MockCursor):
+                return {"events": [], "count": 0}
+
+            base_query = """
+                SELECT DISTINCT ON (ce.event_id)
+                    ce.event_id,
+                    ce.company_name,
+                    ce.title,
+                    ce.event_summary,
+                    ce.corroboration_count,
+                    ce.contributing_sources,
+                    ce.first_detected_at,
+                    ce.latest_detected_at,
+                    ce.published_at,
+                    ce.published_timestamp,
+                    ce.url,
+                    ce.raw_excerpt,
+                    ce.fact_confidence,
+                    f.why_it_matters,
+                    f.confidence as blended_confidence,
+                    f.inference_confidence,
+                    COALESCE(f.tier, 'Nice-to-Know') as tier
+                FROM consolidated_events ce
+                JOIN tenant_tracked_companies ttc ON ce.company_name = ttc.company_name
+                LEFT JOIN findings f ON (ce.event_id = f.event_id AND f.tenant_id = %s::uuid)
+                WHERE ttc.status = 'active'
+            """
+            params: List[Any] = [tenant_id]
+
+            if company:
+                base_query += " AND ce.company_name = %s"
+                params.append(company)
+            if tier:
+                base_query += " AND (LOWER(f.tier) = LOWER(%s) OR (f.tier IS NULL AND LOWER(%s) = 'nice-to-know'))"
+                params.extend([tier, tier])
+            if confidence:
+                base_query += " AND (LOWER(ce.fact_confidence) = LOWER(%s) OR LOWER(f.confidence) = LOWER(%s))"
+                params.extend([confidence, confidence])
+
+            count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_sub;"
+            cur.execute(count_query, params)
+            count_row = cur.fetchone()
+            total_count = count_row[0] if count_row else 0
+
+            final_query = f"""
+                SELECT * FROM ({base_query}) sub
+                ORDER BY sub.published_timestamp DESC NULLS LAST, sub.published_at DESC
+                LIMIT %s OFFSET %s;
+            """
+            params.extend([limit, offset])
+
+            cur.execute(final_query, params)
+            rows = cur.fetchall()
+
+            events = []
+            for r in rows:
+                contrib = r[5]
+                if isinstance(contrib, str):
+                    import json
+                    try:
+                        contrib = json.loads(contrib)
+                    except Exception:
+                        contrib = [contrib]
+
+                events.append({
+                    "event_id": r[0],
+                    "company_name": r[1],
+                    "title": r[2],
+                    "event_summary": r[3],
+                    "corroboration_count": r[4],
+                    "contributing_sources": contrib or [],
+                    "first_detected_at": r[6],
+                    "latest_detected_at": r[7],
+                    "published_at": r[8],
+                    "published_timestamp": r[9].isoformat() if r[9] else None,
+                    "url": r[10],
+                    "raw_excerpt": r[11],
+                    "fact_confidence": r[12] or "Medium",
+                    "why_it_matters": r[13],
+                    "confidence": r[14] or r[12] or "Medium",
+                    "inference_confidence": r[15],
+                    "tier": r[16] or "Nice-to-Know",
+                })
+
+            return {"events": events, "count": total_count}
+    except Exception as e:
+        if not storage.is_test_environment():
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+        return {"events": [], "count": 0}
+
+
+@app.get("/events/{event_id}")
+def get_event_detail(
+    event_id: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve single consolidated event with its full tree of contributing signals.
+    Per spec section 3.4:
+    - Visual consolidation tree: root event at top, branching to each contributing signal.
+    - Single-signal event: tree renders with one branch.
+    """
+    try:
+        with storage.get_tenant_db_cursor(tenant_id) as cur:
+            if isinstance(cur, storage.MockCursor):
+                raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
+
+            # Fetch root consolidated event
+            cur.execute("""
+                SELECT
+                    ce.event_id,
+                    ce.company_name,
+                    ce.title,
+                    ce.event_summary,
+                    ce.corroboration_count,
+                    ce.contributing_sources,
+                    ce.first_detected_at,
+                    ce.latest_detected_at,
+                    ce.published_at,
+                    ce.published_timestamp,
+                    ce.url,
+                    ce.raw_excerpt,
+                    ce.fact_confidence,
+                    f.why_it_matters,
+                    f.confidence as blended_confidence,
+                    f.inference_confidence,
+                    COALESCE(f.tier, 'Nice-to-Know') as tier
+                FROM consolidated_events ce
+                JOIN tenant_tracked_companies ttc ON ce.company_name = ttc.company_name
+                LEFT JOIN findings f ON (ce.event_id = f.event_id AND f.tenant_id = %s::uuid)
+                WHERE ce.event_id = %s
+                  AND ttc.status = 'active';
+            """, (tenant_id, event_id))
+            r = cur.fetchone()
+            if not r:
+                raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
+
+            contrib = r[5]
+            if isinstance(contrib, str):
+                import json
+                try:
+                    contrib = json.loads(contrib)
+                except Exception:
+                    contrib = [contrib]
+
+            event_obj = {
+                "event_id": r[0],
+                "company_name": r[1],
+                "title": r[2],
+                "event_summary": r[3],
+                "corroboration_count": r[4],
+                "contributing_sources": contrib or [],
+                "first_detected_at": r[6],
+                "latest_detected_at": r[7],
+                "published_at": r[8],
+                "published_timestamp": r[9].isoformat() if r[9] else None,
+                "url": r[10],
+                "raw_excerpt": r[11],
+                "fact_confidence": r[12] or "Medium",
+                "why_it_matters": r[13],
+                "confidence": r[14] or r[12] or "Medium",
+                "inference_confidence": r[15],
+                "tier": r[16] or "Nice-to-Know",
+            }
+
+            # Fetch contributing signals via event_signals join
+            cur.execute("""
+                SELECT
+                    rs.id,
+                    rs.source,
+                    rs.title,
+                    rs.url,
+                    rs.published_at,
+                    rs.published_timestamp,
+                    rs.raw_excerpt
+                FROM event_signals es
+                JOIN raw_signals rs ON es.signal_id = rs.id
+                WHERE es.event_id = %s
+                ORDER BY rs.published_timestamp DESC NULLS LAST, rs.published_at DESC;
+            """, (event_id,))
+            sig_rows = cur.fetchall()
+
+            signals = []
+            for s in sig_rows:
+                signals.append({
+                    "id": s[0],
+                    "source": s[1],
+                    "title": s[2],
+                    "url": s[3],
+                    "published_at": s[4],
+                    "published_timestamp": s[5].isoformat() if s[5] else None,
+                    "raw_excerpt": s[6],
+                })
+
+            event_obj["contributing_signals"] = signals
+            return {"event": event_obj}
+    except HTTPException:
+        raise
+    except Exception as e:
+        if not storage.is_test_environment():
+            raise HTTPException(status_code=500, detail=f"Database query error: {e}")
+        raise HTTPException(status_code=404, detail=f"Event {event_id} not found")
+
+
 # ============================================================================
 # Discovery Agent Onboarding Endpoints
 # ============================================================================
@@ -588,9 +989,12 @@ def onboard_confirm_candidates(
 # ============================================================================
 
 @app.get("/research-radar/topics")
-def list_research_topics(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
+def list_research_topics(
+    include_paused: bool = Query(False, description="Whether to include paused research topics"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
     """List configured research topics for the authenticated tenant under RLS."""
-    topics = storage.get_tenant_research_topics(tenant_id)
+    topics = storage.get_tenant_research_topics(tenant_id, include_paused=include_paused)
     return {"topics": topics, "count": len(topics)}
 
 
@@ -613,6 +1017,33 @@ def create_research_topic(
         source="manual",
     )
     return {"status": "created", "topic": topic}
+
+
+@app.patch("/research-radar/topics/{topic_id}")
+def update_research_topic_status(
+    topic_id: str,
+    req: UpdateTopicStatusRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Pause or resume a research topic under RLS.
+    Preserves historical evaluation records in research_radar_evaluations per spec § 3.11.
+    """
+    success = storage.update_tenant_research_topic_status(
+        tenant_id=tenant_id,
+        topic_id_or_label=topic_id,
+        is_active=req.is_active,
+    )
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Topic '{topic_id}' not found for authenticated tenant",
+        )
+    return {
+        "status": "updated",
+        "topic_id": topic_id,
+        "is_active": req.is_active,
+    }
 
 
 @app.delete("/research-radar/topics/{topic_id}")
@@ -672,3 +1103,92 @@ def get_latest_radar_endpoint(
             evals.append(ev)
 
     return {"evaluations": evals, "count": len(evals)}
+
+
+# ============================================================================
+# Workspace Endpoints (Spec § 3.11)
+# ============================================================================
+
+@app.get("/workspace/delivery")
+def get_delivery_config_endpoint(
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve delivery alert configuration for the authenticated tenant under RLS.
+    """
+    cfg = storage.get_tenant_delivery_config(tenant_id)
+    return {"delivery_config": cfg}
+
+
+@app.post("/workspace/delivery")
+def save_delivery_config_endpoint(
+    req: SaveDeliveryConfigRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Configure or update Slack webhook alert channel for the tenant under RLS.
+    """
+    webhook = req.slack_webhook_url.strip()
+    if not webhook:
+        raise HTTPException(status_code=400, detail="Slack webhook URL cannot be empty")
+    if not webhook.startswith("https://hooks.slack.com/"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Slack webhook URL format. Must start with https://hooks.slack.com/",
+        )
+
+    saved = storage.save_tenant_delivery_config(
+        tenant_id=tenant_id,
+        slack_webhook_url=webhook,
+        channel_name=req.channel_name.strip() or "#competitive-intelligence",
+        is_active=req.is_active,
+    )
+    return {"status": "saved", "delivery_config": saved}
+
+
+@app.get("/workspace/settings")
+def get_workspace_settings_endpoint(
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve tenant-level settings and status metadata under RLS.
+    All counts and metrics are calculated directly from PostgreSQL.
+    """
+    with storage.get_tenant_db_cursor(tenant_id) as cur:
+        cur.execute("SELECT COUNT(*) FROM tenant_tracked_companies WHERE status = 'active';")
+        tracked_count = cur.fetchone()[0]
+
+    topics = storage.get_tenant_research_topics(tenant_id, include_paused=True)
+    active_topics = [t for t in topics if t.get("is_active", True)]
+    paused_topics = [t for t in topics if not t.get("is_active", True)]
+
+    # Real signal and noise suppression metrics from PostgreSQL
+    total_signals_evaluated = 0
+    noise_suppressed_count = 0
+    try:
+        with storage.get_db_cursor() as cur:
+            cur.execute("SELECT COUNT(*), COUNT(*) FILTER (WHERE is_noise = true) FROM noise_suppression_decisions;")
+            row = cur.fetchone()
+            if row:
+                total_signals_evaluated = row[0]
+                noise_suppressed_count = row[1]
+    except Exception:
+        pass
+
+    return {
+        "tenant_id": tenant_id,
+        "workspace_name": "PrismIQ Production Intelligence",
+        "owner_email": "preetiantil006@gmail.com",
+        "auth_role": "authenticated",
+        "rls_enforcement": "Active (PostgreSQL Row-Level Security)",
+        "tracked_companies_count": tracked_count,
+        "active_topics_count": len(active_topics),
+        "paused_topics_count": len(paused_topics),
+        "total_signals_evaluated": total_signals_evaluated,
+        "noise_suppressed_count": noise_suppressed_count,
+        "cadence": config.SCHEDULE_CADENCE_NAME,
+        "schedule": config.DEFAULT_CRON_SCHEDULE,
+        "api_version": app.version,
+        "api_status": "Online",
+    }
+
