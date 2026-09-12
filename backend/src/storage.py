@@ -859,6 +859,47 @@ def save_tenant_confirmed_companies(
     return tracked
 
 
+def untrack_tenant_company(tenant_id: str, company_name: str) -> bool:
+    """
+    Mark a tracked company as 'untracked' for the tenant.
+    Preserves signal and event history while removing from active competitor views.
+    """
+    tid = str(tenant_id).strip()
+    comp = str(company_name).strip()
+    with get_db_cursor() as cur:
+        cur.execute("""
+            UPDATE tenant_tracked_companies
+            SET status = 'untracked', updated_at = NOW()
+            WHERE tenant_id = %s AND company_name = %s AND status = 'active';
+        """, (tid, comp))
+        return cur.rowcount > 0
+
+
+def track_tenant_company(tenant_id: str, company_name: str, is_target: bool = False) -> Dict[str, Any]:
+    """
+    Add or reactivate a tracked company for a tenant under RLS.
+    """
+    tid = str(tenant_id).strip()
+    comp = str(company_name).strip()
+    now_dt = datetime.now(timezone.utc)
+    with get_db_cursor() as cur:
+        cur.execute("INSERT INTO companies (name, status) VALUES (%s, 'confirmed') ON CONFLICT (name) DO NOTHING;", (comp,))
+        cur.execute("""
+            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
+            VALUES (%s, %s, %s, 'active', %s, %s)
+            ON CONFLICT (tenant_id, company_name) DO UPDATE
+            SET status = 'active', updated_at = NOW()
+            RETURNING company_name, is_target, status, added_at;
+        """, (tid, comp, is_target, now_dt, now_dt))
+        row = cur.fetchone()
+        return {
+            "company_name": row[0],
+            "is_target": row[1],
+            "status": row[2],
+            "added_at": row[3].isoformat() if row[3] else now_dt.isoformat(),
+        }
+
+
 def load_confirmed_competitors(
     target_company: str,
     filepath: Optional[Union[str, Path]] = None,
@@ -1232,6 +1273,94 @@ def get_prior_research_activity(
     return None
 
 
+def get_tenant_delivery_config(tenant_id: str) -> Dict[str, Any]:
+    """Fetch delivery configuration (Slack alerts, email digest) for tenant."""
+    tid = str(tenant_id).strip()
+    default_cfg = {
+        "tenant_id": tid,
+        "slack_webhook_url": "",
+        "channel_name": "#competitive-intelligence",
+        "delivery_cadence": "daily",
+        "is_active": True,
+        "email_status": "coming_soon",
+        "updated_at": None,
+    }
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
+                    FROM tenant_delivery_configs
+                    WHERE tenant_id = %s;
+                """, (tid,))
+                row = cur.fetchone()
+                if row:
+                    return {
+                        "tenant_id": tid,
+                        "slack_webhook_url": row[0] or "",
+                        "channel_name": row[1] or "#competitive-intelligence",
+                        "is_active": bool(row[2]) if row[2] is not None else True,
+                        "delivery_cadence": row[3] or "daily",
+                        "email_status": "coming_soon",
+                        "updated_at": row[4].isoformat() if row[4] else None,
+                    }
+        except Exception as e:
+            logger.warning(f"Failed to query delivery config from Postgres: {e}")
+    return default_cfg
+
+
+def save_tenant_delivery_config(
+    tenant_id: str,
+    slack_webhook_url: str,
+    channel_name: str = "#competitive-intelligence",
+    is_active: bool = True,
+    delivery_cadence: str = "daily",
+) -> Dict[str, Any]:
+    """Upsert delivery configuration for tenant under RLS."""
+    tid = str(tenant_id).strip()
+    url = str(slack_webhook_url).strip()
+    chan = str(channel_name).strip() or "#competitive-intelligence"
+    now_dt = datetime.now(timezone.utc)
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    INSERT INTO tenant_delivery_configs (
+                        tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (tenant_id) DO UPDATE SET
+                        slack_webhook_url = EXCLUDED.slack_webhook_url,
+                        slack_channel = EXCLUDED.slack_channel,
+                        is_enabled = EXCLUDED.is_enabled,
+                        delivery_cadence = EXCLUDED.delivery_cadence,
+                        updated_at = NOW()
+                    RETURNING tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at;
+                """, (tid, url, chan, is_active, delivery_cadence))
+                row = cur.fetchone()
+                return {
+                    "tenant_id": str(row[0]),
+                    "slack_webhook_url": row[1] or "",
+                    "channel_name": row[2] or chan,
+                    "is_active": bool(row[3]) if row[3] is not None else True,
+                    "delivery_cadence": row[4] or "daily",
+                    "email_status": "coming_soon",
+                    "updated_at": row[5].isoformat() if row[5] else now_dt.isoformat(),
+                }
+        except Exception as e:
+            logger.error(f"Failed to save delivery config to Postgres: {e}")
+            raise
+    return {
+        "tenant_id": tid,
+        "slack_webhook_url": url,
+        "channel_name": chan,
+        "is_active": is_active,
+        "delivery_cadence": delivery_cadence,
+        "email_status": "coming_soon",
+        "updated_at": now_dt.isoformat(),
+    }
+
+
+
 # ============================================================================
 # Field Research Radar Storage Functions (Stage 3/4)
 # ============================================================================
@@ -1242,18 +1371,20 @@ def _generate_research_item_id(canonical_url: str) -> str:
     return "res_" + hashlib.sha256(clean.encode("utf-8")).hexdigest()[:16]
 
 
-def get_tenant_research_topics(tenant_id: str) -> List[Dict[str, Any]]:
+def get_tenant_research_topics(tenant_id: str, include_paused: bool = False) -> List[Dict[str, Any]]:
     """
     Retrieve configured research topics for the authenticated tenant.
     Enforces RLS in PostgreSQL or falls back to tenant-scoped JSON file.
+    When include_paused=True, returns both active and paused topics for management UI.
     """
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id) as cur:
-                cur.execute("""
+                filter_clause = "WHERE TRUE" if include_paused else "WHERE is_active = TRUE"
+                cur.execute(f"""
                     SELECT id, topic_label, keywords, source, is_active, created_at, updated_at
                     FROM tenant_research_topics
-                    WHERE is_active = TRUE
+                    {filter_clause}
                     ORDER BY created_at ASC;
                 """)
                 rows = cur.fetchall()
@@ -1282,7 +1413,10 @@ def get_tenant_research_topics(tenant_id: str) -> List[Dict[str, Any]]:
         try:
             with open(topic_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return [t for t in data if t.get("tenant_id") == tenant_id or "tenant_id" not in t]
+                filtered = [t for t in data if t.get("tenant_id") == tenant_id or "tenant_id" not in t]
+                if not include_paused:
+                    filtered = [t for t in filtered if t.get("is_active", True) is not False]
+                return filtered
         except Exception as e:
             logger.warning(f"Failed to read local research topics: {e}")
 
@@ -1340,11 +1474,11 @@ def save_tenant_research_topic(
                     record["id"] = str(row[0])
                     record["created_at"] = row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1])
                     record["updated_at"] = row[2].isoformat() if hasattr(row[2], "isoformat") else str(row[2])
-                    return record
         except Exception as e:
-            logger.warning(f"Failed to save tenant research topic to Postgres: {e}")
+            logger.error(f"Failed to save tenant research topic to Postgres: {e}")
+            raise
 
-    # Fallback to local flat file
+    # Synchronize local flat file cache to keep stores strictly aligned
     data_dir = _get_data_dir()
     data_dir.mkdir(parents=True, exist_ok=True)
     topic_file = data_dir / f"research_topics_{tenant_id}.json"
@@ -1370,15 +1504,19 @@ def save_tenant_research_topic(
     if not updated:
         existing.append(record)
 
-    with open(topic_file, "w", encoding="utf-8") as f:
-        json.dump(existing, f, indent=2, ensure_ascii=False)
+    try:
+        with open(topic_file, "w", encoding="utf-8") as f:
+            json.dump(existing, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"Failed to write local research topics fallback: {e}")
 
     return record
 
 
 def delete_tenant_research_topic(tenant_id: str, topic_id_or_label: str) -> bool:
-    """Delete or deactivate a tenant research topic."""
+    """Delete or deactivate a tenant research topic across both Postgres and local cache."""
     target = topic_id_or_label.strip()
+    deleted_pg = False
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id) as cur:
@@ -1386,10 +1524,12 @@ def delete_tenant_research_topic(tenant_id: str, topic_id_or_label: str) -> bool
                     DELETE FROM tenant_research_topics
                     WHERE (id::text = %s OR topic_label = %s);
                 """, (target, target))
-                return cur.rowcount > 0
+                deleted_pg = cur.rowcount > 0
         except Exception as e:
             logger.warning(f"Failed to delete research topic from Postgres: {e}")
 
+    # Always synchronize local flat file cache to eliminate divergence/resurrection
+    deleted_file = False
     data_dir = _get_data_dir()
     topic_file = data_dir / f"research_topics_{tenant_id}.json"
     if topic_file.exists():
@@ -1403,10 +1543,52 @@ def delete_tenant_research_topic(tenant_id: str, topic_id_or_label: str) -> bool
             if len(remaining) != len(existing):
                 with open(topic_file, "w", encoding="utf-8") as f:
                     json.dump(remaining, f, indent=2, ensure_ascii=False)
-                return True
+                deleted_file = True
         except Exception:
             pass
-    return False
+    return deleted_pg or deleted_file
+
+
+def update_tenant_research_topic_status(tenant_id: str, topic_id_or_label: str, is_active: bool) -> bool:
+    """
+    Pause or resume a tenant research topic without deleting evaluation history.
+    Enforces RLS under tenant_id in Postgres and synchronizes local flat file.
+    """
+    target = topic_id_or_label.strip()
+    updated_pg = False
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    UPDATE tenant_research_topics
+                    SET is_active = %s, updated_at = NOW()
+                    WHERE (id::text = %s OR topic_label = %s);
+                """, (is_active, target, target))
+                updated_pg = cur.rowcount > 0
+        except Exception as e:
+            logger.error(f"Failed to update research topic status in Postgres: {e}")
+            raise
+
+    # Always synchronize local flat file cache
+    updated_file = False
+    data_dir = _get_data_dir()
+    topic_file = data_dir / f"research_topics_{tenant_id}.json"
+    if topic_file.exists():
+        try:
+            with open(topic_file, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+            for t in existing:
+                if str(t.get("id")) == target or t.get("topic_label") == target:
+                    t["is_active"] = is_active
+                    t["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    updated_file = True
+            if updated_file:
+                with open(topic_file, "w", encoding="utf-8") as f:
+                    json.dump(existing, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    return updated_pg or updated_file
 
 
 def get_all_active_research_topics() -> List[Dict[str, Any]]:
@@ -1514,7 +1696,8 @@ def save_research_items(items: List[Dict[str, Any]]) -> int:
                 inserted_count = len(params_list)
                 return inserted_count
         except Exception as e:
-            logger.warning(f"Failed to batch insert research_items to Postgres: {e}")
+            logger.error(f"Failed to batch insert research_items to Postgres: {e}")
+            raise
 
     # Fallback to local flat file
     data_dir = _get_data_dir()
@@ -1626,11 +1809,30 @@ def save_radar_evaluations(evaluations: List[Dict[str, Any]], tenant_id: str) ->
             with get_tenant_db_cursor(tenant_id) as cur:
                 params_list = []
                 for ev in evaluations:
-                    ev_id = ev.get("id") or str(uuid.uuid4())
+                    raw_id = ev.get("id")
+                    if raw_id:
+                        try:
+                            ev_id = str(uuid.UUID(str(raw_id)))
+                        except (ValueError, TypeError):
+                            ev_id = str(uuid.uuid4())
+                    else:
+                        ev_id = str(uuid.uuid4())
+
+                    raw_topic_id = ev.get("topic_id")
+                    topic_id = None
+                    if raw_topic_id:
+                        try:
+                            topic_id = str(uuid.UUID(str(raw_topic_id)))
+                        except (ValueError, TypeError) as err:
+                            raise ValueError(
+                                f"Data integrity violation: research radar evaluation provided invalid non-UUID topic_id "
+                                f"'{raw_topic_id}': {err}"
+                            )
+
                     params_list.append((
                         ev_id,
                         tenant_id,
-                        ev.get("topic_id"),
+                        topic_id,
                         ev.get("topic_label", "Unknown Topic"),
                         ev.get("cycle_id", "latest"),
                         ev.get("research_item_count", len(ev.get("verified_sources", []))),
@@ -1650,11 +1852,19 @@ def save_radar_evaluations(evaluations: List[Dict[str, Any]], tenant_id: str) ->
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s::jsonb, %s, %s::jsonb, NOW())
                 """
                 _execute_batch(cur, sql, params_list)
-                return
         except Exception as e:
-            logger.warning(f"Failed to batch insert research_radar_evaluations to Postgres: {e}")
+            logger.error(f"Failed to batch insert research_radar_evaluations to Postgres: {e}")
+            raise
 
-    # Fallback to local flat file
+    # Fallback to local flat file (FAIL-CLOSED for production tenants)
+    prod_tenants = {"c8f13b91-46ef-4682-9975-f85764d8a12e", (os.getenv("OWNER_TENANT_ID") or "").lower()}
+    if str(tenant_id).lower() in prod_tenants and not is_live_write_permitted():
+        logger.warning(
+            f"REFUSING flat-file persistence for production tenant {tenant_id}: "
+            f"ALLOW_LIVE_WRITE=true is not set."
+        )
+        return
+
     data_dir = _get_data_dir()
     data_dir.mkdir(parents=True, exist_ok=True)
     eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
