@@ -49,7 +49,21 @@ from src import api, monitoring_agent, report_agent, research_radar, storage
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("radar_validation")
 
-TENANT_ID = os.environ.get("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+PROTECTED_PRODUCTION_TENANTS = {
+    "c8f13b91-46ef-4682-9975-f85764d8a12e",
+    (os.environ.get("OWNER_TENANT_ID") or "").lower(),
+}
+
+DEFAULT_TEST_TENANT = "00000000-0000-0000-0000-000000000099"
+TENANT_ID = os.environ.get("TEST_RADAR_TENANT_ID", DEFAULT_TEST_TENANT)
+
+if str(TENANT_ID).lower() in PROTECTED_PRODUCTION_TENANTS:
+    raise PermissionError(
+        f"FATAL CONTAMINATION GUARD: run_field_research_radar_validation.py is a synthetic benchmark test "
+        f"and is strictly forbidden from executing against production tenant {TENANT_ID}. "
+        f"All validation benchmarks must target an isolated test tenant (default: {DEFAULT_TEST_TENANT})."
+    )
+
 jwt_secret = os.environ.get("SUPABASE_JWT_SECRET") or "test-secret-key-that-is-at-least-32-bytes-long"
 
 
