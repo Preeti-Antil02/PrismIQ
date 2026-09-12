@@ -11,6 +11,7 @@ from . import config
 from . import pricing_extractor
 from . import funding_classifier
 from . import research_classifier
+from . import relevance_verifier
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,11 @@ def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any
                     "raw_excerpt": article.get("description", "") or article.get("title", ""),
                 }
                 raw_signal = funding_classifier.classify_signal(raw_signal)
+
+                # General Entity Disambiguation Verification
+                is_rel, rel_reason = relevance_verifier.verify_news_relevance(raw_signal, company)
+                raw_signal["relevance_verified"] = is_rel
+                raw_signal["relevance_reason"] = rel_reason
 
                 # Apply sub-product attribution check if running on legacy separate entities
                 checked = _check_cloudflare_attribution(raw_signal, company)
