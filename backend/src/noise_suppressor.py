@@ -17,17 +17,25 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Import General Relevance Verifier
+try:
+    from src.relevance_verifier import verify_news_relevance
+except ImportError:
+    from relevance_verifier import verify_news_relevance
+
 # Canonical Noise Categories
 CAT_BOT_DEPENDENCY = "bot_and_dependency_bumps"
 CAT_CI_DOC_FORMATTING = "ci_and_doc_formatting"
 CAT_ISOLATED_SOCIAL = "isolated_github_social_noise"
 CAT_PLACEHOLDER_JOB = "placeholder_job_postings"
+CAT_ENTITY_DISAMBIGUATION = "entity_disambiguation_false_positive"
 
 NOISE_CATEGORIES = [
     CAT_BOT_DEPENDENCY,
     CAT_CI_DOC_FORMATTING,
     CAT_ISOLATED_SOCIAL,
     CAT_PLACEHOLDER_JOB,
+    CAT_ENTITY_DISAMBIGUATION,
 ]
 
 # 1. Whitelist / Anti-Trigger Patterns (NEVER Suppress)
@@ -134,6 +142,16 @@ def classify_signal(signal: Dict[str, Any]) -> Tuple[bool, Optional[str], str]:
     Returns:
         (is_noise, noise_category, explanation)
     """
+    source = signal.get("source", "")
+
+    # Step 0: General Entity Disambiguation for News Signals
+    # Non-relevant news articles (e.g. common-word dictionary collisions) cannot qualify
+    # as genuine company signals or be protected by downstream security whitelists.
+    if source == "news":
+        is_rel, rel_reason = verify_news_relevance(signal)
+        if not is_rel:
+            return True, CAT_ENTITY_DISAMBIGUATION, f"Entity disambiguation failure: {rel_reason}"
+
     # Step 1: Safety Whitelist Check
     whitelisted, whitelist_reason = is_whitelisted(signal)
     if whitelisted:
@@ -142,7 +160,6 @@ def classify_signal(signal: Dict[str, Any]) -> Tuple[bool, Optional[str], str]:
     title = signal.get("title", "").lower()
     excerpt = signal.get("raw_excerpt", "").lower()
     full_text = f"{title} {excerpt}"
-    source = signal.get("source", "")
 
     # Step 2: Placeholder Job Postings
     if source == "jobs":
