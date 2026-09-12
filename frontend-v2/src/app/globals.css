@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #F8F9FB;
+  --color-foreground: #0F172A;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0F172A;
+  --color-primary: #0F172A;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F1F5F9;
+  --color-secondary-foreground: #0F172A;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+  --color-accent: #F1F5F9;
+  --color-accent-foreground: #0F172A;
+  --color-destructive: #BE123C;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-input: #E2E8F0;
+  --color-ring: #2563EB;
+
+  /* Restrained Accent Spectrum */
+  --color-accent-blue: #2563EB;
+  --color-accent-blue-subtle: #EFF6FF;
+  --color-accent-blue-border: #BFDBFE;
+  --color-accent-cyan: #0891B2;
+  --color-accent-cyan-subtle: #ECFEFF;
+  --color-accent-cyan-border: #A5F3FC;
+  --color-accent-violet: #7C3AED;
+  --color-accent-violet-subtle: #F5F3FF;
+  --color-accent-violet-border: #DDD6FE;
+
+  /* Navy Scale */
+  --color-navy-950: #0A0F1D;
+  --color-navy-900: #0F172A;
+  --color-navy-800: #1E293B;
+  --color-navy-700: #334155;
+  --color-navy-600: #475569;
+  --color-navy-500: #64748B;
+  --color-navy-400: #94A3B8;
+  --color-navy-300: #CBD5E1;
+  --color-navy-200: #E2E8F0;
+  --color-navy-100: #F1F5F9;
+  --color-navy-50: #F8FAFC;
+
+  /* Confidence System Tokens */
+  --color-confidence-high: #047857;
+  --color-confidence-high-bg: #ECFDF5;
+  --color-confidence-high-border: #A7F3D0;
+  --color-confidence-med: #B45309;
+  --color-confidence-med-bg: #FFFBEB;
+  --color-confidence-med-border: #FDE68A;
+  --color-confidence-low: #475569;
+  --color-confidence-low-bg: #F8FAFC;
+  --color-confidence-low-border: #E2E8F0;
+
+  /* Tier System Tokens */
+  --color-tier-must: #BE123C;
+  --color-tier-must-bg: #FFF1F2;
+  --color-tier-must-border: #FECDD3;
+  --color-tier-should: #1D4ED8;
+  --color-tier-should-bg: #EFF6FF;
+  --color-tier-should-border: #BFDBFE;
+  --color-tier-nice: #475569;
+  --color-tier-nice-bg: #F8FAFC;
+  --color-tier-nice-border: #E2E8F0;
+
+  /* Shadows (Restrained, Crisp) */
+  --shadow-subtle: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+  --shadow-drawer: -4px 0 24px -2px rgba(15, 23, 42, 0.12);
+
+  /* Radius */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+}
+
+:root {
+  --background: #F8F9FB;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #0F172A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
+  --destructive: #BE123C;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #2563EB;
+}
+
+/* Base typography and body reset */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Product App dense layout utilities */
+.table-dense th {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.table-dense td {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+}
