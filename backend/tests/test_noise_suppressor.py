@@ -178,3 +178,46 @@ def test_filter_and_run_pipeline():
     assert result["metrics"]["signals_kept"] == 2
     assert len(result["kept_signals"]) == 2
     assert len(result["suppressed_signals"]) == 2
+
+
+def test_entity_disambiguation_false_positives():
+    # Cat in the Hat incident has security keyword 'incident', but is NOT about Stripe
+    cat_signal = {
+        "id": "sig_cat_test",
+        "source": "news",
+        "company": "Stripe",
+        "title": "Cat in the Hat suspect who chased a teen girl in B.C. appears to be a trend copycat",
+        "url": "https://www.cbc.ca/news/canada/british-columbia/cat-in-the-hat-trend-9.7339610",
+        "raw_excerpt": "A disturbing incident in which someone dressed in a Cat in the Hat costume chased a teenager in West Kelowna.",
+    }
+    is_noise, cat, reason = noise_suppressor.classify_signal(cat_signal)
+    assert is_noise is True
+    assert cat == noise_suppressor.CAT_ENTITY_DISAMBIGUATION
+    assert "Entity disambiguation" in reason
+
+    # Stars and Stripes news
+    stars_signal = {
+        "id": "sig_stars_test",
+        "source": "news",
+        "company": "Stripe",
+        "title": "Stars and Stripes journalists win press freedom award",
+        "url": "https://stripes.com/news",
+        "raw_excerpt": "Military paper Stars and Stripes honored for investigative reporting.",
+    }
+    is_noise, cat, _ = noise_suppressor.classify_signal(stars_signal)
+    assert is_noise is True
+    assert cat == noise_suppressor.CAT_ENTITY_DISAMBIGUATION
+
+    # Real Stripe fintech news must be kept
+    real_stripe_signal = {
+        "id": "sig_real_stripe",
+        "source": "news",
+        "company": "Stripe",
+        "title": "Stripe introduces new Payment Request API for global checkout",
+        "url": "https://stripe.com/newsroom",
+        "raw_excerpt": "Fintech platform Stripe announced updates to its payments checkout API for merchants.",
+    }
+    is_noise, cat, _ = noise_suppressor.classify_signal(real_stripe_signal)
+    assert is_noise is False
+    assert cat is None
+
