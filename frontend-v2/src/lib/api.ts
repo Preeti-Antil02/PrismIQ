@@ -32,8 +32,11 @@ export interface TrackedCompany {
   added_at?: string;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = (
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
 
 export async function fetchSignals(params?: {
   company?: string;
@@ -51,7 +54,7 @@ export async function fetchSignals(params?: {
 
   const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/signals" : `${API_BASE_URL}/signals`;
-  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:3000");
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
 
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
@@ -138,7 +141,7 @@ export async function fetchEvents(params?: {
 
   const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/events" : `${API_BASE_URL}/events`;
-  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:3000");
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
 
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
@@ -175,7 +178,7 @@ export async function fetchEvents(params?: {
 export async function fetchEventDetail(eventId: string): Promise<ConsolidatedEventRecord> {
   const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? `/api/events/${eventId}` : `${API_BASE_URL}/events/${eventId}`;
-  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:3000");
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
 
   const res = await fetch(url.toString(), {
     headers: {

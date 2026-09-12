@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { getClientAuthToken } from "@/lib/auth";
 
+const BACKEND_BASE = (
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
+
 export async function GET() {
-  const backendUrl = "http://127.0.0.1:8000/findings";
+  const backendUrl = `${BACKEND_BASE}/findings`;
   const token = getClientAuthToken();
 
   try {

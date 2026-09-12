@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getClientAuthToken } from "@/lib/auth";
 
+const BACKEND_BASE = (
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const backendUrl = new URL("http://127.0.0.1:8000/signals");
+  const backendUrl = new URL(`${BACKEND_BASE}/signals`);
 
   searchParams.forEach((val, key) => {
     backendUrl.searchParams.set(key, val);

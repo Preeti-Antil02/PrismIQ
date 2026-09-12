@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getClientAuthToken } from "@/lib/auth";
 
-const BACKEND_BASE = "http://127.0.0.1:8000";
+const BACKEND_BASE = (
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
 
 async function proxy(req: NextRequest, context: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await context.params;
