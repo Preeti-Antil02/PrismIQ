@@ -297,3 +297,21 @@ def test_onboarding_discover_and_confirm_endpoints(monkeypatch, auth_headers):
     assert conf_data["tracked_companies"][0]["is_target"] is True
     assert conf_data["tracked_companies"][1]["company_name"] == "Mixpanel"
     assert conf_data["tracked_companies"][1]["is_target"] is False
+
+
+def test_signals_unauthorized():
+    res = client.get("/signals")
+    assert res.status_code == 401
+
+
+def test_signals_authenticated_empty(auth_headers):
+    res = client.get("/signals", headers=auth_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "signals" in data
+    assert "count" in data
+    assert "noise_suppressed_count" in data
+    assert isinstance(data["signals"], list)
+    assert isinstance(data["count"], int)
+    assert isinstance(data["noise_suppressed_count"], int)
+
