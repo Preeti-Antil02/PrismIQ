@@ -210,7 +210,7 @@ export default function ResearchRadarPage() {
                       </h3>
 
                       <div className="flex flex-wrap gap-1 mt-2 mb-3">
-                        {topic.keywords.slice(0, 3).map((kw) => (
+                        {(topic.keywords || []).slice(0, 3).map((kw) => (
                           <span
                             key={kw}
                             className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 font-mono"
@@ -218,9 +218,9 @@ export default function ResearchRadarPage() {
                             {kw}
                           </span>
                         ))}
-                        {topic.keywords.length > 3 && (
+                        {(topic.keywords?.length || 0) > 3 && (
                           <span className="text-[10px] text-slate-400">
-                            +{topic.keywords.length - 3}
+                            +{(topic.keywords?.length || 0) - 3}
                           </span>
                         )}
                       </div>
@@ -235,7 +235,7 @@ export default function ResearchRadarPage() {
                               {activeConns.length} active moves
                             </span>
                           ) : (
-                            <span className="text-slate-400">0 competitor moves</span>
+                            <span className="text-slate-400">0 active</span>
                           )}
                         </span>
                       </div>
@@ -263,7 +263,7 @@ export default function ResearchRadarPage() {
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <span>Monitored keywords:</span>
                       <div className="flex flex-wrap gap-1">
-                        {activeTopic.keywords.map((k) => (
+                        {(activeTopic.keywords || []).map((k) => (
                           <span
                             key={k}
                             className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-mono text-slate-700"
