@@ -138,13 +138,6 @@ export default function OverviewPage() {
       timestamp: brief?.date ? formatTimestamp(brief.date) : "Latest cycle",
       tier: "Must-Know",
       confidence: "High",
-      confidenceNuance: {
-        level: "High",
-        score: 0.92,
-        isCorroborated: true,
-        corroborationCount: 2,
-        reason: "Corroborated across primary event signal and synthesis pipeline verification.",
-      },
       fact: item.fact || `Documented primary observation: ${item.title}`,
       inference: item.whyItMatters || "Strategic competitive implication extracted by inference engine.",
       sources: item.url
@@ -158,16 +151,7 @@ export default function OverviewPage() {
               isValid: true,
             },
           ]
-        : [
-            {
-              id: "src-fallback",
-              title: `${item.company} Intelligence Document`,
-              url: "https://example.com/source",
-              sourceType: "Analysis",
-              isValid: true,
-            },
-          ],
-      corroborationCount: 2,
+        : [],
     });
     setDrawerOpen(true);
   };
