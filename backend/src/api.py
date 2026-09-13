@@ -1089,6 +1089,8 @@ def get_latest_radar_endpoint(
         lbl = top.get("topic_label", "")
         prior = storage.get_prior_radar_evaluation(tenant_id, lbl)
         if prior:
+            prior["keywords"] = top.get("keywords") or []
+            prior["topic_id"] = str(top.get("id") or "")
             evals.append(prior)
         else:
             topic_items = storage.get_research_items_for_topics([lbl])
