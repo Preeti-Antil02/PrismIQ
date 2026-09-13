@@ -148,7 +148,7 @@ export default function SingleTopicDetailPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500">Keywords:</span>
                   <div className="flex flex-wrap gap-1">
-                    {evaluation.keywords.map((k) => (
+                    {(evaluation.keywords || []).map((k) => (
                       <span
                         key={k}
                         className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-mono text-slate-700"
