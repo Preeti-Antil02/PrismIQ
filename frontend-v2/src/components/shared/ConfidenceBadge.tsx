@@ -49,7 +49,9 @@ export function ConfidenceBadge({
         {nuance?.corroborationCount !== undefined && nuance.corroborationCount > 1 && (
           <div className="flex items-center gap-1 text-emerald-300">
             <Sparkles className="h-3 w-3" />
-            <span>Boosted by {nuance.corroborationCount} corroborating sources</span>
+            <span>
+              Supported by {nuance.corroborationCount} sources (1 primary, {nuance.corroborationCount - 1} corroborating)
+            </span>
           </div>
         )}
         {nuance?.isSelfRated && (
