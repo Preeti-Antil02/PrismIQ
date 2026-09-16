@@ -708,20 +708,35 @@ def list_signals(
         return {"signals": [], "count": 0, "noise_suppressed_count": 0}
 
 
+def _clean_why_it_matters(val: Optional[str]) -> Optional[str]:
+    """Sanitize why_it_matters to prevent rate-limit errors or failed analyses from posing as strategic conclusions."""
+    if not val:
+        return None
+    s = str(val).strip()
+    s_lower = s.lower()
+    if "rate limit" in s_lower or "analysis unavailable" in s_lower or "analysis failed" in s_lower:
+        return None
+    return s
+
+
 @app.get("/events")
 def list_events(
     company: Optional[str] = Query(None, description="Filter by company name"),
     tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
     confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
+    include_all: bool = Query(False, description="Include all raw event records without event quality filtering"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
     List consolidated real-world events for tenant's tracked companies.
-    Per spec section 3.4:
+    Per spec section 3.4 & Event Quality Rule:
     - Primary question: What real-world events happened, and what's the evidence behind each one?
     - Data source: consolidated_events + event_signals + findings.
+    - Preserves real-world occurrences (multi-source corroborated events, official announcements,
+      security CVEs, major releases, executive leadership hiring).
+    - Routine standalone GitHub noise and single IC job postings remain in Signals, not Events.
     """
     try:
         with storage.get_tenant_db_cursor(tenant_id) as cur:
@@ -754,11 +769,39 @@ def list_events(
             """
             params: List[Any] = [tenant_id]
 
+            if not include_all:
+                base_query += """
+                  AND (
+                    ce.corroboration_count > 1
+                    OR ce.contributing_sources ? 'news'
+                    OR ce.contributing_sources ? 'research'
+                    OR ce.contributing_sources ? 'pricing'
+                    OR (
+                        ce.contributing_sources ? 'jobs'
+                        AND ce.title ~* '(vp|vice president|director|head of|chief|principal|fellow)'
+                    )
+                    OR (
+                        ce.contributing_sources ? 'github'
+                        AND ce.title ~* '(release|v\\d+\\.\\d+|cve-\\d{4}-\\d+|vulnerab|security|incident|outage)'
+                        AND NOT ce.title ~* '^(GitHub (IssueComment|PullRequest|Push|WatchEvent|ForkEvent|Created branch)|\\d+ user(s)? (started watching|forked))'
+                    )
+                  )
+                  AND NOT (
+                    ce.corroboration_count = 1
+                    AND ce.title ~* '^(GitHub (IssueComment|PullRequest|Push|WatchEvent|ForkEvent|Created branch)|\\d+ user(s)? (started watching|forked)|GitHub Issue (closed|opened|labeled):)'
+                  )
+                  AND NOT (
+                    ce.corroboration_count = 1
+                    AND ce.contributing_sources = '["jobs"]'::jsonb
+                    AND NOT ce.title ~* '(vp|vice president|director|head of|chief|principal|fellow)'
+                  )
+                """
+
             if company:
                 base_query += " AND ce.company_name = %s"
                 params.append(company)
             if tier:
-                base_query += " AND (LOWER(f.tier) = LOWER(%s) OR (f.tier IS NULL AND LOWER(%s) = 'nice-to-know'))"
+                base_query += " AND (REPLACE(LOWER(f.tier), '_', '-') = REPLACE(LOWER(%s), '_', '-') OR (f.tier IS NULL AND REPLACE(LOWER(%s), '_', '-') = 'nice-to-know'))"
                 params.extend([tier, tier])
             if confidence:
                 base_query += " AND (LOWER(ce.fact_confidence) = LOWER(%s) OR LOWER(f.confidence) = LOWER(%s))"
@@ -803,7 +846,7 @@ def list_events(
                     "url": r[10],
                     "raw_excerpt": r[11],
                     "fact_confidence": r[12] or "Medium",
-                    "why_it_matters": r[13],
+                    "why_it_matters": _clean_why_it_matters(r[13]),
                     "confidence": r[14] or r[12] or "Medium",
                     "inference_confidence": r[15],
                     "tier": r[16] or "Nice-to-Know",
@@ -884,7 +927,7 @@ def get_event_detail(
                 "url": r[10],
                 "raw_excerpt": r[11],
                 "fact_confidence": r[12] or "Medium",
-                "why_it_matters": r[13],
+                "why_it_matters": _clean_why_it_matters(r[13]),
                 "confidence": r[14] or r[12] or "Medium",
                 "inference_confidence": r[15],
                 "tier": r[16] or "Nice-to-Know",
