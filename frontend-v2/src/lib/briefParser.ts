@@ -32,6 +32,7 @@ export interface ParsedBrief {
   mustKnow: TierFindingItem[];
   shouldKnow: TierFindingItem[];
   otherActivity: TierFindingItem[];
+  executiveSummary?: string;
   partialFailure?: {
     sourceName: string;
     details: string;
@@ -49,11 +50,11 @@ export function parseBriefMarkdown(content: string): ParsedBrief {
 
   if (!content) return result;
 
-  // 1. Check for partial source failures (Decision Point 1 / Part 9.4)
+  // 1. Check for partial source failures
   if (content.toLowerCase().includes("unavailable due to rate limits") || content.toLowerCase().includes("degraded")) {
     result.partialFailure = {
-      sourceName: "News & Analysis Upstream",
-      details: "One or more secondary sources encountered temporary rate limits during this collection cycle. Findings were consolidated from verified primary signals.",
+      sourceName: "Secondary Sources",
+      details: "A few secondary sources hit temporary rate limits. Your intelligence was still generated from verified primary signals.",
     };
   }
 
@@ -68,6 +69,20 @@ export function parseBriefMarkdown(content: string): ParsedBrief {
       headline: match[3].trim(),
       impact: match[4].replace(/\s+/g, " ").trim(),
     });
+  }
+
+  // 2b. Extract Executive Summary Text
+  const execSectionMatch = content.match(/(?:###?\s*Executive Summary(?: Rollup)?)\s*([\s\S]*?)(?=\n##|$)/i);
+  if (execSectionMatch && execSectionMatch[1]) {
+    const rawExecText = execSectionMatch[1]
+      .split("\n")
+      .filter((l) => !l.startsWith("|") && l.trim().length > 0)
+      .join("\n")
+      .replace(/\*\*/g, "")
+      .trim();
+    if (rawExecText) {
+      result.executiveSummary = rawExecText;
+    }
   }
 
   // 3. Extract Executive Summary Table
@@ -98,7 +113,9 @@ export function parseBriefMarkdown(content: string): ParsedBrief {
   let currentItem: Partial<TierFindingItem> | null = null;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+    const isIndented = rawLine.startsWith("  ") || rawLine.startsWith("\t") || rawLine.startsWith("    ");
 
     // Detect company header: ### Vercel or #### Cloudflare
     if (line.startsWith("### ") && !line.includes("Theme:")) {
@@ -128,8 +145,19 @@ export function parseBriefMarkdown(content: string): ParsedBrief {
       continue;
     }
 
-    // New item starts with - **[Title](url)** or - **Title**
-    if (line.startsWith("- **")) {
+    // Sub-bullet detection
+    const isSubBullet =
+      isIndented ||
+      line.toLowerCase().startsWith("- **source") ||
+      line.toLowerCase().startsWith("- **confidence") ||
+      line.toLowerCase().startsWith("- **date") ||
+      line.toLowerCase().startsWith("- **why it matters") ||
+      line.toLowerCase().startsWith("- **fact") ||
+      line.toLowerCase().startsWith("*source:") ||
+      line.toLowerCase().startsWith("*date:");
+
+    // New item starts with - **[Title](url)** or - **Title** or - [Title](url) (and is NOT a sub-bullet)
+    if (!isSubBullet && (line.startsWith("- **") || line.startsWith("- ["))) {
       if (currentItem && currentItem.title && currentTier) {
         saveItem(currentTier, currentItem as TierFindingItem, result);
       }
@@ -144,23 +172,38 @@ export function parseBriefMarkdown(content: string): ParsedBrief {
         currentItem.title = linkMatch[1];
         currentItem.url = linkMatch[2];
       } else {
-        const titleMatch = line.match(/- \*\*(.*?)\*\*/);
-        if (titleMatch) {
-          currentItem.title = titleMatch[1];
+        const linkMatch2 = line.match(/- \[(.*?)\]\((.*?)\)/);
+        if (linkMatch2) {
+          currentItem.title = linkMatch2[1];
+          currentItem.url = linkMatch2[2];
         } else {
-          currentItem.title = line.replace(/^[-\s*]+/, "");
+          const titleMatch = line.match(/- \*\*(.*?)\*\*/);
+          if (titleMatch) {
+            currentItem.title = titleMatch[1];
+          } else {
+            currentItem.title = line.replace(/^[-\s*]+/, "");
+          }
         }
       }
       continue;
     }
 
-    // Sub-bullets for Why it matters or Fact
+    // Sub-bullets for Source, Why it matters or Fact
     if (currentItem) {
+      if (line.toLowerCase().includes("source:") && (line.includes("|") || isIndented)) {
+        // extract source metadata
+        const parts = line.split("|").map((p) => p.trim());
+        for (const p of parts) {
+          if (p.toLowerCase().includes("source:")) {
+            currentItem.sourceType = p.replace(/^[-\s*]*(\*\*)?source(\*\*)?:?/i, "").trim();
+          }
+        }
+      }
       if (line.toLowerCase().includes("why it matters:") || line.toLowerCase().includes("- why it matters:")) {
-        currentItem.whyItMatters = line.replace(/^[-\s*]*why it matters:?/i, "").trim();
+        currentItem.whyItMatters = line.replace(/^[-\s*]*(\*\*)?why it matters(\*\*)?:?/i, "").trim();
       } else if (line.toLowerCase().includes("fact:") || line.toLowerCase().includes("- fact:")) {
-        currentItem.fact = line.replace(/^[-\s*]*fact:?/i, "").trim();
-      } else if (line.startsWith("- ") && !currentItem.whyItMatters) {
+        currentItem.fact = line.replace(/^[-\s*]*(\*\*)?fact(\*\*)?:?/i, "").trim();
+      } else if (line.startsWith("- ") && !currentItem.whyItMatters && isIndented) {
         currentItem.whyItMatters = line.replace(/^-\s*/, "").trim();
       }
     }
@@ -174,6 +217,27 @@ export function parseBriefMarkdown(content: string): ParsedBrief {
 }
 
 function saveItem(tier: "must" | "should" | "other", item: TierFindingItem, result: ParsedBrief) {
+  const cleanTitle = (item.title || "").trim();
+  const lower = cleanTitle.toLowerCase();
+
+  // Filter out noise / telemetry artifacts
+  if (
+    !cleanTitle ||
+    cleanTitle.length < 5 ||
+    lower === "source" ||
+    lower === "confidence" ||
+    lower === "date" ||
+    lower.startsWith("source:") ||
+    lower.startsWith("confidence:") ||
+    lower.startsWith("why it matters") ||
+    lower.startsWith("fact:")
+  ) {
+    return;
+  }
+
+  // Ensure title doesn't retain leading or trailing brackets
+  item.title = cleanTitle.replace(/^\[+|\]+$/g, "");
+
   if (tier === "must") result.mustKnow.push(item);
   else if (tier === "should") result.shouldKnow.push(item);
   else result.otherActivity.push(item);
