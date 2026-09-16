@@ -53,7 +53,7 @@ export default function DesignSystemShowcase() {
       reason: "Confirmed across official GitHub PR, changelog RSS, and developer blog.",
     },
     fact: "Vercel merged PR #48921 adding native multi-zone support to Edge Middleware runtime, allowing independent team deployments without routing coordination.",
-    inference: "Direct competitive move against Cloudflare Workers micro-routing; significantly lowers migration friction for enterprise Next.js customers who currently require custom proxy clusters.",
+    inference: "May lower routing coordination friction for multi-tenant Next.js projects. The available evidence confirms feature merge, but PrismIQ does not currently have comparative telemetry to evaluate whether this creates a competitive advantage over alternative edge runtimes.",
     corroborationCount: 3,
     sources: [
       {
