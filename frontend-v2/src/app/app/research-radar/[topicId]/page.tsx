@@ -286,7 +286,7 @@ export default function SingleTopicDetailPage() {
                         </h3>
                       </div>
                       <span className="text-[11px] text-slate-500">
-                        Audited sweep of all monitored channels with zero matching signals
+                        Audited sweep of all monitored source categories with zero matching signals
                       </span>
                     </div>
 
@@ -315,7 +315,7 @@ export default function SingleTopicDetailPage() {
                               {connection.reason}
                             </p>
                             <div className="border-t border-slate-100 pt-2 text-[10px] text-slate-400 flex items-center justify-between">
-                              <span>Audited channels:</span>
+                              <span>Audited source categories:</span>
                               <span className="font-mono text-slate-600">{queried.join(", ")}</span>
                             </div>
                           </div>
