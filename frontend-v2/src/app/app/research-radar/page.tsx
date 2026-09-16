@@ -402,7 +402,7 @@ export default function ResearchRadarPage() {
                           </h4>
                         </div>
                         <span className="text-[11px] text-slate-500">
-                          Audited negative verification across all monitored channels
+                          Audited negative verification across all monitored source categories
                         </span>
                       </div>
 
