@@ -20,6 +20,7 @@ import { SignalSourceBadge } from "@/components/shared/SignalSourceBadge";
 import { ClassifierBadge } from "@/components/shared/ClassifierBadge";
 import { TierBadge } from "@/components/shared/TierBadge";
 import { ConfidenceBadge } from "@/components/shared/ConfidenceBadge";
+import { formatEvidenceCount } from "@/lib/evidenceUtils";
 import { EvidenceDrawer, type EvidenceDrawerData } from "@/components/shared/EvidenceDrawer";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
 import {
@@ -478,11 +479,9 @@ export default function CompetitorProfilePage() {
                                     <ConfidenceBadge
                                       level={(event.fact_confidence || "Medium") as ConfidenceLevel}
                                     />
-                                    {event.corroboration_count > 1 && (
-                                      <span className="text-[10px] text-slate-500">
-                                        {event.corroboration_count} corroborating sources
-                                      </span>
-                                    )}
+                                    <span className="text-[10px] text-slate-500">
+                                      {formatEvidenceCount(event.corroboration_count, 1)}
+                                    </span>
                                     {event.published_at && (
                                       <span className="text-[10px] text-slate-400">
                                         {event.published_at}
