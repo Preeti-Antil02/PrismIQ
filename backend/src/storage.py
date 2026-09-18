@@ -618,14 +618,20 @@ def save_brief(
     with open(timestamped_report, "w", encoding="utf-8") as f:
         f.write(content)
 
-    with open(default_report_file, "w", encoding="utf-8") as f:
-        f.write(content)
+    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+    if tid == owner_id:
+        with open(default_report_file, "w", encoding="utf-8") as f:
+            f.write(content)
 
-    # Ensure backend/data/brief.md is also mirrored
-    data_brief_file = _backend_root / "data" / "brief.md"
-    if data_brief_file != default_report_file:
-        data_brief_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(data_brief_file, "w", encoding="utf-8") as f:
+        # Ensure backend/data/brief.md is also mirrored
+        data_brief_file = _backend_root / "data" / "brief.md"
+        if data_brief_file != default_report_file:
+            data_brief_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(data_brief_file, "w", encoding="utf-8") as f:
+                f.write(content)
+    else:
+        tenant_brief_file = data_dir / f"brief_{tid}.md"
+        with open(tenant_brief_file, "w", encoding="utf-8") as f:
             f.write(content)
 
     return timestamped_report
@@ -900,6 +906,36 @@ def track_tenant_company(tenant_id: str, company_name: str, is_target: bool = Fa
             "status": row[2],
             "added_at": row[3].isoformat() if row[3] else now_dt.isoformat(),
         }
+
+
+def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
+    """
+    Retrieve active tracked companies for the authenticated tenant under RLS context.
+    Returns list of dicts with company_name, is_target, status, added_at.
+    """
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT company_name, is_target, status, added_at
+                    FROM tenant_tracked_companies
+                    WHERE status = 'active'
+                    ORDER BY is_target DESC, company_name ASC;
+                """)
+                rows = cur.fetchall()
+                comps = []
+                for r in rows:
+                    comps.append({
+                        "company_name": r[0],
+                        "is_target": r[1],
+                        "status": r[2],
+                        "added_at": r[3].isoformat() if r[3] else None,
+                    })
+                return comps
+        except Exception as e:
+            logger.warning(f"Failed to query tenant tracked companies from Postgres: {e}")
+
+    return []
 
 
 def load_confirmed_competitors(
