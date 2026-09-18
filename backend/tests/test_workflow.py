@@ -3,6 +3,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
+from unittest.mock import patch
 import pytest
 
 # Ensure backend root is on sys.path
@@ -10,7 +11,7 @@ backend_path = Path(__file__).resolve().parent.parent
 if str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
 
-from src import workflow, monitoring_agent, pricing_extractor, report_agent
+from src import workflow, monitoring_agent, pricing_extractor, report_agent, storage
 
 
 def test_langgraph_workflow_graph_compilation():
@@ -151,3 +152,55 @@ def test_decision_point_2_supervisor_pricing_stale_triggers_run(tmp_path, monkey
     )
     assert is_fresh is False
     assert "refresh needed" in reason.lower()
+
+
+def test_progressive_pipeline_per_company_persistence():
+    """Verify progressive execution updates run state per company and marks completion."""
+    fake_signals_comp1 = [{
+        "source": "news",
+        "company": "CompanyAlpha",
+        "title": "Alpha Launches V2",
+        "url": "https://alpha.example.com",
+        "published_at": "2026-08-20T10:00:00Z",
+        "raw_excerpt": "Launch details",
+    }]
+    fake_signals_comp2 = [{
+        "source": "github",
+        "company": "CompanyBeta",
+        "title": "Beta Releases SDK",
+        "url": "https://beta.example.com",
+        "published_at": "2026-08-21T10:00:00Z",
+        "raw_excerpt": "SDK details",
+    }]
+
+    def _mock_fetch_comp(company, *args, **kwargs):
+        if company == "CompanyAlpha":
+            return fake_signals_comp1, {"news": {"status": "ok"}}
+        return fake_signals_comp2, {"github": {"status": "ok"}}
+
+    mock_analysis = {
+        "why_it_matters": "Strategic expansion.",
+        "confidence": "High",
+        "fact_confidence": "High",
+        "inference_confidence": "Medium",
+    }
+
+    with patch("src.monitoring_agent.fetch_company_signals", side_effect=_mock_fetch_comp), \
+         patch("src.analysis_agent._call_groq", return_value=mock_analysis), \
+         patch("src.synthesis_agent.run", return_value={"themes": {}, "enriched_findings": []}), \
+         patch("src.report_agent.run", return_value="# Executive Brief\nAll clear"), \
+         patch("src.delivery_agent.run", return_value={"digest_text": "digest", "delivery_status": {"status": "skipped"}}):
+
+        res = workflow.run_progressive_pipeline(
+            companies=["CompanyAlpha", "CompanyBeta"],
+            is_first_run=True,
+        )
+
+        assert res is not None
+        progress = storage.get_active_or_latest_run_progress()
+        assert progress is not None
+        assert progress["status"] == "completed"
+        assert progress["completed_companies"] == 2
+        assert "CompanyAlpha" in progress["completed_company_names"]
+        assert "CompanyBeta" in progress["completed_company_names"]
+
