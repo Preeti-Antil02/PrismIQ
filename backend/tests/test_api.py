@@ -315,3 +315,81 @@ def test_signals_authenticated_empty(auth_headers):
     assert isinstance(data["count"], int)
     assert isinstance(data["noise_suppressed_count"], int)
 
+
+# ============================================================================
+# Authentication API Endpoint Tests
+# ============================================================================
+
+def test_auth_signup_validation():
+    # Missing/invalid email
+    r_bad_email = client.post("/api/auth/signup", json={"email": "bademail", "password": "password123"})
+    assert r_bad_email.status_code == 400
+
+    # Password too short
+    r_short_pw = client.post("/api/auth/signup", json={"email": "user@test.com", "password": "123"})
+    assert r_short_pw.status_code in (400, 422)
+
+    # Valid signup
+    r_ok = client.post("/api/auth/signup", json={"email": "newuser@test.com", "password": "securepassword123", "full_name": "Test User"})
+    assert r_ok.status_code == 200
+    data = r_ok.json()
+    assert "token" in data
+    assert data["user"]["email"] == "newuser@test.com"
+    assert data["user"]["name"] == "Test User"
+    assert data["onboarding_complete"] is False
+
+
+def test_auth_login_validation():
+    # Empty credentials
+    r_empty = client.post("/api/auth/login", json={"email": "", "password": ""})
+    assert r_empty.status_code in (400, 422)
+
+    # Invalid credentials
+    r_invalid = client.post("/api/auth/login", json={"email": "unknown@test.com", "password": "wrongpassword"})
+    assert r_invalid.status_code == 401
+
+    # Demo user login
+    r_demo = client.post("/api/auth/login", json={"email": "demo@prismiq.ai", "password": "password123"})
+    assert r_demo.status_code == 200
+    demo_data = r_demo.json()
+    assert "token" in demo_data
+    assert demo_data["user"]["email"] == "demo@prismiq.ai"
+
+
+def test_auth_me_endpoint(auth_headers):
+    # Unauthenticated rejected
+    r_no_auth = client.get("/api/auth/me")
+    assert r_no_auth.status_code == 401
+
+    # Authenticated returns tenant info
+    r_auth = client.get("/api/auth/me", headers=auth_headers)
+    assert r_auth.status_code == 200
+    data = r_auth.json()
+    assert "user" in data
+    assert "onboarding_complete" in data
+    assert "tracked_companies_count" in data
+
+
+def test_pipeline_status_and_trigger_endpoints(auth_headers, monkeypatch):
+    # 1. Unauthenticated /api/pipeline/status is rejected
+    r_no_auth = client.get("/api/pipeline/status")
+    assert r_no_auth.status_code == 401
+
+    # 2. Authenticated /api/pipeline/status returns status structure
+    r_status = client.get("/api/pipeline/status", headers=auth_headers)
+    assert r_status.status_code == 200
+    status_data = r_status.json()
+    assert "status" in status_data
+    assert "current_phase" in status_data
+    assert "progress_message" in status_data
+    assert "is_active" in status_data
+
+    # 3. Authenticated POST /api/pipeline/trigger launches run
+    monkeypatch.setattr("src.workflow.run_progressive_pipeline", lambda *args, **kwargs: {})
+    r_trig = client.post("/api/pipeline/trigger", json={"is_first_run": True}, headers=auth_headers)
+    assert r_trig.status_code == 200
+    trig_data = r_trig.json()
+    assert trig_data["status"] in ("triggered", "already_running")
+
+
+
