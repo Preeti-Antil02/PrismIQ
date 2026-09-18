@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
+import { ClientProviders } from "@/components/shared/ClientProviders";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,8 +34,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${jetbrainsMono.variable} ${newsreader.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#08090C] text-[#F3F4F6] selection:bg-blue-600 selection:text-white">
-        {children}
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
 }
+
