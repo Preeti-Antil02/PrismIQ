@@ -398,6 +398,40 @@ DROP POLICY IF EXISTS shared_read_all ON eval_grading_records;
 CREATE POLICY shared_read_all ON eval_grading_records FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS shared_read_all ON research_items;
-CREATE POLICY shared_read_all ON research_items FOR SELECT TO authenticated USING (true);
+-- 19. Pipeline Run Progress Table (Real-time monitoring state and honest telemetry)
+CREATE TABLE IF NOT EXISTS pipeline_run_progress (
+    run_id VARCHAR(64) PRIMARY KEY,
+    tenant_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    status VARCHAR(50) NOT NULL DEFAULT 'running', -- 'running', 'completed', 'failed', 'timed_out'
+    current_phase VARCHAR(100) NOT NULL DEFAULT 'initializing', -- 'initializing', 'fetching_signals', 'analyzing', 'synthesizing', 'generating_report', 'completed', 'failed', 'timed_out'
+    progress_message TEXT NOT NULL DEFAULT 'Continuous monitoring active',
+    total_companies INT NOT NULL DEFAULT 0,
+    completed_companies INT NOT NULL DEFAULT 0,
+    completed_company_names JSONB NOT NULL DEFAULT '[]'::jsonb,
+    current_company VARCHAR(255),
+    total_sources INT NOT NULL DEFAULT 0,
+    completed_sources INT NOT NULL DEFAULT 0,
+    source_health JSONB NOT NULL DEFAULT '{}'::jsonb,
+    source_errors JSONB NOT NULL DEFAULT '{}'::jsonb,
+    first_visible_data_at TIMESTAMPTZ,
+    time_to_first_data_seconds NUMERIC(8, 2),
+    is_first_run BOOLEAN NOT NULL DEFAULT FALSE,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    total_duration_seconds NUMERIC(8, 2)
+);
+
+CREATE INDEX IF NOT EXISTS idx_run_progress_tenant ON pipeline_run_progress(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_run_progress_status ON pipeline_run_progress(status);
+CREATE INDEX IF NOT EXISTS idx_run_progress_started ON pipeline_run_progress(started_at DESC);
+
+-- RLS Policy for pipeline_run_progress
+ALTER TABLE pipeline_run_progress ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON pipeline_run_progress;
+CREATE POLICY tenant_isolation_all ON pipeline_run_progress FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid()) OR tenant_id IS NULL)
+    WITH CHECK (tenant_id = (SELECT auth.uid()) OR tenant_id IS NULL);
 
 
