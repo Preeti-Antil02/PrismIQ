@@ -532,10 +532,16 @@ export interface WorkspaceSettings {
 }
 
 export interface DiscoveryCandidate {
-  company_name: string;
-  confidence: number;
-  reasons: string[];
+  company_name?: string;
+  name?: string;
+  confidence?: string | number;
+  reasons?: string[];
+  rationale?: string;
   sources?: string[];
+  source?: string;
+  source_age?: string;
+  source_date?: string;
+  freshness_note?: string;
   website?: string;
 }
 
@@ -707,3 +713,78 @@ export async function fetchWorkspaceSettings(): Promise<WorkspaceSettings> {
   }
   return res.json();
 }
+
+export interface PipelineProgress {
+  run_id?: string;
+  status: "idle" | "running" | "completed" | "failed" | "timed_out";
+  current_phase: string;
+  progress_message: string;
+  total_companies: number;
+  completed_companies: number;
+  completed_company_names: string[];
+  current_company?: string;
+  total_sources?: number;
+  completed_sources?: number;
+  source_health?: Record<string, any>;
+  source_errors?: Record<string, any>;
+  first_visible_data_at?: string | null;
+  time_to_first_data_seconds?: number | null;
+  is_first_run?: boolean;
+  started_at?: string;
+  updated_at?: string;
+  completed_at?: string | null;
+  total_duration_seconds?: number | null;
+  is_active: boolean;
+}
+
+export async function fetchPipelineStatus(): Promise<PipelineProgress> {
+  const token = getClientAuthToken();
+  const baseUrl = typeof window !== "undefined" ? "/api/pipeline/status" : `${API_BASE_URL}/api/pipeline/status`;
+  try {
+    const res = await fetch(baseUrl, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return {
+        status: "idle",
+        current_phase: "idle",
+        progress_message: "Continuous monitoring active",
+        total_companies: 0,
+        completed_companies: 0,
+        completed_company_names: [],
+        is_active: false,
+      };
+    }
+    return res.json();
+  } catch {
+    return {
+      status: "idle",
+      current_phase: "idle",
+      progress_message: "Continuous monitoring active",
+      total_companies: 0,
+      completed_companies: 0,
+      completed_company_names: [],
+      is_active: false,
+    };
+  }
+}
+
+export async function triggerPipelineRun(
+  isFirstRun: boolean = false,
+  sources?: string[]
+): Promise<{ status: string; message: string }> {
+  const token = getClientAuthToken();
+  const baseUrl = typeof window !== "undefined" ? "/api/pipeline/trigger" : `${API_BASE_URL}/api/pipeline/trigger`;
+  const res = await fetch(baseUrl, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ is_first_run: isFirstRun, sources }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to trigger pipeline (${res.status}): ${text}`);
+  }
+  return res.json();
+}
+
