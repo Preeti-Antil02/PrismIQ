@@ -108,7 +108,7 @@ export function OverviewAttentionGrid({
       {/* Asymmetric Intelligence Cockpit Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* ========================================================================= */}
-        {/* PRIMARY HERO CARD (01 STRIPE) — Left Dominant Feature Column             */}
+        {/* PRIMARY HERO CARD (01) — Left Dominant Feature Column                    */}
         {/* ========================================================================= */}
         <article
           className={cn(
@@ -185,7 +185,7 @@ export function OverviewAttentionGrid({
         {/* SECONDARY & TERTIARY STACK — Right Modular Co-Pilot Column                */}
         {/* ========================================================================= */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          {/* Card 02: Cloudflare */}
+          {/* Card 02: Secondary Finding */}
           {secondaryFinding && (
             <article
               className={cn(
@@ -254,7 +254,7 @@ export function OverviewAttentionGrid({
             </article>
           )}
 
-          {/* Card 03: Vercel */}
+          {/* Card 03: Tertiary Finding */}
           {tertiaryFinding && (
             <article
               className={cn(
