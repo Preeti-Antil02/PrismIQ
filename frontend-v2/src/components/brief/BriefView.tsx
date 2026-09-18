@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/timeUtils";
 import { formatEvidenceCount } from "@/lib/evidenceUtils";
 import { useEvidenceDrawer } from "@/components/layout/AppShell";
+import { useAuth } from "@/lib/AuthContext";
 import { TierBadge } from "@/components/primitives/TierBadge";
 import { ConfidenceBadge } from "@/components/primitives/ConfidenceBadge";
 import { FreshnessIndicator } from "@/components/primitives/FreshnessIndicator";
@@ -59,6 +60,7 @@ interface MajorDevelopment {
 export function BriefView({ initialBriefId }: BriefViewProps) {
   const router = useRouter();
   const { openDrawer } = useEvidenceDrawer();
+  const { user } = useAuth();
 
   const [briefs, setBriefs] = React.useState<BriefEntry[]>([]);
   const [activeBrief, setActiveBrief] = React.useState<BriefDetail | null>(null);
@@ -78,7 +80,7 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
     fetchWorkspaceTopics()
       .then((data) => setTopics(data))
       .catch(() => {});
-  }, []);
+  }, [user?.tenant_id]);
 
   React.useEffect(() => {
     setLoading(true);
@@ -93,7 +95,7 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
         setActiveBrief(null);
       })
       .finally(() => setLoading(false));
-  }, [initialBriefId]);
+  }, [initialBriefId, user?.tenant_id]);
 
   const targetCompany = React.useMemo(() => {
     return trackedCompanies.find((c) => c.is_target)?.company_name || trackedCompanies[0]?.company_name || "";
