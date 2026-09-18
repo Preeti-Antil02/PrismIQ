@@ -13,7 +13,8 @@ export async function GET(
 ) {
   const { briefId } = await params;
   const backendUrl = `${BACKEND_BASE}/briefs/${briefId}`;
-  const token = getClientAuthToken();
+  const incomingAuth = request.headers.get("authorization");
+  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 
   try {
     const res = await fetch(backendUrl, {
