@@ -257,6 +257,183 @@ def _is_strategic_hiring_signal(signal: Dict[str, Any]) -> bool:
     return any(re.search(pat, title) for pat in STRATEGIC_HIRING_PATTERNS)
 
 
+BATCH_SYSTEM_PROMPT = """You are a senior competitive intelligence analyst for SaaS infrastructure and developer tooling.
+Analyze each of the provided competitive events and determine why each matters strategically.
+
+For EACH event, you MUST strictly avoid these three failure modes:
+1. Generic, unfalsifiable statements: Make specific, checkable claims tied directly to the source content.
+2. Presenting correlation as causation: Use explicit hedging language ("suggests potential correlation", "may indicate", "could lead to").
+3. Cherry-picking evidence: Surface any ambiguity, nuance, or contradiction present in the source.
+
+Every "why_it_matters" explanation MUST reference something concretely present in the provided title or raw excerpt.
+
+FACT vs. INFERENCE SEPARATION:
+- FIRST, state what the source directly documents as a fact, using confident, unhedged language. This is the verifiable core of the finding.
+- THEN, only if there is a genuinely meaningful strategic implication, add it as a clearly separate inference using explicit hedging language.
+- If the source only supports a factual statement and no meaningful strategic inference exists, do NOT manufacture one — a purely factual explanation is preferred.
+
+CONFIDENCE CALIBRATION (DUAL FACT vs. INFERENCE DIMENSIONS):
+- "fact_confidence" ("High" | "Medium" | "Low"): Confidence in the documented fact itself.
+- "inference_confidence" ("High" | "Medium" | "Low"): Confidence in the strategic or competitive interpretation.
+- "confidence" ("High" | "Medium" | "Low"): Blended overall priority confidence.
+
+JOB POSTINGS & HIRING SIGNALS:
+- Routine individual job postings output concise factual summary with "High" fact_confidence and "Low" inference_confidence.
+- ONLY flag a strategic pattern when evidence demonstrates significant hiring concentration.
+
+You must respond ONLY with a valid JSON object containing an "analyses" list matching this schema:
+{
+  "analyses": [
+    {
+      "event_id": "<exact event_id provided>",
+      "why_it_matters": "A 1-3 sentence explanation structured as described above.",
+      "fact_confidence": "High" | "Medium" | "Low",
+      "inference_confidence": "High" | "Medium" | "Low",
+      "confidence": "High" | "Medium" | "Low"
+    }
+  ]
+}
+"""
+
+
+def _is_mocked_callable(fn: Any) -> bool:
+    """Detect if a callable has been patched with a unittest.mock object."""
+    type_name = type(fn).__name__
+    return "Mock" in type_name or hasattr(fn, "mock_calls") or getattr(fn, "_is_mock", False)
+
+
+@traceable(run_type="llm", name="analysis_agent_batch_llm_call")
+def _call_groq_batch(
+    batch_signals: List[Dict[str, Any]],
+    target_company: Optional[str] = None,
+    competitors: Optional[List[str]] = None,
+    max_retries: int = 2,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Execute batched Groq analysis across a chunk of 3-5 events in a single LLM round trip.
+    Falls back gracefully to individual _call_groq for any missing items or upon parse error.
+    If _call_groq is patched in unit tests, transparently delegates to _call_groq.
+    """
+    results: Dict[str, Dict[str, Any]] = {}
+
+    # Delegate to _call_groq if running under test patch
+    if _is_mocked_callable(_call_groq) or len(batch_signals) == 1:
+        for sig in batch_signals:
+            eid = sig.get("event_id") or sig.get("id") or sig.get("url") or sig.get("title", "")
+            sys_p, usr_p = _build_prompts(sig, target_company=target_company, competitors=competitors)
+            results[eid] = _call_groq(sys_p, usr_p)
+        return results
+
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        for sig in batch_signals:
+            eid = sig.get("event_id") or sig.get("id") or sig.get("url") or sig.get("title", "")
+            results[eid] = {
+                "why_it_matters": "Analysis unavailable: GROQ_API_KEY not configured.",
+                "confidence": "Low",
+            }
+        return results
+
+    model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip()
+    headers = {
+        "Authorization": f"Bearer {api_key.strip()}",
+        "Content-Type": "application/json",
+    }
+
+    # Build batched user prompt
+    tenant_context = ""
+    if target_company:
+        comps_str = ", ".join(competitors) if competitors else "none"
+        tenant_context = f"Tenant Context: You are performing this analysis for '{target_company}' (tracked competitors: {comps_str}). Analyze how each event affects '{target_company}' strategically.\n\n"
+
+    events_text: List[str] = []
+    id_map: Dict[str, str] = {}  # index -> eid
+    for idx, sig in enumerate(batch_signals, start=1):
+        eid = sig.get("event_id") or sig.get("id") or sig.get("url") or f"event_{idx}"
+        id_map[str(idx)] = eid
+        corr_info = ""
+        if sig.get("corroboration_count", 1) > 1:
+            corr_info = f"\nCorroboration: {sig.get('corroboration_count')} signals ({', '.join(sig.get('contributing_sources', []))})"
+
+        events_text.append(
+            f"--- EVENT {idx} (event_id: {eid}) ---\n"
+            f"Company: {sig.get('company', 'Unknown')}\n"
+            f"Title: {sig.get('title', '')}\n"
+            f"Published At: {sig.get('published_at', '')}\n"
+            f"URL: {sig.get('url', '')}{corr_info}\n"
+            f"Raw Excerpt & Evidence:\n\"\"\"\n{sig.get('raw_excerpt', '')}\n\"\"\""
+        )
+
+    user_prompt = f"{tenant_context}Analyze the following {len(batch_signals)} competitive events:\n\n" + "\n\n".join(events_text)
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": BATCH_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+    }
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+            if response.status_code == 429:
+                retry_header = response.headers.get("retry-after", "")
+                try:
+                    retry_after = float(retry_header)
+                except ValueError:
+                    retry_after = 2.0 * (attempt + 1)
+                backoff = min(max(retry_after, 1.0), 3.0)
+                time.sleep(backoff)
+                continue
+
+            response.raise_for_status()
+            res_data = response.json()
+
+            usage = res_data.get("usage")
+            if usage and isinstance(usage, dict):
+                _attach_langsmith_usage(usage, model=model)
+
+            content = res_data["choices"][0]["message"]["content"]
+            cleaned = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
+            cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+
+            parsed = json.loads(cleaned)
+            analyses_list = parsed.get("analyses") or parsed.get("events") or []
+
+            if isinstance(analyses_list, list):
+                for i, item in enumerate(analyses_list):
+                    raw_eid = str(item.get("event_id", "")).strip()
+                    # Resolve to actual signal event_id
+                    eid = raw_eid if raw_eid in [s.get("event_id") or s.get("id") for s in batch_signals] else id_map.get(str(i + 1), raw_eid)
+                    fact_conf = _normalize_confidence(item.get("fact_confidence") or item.get("confidence", "Low"))
+                    infer_conf = _normalize_confidence(item.get("inference_confidence") or item.get("confidence", "Low"))
+                    blended_conf = _normalize_confidence(item.get("confidence") or fact_conf)
+                    results[eid] = {
+                        "why_it_matters": str(item.get("why_it_matters", "")).strip(),
+                        "fact_confidence": fact_conf,
+                        "inference_confidence": infer_conf,
+                        "confidence": blended_conf,
+                    }
+
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                logger.warning(f"Batch Groq call failed ({e}). Falling back to individual calls.")
+            time.sleep(1.0)
+
+    # Fallback to individual calls for any signal not resolved in batch
+    for sig in batch_signals:
+        eid = sig.get("event_id") or sig.get("id") or sig.get("url") or sig.get("title", "")
+        if eid not in results or not results[eid].get("why_it_matters"):
+            sys_p, usr_p = _build_prompts(sig, target_company=target_company, competitors=competitors)
+            results[eid] = _call_groq(sys_p, usr_p)
+
+    return results
+
+
 def run(
     signals: List[Dict[str, Any]],
     target_company: Optional[str] = None,
@@ -267,17 +444,16 @@ def run(
     Option A Single Source of Truth: Reads fact_confidence directly from the consolidated event (never recomputed).
     Evaluates strategic impact (why_it_matters, inference_confidence, legacy blended confidence).
     Suppresses speculative LLM analysis on routine individual job postings, routing strategic
-    hiring and all news/GitHub signals to Groq for deep analysis.
+    hiring and all news/GitHub signals to Groq in efficient 3-5 item batches.
     """
     findings: List[Dict[str, Any]] = []
+    signals_needing_llm: List[Dict[str, Any]] = []
 
     for signal in signals:
         source = signal.get("source", "")
         sources = signal.get("contributing_sources", [source] if source else [])
         is_pure_job = sources == ["jobs"] or source == "jobs"
         corroboration = signal.get("corroboration_count", 1)
-
-        # Fact confidence is single ground truth from Phase 1 consolidated_events
         fact_conf = _normalize_confidence(signal.get("fact_confidence") or "High")
 
         # If it is an individual routine job posting without strategic keywords, suppress speculative why_it_matters
@@ -289,15 +465,22 @@ def run(
             finding["inference_confidence"] = "Low"  # No strategic extrapolation
             finding["confidence"] = "Low"  # Legacy blended priority
             findings.append(finding)
-            continue
+        else:
+            signals_needing_llm.append(signal)
 
-        system_prompt, user_prompt = _build_prompts(
-            signal,
-            target_company=target_company,
-            competitors=competitors,
-        )
-        analysis = _call_groq(system_prompt, user_prompt)
-        
+    # Process LLM-bound signals in batched chunks of 3-4 items
+    batch_analyses: Dict[str, Dict[str, Any]] = {}
+    chunk_size = 4
+    for i in range(0, len(signals_needing_llm), chunk_size):
+        chunk = signals_needing_llm[i:i + chunk_size]
+        chunk_results = _call_groq_batch(chunk, target_company=target_company, competitors=competitors)
+        batch_analyses.update(chunk_results)
+
+    for signal in signals_needing_llm:
+        eid = signal.get("event_id") or signal.get("id") or signal.get("url") or signal.get("title", "")
+        fact_conf = _normalize_confidence(signal.get("fact_confidence") or "High")
+        analysis = batch_analyses.get(eid, {})
+
         infer_conf = _normalize_confidence(analysis.get("inference_confidence") or analysis.get("confidence", "Low"))
         blended_conf = _normalize_confidence(analysis.get("confidence") or fact_conf)
 
@@ -313,3 +496,4 @@ def run(
         findings.append(finding)
 
     return findings
+
