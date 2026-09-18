@@ -376,6 +376,7 @@ def auth_signup(req: SignupRequest) -> Dict[str, Any]:
         "token": token,
         "user": {
             "id": new_id,
+            "tenant_id": new_id,
             "email": clean_email,
             "name": user_name,
         },
@@ -473,6 +474,7 @@ def auth_login(req: LoginRequest) -> Dict[str, Any]:
         "token": token,
         "user": {
             "id": user_id,
+            "tenant_id": user_id,
             "email": clean_email,
             "name": user_name,
         },
@@ -577,7 +579,10 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database query error: {e}")
 
-    # Fallback to local files in offline / DB-less test mode
+    # Fallback to local files ONLY in isolated offline test environment
+    if not storage.is_test_environment():
+        return {"briefs": []}
+
     data_dir = _get_data_dir()
     if not data_dir.exists():
         return {"briefs": []}
@@ -627,6 +632,7 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
     Enforces PostgreSQL RLS so tenant only receives their own latest brief.
     """
     if _is_db_active():
+        row = None
         try:
             with storage.get_tenant_db_cursor(tenant_id) as cur:
                 cur.execute("""
@@ -636,23 +642,25 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
                     LIMIT 1;
                 """)
                 row = cur.fetchone()
-                if row:
-                    bid = str(row[0])
-                    pub_dt = row[2]
-                    date_str = pub_dt.isoformat() if pub_dt else datetime.now(timezone.utc).isoformat()
-                    return {
-                        "id": bid,
-                        "date": date_str,
-                        "filename": f"brief_{bid}.md",
-                        "content": row[3],
-                    }
-                raise HTTPException(status_code=404, detail="No competitive briefs available.")
-        except HTTPException:
-            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database query error: {e}")
 
-    # Fallback to local files in offline / DB-less test mode
+        if row:
+            bid = str(row[0])
+            pub_dt = row[2]
+            date_str = pub_dt.isoformat() if pub_dt else datetime.now(timezone.utc).isoformat()
+            return {
+                "id": bid,
+                "date": date_str,
+                "filename": f"brief_{bid}.md",
+                "content": row[3],
+            }
+        raise HTTPException(status_code=404, detail="No competitive briefs available.")
+
+    # Fallback to local files ONLY in isolated offline test environment
+    if not storage.is_test_environment():
+        raise HTTPException(status_code=404, detail="No competitive briefs available.")
+
     data_dir = _get_data_dir()
     latest_file = data_dir / "brief.md"
     target_file: Optional[Path] = None
@@ -690,6 +698,7 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
         return get_latest_brief(tenant_id=tenant_id)
 
     if _is_db_active():
+        row = None
         try:
             with storage.get_tenant_db_cursor(tenant_id) as cur:
                 cur.execute("""
@@ -698,24 +707,26 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
                     WHERE id = %s;
                 """, (brief_id,))
                 row = cur.fetchone()
-                if row:
-                    bid = str(row[0])
-                    pub_dt = row[2]
-                    date_str = pub_dt.isoformat() if pub_dt else datetime.now(timezone.utc).isoformat()
-                    return {
-                        "id": bid,
-                        "date": date_str,
-                        "filename": f"brief_{bid}.md",
-                        "content": row[3],
-                    }
-                # RLS filtered row or row does not exist -> strictly return 404 Not Found
-                raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
-        except HTTPException:
-            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database query error: {e}")
 
-    # Fallback to local files in offline / DB-less test mode
+        if row:
+            bid = str(row[0])
+            pub_dt = row[2]
+            date_str = pub_dt.isoformat() if pub_dt else datetime.now(timezone.utc).isoformat()
+            return {
+                "id": bid,
+                "date": date_str,
+                "filename": f"brief_{bid}.md",
+                "content": row[3],
+            }
+        # RLS filtered row or row does not exist -> strictly return 404 Not Found
+        raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
+
+    # Fallback to local files ONLY in isolated offline test environment
+    if not storage.is_test_environment():
+        raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
+
     data_dir = _get_data_dir()
     if not data_dir.exists():
         raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
@@ -1503,7 +1514,20 @@ def get_latest_radar_endpoint(
             evals.append(prior)
         else:
             topic_items = storage.get_research_items_for_topics([lbl])
-            competitors = list(config.COMPETITORS)
+            tracked_rows = storage.get_tenant_tracked_companies(tenant_id)
+            competitors = [c["company_name"] for c in tracked_rows if not c.get("is_target")]
+            if not competitors:
+                evals.append({
+                    "topic_id": str(top.get("id") or ""),
+                    "topic_label": lbl,
+                    "keywords": top.get("keywords") or [],
+                    "cycle_id": "none",
+                    "research_item_count": len(topic_items),
+                    "research_item_ids": [str(i.get("id")) for i in topic_items if i.get("id")],
+                    "competitor_connections": {},
+                })
+                continue
+
             ev = research_radar.evaluate_topic_radar(
                 topic=top,
                 research_items=topic_items,
