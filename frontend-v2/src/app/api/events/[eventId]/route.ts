@@ -13,7 +13,8 @@ export async function GET(
 ) {
   const { eventId } = await params;
   const backendUrl = new URL(`${BACKEND_BASE}/events/${eventId}`);
-  const token = getClientAuthToken();
+  const incomingAuth = request.headers.get("authorization");
+  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 
   try {
     const res = await fetch(backendUrl.toString(), {
