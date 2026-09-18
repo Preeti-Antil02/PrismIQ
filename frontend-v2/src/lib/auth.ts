@@ -6,6 +6,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  tenant_id?: string;
 }
 
 export const DEFAULT_TENANT_ID =
@@ -40,11 +41,16 @@ export function isAuthenticated(): boolean {
   return Boolean(localStorage.getItem("prismiq_tenant_token"));
 }
 
-export function getClientAuthToken(tenantId: string = DEFAULT_TENANT_ID): string {
+export function getClientAuthToken(tenantId?: string): string {
   // If stored in localStorage, prefer that
   if (typeof window !== "undefined") {
     const stored = localStorage.getItem("prismiq_tenant_token");
     if (stored) return stored;
+    if (!tenantId) return "";
+  }
+
+  if (!tenantId) {
+    return "";
   }
 
   // Construct well-formed JWT with sub = tenantId
