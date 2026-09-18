@@ -1,3 +1,4 @@
+import concurrent.futures
 import logging
 import os
 import re
@@ -1089,6 +1090,9 @@ def fetch_topic_research_items(
     if topics is None:
         topics = storage.get_all_active_research_topics()
 
+    if storage.is_test_environment() and not os.getenv("ALLOW_TEST_NETWORK"):
+        return []
+
     if not topics:
         return []
 
@@ -1191,6 +1195,74 @@ def fetch_source_with_retry(
     return [], health
 
 
+FAST_SOURCES = ["news", "github", "jobs"]
+SLOW_SOURCES = ["pricing", "research"]
+
+
+def fetch_company_signals(
+    company: str,
+    active_sources: Optional[List[str]] = None,
+    seen_urls: Optional[Set[str]] = None,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]:
+    """
+    Fetch raw signals for a single company across active sources.
+    Executes independent fast sources (news, github, jobs) concurrently via ThreadPoolExecutor.
+    Enforces compliance rate-limiting on research/arXiv sources (3.5s delay strictly maintained).
+    """
+    sources_to_run = list(active_sources) if active_sources is not None else list(config.SOURCES)
+    signals: List[Dict[str, Any]] = []
+    source_health: Dict[str, Dict[str, Any]] = {}
+
+    fast_active = [s for s in sources_to_run if s in FAST_SOURCES]
+
+    # 1. Concurrently fetch independent fast sources for this company
+    def _fetch_one_fast(src: str) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+        if src == "news":
+            sigs, health = fetch_source_with_retry("news", lambda: _fetch_news_from_currents(company))
+            return "news", sigs, health
+        elif src == "github":
+            sigs, health = fetch_source_with_retry("github", lambda: _fetch_github_events(company))
+            return "github", sigs, health
+        elif src == "jobs":
+            sigs, health = fetch_source_with_retry("jobs", lambda: _fetch_jobs(company))
+            return "jobs", sigs, health
+        return src, [], {"status": "skipped", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+    if fast_active:
+        if len(fast_active) == 1:
+            s_name, s_sigs, s_health = _fetch_one_fast(fast_active[0])
+            signals.extend(s_sigs)
+            source_health[s_name] = s_health
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(fast_active), 3)) as executor:
+                futures = [executor.submit(_fetch_one_fast, s) for s in fast_active]
+                for fut in concurrent.futures.as_completed(futures):
+                    try:
+                        s_name, s_sigs, s_health = fut.result()
+                        signals.extend(s_sigs)
+                        source_health[s_name] = s_health
+                    except Exception as e:
+                        logger.warning(f"Error in fast fetch for {company}: {e}")
+
+    # 2. Pricing Source (sequential per company to avoid headless browser exhaustion)
+    if "pricing" in sources_to_run:
+        price_sigs, p_health = fetch_source_with_retry("pricing", lambda: pricing_extractor.fetch_pricing_signals([company]))
+        signals.extend(price_sigs)
+        source_health["pricing"] = p_health
+
+    # 3. Research Source (rate-limit safe: arXiv 3.5s delay strictly preserved)
+    if "research" in sources_to_run:
+        company_seen = set(seen_urls) if seen_urls else set()
+        for s in signals:
+            if s.get("url"):
+                company_seen.add(_normalize_canonical_url(s.get("url")))
+        res_sigs, r_health = fetch_source_with_retry("research", lambda: _fetch_research_signals(company, days=14, seen_urls=company_seen))
+        signals.extend(res_sigs)
+        source_health["research"] = r_health
+
+    return signals, source_health
+
+
 def run(
     companies: Optional[List[str]] = None,
     active_sources: Optional[List[str]] = None,
@@ -1199,6 +1271,7 @@ def run(
 ) -> Union[List[Dict[str, Any]], Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]]:
     """
     Query news, GitHub, jobs, pricing, and research sources with conditional retry & graceful fallback.
+    Executes independent per-company fetches concurrently while maintaining compliance rate limits.
     """
     if companies is None:
         all_companies: List[str] = []
@@ -1220,43 +1293,64 @@ def run(
     all_signals: List[Dict[str, Any]] = []
     source_health: Dict[str, Dict[str, Any]] = {}
 
-    # 1. News Source
+    # 1. News Source (Parallelized across independent companies)
     if "news" in sources_to_run:
         def _fetch_all_news():
+            if len(companies) <= 1:
+                sigs = []
+                for c in companies:
+                    sigs.extend(_fetch_news_from_currents(c))
+                return sigs
             sigs = []
-            for c in companies:
-                sigs.extend(_fetch_news_from_currents(c))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(companies), 4)) as executor:
+                futures = {executor.submit(_fetch_news_from_currents, c): c for c in companies}
+                for fut in concurrent.futures.as_completed(futures):
+                    sigs.extend(fut.result())
             return sigs
 
         news_sigs, health = fetch_source_with_retry("news", _fetch_all_news)
         all_signals.extend(news_sigs)
         source_health["news"] = health
 
-    # 2. GitHub Source
+    # 2. GitHub Source (Parallelized across independent companies)
     if "github" in sources_to_run:
         def _fetch_all_github():
+            if len(companies) <= 1:
+                sigs = []
+                for c in companies:
+                    sigs.extend(_fetch_github_events(c))
+                return sigs
             sigs = []
-            for c in companies:
-                sigs.extend(_fetch_github_events(c))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(companies), 4)) as executor:
+                futures = {executor.submit(_fetch_github_events, c): c for c in companies}
+                for fut in concurrent.futures.as_completed(futures):
+                    sigs.extend(fut.result())
             return sigs
 
         gh_sigs, health = fetch_source_with_retry("github", _fetch_all_github)
         all_signals.extend(gh_sigs)
         source_health["github"] = health
 
-    # 3. Jobs Source
+    # 3. Jobs Source (Parallelized across independent companies)
     if "jobs" in sources_to_run:
         def _fetch_all_jobs():
+            if len(companies) <= 1:
+                sigs = []
+                for c in companies:
+                    sigs.extend(_fetch_jobs(c))
+                return sigs
             sigs = []
-            for c in companies:
-                sigs.extend(_fetch_jobs(c))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(companies), 4)) as executor:
+                futures = {executor.submit(_fetch_jobs, c): c for c in companies}
+                for fut in concurrent.futures.as_completed(futures):
+                    sigs.extend(fut.result())
             return sigs
 
         job_sigs, health = fetch_source_with_retry("jobs", _fetch_all_jobs)
         all_signals.extend(job_sigs)
         source_health["jobs"] = health
 
-    # 4. Pricing Source
+    # 4. Pricing Source (Freshness-checked, runs across companies)
     if "pricing" in sources_to_run:
         def _fetch_all_pricing():
             return pricing_extractor.fetch_pricing_signals(companies)
@@ -1265,7 +1359,7 @@ def run(
         all_signals.extend(price_sigs)
         source_health["pricing"] = health
 
-    # 5. Research Source (arXiv Papers & In-Depth Technical Blog Write-ups)
+    # 5. Research Source (arXiv Papers: strictly preserves 3.5s rate-limit delay per query)
     if "research" in sources_to_run:
         seen_news_urls = set(_normalize_canonical_url(s.get("url", "")) for s in all_signals if s.get("url"))
 
@@ -1283,3 +1377,4 @@ def run(
     if return_health:
         return consolidated, source_health
     return consolidated
+
