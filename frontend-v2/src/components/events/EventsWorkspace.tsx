@@ -19,9 +19,11 @@ import { EventsTimelineStream } from "./EventsTimelineStream";
 import { TierType } from "@/components/primitives/TierBadge";
 import { ConfidenceScore } from "@/components/primitives/ConfidenceBadge";
 import { normalizeConfidence } from "@/lib/tokens";
+import { useAuth } from "@/lib/AuthContext";
 
 export function EventsWorkspace() {
   const { openDrawer } = useEvidenceDrawer();
+  const { user } = useAuth();
 
   // Data states
   const [events, setEvents] = React.useState<ConsolidatedEventRecord[]>([]);
@@ -40,12 +42,12 @@ export function EventsWorkspace() {
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Load tracked companies once on mount
+  // Load tracked companies on mount and when tenant changes
   React.useEffect(() => {
     fetchTrackedCompanies()
       .then((comps) => setTrackedCompanies(comps || []))
       .catch(() => {});
-  }, []);
+  }, [user?.tenant_id]);
 
   // Fetch events from API
   const loadData = React.useCallback(async () => {
@@ -66,7 +68,7 @@ export function EventsWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCompany, selectedTier, selectedConfidence]);
+  }, [selectedCompany, selectedTier, selectedConfidence, user?.tenant_id]);
 
   React.useEffect(() => {
     loadData();
