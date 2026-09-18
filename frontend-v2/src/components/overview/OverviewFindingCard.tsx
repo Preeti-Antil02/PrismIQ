@@ -41,7 +41,7 @@ export function OverviewFindingCard({
     finding.rawSignals?.length ||
     finding.sources?.length ||
     finding.corroborationCount ||
-    (norm.includes("stripe") ? 3 : 2);
+    1;
 
   const evidenceStats = parseEvidenceCount(totalSources, 1);
   const isHigh = (finding.confidence || "High").toLowerCase().includes("high");
