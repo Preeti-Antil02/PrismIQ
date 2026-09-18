@@ -19,26 +19,26 @@ export function PublicNav() {
               <stop offset="1" stopColor="#FFB18F" />
             </linearGradient>
           </defs>
-          <path d="M21 3 37 31 21 39 5 31Z" fill="url(#navA)" opacity=".95" />
+          <path d="M21 3 37 31 21 39 5 31Z" fill="url(#navA)" opacity=".92" />
           <path d="M21 3 21 39 5 31Z" fill="url(#navB)" opacity=".88" />
           <path d="M21 3 37 31 21 26Z" fill="#9D8CFF" opacity=".72" />
           <path d="M21 26 37 31 21 39Z" fill="#FF72C2" opacity=".58" />
-          <path d="M21 8 21 26 13 29Z" fill="#FFFFFF" opacity=".45" />
+          <path d="M21 8 21 26 13 29Z" fill="#FFFFFF" opacity=".42" />
         </svg>
-        <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.03em" }}>PrismIQ</span>
+        <span>PrismIQ</span>
       </Link>
       <div className="ps-links">
-        <a href="#why">Product ▾</a>
-        <a href="#how">Solutions ▾</a>
-        <a href="#product">Resources ▾</a>
-        <a href="#research">Pricing</a>
+        <a href="#why">Why PrismIQ</a>
+        <a href="#how">How it works</a>
+        <a href="#product">Product</a>
+        <a href="#research">Research</a>
       </div>
       <div className="ps-actions">
-        <Link className="ps-nav-signin" href="/login">
-          Sign in
-        </Link>
-        <Link className="ps-btn ps-btn-grad ps-nav-cta-btn" href="/signup">
-          Get started free →
+        <a className="ps-btn ps-btn-light" href="#product">
+          See product
+        </a>
+        <Link className="ps-btn ps-btn-dark" href="/signup">
+          Get started
         </Link>
       </div>
     </nav>
