@@ -203,7 +203,7 @@ export default function OverviewPage() {
   // Initial intelligence load
   React.useEffect(() => {
     loadIntelligence(true);
-  }, [loadIntelligence]);
+  }, [loadIntelligence, user?.tenant_id]);
 
   // Polling pipeline status with progressive data refresh
   React.useEffect(() => {
