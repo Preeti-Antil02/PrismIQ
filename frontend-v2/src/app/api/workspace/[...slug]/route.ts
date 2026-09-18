@@ -10,7 +10,8 @@ const BACKEND_BASE = (
 async function proxy(req: NextRequest, context: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await context.params;
   const path = slug.join("/");
-  const token = getClientAuthToken();
+  const incomingAuth = req.headers.get("authorization");
+  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 
   // Route mapping from /api/workspace/... to FastAPI backend
   let backendPath: string;
