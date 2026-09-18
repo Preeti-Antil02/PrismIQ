@@ -27,9 +27,11 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/AuthContext";
 
 export function SignalsWorkspace() {
   const { openDrawer } = useEvidenceDrawer();
+  const { user } = useAuth();
 
   // Data states
   const [signals, setSignals] = React.useState<SignalRecord[]>([]);
@@ -52,12 +54,12 @@ export function SignalsWorkspace() {
   // Dev verification toggle for testing empty / error edge cases
   const [forcedState, setForcedState] = React.useState<"none" | "force_empty" | "force_error">("none");
 
-  // Load tracked companies once on mount
+  // Load tracked companies on mount and when tenant changes
   React.useEffect(() => {
     fetchTrackedCompanies()
       .then((comps) => setTrackedCompanies(comps || []))
       .catch(() => {});
-  }, []);
+  }, [user?.tenant_id]);
 
   // Fetch signals from API
   const loadData = React.useCallback(async () => {
@@ -89,7 +91,7 @@ export function SignalsWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [selectedCompany, selectedTier, selectedConfidence, forcedState]);
+  }, [selectedCompany, selectedTier, selectedConfidence, forcedState, user?.tenant_id]);
 
   React.useEffect(() => {
     loadData();
