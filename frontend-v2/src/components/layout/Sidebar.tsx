@@ -18,7 +18,9 @@ import {
   Send,
   Settings,
   X,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 
 interface NavItem {
   label: string;
@@ -80,6 +82,7 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen = false, onCloseMobile, className }: SidebarProps) {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   const isCurrentRoute = (href: string) => {
     if (href === "/app") return pathname === "/app";
@@ -193,21 +196,32 @@ export function Sidebar({ mobileOpen = false, onCloseMobile, className }: Sideba
         })}
       </nav>
 
-      {/* Workspace Footer status */}
-      <div className="p-3 border-t border-[rgba(255,255,255,0.06)] bg-[#090B0F]">
+      {/* Workspace Footer status & User Profile */}
+      <div className="p-3 border-t border-[rgba(255,255,255,0.06)] bg-[#090B0F] space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <div className="text-[11px] font-semibold text-[#F3F4F6] truncate">
-              Intelligence Workspace
+              {user?.name || "Intelligence Workspace"}
             </div>
             <div className="text-[10px] font-mono text-[#6B7280] truncate">
-              Continuous Monitoring
+              {user?.email || "Continuous Monitoring"}
             </div>
           </div>
           <span className="inline-flex items-center px-1.5 py-0.5 rounded-[3px] bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-400 font-medium shrink-0">
             Active
           </span>
         </div>
+
+        {/* Logout Action */}
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full flex items-center justify-center gap-1.5 py-1 px-2 rounded text-[11px] font-medium text-[#9CA3AF] hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+          title="Sign out of workspace"
+        >
+          <LogOut className="h-3 w-3" />
+          <span>Sign out</span>
+        </button>
       </div>
     </aside>
   );
