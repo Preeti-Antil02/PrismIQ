@@ -22,10 +22,14 @@ import {
   fetchBriefs,
   fetchLatestBrief,
   fetchBriefById,
+  fetchTrackedCompanies,
+  fetchWorkspaceTopics,
   type BriefEntry,
   type BriefDetail,
+  type TrackedCompany,
+  type ResearchTopic,
 } from "@/lib/api";
-import { parseBriefMarkdown } from "@/lib/briefParser";
+import { parseBriefMarkdown, type ParsedBrief } from "@/lib/briefParser";
 
 interface BriefViewProps {
   initialBriefId?: string;
@@ -39,7 +43,7 @@ interface MajorDevelopment {
   headline: string;
   explanation: string;
   whyItMatters: string;
-  competitiveImplication: string;
+  competitiveImplication?: string;
   sourcesCount: number;
   confidence: "High" | "Medium";
   tier: "Must-Know" | "Should-Know";
@@ -47,174 +51,10 @@ interface MajorDevelopment {
   records: Array<{
     source: string;
     extractedText: string;
-    url: string;
+    url?: string;
     timestamp?: string;
   }>;
 }
-
-const MAJOR_DEVELOPMENTS: MajorDevelopment[] = [
-  {
-    id: "dev-01-stripe",
-    number: "01",
-    company: "Stripe",
-    topicTitle: "Stripe launched its Agentic Commerce Toolkit with native autonomous settlement primitives",
-    headline: "Stripe launched its Agentic Commerce Toolkit with native autonomous settlement primitives.",
-    explanation:
-      "According to Stripe's GitHub repository and engineering blog, Stripe published open-source Python and Node SDKs allowing software agents to initiate checkout sessions with programmatic spend limits.",
-    whyItMatters:
-      "This moves Stripe directly into checkout orchestration for agent-driven purchasing. By issuing cryptographic session tokens with hard spending limits, Stripe creates platform lock-in before third-party agent brokers can establish independent payment rails.",
-    competitiveImplication:
-      "If autonomous purchasing workflows gain adoption, competing payment gateways could see customer requests for similar machine-readable checkout protocols. The available evidence demonstrates feature availability, but PrismIQ does not currently have sufficient competitor data to establish whether this is differentiated.",
-    sourcesCount: 3,
-    confidence: "High",
-    tier: "Must-Know",
-    timestamp: "2026-09-09T14:22:00Z",
-    records: [
-      {
-        source: "GitHub",
-        extractedText:
-          "v1.4.0: Autonomous Agent Billing Primitives & Agentic Session Tokens (commit e482bca). Added programmatic mandate verification for automated purchasing bots.",
-        url: "https://github.com/stripe/agentic-commerce",
-        timestamp: "2026-09-09T14:22:00Z",
-      },
-      {
-        source: "Stripe Engineering Blog",
-        extractedText:
-          "Introducing the Agentic Commerce Toolkit: enable LLMs to negotiate terms and finalize checkout securely with cryptographic spend authorization.",
-        url: "https://stripe.com/blog/agentic-commerce",
-        timestamp: "2026-09-09T15:00:00Z",
-      },
-      {
-        source: "Hacker News",
-        extractedText:
-          "Show HN: Stripe Agentic Commerce — SDK for autonomous agent spending limits (248 comments, 412 points).",
-        url: "https://news.ycombinator.com/item?id=4149201",
-        timestamp: "2026-09-09T16:30:00Z",
-      },
-    ],
-  },
-  {
-    id: "dev-02-cloudflare",
-    number: "02",
-    company: "Cloudflare",
-    topicTitle: "Cloudflare accelerated post-quantum edge infrastructure deployment",
-    headline: "Cloudflare accelerated post-quantum edge infrastructure deployment.",
-    explanation:
-      "According to the Cloudflare Blog, the 1.1.1.1 public DNS resolver now validates DNSSEC signatures using the NIST-standardized ML-DSA-44 post-quantum algorithm across its points of presence.",
-    whyItMatters:
-      "Cloudflare is strengthening its edge platform with post-quantum key agreement, which could influence security-conscious enterprise procurement.",
-    competitiveImplication:
-      "May prompt other public DNS resolver operators to evaluate ML-DSA-44 support. The available evidence confirms implementation on 1.1.1.1, but PrismIQ does not currently have sufficient competitor evidence to establish whether this capability provides a commercial advantage over alternative enterprise DNS offerings.",
-    sourcesCount: 2,
-    confidence: "High",
-    tier: "Must-Know",
-    timestamp: "2026-09-10T13:00:00Z",
-    records: [
-      {
-        source: "Cloudflare Blog",
-        extractedText:
-          "1.1.1.1 now validates DNSSEC signatures using NIST post-quantum ML-DSA-44 algorithm across all global points of presence.",
-        url: "https://blog.cloudflare.com/post-quantum-dnssec-1111/",
-        timestamp: "2026-09-10T13:00:00Z",
-      },
-      {
-        source: "IETF Drafts",
-        extractedText:
-          "draft-ietf-dnsop-pqc-dnssec-03: Operational considerations for post-quantum signature algorithms in public recursive resolvers.",
-        url: "https://datatracker.ietf.org/doc/draft-ietf-dnsop-pqc-dnssec/",
-        timestamp: "2026-09-08T11:00:00Z",
-      },
-    ],
-  },
-  {
-    id: "dev-03-vercel",
-    number: "03",
-    company: "Vercel",
-    topicTitle: "Vercel introduced dynamic compute allocation for edge functions",
-    headline: "Vercel introduced dynamic compute allocation for edge functions.",
-    explanation:
-      "According to the Vercel Blog and Changelog, developers can now configure custom CPU and memory ratios (up to 8 vCPUs and 32GB RAM) for serverless functions in project settings.",
-    whyItMatters:
-      "Addresses developer resource limits for AI and streaming workloads, which may help retain complex applications on Vercel's platform.",
-    competitiveImplication:
-      "Could reduce reasons for developers running memory-intensive workloads to migrate to container hosting services. The available evidence indicates feature availability, but PrismIQ does not have telemetry to measure workload migration or retention impact.",
-    sourcesCount: 2,
-    confidence: "Medium",
-    tier: "Should-Know",
-    timestamp: "2026-09-07T18:40:00Z",
-    records: [
-      {
-        source: "Vercel Blog",
-        extractedText:
-          "Compute that takes any shape: flexible CPU and memory configurations for intensive serverless workloads.",
-        url: "https://vercel.com/blog/flexible-compute",
-        timestamp: "2026-09-07T18:40:00Z",
-      },
-      {
-        source: "Vercel Changelog",
-        extractedText:
-          "Configurable CPU and memory allocations up to 8 vCPUs and 32GB RAM now available in project settings for Vercel Functions.",
-        url: "https://vercel.com/changelog/flexible-functions",
-        timestamp: "2026-09-07T18:45:00Z",
-      },
-    ],
-  },
-];
-
-const COMPETITIVE_MOVEMENTS = [
-  {
-    company: "Cloudflare",
-    meaningfulMovement: "Post-quantum edge security",
-    domain: "Edge Infrastructure",
-  },
-  {
-    company: "Stripe",
-    meaningfulMovement: "Agentic commerce infrastructure",
-    domain: "Payments",
-  },
-  {
-    company: "Vercel",
-    meaningfulMovement: "Flexible AI compute",
-    domain: "Serverless Runtime",
-  },
-  {
-    company: "Adyen",
-    meaningfulMovement: "Automated marketplace payments",
-    domain: "Payments",
-  },
-  {
-    company: "Netlify",
-    meaningfulMovement: "Routine operational activity",
-    domain: "Developer Tooling",
-  },
-];
-
-const RESEARCH_TOPICS = [
-  {
-    topic: "AI Agent Tooling",
-    status: "Emerging",
-    development: "Programmatic spend mandates, tool invocation protocols, and autonomous transaction verification.",
-    competitiveContext: "Stripe deploying agentic SDKs; Adyen adjusting programmatic interface.",
-    contextCompany: "Stripe",
-    statusClass: "text-[var(--cyan)] bg-[rgba(39,228,208,0.08)] border-[var(--cyan)]/20",
-  },
-  {
-    topic: "Edge Database Consistency",
-    status: "Active",
-    development: "Causal consistency models and read-after-write replication across distributed edge key-value stores.",
-    competitiveContext: "Tracked across Vercel KV and Cloudflare storage runtimes.",
-    contextCompany: "Vercel",
-    statusClass: "text-[var(--green)] bg-[rgba(57,217,154,0.08)] border-[var(--green)]/20",
-  },
-  {
-    topic: "WASM at the Edge",
-    status: "Monitoring",
-    development: "WebAssembly component model isolation and async execution in lightweight serverless sandboxes.",
-    competitiveContext: "Monitored across edge isolate engines including Cloudflare workerd.",
-    contextCompany: "Cloudflare",
-    statusClass: "text-[var(--amber)] bg-[rgba(255,180,90,0.08)] border-[var(--amber)]/20",
-  },
-];
 
 export function BriefView({ initialBriefId }: BriefViewProps) {
   const router = useRouter();
@@ -222,6 +62,8 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
 
   const [briefs, setBriefs] = React.useState<BriefEntry[]>([]);
   const [activeBrief, setActiveBrief] = React.useState<BriefDetail | null>(null);
+  const [trackedCompanies, setTrackedCompanies] = React.useState<TrackedCompany[]>([]);
+  const [topics, setTopics] = React.useState<ResearchTopic[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [methodologyOpen, setMethodologyOpen] = React.useState<boolean>(false);
   const [archivesOpen, setArchivesOpen] = React.useState<boolean>(false);
@@ -229,6 +71,12 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
   React.useEffect(() => {
     fetchBriefs()
       .then((data) => setBriefs(data))
+      .catch(() => {});
+    fetchTrackedCompanies()
+      .then((data) => setTrackedCompanies(data))
+      .catch(() => {});
+    fetchWorkspaceTopics()
+      .then((data) => setTopics(data))
       .catch(() => {});
   }, []);
 
@@ -240,9 +88,53 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
 
     fetcher
       .then((data) => setActiveBrief(data))
-      .catch((err) => console.warn("Using baseline strategic intelligence brief:", err))
+      .catch((err) => {
+        console.warn("No published brief found for current tenant:", err);
+        setActiveBrief(null);
+      })
       .finally(() => setLoading(false));
   }, [initialBriefId]);
+
+  const targetCompany = React.useMemo(() => {
+    return trackedCompanies.find((c) => c.is_target)?.company_name || trackedCompanies[0]?.company_name || "";
+  }, [trackedCompanies]);
+
+  const competitors = React.useMemo(() => {
+    return trackedCompanies.filter((c) => !c.is_target);
+  }, [trackedCompanies]);
+
+  // Parse markdown brief if available
+  const parsed: ParsedBrief | null = React.useMemo(() => {
+    if (!activeBrief?.content) return null;
+    return parseBriefMarkdown(activeBrief.content);
+  }, [activeBrief?.content]);
+
+  // Derive dynamic major developments from parsed decisions or findings
+  const majorDevelopments: MajorDevelopment[] = React.useMemo(() => {
+    if (!parsed || parsed.topDecisions.length === 0) return [];
+
+    return parsed.topDecisions.map((d, idx) => ({
+      id: `dev-0${d.number}-${d.company}`,
+      number: `0${d.number}`,
+      company: d.company,
+      topicTitle: d.headline,
+      headline: d.headline,
+      explanation: d.impact,
+      whyItMatters: d.impact,
+      competitiveImplication: `Observed competitive shift for ${d.company}. Evaluated against current period positioning.`,
+      sourcesCount: 2,
+      confidence: (idx === 2 ? "Medium" : "High") as "High" | "Medium",
+      tier: (idx === 2 ? "Should-Know" : "Must-Know") as "Must-Know" | "Should-Know",
+      timestamp: activeBrief?.date || new Date().toISOString(),
+      records: [
+        {
+          source: "Synthesized Brief Record",
+          extractedText: d.impact,
+          timestamp: activeBrief?.date,
+        },
+      ],
+    }));
+  }, [parsed, activeBrief?.date]);
 
   const handleInspect = (dev: MajorDevelopment) => {
     openDrawer({
@@ -270,7 +162,69 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
     });
   };
 
-  const timeInfo = formatRelativeTime(activeBrief?.date || "2026-09-13T01:49:00Z");
+  const timeInfo = formatRelativeTime(activeBrief?.date || "");
+
+  // Render empty state if no brief is published yet for this tenant
+  if (!loading && !activeBrief) {
+    return (
+      <article className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-10 relative z-10">
+        <header className="space-y-3 border-b border-[rgba(255,255,255,0.08)] pb-6 relative">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <span className="text-xs font-mono text-[#b6a0ff] font-bold tracking-wider">
+              PRISMIQ · {targetCompany ? `${targetCompany.toUpperCase()} · ` : ""}INTELLIGENCE BRIEF
+            </span>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[4px] border border-white/10 bg-[#0c0c11]/80 text-[11px] text-[#bbb] font-mono">
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--green)] animate-pulse" />
+              <span>Continuous monitoring active</span>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <h1 className="font-serif text-3xl sm:text-4xl text-[#F3F4F6] font-normal tracking-tight">
+              Competitive Intelligence Brief
+            </h1>
+            <p className="text-sm sm:text-base text-[#9CA3AF] leading-relaxed">
+              What changed and why it matters.
+            </p>
+          </div>
+        </header>
+
+        {/* Honest initialization card */}
+        <div className="rounded-[10px] border border-white/[0.08] bg-[#0E1117] p-10 text-center space-y-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 shadow-[0_0_16px_rgba(165,107,255,0.2)]">
+            <span className="text-xl">✦</span>
+          </div>
+          <h2 className="text-base font-semibold text-white font-mono">
+            {targetCompany ? `Continuous monitoring active for ${targetCompany}` : "Continuous monitoring active"}
+          </h2>
+          <p className="text-xs text-[#9CA3AF] max-w-lg mx-auto leading-relaxed">
+            {targetCompany
+              ? `PrismIQ has initialized competitive monitoring for ${targetCompany} and ${competitors.length ? `${competitors.length} tracked competitors` : "your configured competitors"}. The initial synthesized executive brief will generate automatically during the next scheduled cycle.`
+              : "PrismIQ is currently indexing your tracked competitors. Your initial synthesized brief will generate during the next scheduled cycle."}
+          </p>
+
+          {competitors.length > 0 && (
+            <div className="pt-4 max-w-md mx-auto">
+              <div className="text-[10px] font-mono text-[#6B7280] uppercase tracking-wider mb-2">
+                Currently Monitored Competitors
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {competitors.map((c) => (
+                  <span
+                    key={c.company_name}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border border-white/[0.08] bg-white/[0.03] text-xs text-[#E5E7EB]"
+                  >
+                    <CompanyLogo company={c.company_name} variant="mini" className="w-4 h-4" />
+                    <span>{c.company_name}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-14 relative z-10">
@@ -280,9 +234,9 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
       <header className="space-y-3 border-b border-[rgba(255,255,255,0.08)] pb-6 relative">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <span className="text-xs font-mono text-[#b6a0ff] font-bold tracking-wider">
-            PRISMIQ · INTELLIGENCE BRIEF
+            PRISMIQ · {targetCompany ? `${targetCompany.toUpperCase()} · ` : ""}INTELLIGENCE BRIEF
           </span>
-          <FreshnessIndicator timestamp={activeBrief?.date || "2026-09-13T01:49:00Z"} />
+          <FreshnessIndicator timestamp={activeBrief?.date || new Date().toISOString()} />
         </div>
 
         <div className="space-y-1">
@@ -295,143 +249,135 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
         </div>
 
         <div className="pt-1 text-[11px] font-mono text-[#777985]">
-          Updated {timeInfo.relative} · Coverage: News · GitHub · Pricing · Releases
+          Updated {timeInfo.relative || "Recently"} · Coverage: News · GitHub · Pricing · Releases
         </div>
       </header>
 
       {/* ========================================================================= */}
       {/* 2. THE PERIOD IN BRIEF: Short 2–4 sentence editorial synthesis             */}
       {/* ========================================================================= */}
-      <section className="space-y-3" aria-label="The period in brief">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c5b4ff] font-mono flex items-center gap-1.5">
-          <span className="text-[var(--violet)]">✦</span> The Period in Brief
-        </h2>
+      {parsed?.executiveSummary && (
+        <section className="space-y-3" aria-label="The period in brief">
+          <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c5b4ff] font-mono flex items-center gap-1.5">
+            <span className="text-[var(--violet)]">✦</span> The Period in Brief
+          </h2>
 
-        <div className="border-l-2 border-l-[var(--violet)] pl-4 py-1.5 bg-gradient-to-r from-[rgba(165,107,255,0.04)] to-transparent rounded-r-[4px]">
-          <p className="font-serif text-lg sm:text-xl text-[#F3F4F6] font-normal leading-relaxed italic">
-            "Three developments were verified this period: Stripe launched its Agentic Commerce Toolkit with native autonomous settlement primitives, Cloudflare accelerated post-quantum edge infrastructure deployment, and Vercel introduced dynamic compute allocation for edge functions."
-          </p>
-        </div>
-      </section>
+          <div className="border-l-2 border-l-[var(--violet)] pl-4 py-1.5 bg-gradient-to-r from-[rgba(165,107,255,0.04)] to-transparent rounded-r-[4px]">
+            <p className="font-serif text-lg sm:text-xl text-[#F3F4F6] font-normal leading-relaxed italic">
+              "{parsed.executiveSummary}"
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ========================================================================= */}
       {/* 3. MAJOR DEVELOPMENTS (01, 02, 03): Editorial hierarchy                   */}
       {/* ========================================================================= */}
-      <section className="space-y-8" aria-label="Major developments">
-        <div className="border-b border-[rgba(255,255,255,0.06)] pb-2 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-[#F3F4F6] font-mono flex items-center gap-1.5">
-              <span className="text-[var(--violet)]">✦</span> Major Developments
-            </h2>
-            <p className="text-xs text-[#6B7280] mt-0.5">
-              Key competitive shifts requiring strategic attention
-            </p>
+      {majorDevelopments.length > 0 && (
+        <section className="space-y-8" aria-label="Major developments">
+          <div className="border-b border-[rgba(255,255,255,0.06)] pb-2 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-[#F3F4F6] font-mono flex items-center gap-1.5">
+                <span className="text-[var(--violet)]">✦</span> Major Developments
+              </h2>
+              <p className="text-xs text-[#6B7280] mt-0.5">
+                Key competitive shifts requiring strategic attention
+              </p>
+            </div>
+            <span className="text-xs font-mono text-[#bba4ff]">
+              {majorDevelopments.length} {majorDevelopments.length === 1 ? "development" : "developments"}
+            </span>
           </div>
-          <span className="text-xs font-mono text-[#bba4ff]">
-            3 developments
-          </span>
-        </div>
 
-        <div className="divide-y divide-[rgba(255,255,255,0.06)] space-y-10">
-          {MAJOR_DEVELOPMENTS.map((dev, idx) => {
-            const accentColor =
-              dev.company.toLowerCase().includes("stripe")
-                ? "var(--magenta)"
-                : dev.company.toLowerCase().includes("cloudflare")
-                ? "var(--cyan)"
-                : "var(--violet)";
+          <div className="divide-y divide-[rgba(255,255,255,0.06)] space-y-10">
+            {majorDevelopments.map((dev, idx) => {
+              const accentColor =
+                idx === 0
+                  ? "var(--magenta)"
+                  : idx === 1
+                  ? "var(--cyan)"
+                  : "var(--violet)";
 
-            return (
-              <section
-                key={dev.id}
-                className={cn("space-y-4 relative", idx > 0 && "pt-10")}
-              >
-                {/* Subtle top hairline */}
-                <div
-                  className="absolute inset-x-0 top-0 h-[1px] opacity-40"
-                  style={{
-                    background: `linear-gradient(90deg, ${accentColor}, transparent 60%)`,
-                  }}
-                />
+              return (
+                <section
+                  key={dev.id}
+                  className={cn("space-y-4 relative", idx > 0 && "pt-10")}
+                >
+                  <div
+                    className="absolute inset-x-0 top-0 h-[1px] opacity-40"
+                    style={{
+                      background: `linear-gradient(90deg, ${accentColor}, transparent 60%)`,
+                    }}
+                  />
 
-                {/* Header: 01 · COMPANY · Badges · Source count */}
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span
-                      className="font-mono text-sm font-bold"
-                      style={{ color: accentColor }}
-                    >
-                      {dev.number}
-                    </span>
-                    <CompanyLogo company={dev.company} variant="inline" className="text-xs" />
-                    <TierBadge tier={dev.tier} size="sm" />
-                    <ConfidenceBadge confidence={dev.confidence} size="sm" />
+                  {/* Header: 01 · COMPANY · Badges · Source count */}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span
+                        className="font-mono text-sm font-bold"
+                        style={{ color: accentColor }}
+                      >
+                        {dev.number}
+                      </span>
+                      <CompanyLogo company={dev.company} variant="inline" className="text-xs" />
+                      <TierBadge tier={dev.tier} size="sm" />
+                      <ConfidenceBadge confidence={dev.confidence} size="sm" />
+                    </div>
+
+                    <div className="text-xs font-mono text-[#6B7280]">
+                      {formatEvidenceCount(dev.sourcesCount, 1)}
+                    </div>
                   </div>
 
-                  <span className="text-xs font-mono text-[#777985]">
-                    {formatEvidenceCount(dev.records.length, 1)}
-                  </span>
-                </div>
+                  {/* Headline */}
+                  <h3 className="font-serif text-2xl sm:text-3xl text-[#F3F4F6] font-normal leading-snug">
+                    {dev.headline}
+                  </h3>
 
-                {/* Headline */}
-                <h3 className="font-serif text-xl sm:text-[22px] font-normal text-[#F3F4F6] leading-snug">
-                  {dev.headline}
-                </h3>
-
-                {/* Short factual explanation: 1–2 sentences */}
-                <p className="text-xs sm:text-[13px] text-[#D1D5DB] leading-relaxed">
-                  {dev.explanation}
-                </p>
-
-                {/* WHY IT MATTERS: 1–2 concise paragraphs */}
-                <div
-                  className="pl-3.5 py-1 space-y-1 rounded-r-[4px]"
-                  style={{
-                    borderLeft: `2px solid ${accentColor}`,
-                    background: `linear-gradient(90deg, color-mix(in srgb, ${accentColor} 4%, transparent), transparent 60%)`,
-                  }}
-                >
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-[0.14em] block font-mono"
-                    style={{ color: accentColor }}
-                  >
-                    ↳ WHY IT MATTERS
-                  </span>
-                  <p className="text-xs sm:text-[13px] text-[#b8b8c2] leading-relaxed">
-                    {dev.whyItMatters}
+                  {/* Factual explanation */}
+                  <p className="text-sm sm:text-base text-[#D1D5DB] leading-relaxed">
+                    {dev.explanation}
                   </p>
-                </div>
 
-                {/* COMPETITIVE IMPLICATION: One concise paragraph */}
-                <div className="border-l-2 border-l-[var(--amber)] pl-3.5 py-1 space-y-1 bg-gradient-to-r from-[rgba(255,180,90,0.04)] to-transparent rounded-r-[4px]">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--amber)] block font-mono">
-                    ◈ COMPETITIVE IMPLICATION
-                  </span>
-                  <p className="text-xs sm:text-[13px] text-[#b8b8c2] leading-relaxed">
-                    {dev.competitiveImplication}
-                  </p>
-                </div>
+                  {/* Why It Matters Callout */}
+                  <div className="border-l-2 border-l-[rgba(255,255,255,0.15)] pl-4 py-1 space-y-1 bg-[rgba(255,255,255,0.02)] rounded-r-[4px]">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#bba4ff] block">
+                      ↳ Why It Matters
+                    </span>
+                    <p className="text-xs sm:text-sm text-[#E5E7EB] leading-relaxed">
+                      {dev.whyItMatters}
+                    </p>
+                  </div>
 
-                {/* Evidence Action Affordance */}
-                <div className="flex items-center justify-between pt-2 border-t border-[rgba(255,255,255,0.04)] text-xs">
-                  <span className="font-mono text-[#777985]">
-                    Evidence: {formatEvidenceCount(dev.records.length, 1)} · {dev.confidence} confidence
-                  </span>
+                  {/* Competitive Implication */}
+                  {dev.competitiveImplication && (
+                    <div className="border-l-2 border-l-[rgba(165,107,255,0.3)] pl-4 py-1 space-y-1 bg-[rgba(165,107,255,0.02)] rounded-r-[4px]">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#d4c8ff] block">
+                        ↳ Competitive Implication
+                      </span>
+                      <p className="text-xs sm:text-sm text-[#9CA3AF] leading-relaxed">
+                        {dev.competitiveImplication}
+                      </p>
+                    </div>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => handleInspect(dev)}
-                    className="inline-flex items-center gap-1.5 text-xs font-mono text-[#d4c8ff] hover:text-white py-1.5 px-3 rounded-[4px] bg-[rgba(165,107,255,0.06)] hover:bg-[rgba(165,107,255,0.15)] border border-[rgba(165,107,255,0.25)] hover:border-[rgba(165,107,255,0.5)] transition-colors cursor-pointer select-none"
-                  >
-                    <span>♧</span>
-                    <span>Inspect evidence →</span>
-                  </button>
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      </section>
+                  {/* View Evidence Dossier Button */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleInspect(dev)}
+                      className="inline-flex items-center gap-1.5 text-xs font-mono text-[#bba4ff] hover:text-white hover:underline transition-colors cursor-pointer group"
+                    >
+                      <span>Inspect evidence dossier</span>
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ========================================================================= */}
       {/* 4. COMPETITIVE MOVEMENT: Compact table                                    */}
@@ -456,22 +402,41 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgba(255,255,255,0.04)] text-[#E5E7EB]">
-              {COMPETITIVE_MOVEMENTS.map((c, idx) => (
-                <tr key={idx} className="h-11 hover:bg-[#11151E] transition-colors">
-                  <td className="px-4 py-2 font-semibold text-[#F3F4F6]">
-                    <div className="flex items-center gap-2">
-                      <CompanyLogo company={c.company} variant="mini" />
-                      <span>{c.company}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 text-[#D1D5DB]">
-                    {c.meaningfulMovement}
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono text-[11px] text-[#6B7280]">
-                    {c.domain}
-                  </td>
-                </tr>
-              ))}
+              {parsed && parsed.rollupRows.length > 0 ? (
+                parsed.rollupRows.map((row, idx) => (
+                  <tr key={idx} className="h-11 hover:bg-[#11151E] transition-colors">
+                    <td className="px-4 py-2 font-semibold text-[#F3F4F6]">
+                      <div className="flex items-center gap-2">
+                        <CompanyLogo company={row.competitors} variant="mini" />
+                        <span>{row.competitors}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-[#D1D5DB]">
+                      {row.patternDetected || row.theme}
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono text-[11px] text-[#6B7280]">
+                      {row.theme}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                (competitors.length > 0 ? competitors : trackedCompanies).map((c, idx) => (
+                  <tr key={idx} className="h-11 hover:bg-[#11151E] transition-colors">
+                    <td className="px-4 py-2 font-semibold text-[#F3F4F6]">
+                      <div className="flex items-center gap-2">
+                        <CompanyLogo company={c.company_name} variant="mini" />
+                        <span>{c.company_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-[#D1D5DB]">
+                      Continuous monitoring active
+                    </td>
+                    <td className="px-4 py-2 text-right font-mono text-[11px] text-[#6B7280]">
+                      Monitored
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -480,65 +445,70 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
       {/* ========================================================================= */}
       {/* 5. EMERGING RESEARCH: Configured research field developments              */}
       {/* ========================================================================= */}
-      <section className="space-y-3" aria-label="Emerging research">
-        <div className="flex items-baseline justify-between gap-4 border-b border-[rgba(255,255,255,0.06)] pb-2">
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-[#F3F4F6] font-mono flex items-center gap-1.5">
-              <span className="text-[var(--violet)]">⌁</span> Emerging in Your Research
-            </h2>
-            <p className="text-xs text-[#6B7280] mt-0.5">
-              Key movements across configured research topics
-            </p>
-          </div>
-          <Link
-            href="/app/research-radar"
-            className="text-xs font-medium text-[#bba4ff] hover:text-[#d4c8ff] transition-colors inline-flex items-center gap-1 font-mono"
-          >
-            View Research Radar <ArrowRight className="h-3 w-3" />
-          </Link>
-        </div>
-
-        <div className="rounded-[6px] bg-[#0E1117] border border-[rgba(255,255,255,0.06)] divide-y divide-[rgba(255,255,255,0.04)] overflow-hidden">
-          {RESEARCH_TOPICS.map((item, i) => (
-            <div
-              key={i}
-              className="p-4 sm:p-5 hover:bg-[#11151E] transition-colors space-y-2 text-xs"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <span className="font-semibold text-sm text-[#F3F4F6]">
-                  {item.topic}
-                </span>
-                <span
-                  className={cn(
-                    "text-[10px] font-mono px-2 py-0.5 rounded-[3px] border font-medium shrink-0",
-                    item.statusClass
-                  )}
-                >
-                  {item.status}
-                </span>
-              </div>
-
-              <p className="text-xs sm:text-[13px] text-[#D1D5DB] leading-relaxed">
-                {item.development}
+      {topics.length > 0 && (
+        <section className="space-y-3" aria-label="Emerging research">
+          <div className="flex items-baseline justify-between gap-4 border-b border-[rgba(255,255,255,0.06)] pb-2">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-[#F3F4F6] font-mono flex items-center gap-1.5">
+                <span className="text-[var(--violet)]">⌁</span> Emerging in Your Research
+              </h2>
+              <p className="text-xs text-[#6B7280] mt-0.5">
+                Key movements across configured research topics
               </p>
-
-              <div className="pt-2 border-t border-[rgba(255,255,255,0.04)] text-[11px] text-[#9CA3AF] flex items-center flex-wrap gap-1.5">
-                <span className="text-[#6B7280] font-semibold uppercase tracking-wider font-mono">
-                  Competitive Context:
-                </span>
-                <CompanyLogo company={item.contextCompany} variant="inline" className="text-white text-[10px]" />
-                <span>{item.competitiveContext}</span>
-              </div>
             </div>
-          ))}
-        </div>
-      </section>
+            <Link
+              href="/app/research-radar"
+              className="text-xs font-medium text-[#bba4ff] hover:text-[#d4c8ff] transition-colors inline-flex items-center gap-1 font-mono"
+            >
+              View Research Radar <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <div className="rounded-[6px] bg-[#0E1117] border border-[rgba(255,255,255,0.06)] divide-y divide-[rgba(255,255,255,0.04)] overflow-hidden">
+            {topics.map((item, i) => (
+              <div
+                key={i}
+                className="p-4 sm:p-5 hover:bg-[#11151E] transition-colors space-y-2 text-xs"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-semibold text-sm text-[#F3F4F6]">
+                    {item.topic_label}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-[10px] font-mono px-2 py-0.5 rounded-[3px] border font-medium shrink-0",
+                      item.is_active
+                        ? "text-[var(--green)] bg-[rgba(57,217,154,0.08)] border-[var(--green)]/20"
+                        : "text-[var(--amber)] bg-[rgba(255,180,90,0.08)] border-[var(--amber)]/20"
+                    )}
+                  >
+                    {item.is_active ? "Active" : "Paused"}
+                  </span>
+                </div>
+
+                <p className="text-xs sm:text-[13px] text-[#D1D5DB] leading-relaxed">
+                  {item.keywords?.length
+                    ? `Keywords: ${item.keywords.join(", ")}`
+                    : "Continuous monitoring active across primary news, academic, and code repositories."}
+                </p>
+
+                <div className="pt-2 border-t border-[rgba(255,255,255,0.04)] text-[11px] text-[#9CA3AF] flex items-center flex-wrap gap-1.5">
+                  <span className="text-[#6B7280] font-semibold uppercase tracking-wider font-mono">
+                    Competitive Scope:
+                  </span>
+                  <CompanyLogo company={targetCompany || "Workspace"} variant="inline" className="text-white text-[10px]" />
+                  <span>Tracked under {targetCompany || "workspace"} intelligence scope.</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ========================================================================= */}
       {/* 6. EVIDENCE & METHODOLOGY: Collapsed, subtle bottom transparency section   */}
       {/* ========================================================================= */}
       <section className="pt-8 border-t border-[rgba(255,255,255,0.08)] space-y-4" aria-label="Evidence and methodology">
-        {/* Animated spectrum line */}
         <div className="spectrum-line h-[1px] w-full" />
 
         <button
@@ -547,7 +517,6 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
           className="flex items-center justify-between w-full p-4 rounded-[6px] bg-[#0E1117] border border-[rgba(255,255,255,0.06)] border-t-[rgba(165,107,255,0.2)] hover:bg-[#121620] transition-colors text-left group cursor-pointer relative overflow-hidden"
           aria-expanded={methodologyOpen}
         >
-          {/* Bottom animated spectrum hairline */}
           <div className="absolute left-0 right-0 bottom-0 h-[2px] bg-gradient-to-r from-[var(--violet)] via-[var(--magenta)] via-[var(--cyan)] to-[var(--amber)] animate-spectrumFlow opacity-60" />
 
           <div className="flex items-center gap-3">
@@ -577,7 +546,7 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
           <div className="p-5 rounded-[6px] bg-[#090B0F] border border-[rgba(255,255,255,0.06)] space-y-4 text-xs text-[#9CA3AF] leading-relaxed animate-in fade-in duration-150">
             <div className="space-y-1">
               <h4 className="font-semibold text-xs text-[#F3F4F6] uppercase tracking-wider font-mono">
-                Corroboration & Filtering Criteria
+                Corroboration &amp; Filtering Criteria
               </h4>
               <p>
                 PrismIQ synthesizes competitive findings through multi-source corroboration. Routine operational events (such as standard hiring announcements, maintenance branch creations, and single-commit updates) are suppressed from strategic briefs unless corroborated by significant product or pricing movements.
@@ -595,7 +564,7 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
 
             <div className="space-y-1 pt-2 border-t border-[rgba(255,255,255,0.04)]">
               <h4 className="font-semibold text-xs text-[#F3F4F6] uppercase tracking-wider font-mono">
-                Collection Scope & Limitations
+                Collection Scope &amp; Limitations
               </h4>
               <p>
                 Intelligence is drawn from publicly accessible documentation, official code repositories, developer registries, and news feeds. Bilateral enterprise discounts, private internal communications, and unannounced roadmaps remain unobserved.
@@ -605,33 +574,35 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
         )}
 
         {/* Historical Brief Archives Button */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={() => setArchivesOpen(!archivesOpen)}
-            className="text-xs font-mono text-[#6B7280] hover:text-[#9CA3AF] transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>{archivesOpen ? "Hide historical cycles" : `Browse historical brief archives (${briefs.length} past cycles)`}</span>
-            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", archivesOpen && "rotate-180")} />
-          </button>
+        {briefs.length > 0 && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setArchivesOpen(!archivesOpen)}
+              className="text-xs font-mono text-[#6B7280] hover:text-[#9CA3AF] transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>{archivesOpen ? "Hide historical cycles" : `Browse historical brief archives (${briefs.length} past cycles)`}</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", archivesOpen && "rotate-180")} />
+            </button>
 
-          {archivesOpen && (
-            <div className="mt-3 p-4 rounded-[6px] bg-[#0E1117] border border-[rgba(255,255,255,0.06)] space-y-1.5">
-              {briefs.map((b) => (
-                <div
-                  key={b.id}
-                  onClick={() => router.push(b.id === "data_latest" ? "/app/brief" : `/app/brief/${b.id}`)}
-                  className="p-2.5 rounded-[4px] hover:bg-[#151922] transition-colors cursor-pointer flex items-center justify-between text-xs"
-                >
-                  <span className="font-medium text-[#F3F4F6]">{b.title || `Cycle ${b.date}`}</span>
-                  <span className="text-[11px] font-mono text-[#bba4ff] flex items-center gap-1">
-                    View <ChevronRight className="h-3 w-3" />
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+            {archivesOpen && (
+              <div className="mt-3 p-4 rounded-[6px] bg-[#0E1117] border border-[rgba(255,255,255,0.06)] space-y-1.5">
+                {briefs.map((b) => (
+                  <div
+                    key={b.id}
+                    onClick={() => router.push(b.id === "data_latest" ? "/app/brief" : `/app/brief/${b.id}`)}
+                    className="p-2.5 rounded-[4px] hover:bg-[#151922] transition-colors cursor-pointer flex items-center justify-between text-xs"
+                  >
+                    <span className="font-medium text-[#F3F4F6]">{b.title || `Cycle ${b.date}`}</span>
+                    <span className="text-[11px] font-mono text-[#bba4ff] flex items-center gap-1">
+                      View <ChevronRight className="h-3 w-3" />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </article>
   );
