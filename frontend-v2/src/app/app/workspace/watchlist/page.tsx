@@ -52,7 +52,7 @@ export default function WatchlistPage() {
 
   // Discovery Agent Modal State
   const [showDiscoveryModal, setShowDiscoveryModal] = React.useState(false);
-  const [discoveryTarget, setDiscoveryTarget] = React.useState("Vercel");
+  const [discoveryTarget, setDiscoveryTarget] = React.useState("");
   const [isDiscovering, setIsDiscovering] = React.useState(false);
   const [candidates, setCandidates] = React.useState<CandidateReviewItem[]>([]);
   const [showConfirmGate, setShowConfirmGate] = React.useState(false);
@@ -65,6 +65,10 @@ export default function WatchlistPage() {
     try {
       const comps = await fetchTrackedCompanies();
       setCompanies(comps);
+      const target = comps.find((c) => c.is_target)?.company_name;
+      if (target) {
+        setDiscoveryTarget(target);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load tracked companies.");
     } finally {
@@ -130,13 +134,26 @@ export default function WatchlistPage() {
     setDiscoveryError(null);
     try {
       const res = await discoverCompetitors(target);
-      const items: CandidateReviewItem[] = (res.candidates || []).map((c: DiscoveryCandidate) => ({
-        name: c.company_name,
-        rationale: (c.reasons && c.reasons.join(". ")) || "Identified as direct sector competitor.",
-        confidence: c.confidence >= 0.8 ? "High" : c.confidence >= 0.6 ? "Medium" : "Low",
-        sourceCitation: (c.sources && c.sources.join(", ")) || "Sector Analysis & Domain Crawl",
-        selected: true,
-      }));
+      const items: CandidateReviewItem[] = (res.candidates || []).map((c: DiscoveryCandidate) => {
+        const candidateName = c.name || c.company_name || "Unknown Competitor";
+        let confLevel: "High" | "Medium" | "Low" = "Medium";
+        if (typeof c.confidence === "string") {
+          const norm = c.confidence.toLowerCase();
+          if (norm === "high") confLevel = "High";
+          else if (norm === "low") confLevel = "Low";
+        } else if (typeof c.confidence === "number") {
+          if (c.confidence >= 0.8) confLevel = "High";
+          else if (c.confidence < 0.6) confLevel = "Low";
+        }
+
+        return {
+          name: candidateName,
+          rationale: c.rationale || (c.reasons && c.reasons.join(". ")) || "Identified as direct sector competitor.",
+          confidence: confLevel,
+          sourceCitation: c.source || (c.sources && c.sources.join(", ")) || "Sector Analysis & Domain Crawl",
+          selected: true,
+        };
+      });
 
       setCandidates(items);
       setShowDiscoveryModal(false);
