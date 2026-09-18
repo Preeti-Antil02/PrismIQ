@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useAuth } from "@/lib/AuthContext";
 import {
   EvidenceDrawer,
   type EvidenceDrawerItem,
@@ -36,9 +38,17 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const router = useRouter();
+  const { user, token, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [drawerData, setDrawerData] = React.useState<EvidenceDrawerItem | null>(null);
+
+  React.useEffect(() => {
+    if (!isLoading && !token && !user) {
+      router.push("/login");
+    }
+  }, [isLoading, token, user, router]);
 
   const openDrawer = React.useCallback((item: EvidenceDrawerItem) => {
     setDrawerData(item);
@@ -48,6 +58,17 @@ export function AppShell({ children }: AppShellProps) {
   const closeDrawer = React.useCallback(() => {
     setDrawerOpen(false);
   }, []);
+
+  if (isLoading || (!token && !user)) {
+    return (
+      <div className="min-h-screen bg-[#08090C] text-[#F3F4F6] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-6 w-6 rounded-full border-2 border-[var(--cyan)] border-t-transparent animate-spin" />
+          <span className="text-xs font-mono text-zinc-400">Authenticating workspace...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <EvidenceDrawerContext.Provider
