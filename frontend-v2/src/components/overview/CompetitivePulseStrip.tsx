@@ -50,8 +50,13 @@ export function CompetitivePulseStrip({ movements }: CompetitivePulseStripProps)
       </div>
 
       {/* Horizontal Landscape of Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {movements.map((c, i) => {
+      {movements.length === 0 ? (
+        <div className="rounded-[8px] border border-white/[0.08] bg-[#07070b]/60 p-6 text-center text-xs text-[#8e8f9a] font-mono">
+          No tracked competitors configured. Add competitors in Watchlist to activate competitive pulse.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {movements.map((c, i) => {
           const accentColor =
             i === 0
               ? "var(--cyan)"
@@ -120,7 +125,8 @@ export function CompetitivePulseStrip({ movements }: CompetitivePulseStripProps)
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
