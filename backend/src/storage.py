@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union
 from dotenv import load_dotenv
 
+from . import config
+
 logger = logging.getLogger(__name__)
 
 # Ensure backend root is known and .env is loaded
@@ -2059,5 +2061,318 @@ def get_radar_history(
             pass
 
     return records
+
+
+# ============================================================================
+# Pipeline Run State & Telemetry Storage (Progressive Monitoring)
+# ============================================================================
+
+_IN_MEMORY_RUN_PROGRESS: Dict[str, Dict[str, Any]] = {}
+
+
+def ensure_pipeline_run_tables() -> None:
+    """Ensure pipeline_run_progress table exists in live PostgreSQL."""
+    if is_test_environment() or not is_live_write_permitted():
+        return
+    try:
+        with get_db_cursor() as cur:
+            if isinstance(cur, MockCursor):
+                return
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS pipeline_run_progress (
+                    run_id VARCHAR(64) PRIMARY KEY,
+                    tenant_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+                    status VARCHAR(50) NOT NULL DEFAULT 'running',
+                    current_phase VARCHAR(100) NOT NULL DEFAULT 'initializing',
+                    progress_message TEXT NOT NULL DEFAULT 'Continuous monitoring active',
+                    total_companies INT NOT NULL DEFAULT 0,
+                    completed_companies INT NOT NULL DEFAULT 0,
+                    completed_company_names JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    current_company VARCHAR(255),
+                    total_sources INT NOT NULL DEFAULT 0,
+                    completed_sources INT NOT NULL DEFAULT 0,
+                    source_health JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    source_errors JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    first_visible_data_at TIMESTAMPTZ,
+                    time_to_first_data_seconds NUMERIC(8, 2),
+                    is_first_run BOOLEAN NOT NULL DEFAULT FALSE,
+                    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    completed_at TIMESTAMPTZ,
+                    total_duration_seconds NUMERIC(8, 2)
+                );
+                CREATE INDEX IF NOT EXISTS idx_run_progress_tenant ON pipeline_run_progress(tenant_id);
+                CREATE INDEX IF NOT EXISTS idx_run_progress_status ON pipeline_run_progress(status);
+                CREATE INDEX IF NOT EXISTS idx_run_progress_started ON pipeline_run_progress(started_at DESC);
+            """)
+    except Exception as e:
+        logger.warning(f"ensure_pipeline_run_tables notice: {e}")
+
+
+def create_pipeline_run(
+    tenant_id: Optional[str] = None,
+    total_companies: int = 0,
+    companies: Optional[List[str]] = None,
+    sources: Optional[List[str]] = None,
+    is_first_run: bool = False,
+) -> str:
+    """Initialize an active pipeline run and return its unique run_id."""
+    run_id = f"run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    msg = f"Fetching signals: 0 of {total_companies} competitors complete" if total_companies > 0 else "Initializing intelligence sweep..."
+
+    record = {
+        "run_id": run_id,
+        "tenant_id": tenant_id,
+        "status": "running",
+        "current_phase": "initializing",
+        "progress_message": msg,
+        "total_companies": total_companies,
+        "completed_companies": 0,
+        "completed_company_names": [],
+        "current_company": companies[0] if companies else None,
+        "total_sources": len(sources) if sources else len(config.SOURCES),
+        "completed_sources": 0,
+        "source_health": {},
+        "source_errors": {},
+        "first_visible_data_at": None,
+        "time_to_first_data_seconds": None,
+        "is_first_run": is_first_run,
+        "started_at": now_iso,
+        "updated_at": now_iso,
+        "completed_at": None,
+        "total_duration_seconds": None,
+    }
+
+    _IN_MEMORY_RUN_PROGRESS[run_id] = record
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            ensure_pipeline_run_tables()
+            with get_db_cursor() as cur:
+                if not isinstance(cur, MockCursor):
+                    cur.execute("""
+                        INSERT INTO pipeline_run_progress (
+                            run_id, tenant_id, status, current_phase, progress_message,
+                            total_companies, completed_companies, completed_company_names,
+                            current_company, total_sources, completed_sources,
+                            source_health, source_errors, is_first_run, started_at, updated_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW());
+                    """, (
+                        run_id, tenant_id, "running", "initializing", msg,
+                        total_companies, 0, json.dumps([]),
+                        companies[0] if companies else None,
+                        len(sources) if sources else len(config.SOURCES), 0,
+                        json.dumps({}), json.dumps({}), is_first_run
+                    ))
+        except Exception as e:
+            logger.warning(f"Failed to persist pipeline_run_progress to Postgres: {e}")
+
+    return run_id
+
+
+def update_pipeline_progress(
+    run_id: str,
+    phase: Optional[str] = None,
+    completed_companies: Optional[int] = None,
+    completed_company_names: Optional[List[str]] = None,
+    current_company: Optional[str] = None,
+    message: Optional[str] = None,
+    source_health: Optional[Dict[str, Any]] = None,
+    source_errors: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Update progress telemetry for an active run."""
+    now_dt = datetime.now(timezone.utc)
+    now_iso = now_dt.isoformat()
+
+    rec = _IN_MEMORY_RUN_PROGRESS.get(run_id)
+    if rec:
+        if phase: rec["current_phase"] = phase
+        if completed_companies is not None: rec["completed_companies"] = completed_companies
+        if completed_company_names is not None: rec["completed_company_names"] = completed_company_names
+        if current_company is not None: rec["current_company"] = current_company
+        if message: rec["progress_message"] = message
+        if source_health: rec["source_health"].update(source_health)
+        if source_errors: rec["source_errors"].update(source_errors)
+        rec["updated_at"] = now_iso
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                if not isinstance(cur, MockCursor):
+                    updates = ["updated_at = NOW()"]
+                    params: List[Any] = []
+                    if phase:
+                        updates.append("current_phase = %s")
+                        params.append(phase)
+                    if completed_companies is not None:
+                        updates.append("completed_companies = %s")
+                        params.append(completed_companies)
+                    if completed_company_names is not None:
+                        updates.append("completed_company_names = %s")
+                        params.append(json.dumps(completed_company_names))
+                    if current_company is not None:
+                        updates.append("current_company = %s")
+                        params.append(current_company)
+                    if message:
+                        updates.append("progress_message = %s")
+                        params.append(message)
+                    if source_health:
+                        updates.append("source_health = source_health || %s::jsonb")
+                        params.append(json.dumps(source_health))
+                    if source_errors:
+                        updates.append("source_errors = source_errors || %s::jsonb")
+                        params.append(json.dumps(source_errors))
+
+                    params.append(run_id)
+                    cur.execute(f"""
+                        UPDATE pipeline_run_progress
+                        SET {', '.join(updates)}
+                        WHERE run_id = %s;
+                    """, tuple(params))
+        except Exception as e:
+            logger.warning(f"Failed to update pipeline_run_progress in Postgres: {e}")
+
+
+def record_first_visible_data(run_id: str) -> Optional[float]:
+    """Record the timestamp when the first queryable row was committed to the DB."""
+    now_dt = datetime.now(timezone.utc)
+    now_iso = now_dt.isoformat()
+    time_to_first: Optional[float] = None
+
+    rec = _IN_MEMORY_RUN_PROGRESS.get(run_id)
+    if rec and not rec.get("first_visible_data_at"):
+        started = datetime.fromisoformat(rec["started_at"])
+        time_to_first = round((now_dt - started).total_seconds(), 2)
+        rec["first_visible_data_at"] = now_iso
+        rec["time_to_first_data_seconds"] = time_to_first
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                if not isinstance(cur, MockCursor):
+                    cur.execute("""
+                        UPDATE pipeline_run_progress
+                        SET first_visible_data_at = NOW(),
+                            time_to_first_data_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))
+                        WHERE run_id = %s AND first_visible_data_at IS NULL
+                        RETURNING time_to_first_data_seconds;
+                    """, (run_id,))
+                    row = cur.fetchone()
+                    if row and row[0]:
+                        time_to_first = float(row[0])
+        except Exception as e:
+            logger.warning(f"Failed to record first_visible_data in Postgres: {e}")
+
+    return time_to_first
+
+
+def complete_pipeline_run(
+    run_id: str,
+    status: str = "completed",
+    error_message: Optional[str] = None,
+) -> None:
+    """Mark a pipeline run as completed, failed, or timed_out."""
+    now_dt = datetime.now(timezone.utc)
+    now_iso = now_dt.isoformat()
+
+    rec = _IN_MEMORY_RUN_PROGRESS.get(run_id)
+    if rec:
+        rec["status"] = status
+        rec["current_phase"] = status
+        rec["completed_at"] = now_iso
+        if error_message:
+            rec["source_errors"]["fatal"] = error_message
+        started = datetime.fromisoformat(rec["started_at"])
+        rec["total_duration_seconds"] = round((now_dt - started).total_seconds(), 2)
+        if status == "completed":
+            rec["progress_message"] = "Intelligence cycle completed"
+        elif status == "timed_out":
+            rec["progress_message"] = "Monitoring run took longer than expected"
+        else:
+            rec["progress_message"] = f"Monitoring run stopped: {error_message or 'error'}"
+
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                if not isinstance(cur, MockCursor):
+                    cur.execute("""
+                        UPDATE pipeline_run_progress
+                        SET status = %s,
+                            current_phase = %s,
+                            progress_message = %s,
+                            completed_at = NOW(),
+                            updated_at = NOW(),
+                            total_duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))
+                        WHERE run_id = %s;
+                    """, (
+                        status, status,
+                        "Intelligence cycle completed" if status == "completed" else ("Monitoring run timed out" if status == "timed_out" else f"Run failed: {error_message}"),
+                        run_id
+                    ))
+        except Exception as e:
+            logger.warning(f"Failed to complete pipeline_run_progress in Postgres: {e}")
+
+
+def get_active_or_latest_run_progress(
+    tenant_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Retrieve the currently running pipeline progress or the latest run for a tenant."""
+    # 1. Primary PostgreSQL query
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                if not isinstance(cur, MockCursor):
+                    query = """
+                        SELECT run_id, tenant_id, status, current_phase, progress_message,
+                               total_companies, completed_companies, completed_company_names,
+                               current_company, total_sources, completed_sources,
+                               source_health, source_errors, first_visible_data_at,
+                               time_to_first_data_seconds, is_first_run, started_at,
+                               updated_at, completed_at, total_duration_seconds
+                        FROM pipeline_run_progress
+                        WHERE (%s IS NULL OR tenant_id = %s OR tenant_id IS NULL)
+                        ORDER BY (CASE WHEN status = 'running' THEN 0 ELSE 1 END), started_at DESC
+                        LIMIT 1;
+                    """
+                    cur.execute(query, (tenant_id, tenant_id))
+                    row = cur.fetchone()
+                    if row:
+                        return {
+                            "run_id": str(row[0]),
+                            "tenant_id": str(row[1]) if row[1] else None,
+                            "status": row[2],
+                            "current_phase": row[3],
+                            "progress_message": row[4],
+                            "total_companies": row[5],
+                            "completed_companies": row[6],
+                            "completed_company_names": row[7] if isinstance(row[7], list) else (json.loads(row[7]) if row[7] else []),
+                            "current_company": row[8],
+                            "total_sources": row[9],
+                            "completed_sources": row[10],
+                            "source_health": row[11] if isinstance(row[11], dict) else (json.loads(row[11]) if row[11] else {}),
+                            "source_errors": row[12] if isinstance(row[12], dict) else (json.loads(row[12]) if row[12] else {}),
+                            "first_visible_data_at": row[13].isoformat() if hasattr(row[13], "isoformat") else (str(row[13]) if row[13] else None),
+                            "time_to_first_data_seconds": float(row[14]) if row[14] is not None else None,
+                            "is_first_run": bool(row[15]),
+                            "started_at": row[16].isoformat() if hasattr(row[16], "isoformat") else str(row[16]),
+                            "updated_at": row[17].isoformat() if hasattr(row[17], "isoformat") else str(row[17]),
+                            "completed_at": row[18].isoformat() if hasattr(row[18], "isoformat") else (str(row[18]) if row[18] else None),
+                            "total_duration_seconds": float(row[19]) if row[19] is not None else None,
+                        }
+        except Exception as e:
+            logger.warning(f"Failed to query pipeline_run_progress from Postgres: {e}")
+
+    # 2. In-memory fallback
+    matches = [
+        r for r in _IN_MEMORY_RUN_PROGRESS.values()
+        if tenant_id is None or r.get("tenant_id") == tenant_id or r.get("tenant_id") is None
+    ]
+    if matches:
+        sorted_runs = sorted(matches, key=lambda x: (0 if x.get("status") == "running" else 1, x.get("started_at", "")), reverse=False)
+        return sorted_runs[0]
+
+    return None
 
 
