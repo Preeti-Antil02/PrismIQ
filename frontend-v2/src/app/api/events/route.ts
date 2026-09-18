@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     backendUrl.searchParams.set(key, val);
   });
 
-  const token = getClientAuthToken();
+  const incomingAuth = request.headers.get("authorization");
+  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 
   try {
     const res = await fetch(backendUrl.toString(), {
