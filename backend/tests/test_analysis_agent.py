@@ -142,3 +142,40 @@ def test_analysis_agent_routine_job_confidence_calibration():
     assert f["fact_confidence"] == "High"  # Sourced job posting is verified fact
     assert f["inference_confidence"] == "Low"  # No speculative strategic inference
     assert f["confidence"] == "Low"  # Low legacy ranking priority
+
+
+def test_analysis_agent_batched_execution():
+    signals = [
+        {
+            "event_id": f"evt_{i}",
+            "source": "news",
+            "company": f"Competitor_{i}",
+            "title": f"Major Release {i}",
+            "url": f"https://example.com/release-{i}",
+            "published_at": "2026-08-20T10:00:00Z",
+            "raw_excerpt": f"Release details for product {i}.",
+            "fact_confidence": "High",
+        }
+        for i in range(1, 6)
+    ]
+
+    mock_batch_results = {
+        f"evt_{i}": {
+            "why_it_matters": f"Strategic implication {i}.",
+            "fact_confidence": "High",
+            "inference_confidence": "Medium",
+            "confidence": "High",
+        }
+        for i in range(1, 6)
+    }
+
+    with patch("src.analysis_agent._call_groq_batch", return_value=mock_batch_results) as mock_batch:
+        findings = analysis_agent.run(signals)
+        assert len(findings) == 5
+        assert mock_batch.called
+        for i, f in enumerate(findings, 1):
+            assert f["why_it_matters"] == f"Strategic implication {i}."
+            assert f["fact_confidence"] == "High"
+            assert f["inference_confidence"] == "Medium"
+            assert f["confidence"] == "High"
+
