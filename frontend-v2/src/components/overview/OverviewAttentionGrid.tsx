@@ -11,17 +11,59 @@ import type { FindingData } from "@/components/primitives/FindingRow";
 interface OverviewAttentionGridProps {
   findings: FindingData[];
   onInspect: (finding: FindingData) => void;
+  targetCompany?: string;
+  competitorCount?: number;
 }
 
 export function OverviewAttentionGrid({
   findings,
   onInspect,
+  targetCompany,
+  competitorCount,
 }: OverviewAttentionGridProps) {
   const primaryFinding = findings[0];
   const secondaryFinding = findings[1];
   const tertiaryFinding = findings[2];
 
-  if (!primaryFinding) return null;
+  if (!primaryFinding) {
+    return (
+      <section className="space-y-4" aria-label="What deserves your attention">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-white/[0.06] pb-3">
+          <div>
+            <div className="text-[10px] font-mono tracking-[0.18em] text-[#c5b4ff] uppercase font-bold flex items-center gap-1.5">
+              <span className="text-[var(--violet)] text-xs drop-shadow-[0_0_8px_rgba(165,107,255,0.7)]">✦</span>
+              WHAT DESERVES YOUR ATTENTION
+            </div>
+            <h2 className="font-serif text-2xl sm:text-[26px] font-normal mt-1 section-title-gradient leading-snug">
+              Continuous Monitoring Initialized
+            </h2>
+          </div>
+
+          <Link
+            href="/app/workspace/watchlist"
+            className="text-xs font-mono text-[#bba4ff] hover:text-[#ddd] transition-colors inline-flex items-center gap-1 self-start sm:self-auto group"
+          >
+            <span>Manage Tracked Companies</span>
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+
+        <div className="rounded-[10px] border border-white/[0.08] bg-gradient-to-b from-white/[0.03] to-[rgba(5,5,8,0.85)] p-8 text-center space-y-3">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 shadow-[0_0_16px_rgba(165,107,255,0.2)]">
+            <span className="text-xl">✦</span>
+          </div>
+          <h3 className="text-sm font-semibold text-white font-mono">
+            {targetCompany ? `Continuous monitoring initialized for ${targetCompany}` : "Continuous monitoring initialized"}
+          </h3>
+          <p className="text-xs text-[#9a9ba6] max-w-lg mx-auto font-sans leading-relaxed">
+            {targetCompany
+              ? `PrismIQ is indexing primary sources and news channels for ${targetCompany} and ${competitorCount ? `${competitorCount} tracked competitors` : "your configured competitors"}. Verified strategic developments will appear here as multi-source signals are corroborated.`
+              : "PrismIQ is indexing your tracked competitors and intelligence streams. Verified strategic developments will appear here as multi-source signals are corroborated."}
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const p1Evidence = parseEvidenceCount(
     primaryFinding.rawSignals?.length || primaryFinding.sources?.length || 3,
@@ -50,7 +92,7 @@ export function OverviewAttentionGrid({
             WHAT DESERVES YOUR ATTENTION
           </div>
           <h2 className="font-serif text-2xl sm:text-[26px] font-normal mt-1 section-title-gradient leading-snug">
-            3 developments prioritized for executive review
+            {findings.length} {findings.length === 1 ? "development" : "developments"} prioritized for executive review
           </h2>
         </div>
 
