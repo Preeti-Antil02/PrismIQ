@@ -24,6 +24,8 @@ env/
 backend/.env
 backend/.env.*.local
 frontend/.env.local
+frontend-v2/.env.local
+frontend-v2/.env*.local
 
 # Runtime intelligence data (persisted in PostgreSQL, ignored in Git)
 backend/data/*.json
