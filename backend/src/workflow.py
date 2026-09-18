@@ -97,7 +97,7 @@ def _resolve_tenants(state: PipelineState) -> List[Dict[str, Any]]:
     owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
 
     # If state explicitly provided target_company/competitors override (e.g. test fixtures)
-    if not tenants or (state.get("target_company") and len(tenants) == 1 and tenants[0]["target_company"] != state.get("target_company")):
+    if not tenants:
         target = state.get("target_company") or config.TARGET_COMPANY
         comps = state.get("competitors") or list(config.COMPETITORS)
         tenants = [{
@@ -109,6 +109,13 @@ def _resolve_tenants(state: PipelineState) -> List[Dict[str, Any]]:
             "delivery_cadence": state.get("cadence_name") or config.SCHEDULE_CADENCE_NAME,
             "is_delivery_enabled": True,
         }]
+    elif state.get("target_company") and len(tenants) == 1 and tenants[0].get("target_company") != state.get("target_company") and storage.is_test_environment():
+        # Isolated test override only: update target/competitor configuration while preserving tenant_id
+        target = state.get("target_company")
+        comps = state.get("competitors") or tenants[0].get("competitors", [])
+        tenants[0]["target_company"] = target
+        tenants[0]["competitors"] = comps
+        tenants[0]["tracked_companies"] = [target] + comps
 
     return tenants
 
@@ -718,15 +725,23 @@ def run_progressive_pipeline(
     """
     tracked_comps = companies or storage.get_all_tracked_companies()
     active_tenants = storage.get_active_tenants()
-    if tenant_id and not any(t.get("tenant_id") == tenant_id for t in active_tenants):
-        t_comps = storage.load_confirmed_competitors(tenant_id)
-        if t_comps:
-            active_tenants = [{
-                "tenant_id": tenant_id,
-                "target_company": t_comps.get("target_company", "Unknown"),
-                "competitors": t_comps.get("confirmed_competitors", []),
-                "tracked_companies": [t_comps.get("target_company")] + t_comps.get("confirmed_competitors", []),
-            }]
+    if tenant_id:
+        tenant_match = next((t for t in active_tenants if t.get("tenant_id") == tenant_id), None)
+        if not tenant_match:
+            t_comps = storage.load_confirmed_competitors(tenant_id)
+            if t_comps:
+                target_c = t_comps.get("target_company", "Unknown")
+                comps_l = t_comps.get("confirmed_competitors", [])
+                tenant_match = {
+                    "tenant_id": tenant_id,
+                    "target_company": target_c,
+                    "competitors": comps_l,
+                    "tracked_companies": [target_c] + comps_l,
+                }
+        if tenant_match:
+            active_tenants = [tenant_match]
+            if companies is None:
+                tracked_comps = tenant_match.get("tracked_companies", [])
 
     run_id = storage.create_pipeline_run(
         tenant_id=tenant_id,
@@ -737,11 +752,14 @@ def run_progressive_pipeline(
     )
 
     app = create_pipeline_graph()
+    target_comp = active_tenants[0].get("target_company") if active_tenants else config.TARGET_COMPANY
+    competitors_list = active_tenants[0].get("competitors") if active_tenants else list(config.COMPETITORS)
+
     initial_state: PipelineState = {
         "run_id": run_id,
         "is_first_run": is_first_run,
-        "target_company": config.TARGET_COMPANY,
-        "competitors": list(config.COMPETITORS),
+        "target_company": target_comp,
+        "competitors": competitors_list,
         "configured_sources": sources or list(config.SOURCES),
         "companies": tracked_comps,
         "tenants": active_tenants,
