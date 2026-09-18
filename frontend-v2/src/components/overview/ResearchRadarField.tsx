@@ -32,7 +32,11 @@ export function ResearchRadarField({ topics }: ResearchRadarFieldProps) {
             EMERGING IN YOUR RESEARCH
           </div>
           <h3 className="font-serif text-2xl sm:text-[24px] font-normal mt-1 section-title-gradient leading-snug flex items-center gap-2">
-            <span>3 configured research themes under continuous monitoring</span>
+            <span>
+              {topics.length > 0
+                ? `${topics.length} configured research ${topics.length === 1 ? "theme" : "themes"} under continuous monitoring`
+                : "Configured research themes under continuous monitoring"}
+            </span>
           </h3>
         </div>
 
@@ -62,12 +66,20 @@ export function ResearchRadarField({ topics }: ResearchRadarFieldProps) {
             <span className="w-2 h-2 rounded-full bg-[var(--cyan)] shadow-[0_0_8px_var(--cyan)] animate-ping" />
             <span className="text-[#a9aab4] uppercase tracking-wider font-semibold">Radar Field Scan Active</span>
           </div>
-          <span className="tracking-widest hidden sm:inline">COORDINATES: MONITORED THEMES [3/3 ACTIVE]</span>
+          <span className="tracking-widest hidden sm:inline">COORDINATES: MONITORED THEMES [{topics.length}/{topics.length} ACTIVE]</span>
         </div>
 
-        {/* 3 Research Frontier Nodes Grid */}
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {topics.map((item, idx) => {
+        {/* Research Frontier Nodes Grid */}
+        {topics.length === 0 ? (
+          <div className="relative z-10 p-8 text-center space-y-2">
+            <p className="text-xs font-mono text-[#F3F2EF]">No research topics active</p>
+            <p className="text-[11px] text-[#8e8f9a] max-w-md mx-auto">
+              Configure research themes in Workspace Topics to monitor specialized competitive frontiers.
+            </p>
+          </div>
+        ) : (
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {topics.map((item, idx) => {
             const ringAccent = item.borderAccent || "var(--cyan)";
 
             return (
@@ -112,7 +124,8 @@ export function ResearchRadarField({ topics }: ResearchRadarFieldProps) {
               </Link>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
