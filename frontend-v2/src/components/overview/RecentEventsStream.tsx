@@ -56,8 +56,16 @@ export function RecentEventsStream({
       </div>
 
       {/* Chronological Stream Feed */}
-      <div className="rounded-[8px] border border-white/[0.08] bg-[#07070b]/60 divide-y divide-white/[0.04] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
-        {events.slice(0, 5).map((ev, idx) => {
+      {events.length === 0 ? (
+        <div className="rounded-[8px] border border-white/[0.08] bg-[#07070b]/60 p-8 text-center space-y-2">
+          <p className="text-xs font-mono text-[#F3F2EF]">No consolidated events detected yet</p>
+          <p className="text-[11px] text-[#8e8f9a] max-w-md mx-auto">
+            Events require multi-source corroboration before synthesis. Once incoming signals for your tracked companies are verified, they will appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-[8px] border border-white/[0.08] bg-[#07070b]/60 divide-y divide-white/[0.04] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
+          {events.slice(0, 5).map((ev, idx) => {
           const dotColor =
             idx === 0
               ? "var(--magenta)"
@@ -113,7 +121,8 @@ export function RecentEventsStream({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
