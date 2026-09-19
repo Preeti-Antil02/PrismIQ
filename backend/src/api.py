@@ -1279,7 +1279,15 @@ def onboard_discover_candidates(
     if not target:
         raise HTTPException(status_code=400, detail="Target company name cannot be empty")
 
-    candidates = discovery_agent.run(target, tenant_id=tenant_id)
+    try:
+        candidates = discovery_agent.run(target, tenant_id=tenant_id)
+    except Exception as e:
+        logger.error(f"Error executing discovery agent for '{target}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Competitor discovery couldn't be completed: {str(e)}"
+        )
+
     return {
         "status": "proposed",
         "tenant_id": tenant_id,
