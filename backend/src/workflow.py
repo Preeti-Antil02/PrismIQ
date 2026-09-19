@@ -98,17 +98,18 @@ def _resolve_tenants(state: PipelineState) -> List[Dict[str, Any]]:
 
     # If state explicitly provided target_company/competitors override (e.g. test fixtures)
     if not tenants:
-        target = state.get("target_company") or config.TARGET_COMPANY
-        comps = state.get("competitors") or list(config.COMPETITORS)
-        tenants = [{
-            "tenant_id": owner_id,
-            "target_company": target,
-            "competitors": comps,
-            "tracked_companies": [target] + comps,
-            "slack_webhook_url": state.get("slack_webhook_url") or config.SLACK_WEBHOOK_URL or None,
-            "delivery_cadence": state.get("cadence_name") or config.SCHEDULE_CADENCE_NAME,
-            "is_delivery_enabled": True,
-        }]
+        target = state.get("target_company") or (state.get("companies")[0] if state.get("companies") else "")
+        comps = state.get("competitors") or (state.get("companies")[1:] if state.get("companies") and len(state.get("companies")) > 1 else [])
+        if target:
+            tenants = [{
+                "tenant_id": owner_id,
+                "target_company": target,
+                "competitors": comps,
+                "tracked_companies": [target] + comps,
+                "slack_webhook_url": state.get("slack_webhook_url") or None,
+                "delivery_cadence": state.get("cadence_name") or "daily",
+                "is_delivery_enabled": True,
+            }]
     elif state.get("target_company") and len(tenants) == 1 and tenants[0].get("target_company") != state.get("target_company") and storage.is_test_environment():
         # Isolated test override only: update target/competitor configuration while preserving tenant_id
         target = state.get("target_company")
@@ -722,26 +723,58 @@ def run_progressive_pipeline(
     """
     Execute end-to-end monitoring pipeline with real progressive data persistence,
     honest run-state tracking, and fail-closed timeout protection.
+    Requires validated workspace configuration (target_company + confirmed competitors).
     """
-    tracked_comps = companies or storage.get_all_tracked_companies()
-    active_tenants = storage.get_active_tenants()
+    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+
     if tenant_id:
-        tenant_match = next((t for t in active_tenants if t.get("tenant_id") == tenant_id), None)
-        if not tenant_match:
-            t_comps = storage.load_confirmed_competitors(tenant_id)
-            if t_comps:
-                target_c = t_comps.get("target_company", "Unknown")
-                comps_l = t_comps.get("confirmed_competitors", [])
-                tenant_match = {
-                    "tenant_id": tenant_id,
+        cfg = storage.get_tenant_workspace_config(tenant_id)
+        if not cfg.get("is_configured") and not companies:
+            logger.warning(f"Pipeline run rejected for tenant {tenant_id}: Incomplete workspace configuration.")
+            return {
+                "status": "incomplete_configuration",
+                "error": "Workspace configuration incomplete. Target company and competitors must be confirmed before running pipeline.",
+                "tenant_id": tenant_id,
+            }
+        target_c = cfg.get("target_company") or (companies[0] if companies else "")
+        comps_l = cfg.get("competitors") or (companies[1:] if companies and len(companies) > 1 else [])
+        tracked_comps = companies or ([target_c] + comps_l)
+        active_tenants = [{
+            "tenant_id": tenant_id,
+            "target_company": target_c,
+            "competitors": comps_l,
+            "tracked_companies": tracked_comps,
+            "topics": cfg.get("topics", []),
+        }]
+    else:
+        active_tenants = storage.get_active_tenants()
+        # Filter to only active tenants with valid target company and competitors
+        active_tenants = [
+            t for t in active_tenants
+            if t.get("target_company") and t.get("competitors")
+        ]
+        if companies:
+            tracked_comps = companies
+            target_c = companies[0]
+            comps_l = companies[1:]
+            if not active_tenants:
+                active_tenants = [{
+                    "tenant_id": owner_id,
                     "target_company": target_c,
                     "competitors": comps_l,
-                    "tracked_companies": [target_c] + comps_l,
+                    "tracked_companies": tracked_comps,
+                }]
+        else:
+            tracked_comps = storage.get_all_tracked_companies()
+            if not active_tenants:
+                logger.warning("No configured active tenants found for pipeline execution.")
+                return {
+                    "status": "no_configured_tenants",
+                    "message": "No tenants have completed workspace configuration.",
                 }
-        if tenant_match:
-            active_tenants = [tenant_match]
-            if companies is None:
-                tracked_comps = tenant_match.get("tracked_companies", [])
+
+    target_comp = active_tenants[0].get("target_company") if active_tenants else (tracked_comps[0] if tracked_comps else "")
+    competitors_list = active_tenants[0].get("competitors") if active_tenants else (tracked_comps[1:] if len(tracked_comps) > 1 else [])
 
     run_id = storage.create_pipeline_run(
         tenant_id=tenant_id,
@@ -752,8 +785,6 @@ def run_progressive_pipeline(
     )
 
     app = create_pipeline_graph()
-    target_comp = active_tenants[0].get("target_company") if active_tenants else config.TARGET_COMPANY
-    competitors_list = active_tenants[0].get("competitors") if active_tenants else list(config.COMPETITORS)
 
     initial_state: PipelineState = {
         "run_id": run_id,
