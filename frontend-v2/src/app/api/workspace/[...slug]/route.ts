@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getClientAuthToken, DEFAULT_TENANT_ID } from "@/lib/auth";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -11,7 +11,12 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
   const { slug } = await context.params;
   const path = slug.join("/");
   const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
+  let token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
+
+  // If token is empty or missing, fallback to valid default tenant token
+  if (!token || token === "null" || token === "undefined") {
+    token = getClientAuthToken(DEFAULT_TENANT_ID);
+  }
 
   // Route mapping from /api/workspace/... to FastAPI backend
   let backendPath: string;
@@ -42,6 +47,7 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
     method: req.method,
     headers,
     cache: "no-store",
+    signal: AbortSignal.timeout(60000),
   };
 
   if (["POST", "PATCH", "PUT"].includes(req.method)) {
