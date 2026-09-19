@@ -270,9 +270,14 @@ def _get_brief_id(filename: str) -> str:
 
 @app.get("/")
 @app.get("/health")
-def health_check() -> Dict[str, str]:
+def health_check() -> Dict[str, Any]:
     """Root public health check endpoint for monitoring and uptime verification."""
-    return {"status": "ok", "service": "PrismIQ Competitive Intelligence API"}
+    return {
+        "status": "ok",
+        "service": "PrismIQ Competitive Intelligence API",
+        "groq_configured": bool(os.getenv("GROQ_API_KEY")),
+    }
+
 
 
 # ============================================================================
@@ -1281,12 +1286,19 @@ def onboard_discover_candidates(
 
     try:
         candidates = discovery_agent.run(target, tenant_id=tenant_id)
+    except discovery_agent.LLMUnavailableError as e:
+        logger.error(f"Discovery agent LLM unavailable for '{target}': {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Competitor discovery LLM inference unavailable: {str(e)}"
+        )
     except Exception as e:
         logger.error(f"Error executing discovery agent for '{target}': {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Competitor discovery couldn't be completed: {str(e)}"
         )
+
 
     return {
         "status": "proposed",
