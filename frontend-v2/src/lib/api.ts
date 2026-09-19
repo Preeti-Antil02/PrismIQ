@@ -726,6 +726,39 @@ export async function fetchWorkspaceSettings(): Promise<WorkspaceSettings> {
   return res.json();
 }
 
+export interface WorkspaceConfig {
+  tenant_id: string;
+  target_company: string;
+  competitors: string[];
+  tracked_companies: TrackedCompany[];
+  topics: Array<{
+    id: string;
+    topic_label: string;
+    keywords?: string[];
+    source?: string;
+    is_active?: boolean;
+  }>;
+  has_target: boolean;
+  has_competitors: boolean;
+  has_preferences: boolean;
+  is_configured: boolean;
+  onboarding_complete: boolean;
+}
+
+export async function fetchWorkspaceConfig(): Promise<WorkspaceConfig> {
+  const token = getClientAuthToken();
+  const baseUrl = typeof window !== "undefined" ? "/api/workspace/config" : `${API_BASE_URL}/workspace/config`;
+  const res = await fetch(baseUrl, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to fetch workspace config (${res.status}): ${errText}`);
+  }
+  return res.json();
+}
+
 export interface PipelineProgress {
   run_id?: string;
   status: "idle" | "running" | "completed" | "failed" | "timed_out";
