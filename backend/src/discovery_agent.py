@@ -682,6 +682,34 @@ def _clean_heuristic_candidate(raw: str, target_company: str = "") -> str:
 
 # ============================================================================
 # Deterministic Heuristic Extraction Fallback (Crossed-Citation & Attribution Fixed)
+def _extract_containing_clause(text: str, match_start: int, match_end: int) -> str:
+    """
+    Extracts a complete, sensible clause or sentence bounding the match.
+    Avoids mid-sentence cutoffs and trailing/leading dangling conjunctions.
+    """
+    left = text[:match_start]
+    left_boundaries = [m.end() for m in re.finditer(r'[\.\;\!\?\n]\s*', left)]
+    start = left_boundaries[-1] if left_boundaries else 0
+
+    right = text[match_end:]
+    right_boundary = re.search(r'[\.\;\!\?\n]', right)
+    end = (match_end + right_boundary.start()) if right_boundary else len(text)
+
+    clause = text[start:end].strip()
+    clause = re.sub(r'^[,\s\-–—]+', '', clause)
+
+    if len(clause) > 160:
+        comma_candidates = [m.end() for m in re.finditer(r',\s*', text[start:match_start])]
+        if comma_candidates:
+            clause = text[start + comma_candidates[-1]:end].strip()
+
+    clause = re.sub(r'\s+(?:and|or|with|in|to|the|of|a|an|as|at|for|by|from)\b\s*$', '', clause, flags=re.IGNORECASE)
+    clause = re.sub(r'[,\s\-–—]+$', '', clause).strip()
+    return clause
+
+
+# ============================================================================
+# Deterministic Heuristic Extraction Fallback (Crossed-Citation & Attribution Fixed)
 # ============================================================================
 
 def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -695,23 +723,23 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
 
     patterns = [
         # Entity vs Target or Target vs Entity (e.g. "Flipkart vs Meesho", "OpenAI vs Anthropic")
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+(?:vs\.?|versus)\s+' + re.escape(company_clean), 0.9),
-        (r'(?i)' + re.escape(company_clean) + r'\s+(?:vs\.?|versus)\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.9),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s+(?:vs\.?|versus)\s+' + re.escape(company_clean), 0.9),
+        (r'(?i)' + re.escape(company_clean) + r'\s+(?:vs\.?|versus)\s+([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})', 0.9),
         
         # Entity ... Target competitor (e.g. "Mistral - ... OpenAI competitor")
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—,\(].*?' + re.escape(company_clean) + r'\s+competitor', 0.9),
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+is\s+an?\s+' + re.escape(company_clean) + r'\s+competitor', 0.9),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—,\(].*?' + re.escape(company_clean) + r'\s+competitor', 0.9),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s+is\s+an?\s+' + re.escape(company_clean) + r'\s+competitor', 0.9),
         
         # Target competitor Entity (e.g. "OpenAI Codex Competitor Cursor")
-        (r'(?i)' + re.escape(company_clean) + r'(?:\s+[A-Za-z0-9]+)?\s+competitor\s*[\:–—\-]?\s*([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        (r'(?i)' + re.escape(company_clean) + r'(?:\s+[A-Za-z0-9]+)?\s+competitor\s*[\:–—\-]?\s*([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
         
         # Entity ... Target alternative (e.g. "BlindAI ... OpenAI alternative", "LocalAI: Self-hosted OpenAI alternative")
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—:\(].*?' + re.escape(company_clean) + r'\s+alternative', 0.85),
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+as\s+an?\s+' + re.escape(company_clean) + r'\s+alternative', 0.85),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—:\(].*?' + re.escape(company_clean) + r'\s+alternative', 0.85),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s+as\s+an?\s+' + re.escape(company_clean) + r'\s+alternative', 0.85),
         
         # competes primarily with Entity / domestic rival Entity
-        (r'(?i)competes\s+primarily\s+with\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
-        (r'(?i)(?:domestic|primary|major)\s+rival\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        (r'(?i)competes\s+primarily\s+with\s+([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Za-z0-9]+){0,2})', 0.85),
+        (r'(?i)(?:domestic|primary|major)\s+rival\s+([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Za-z0-9]+){0,2})', 0.85),
         
         # File/deck patterns: "Samridhi1412/Flipkart_vs_Meesho_Deck"
         (r'(?i)\b([A-Za-z0-9]+)_vs_' + re.escape(company_clean), 0.85),
@@ -754,27 +782,30 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
                 
                 # Grounding pairing: If a dedicated primary source exists for this candidate
                 # in the retrieved context (e.g. "Wikipedia: Flipkart"), use that as primary source
+                is_direct_dedicated_source = (ckey in dedicated_sources)
                 primary_source = dedicated_sources.get(ckey, s)
                 source_ref = primary_source.get("title") or primary_source.get("url", "")
                 source_age, source_date = _match_source_metadata(source_ref, sources)
                 
-                conf = "Medium" if base_weight >= 0.85 else "Low"
-                if source_age == "dated":
-                    conf = "Low"
-                    freshness_note = f"Sourced {source_date or 'historic'}, not independently confirmed recently"
-                elif source_age == "recent":
-                    freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
-                else:
-                    freshness_note = "Retrieved grounded market intelligence"
-
-                # Accurate rationale avoiding crossed citations:
-                matched_snippet = match.group(0).strip()
-                if primary_source is not s:
+                if is_direct_dedicated_source:
+                    conf = "Medium" if base_weight >= 0.85 else "Low"
+                    if source_age == "dated":
+                        conf = "Low"
+                        freshness_note = f"Sourced {source_date or 'historic'}, not independently confirmed recently"
+                    elif source_age == "recent":
+                        freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
+                    else:
+                        freshness_note = "Retrieved grounded market intelligence"
                     rationale = f"Dedicated market intelligence profile for {cleaned} ({source_ref}), cited alongside {company.capitalize()} in market comparison."
-                elif matched_snippet:
-                    rationale = f"Cited in market comparison: \"{matched_snippet}\" (documented in {title[:60]})."
                 else:
-                    rationale = f"Directly cited alongside {company.capitalize()} in market intelligence source: \"{title[:75]}\"."
+                    # Indirect secondary mention inside another entity's source article
+                    conf = "Low"
+                    freshness_note = "Indirect market comparison mention (secondary source)"
+                    containing_clause = _extract_containing_clause(combined, match.start(), match.end())
+                    if containing_clause:
+                        rationale = f"Cited in market comparison: \"{containing_clause}\" (documented in {title[:60]})."
+                    else:
+                        rationale = f"Secondary in-snippet mention alongside {company.capitalize()} in {title[:60]}."
 
                 if ckey not in extracted:
                     extracted[ckey] = {
@@ -786,14 +817,28 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
                         "source_date": source_date,
                         "freshness_note": freshness_note,
                         "_weight": base_weight,
+                        "_is_direct": is_direct_dedicated_source,
                     }
                 else:
                     # If this match has a longer/more formal display name (e.g. "Mistral AI" vs "Mistral")
                     if len(cleaned) > len(extracted[ckey]["name"]):
                         extracted[ckey]["name"] = cleaned
-                    if base_weight > extracted[ckey]["_weight"]:
+                    # If previously indirect, but now found a direct dedicated profile, upgrade to direct
+                    if is_direct_dedicated_source and not extracted[ckey].get("_is_direct", False):
+                        extracted[ckey]["_is_direct"] = True
                         extracted[ckey]["_weight"] = base_weight
                         extracted[ckey]["confidence"] = conf
+                        extracted[ckey]["rationale"] = rationale
+                        extracted[ckey]["source"] = source_ref
+                        extracted[ckey]["source_age"] = source_age
+                        extracted[ckey]["source_date"] = source_date
+                        extracted[ckey]["freshness_note"] = freshness_note
+                    elif base_weight > extracted[ckey]["_weight"]:
+                        extracted[ckey]["_weight"] = base_weight
+                        if not extracted[ckey].get("_is_direct", False):
+                            extracted[ckey]["confidence"] = "Low"
+                        else:
+                            extracted[ckey]["confidence"] = conf
                         extracted[ckey]["rationale"] = rationale
                         extracted[ckey]["source"] = source_ref
                         extracted[ckey]["source_age"] = source_age
@@ -803,6 +848,7 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
     res = list(extracted.values())
     for item in res:
         item.pop("_weight", None)
+        item.pop("_is_direct", None)
     return res
 
 
@@ -1020,7 +1066,9 @@ def run_with_meta(
 
         # Freshness guardrail
         freshness_note = ""
-        if source_age == "dated":
+        if item.get("freshness_note"):
+            freshness_note = item["freshness_note"]
+        elif source_age == "dated":
             if confidence == "High":
                 confidence = "Medium"
             date_display = source_date if source_date else "historic"
