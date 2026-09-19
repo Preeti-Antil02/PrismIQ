@@ -284,7 +284,11 @@ def health_check(debug: bool = False) -> Dict[str, Any]:
             "groq_key_len": len(clean_key),
             "groq_key_prefix": clean_key[:8] if clean_key else None,
             "groq_has_quotes": raw_key.startswith('"') or raw_key.startswith("'") or raw_key.endswith('"') or raw_key.endswith("'"),
-            "groq_model": os.getenv("GROQ_MODEL", discovery_agent.DEFAULT_GROQ_MODEL).strip(),
+            "groq_model": (
+                discovery_agent.DEFAULT_GROQ_MODEL
+                if (not os.getenv("GROQ_MODEL") or " " in os.getenv("GROQ_MODEL", "") or "(" in os.getenv("GROQ_MODEL", ""))
+                else os.getenv("GROQ_MODEL", "").strip()
+            ),
         })
     return resp
 
