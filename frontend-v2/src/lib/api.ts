@@ -543,6 +543,18 @@ export interface DiscoveryCandidate {
   source_date?: string;
   freshness_note?: string;
   website?: string;
+  extraction_method?: "llm" | "heuristic_fallback" | string;
+}
+
+export interface DiscoveryResponse {
+  status?: string;
+  tenant_id?: string;
+  target_company?: string;
+  candidates_count?: number;
+  candidates: DiscoveryCandidate[];
+  extraction_method?: "llm" | "heuristic_fallback" | string;
+  degraded?: boolean;
+  llm_error?: string | null;
 }
 
 export async function fetchWorkspaceTopics(includePaused: boolean = true): Promise<ResearchTopic[]> {
@@ -635,7 +647,7 @@ export async function untrackCompany(companyName: string): Promise<boolean> {
   return true;
 }
 
-export async function discoverCompetitors(targetCompany: string): Promise<{ candidates: DiscoveryCandidate[] }> {
+export async function discoverCompetitors(targetCompany: string): Promise<DiscoveryResponse> {
   const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/discover" : `${API_BASE_URL}/api/onboarding/discover`;
   const res = await fetch(baseUrl, {
