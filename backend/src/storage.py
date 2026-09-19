@@ -655,60 +655,65 @@ def save_discovery_proposal(
     tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
 
     # 1. Primary PostgreSQL Write
-    if candidates:
-        with get_db_cursor() as cur:
-            # Ensure target company exists in companies registry
-            cur.execute(
-                "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
-                (target_company,)
-            )
-
-            # Insert proposal record
-            prop_sql = """
-                INSERT INTO discovery_proposals (tenant_id, target_company, generated_at, filename)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (tenant_id, target_company, filename) DO UPDATE
-                SET generated_at = EXCLUDED.generated_at
-                RETURNING id;
-            """
-            cur.execute(prop_sql, (tid, target_company, now_dt, rel_filename))
-            prop_id_row = cur.fetchone()
-            prop_id = prop_id_row[0] if prop_id_row else "00000000-0000-0000-0000-000000000000"
-
-            # Insert candidates
-            dc_sql = """
-                INSERT INTO discovery_candidates (
-                    tenant_id, proposal_id, target_company, name, rationale, confidence,
-                    source, source_age, source_date, freshness_note, status
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (tenant_id, target_company, name, source) DO UPDATE
-                SET rationale = EXCLUDED.rationale,
-                    confidence = EXCLUDED.confidence,
-                    source_age = EXCLUDED.source_age,
-                    source_date = EXCLUDED.source_date,
-                    freshness_note = EXCLUDED.freshness_note,
-                    status = EXCLUDED.status;
-            """
-            dc_params = []
-            for c in candidates:
-                cname = c.get("name", "").strip()
-                if not cname:
-                    continue
-                # Ensure candidate company exists in companies registry
+    if candidates and not is_test_environment() and is_live_write_permitted():
+        try:
+            # Validate UUID syntax before passing to Postgres UUID column
+            uuid.UUID(str(tid))
+            with get_db_cursor() as cur:
+                # Ensure target company exists in companies registry
                 cur.execute(
-                    "INSERT INTO companies (name, status) VALUES (%s, 'candidate') ON CONFLICT (name) DO NOTHING;",
-                    (cname,)
+                    "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
+                    (target_company,)
                 )
-                dc_params.append((
-                    tid, prop_id, target_company, cname, c.get("rationale", ""),
-                    c.get("confidence", "Low"), c.get("source", ""),
-                    c.get("source_age", "undated"),
-                    str(c.get("source_date")) if c.get("source_date") else None,
-                    c.get("freshness_note"), c.get("status", "proposed")
-                ))
-            _execute_batch(cur, dc_sql, dc_params, page_size=50)
-            logger.info(f"Dual-write: persisted discovery proposal and {len(dc_params)} candidates for tenant {tid} to PostgreSQL.")
+
+                # Insert proposal record
+                prop_sql = """
+                    INSERT INTO discovery_proposals (tenant_id, target_company, generated_at, filename)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, target_company, filename) DO UPDATE
+                    SET generated_at = EXCLUDED.generated_at
+                    RETURNING id;
+                """
+                cur.execute(prop_sql, (tid, target_company, now_dt, rel_filename))
+                prop_id_row = cur.fetchone()
+                prop_id = prop_id_row[0] if prop_id_row else "00000000-0000-0000-0000-000000000000"
+
+                # Insert candidates
+                dc_sql = """
+                    INSERT INTO discovery_candidates (
+                        tenant_id, proposal_id, target_company, name, rationale, confidence,
+                        source, source_age, source_date, freshness_note, status
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, target_company, name, source) DO UPDATE
+                    SET rationale = EXCLUDED.rationale,
+                        confidence = EXCLUDED.confidence,
+                        source_age = EXCLUDED.source_age,
+                        source_date = EXCLUDED.source_date,
+                        freshness_note = EXCLUDED.freshness_note,
+                        status = EXCLUDED.status;
+                """
+                dc_params = []
+                for c in candidates:
+                    cname = c.get("name", "").strip()
+                    if not cname:
+                        continue
+                    # Ensure candidate company exists in companies registry
+                    cur.execute(
+                        "INSERT INTO companies (name, status) VALUES (%s, 'candidate') ON CONFLICT (name) DO NOTHING;",
+                        (cname,)
+                    )
+                    dc_params.append((
+                        tid, prop_id, target_company, cname, c.get("rationale", ""),
+                        c.get("confidence", "Low"), c.get("source", ""),
+                        c.get("source_age", "undated"),
+                        str(c.get("source_date")) if c.get("source_date") else None,
+                        c.get("freshness_note"), c.get("status", "proposed")
+                    ))
+                _execute_batch(cur, dc_sql, dc_params, page_size=50)
+                logger.info(f"Dual-write: persisted discovery proposal and {len(dc_params)} candidates for tenant {tid} to PostgreSQL.")
+        except Exception as e:
+            logger.warning(f"Dual-write: could not persist discovery proposal to PostgreSQL for tenant {tid}: {e}")
 
     # 2. Secondary Flat File Write
     target_file = Path(filepath) if filepath else (data_dir / f"discovery_proposal_{clean_name}.json")
@@ -982,40 +987,45 @@ def save_discovery_sources(
     tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
 
     # 1. Primary PostgreSQL Write
-    if sources:
-        with get_db_cursor() as cur:
-            # Ensure target company exists in companies registry
-            cur.execute(
-                "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
-                (target_company,)
-            )
-
-            ds_sql = """
-                INSERT INTO discovery_sources (tenant_id, target_company, source_type, title, url, published_at, source_age, text, source_file)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (tenant_id, target_company, url, title) DO UPDATE
-                SET source_type = EXCLUDED.source_type,
-                    published_at = EXCLUDED.published_at,
-                    source_age = EXCLUDED.source_age,
-                    text = EXCLUDED.text,
-                    source_file = EXCLUDED.source_file;
-            """
-            ds_params = [
-                (
-                    tid,
-                    target_company,
-                    s.get("source_type", "web_search"),
-                    s.get("title", ""),
-                    s.get("url", ""),
-                    _parse_timestamp(s.get("published_at")),
-                    s.get("source_age", "recent"),
-                    s.get("text", ""),
-                    rel_filename,
+    if sources and not is_test_environment() and is_live_write_permitted():
+        try:
+            # Validate UUID syntax before passing to Postgres UUID column
+            uuid.UUID(str(tid))
+            with get_db_cursor() as cur:
+                # Ensure target company exists in companies registry
+                cur.execute(
+                    "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
+                    (target_company,)
                 )
-                for s in sources
-            ]
-            _execute_batch(cur, ds_sql, ds_params, page_size=100)
-            logger.info(f"Dual-write: persisted {len(sources)} discovery_sources for tenant {tid} to PostgreSQL.")
+
+                ds_sql = """
+                    INSERT INTO discovery_sources (tenant_id, target_company, source_type, title, url, published_at, source_age, text, source_file)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, target_company, url, title) DO UPDATE
+                    SET source_type = EXCLUDED.source_type,
+                        published_at = EXCLUDED.published_at,
+                        source_age = EXCLUDED.source_age,
+                        text = EXCLUDED.text,
+                        source_file = EXCLUDED.source_file;
+                """
+                ds_params = [
+                    (
+                        tid,
+                        target_company,
+                        s.get("source_type", "web_search"),
+                        s.get("title", ""),
+                        s.get("url", ""),
+                        _parse_timestamp(s.get("published_at")),
+                        s.get("source_age", "recent"),
+                        s.get("text", ""),
+                        rel_filename,
+                    )
+                    for s in sources
+                ]
+                _execute_batch(cur, ds_sql, ds_params, page_size=100)
+                logger.info(f"Dual-write: persisted {len(sources)} discovery_sources for tenant {tid} to PostgreSQL.")
+        except Exception as e:
+            logger.warning(f"Dual-write: could not persist discovery_sources to PostgreSQL for tenant {tid}: {e}")
 
     # 2. Secondary Flat File Write
     default_sources_file = data_dir / f"discovery_sources_{clean_name}.json"
