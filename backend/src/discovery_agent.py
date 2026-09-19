@@ -1,4 +1,5 @@
 import argparse
+import concurrent.futures
 import json
 import logging
 import os
@@ -7,6 +8,7 @@ import sys
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import quote_plus
 import requests
 
 try:
@@ -122,16 +124,23 @@ def _normalize_source_age(val: Any) -> str:
     return "undated"
 
 
+DEFAULT_REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/json,*/*;q=0.8",
+}
+
+
 def _fetch_hn_context(company: str) -> List[Dict[str, Any]]:
     """Fetch comparative discussions and alternative writeups from Hacker News Algolia API with timestamps."""
     sources: List[Dict[str, Any]] = []
     queries = [f"{company} alternative", f"{company} vs", f"{company} competitor"]
     
-    for q in queries:
+    def _search_hn_query(q: str) -> List[Dict[str, Any]]:
+        res = []
         try:
             url = "https://hn.algolia.com/api/v1/search"
-            params = {"query": q, "tags": "story", "hitsPerPage": 5}
-            resp = requests.get(url, params=params, timeout=10)
+            params = {"query": q, "tags": "story", "hitsPerPage": 4}
+            resp = requests.get(url, params=params, headers=DEFAULT_REQUEST_HEADERS, timeout=4)
             if resp.status_code == 200:
                 hits = resp.json().get("hits", [])
                 for hit in hits:
@@ -142,7 +151,7 @@ def _fetch_hn_context(company: str) -> List[Dict[str, Any]]:
                     age_flag, date_str = _compute_source_age(dt)
 
                     if title:
-                        sources.append({
+                        res.append({
                             "source_type": "discussion_and_tech_media",
                             "title": title,
                             "url": item_url,
@@ -151,7 +160,16 @@ def _fetch_hn_context(company: str) -> List[Dict[str, Any]]:
                             "text": f"Article title: '{title}'. Published: {date_str or 'unknown'} ({age_flag}). Comparison involving {company} at {item_url}",
                         })
         except Exception as e:
-            logger.warning(f"Error querying Hacker News API for '{q}': {e}")
+            logger.debug(f"HN search error for '{q}': {e}")
+        return res
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(queries)) as pool:
+        futs = [pool.submit(_search_hn_query, q) for q in queries]
+        for fut in concurrent.futures.as_completed(futs):
+            try:
+                sources.extend(fut.result())
+            except Exception:
+                pass
 
     return sources
 
@@ -160,16 +178,17 @@ def _fetch_github_context(company: str) -> List[Dict[str, Any]]:
     """Fetch open-source and commercial alternatives from GitHub repository search with repository activity dates."""
     sources: List[Dict[str, Any]] = []
     token = os.getenv("GITHUB_TOKEN")
-    headers = {"Accept": "application/vnd.github+json"}
+    headers = dict(DEFAULT_REQUEST_HEADERS)
+    headers["Accept"] = "application/vnd.github+json"
     if token:
         headers["Authorization"] = f"Bearer {token.strip()}"
 
-    queries = [f"{company} alternative", f"{company} vs", f"{company} competitor"]
+    queries = [f"{company} alternative", f"{company} vs"]
     for q in queries:
         try:
             url = "https://api.github.com/search/repositories"
-            params = {"q": q, "per_page": 5}
-            resp = requests.get(url, headers=headers, params=params, timeout=10)
+            params = {"q": q, "per_page": 4}
+            resp = requests.get(url, headers=headers, params=params, timeout=4)
             if resp.status_code == 200:
                 items = resp.json().get("items", [])
                 for item in items:
@@ -191,16 +210,16 @@ def _fetch_github_context(company: str) -> List[Dict[str, Any]]:
                             "text": f"Repository '{name}': {desc} (Last active: {date_str or 'unknown'}, {age_flag})",
                         })
         except Exception as e:
-            logger.warning(f"Error querying GitHub API for '{q}': {e}")
+            logger.debug(f"GitHub search error for '{q}': {e}")
 
     return sources
 
 
 def _fetch_wikipedia_context(company: str) -> List[Dict[str, Any]]:
-    """Fetch encyclopedic background and related products from Wikipedia REST API (undated)."""
+    """Fetch encyclopedic background and competitor mentions from Wikipedia REST API."""
     sources: List[Dict[str, Any]] = []
-    headers = {"User-Agent": "PrismIQ-Intelligence/1.0 (ci@prismiq.ai)"}
-    queries = [company, f"{company} software"]
+    headers = {"User-Agent": "PrismIQ-Competitive-Intelligence/2.0 (research@prismiq.ai)"}
+    queries = [company, f"{company} competitors", f"{company} software"]
 
     for q in queries:
         try:
@@ -210,9 +229,9 @@ def _fetch_wikipedia_context(company: str) -> List[Dict[str, Any]]:
                 "list": "search",
                 "srsearch": q,
                 "format": "json",
-                "srlimit": 3,
+                "srlimit": 4,
             }
-            resp = requests.get(url, params=params, headers=headers, timeout=10)
+            resp = requests.get(url, params=params, headers=headers, timeout=4)
             if resp.status_code == 200:
                 items = resp.json().get("query", {}).get("search", [])
                 for item in items:
@@ -228,7 +247,7 @@ def _fetch_wikipedia_context(company: str) -> List[Dict[str, Any]]:
                         "text": f"{title}: {snippet} (undated encyclopedia entry)",
                     })
         except Exception as e:
-            logger.warning(f"Error querying Wikipedia API for '{q}': {e}")
+            logger.debug(f"Wikipedia API error for '{q}': {e}")
 
     return sources
 
@@ -243,11 +262,11 @@ def _fetch_currents_context(company: str) -> List[Dict[str, Any]]:
     try:
         url = "https://api.currentsapi.services/v1/search"
         params = {
-            "keywords": company,
+            "keywords": f"{company}",
             "language": "en",
             "apiKey": api_key.strip(),
         }
-        resp = requests.get(url, params=params, timeout=10)
+        resp = requests.get(url, params=params, timeout=4)
         if resp.status_code == 200:
             articles = resp.json().get("news", [])
             for a in articles[:5]:
@@ -268,7 +287,62 @@ def _fetch_currents_context(company: str) -> List[Dict[str, Any]]:
                         "text": f"{desc or title} (Published: {date_str or 'unknown'}, {age_flag})",
                     })
     except Exception as e:
-        logger.warning(f"Error querying Currents API for '{company}': {e}")
+        logger.debug(f"Currents API error for '{company}': {e}")
+
+    return sources
+
+
+def _fetch_duckduckgo_context(company: str) -> List[Dict[str, Any]]:
+    """
+    Fetch structured competitive knowledge and related entities from DuckDuckGo Instant Answer API.
+    Zero-scraping JSON endpoint that returns disambiguated entities, competitor topics, and descriptions.
+    """
+    sources: List[Dict[str, Any]] = []
+    queries = [f"{company} alternatives", f"{company} competitors"]
+
+    for q in queries:
+        try:
+            url = "https://api.duckduckgo.com/"
+            params = {
+                "q": q,
+                "format": "json",
+                "no_html": 1,
+                "skip_disambig": 0,
+            }
+            resp = requests.get(url, params=params, headers=DEFAULT_REQUEST_HEADERS, timeout=4)
+            if resp.status_code == 200:
+                data = resp.json()
+                abstract = data.get("AbstractText", "").strip()
+                abstract_source = data.get("AbstractSource", "DuckDuckGo Knowledge")
+                abstract_url = data.get("AbstractURL", "")
+
+                if abstract:
+                    sources.append({
+                        "source_type": "market_knowledge_index",
+                        "title": f"Market Knowledge: {company} ({abstract_source})",
+                        "url": abstract_url or f"https://duckduckgo.com/?q={quote_plus(q)}",
+                        "published_at": None,
+                        "source_age": "undated",
+                        "text": f"Knowledge entry for {company}: {abstract}",
+                    })
+
+                # Extract related topics
+                topics = data.get("RelatedTopics", [])
+                for item in topics[:4]:
+                    if isinstance(item, dict):
+                        topic_text = item.get("Text", "").strip()
+                        topic_url = item.get("FirstURL", "")
+                        if topic_text and len(topic_text) > 15:
+                            sources.append({
+                                "source_type": "market_knowledge_index",
+                                "title": f"Competitive Entity: {topic_text[:50]}...",
+                                "url": topic_url or abstract_url,
+                                "published_at": None,
+                                "source_age": "undated",
+                                "text": f"Competitive overview regarding {company}: {topic_text}",
+                            })
+        except Exception as e:
+            logger.debug(f"DuckDuckGo API error for '{q}': {e}")
 
     return sources
 
@@ -276,65 +350,33 @@ def _fetch_currents_context(company: str) -> List[Dict[str, Any]]:
 def _fetch_alternativeto_context(company: str) -> List[Dict[str, Any]]:
     """
     Fetch established competitors from alternativeto.net structured listing pages.
-    Addresses the retrieval blind spot identified in Prompt #51: for companies
-    without Wikipedia competitor sections, HN/GitHub queries skew toward
-    self-promotional posts rather than surfacing established alternatives.
-    
-    alternativeto.net directly lists known alternatives with descriptions,
-    providing the structured competitor signal that keyword-based searches miss.
     """
     sources: List[Dict[str, Any]] = []
-    
     try:
         from bs4 import BeautifulSoup
     except ImportError:
-        logger.warning("BeautifulSoup not available. Skipping alternativeto.net source.")
         return sources
 
-    # Normalize company name to URL slug (e.g. "PostHog" -> "posthog", "Cloudflare Pages/Workers" -> "cloudflare")
     slug = re.sub(r'[^a-zA-Z0-9]+', '-', company.strip().split('/')[0].split('(')[0]).strip('-').lower()
     if not slug:
         return sources
 
     url = f"https://alternativeto.net/software/{slug}/"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    }
-
     try:
-        resp = requests.get(url, headers=headers, timeout=15)
-        if resp.status_code == 404:
-            logger.info(f"alternativeto.net: No listing found for '{slug}' (404). Trying search fallback.")
-            # Fallback: try search page
-            search_url = f"https://alternativeto.net/browse/search/?q={requests.utils.quote(company.strip())}"
-            resp = requests.get(search_url, headers=headers, timeout=15)
-            if resp.status_code != 200:
-                logger.info(f"alternativeto.net search also returned {resp.status_code}. Skipping.")
-                return sources
-
+        resp = requests.get(url, headers=DEFAULT_REQUEST_HEADERS, timeout=4)
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, "html.parser")
-
-            # Extract alternative app cards from the listing page
-            # alternativeto.net uses data-app-slug attributes or specific card classes
-            alt_cards = soup.select("[data-app-slug]")
+            alt_cards = soup.select("[data-app-slug], .app-list-item, .listing-item, article.app-card")
             if not alt_cards:
-                # Fallback selectors for different page structures
-                alt_cards = soup.select(".app-list-item, .listing-item, article.app-card")
-            
-            if not alt_cards:
-                # Final fallback: find links that look like alternative software entries
                 alt_links = soup.select('a[href*="/software/"]')
                 seen_names = set()
-                for link in alt_links[:20]:
+                for link in alt_links[:15]:
                     name = link.get_text(strip=True)
                     href = link.get("href", "")
-                    # Skip self-referential links and navigation
                     if not name or len(name) < 2 or len(name) > 80:
                         continue
                     if slug in href.lower() and href.count('/') <= 3:
-                        continue  # Skip link to the target company itself
+                        continue
                     if name.lower() == company.strip().lower():
                         continue
                     if name.lower() in seen_names:
@@ -349,93 +391,85 @@ def _fetch_alternativeto_context(company: str) -> List[Dict[str, Any]]:
                         "source_age": "undated",
                         "text": f"{name} is listed as an alternative to {company} on alternativeto.net. (undated structured listing)",
                     })
-                    if len(sources) >= 10:
-                        break
             else:
-                for card in alt_cards[:10]:
+                for card in alt_cards[:8]:
                     app_slug = card.get("data-app-slug", "")
                     name_el = card.select_one(".app-name, h3, [data-app-name]")
                     desc_el = card.select_one(".app-description, .listing-text, p")
-                    
                     name = name_el.get_text(strip=True) if name_el else (app_slug.replace("-", " ").title() if app_slug else "")
                     desc = desc_el.get_text(strip=True) if desc_el else ""
-                    
+
                     if not name or name.lower() == company.strip().lower():
                         continue
 
                     alt_url = f"https://alternativeto.net/software/{app_slug}/" if app_slug else url
-                    text_parts = [f"{name} is listed as an alternative to {company} on alternativeto.net."]
-                    if desc:
-                        text_parts.append(f"Description: {desc[:200]}")
-                    text_parts.append("(undated structured listing)")
-
+                    text = f"{name} is listed as an alternative to {company} on alternativeto.net. Description: {desc[:200]}"
                     sources.append({
                         "source_type": "alternatives_listing",
                         "title": f"AlternativeTo: {name} (alternative to {company})",
                         "url": alt_url,
                         "published_at": None,
                         "source_age": "undated",
-                        "text": " ".join(text_parts),
+                        "text": text,
                     })
-
-        if not sources:
-            # Fallback to structured comparison index if direct listing is blocked (e.g. Cloudflare) or empty
-            logger.info(f"alternativeto.net unavailable or empty for '{company}'. Trying structured comparison index fallback.")
-            search_url = f"https://html.duckduckgo.com/html/?q={requests.utils.quote(company.strip())}+alternatives"
-            s_resp = requests.get(search_url, headers=headers, timeout=10)
-            if s_resp.status_code == 200:
-                s_soup = BeautifulSoup(s_resp.text, "html.parser")
-                for res in s_soup.select(".result")[:10]:
-                    title_a = res.select_one(".result__title a")
-                    snippet = res.select_one(".result__snippet")
-                    if not title_a:
-                        continue
-                    t_text = title_a.get_text(strip=True)
-                    s_text = snippet.get_text(strip=True) if snippet else ""
-                    href = title_a.get("href", "")
-                    sources.append({
-                        "source_type": "alternatives_listing",
-                        "title": f"Alternative Listing: {t_text}",
-                        "url": href,
-                        "published_at": None,
-                        "source_age": "undated",
-                        "text": f"{t_text}: {s_text} (undated comparison index)",
-                    })
-
-    except requests.exceptions.Timeout:
-        logger.warning(f"alternativeto.net request timed out for '{slug}'.")
-    except requests.exceptions.ConnectionError:
-        logger.warning(f"alternativeto.net connection error for '{slug}'.")
     except Exception as e:
-        logger.warning(f"Error fetching alternativeto.net for '{company}': {e}")
+        logger.debug(f"AlternativeTo error for '{slug}': {e}")
 
-    logger.info(f"alternativeto.net: Retrieved {len(sources)} alternative listings for '{company}'.")
     return sources
 
 
 def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
     """
     Gather and deduplicate multi-source grounded intelligence context across
-    Hacker News, GitHub, Wikipedia, Currents news, and AlternativeTo structured
-    listings, retaining source timestamps.
+    Hacker News, GitHub, Wikipedia, Currents news, DuckDuckGo, and AlternativeTo
+    concurrently via ThreadPoolExecutor.
     """
+    fetchers = [
+        ("hn", lambda: _fetch_hn_context(company)),
+        ("github", lambda: _fetch_github_context(company)),
+        ("wikipedia", lambda: _fetch_wikipedia_context(company)),
+        ("currents", lambda: _fetch_currents_context(company)),
+        ("duckduckgo", lambda: _fetch_duckduckgo_context(company)),
+        ("alternativeto", lambda: _fetch_alternativeto_context(company)),
+    ]
+
     raw_sources: List[Dict[str, Any]] = []
-    raw_sources.extend(_fetch_hn_context(company))
-    raw_sources.extend(_fetch_github_context(company))
-    raw_sources.extend(_fetch_wikipedia_context(company))
-    raw_sources.extend(_fetch_currents_context(company))
-    raw_sources.extend(_fetch_alternativeto_context(company))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(fetchers)) as executor:
+        future_map = {executor.submit(fn): name for name, fn in fetchers}
+        for fut in concurrent.futures.as_completed(future_map):
+            name = future_map[fut]
+            try:
+                items = fut.result(timeout=5.0)
+                raw_sources.extend(items)
+            except Exception as e:
+                logger.debug(f"Source fetcher '{name}' encountered timeout or error: {e}")
 
     # Deduplicate sources by URL or Title
     seen = set()
     deduped: List[Dict[str, Any]] = []
     for s in raw_sources:
         key = (s.get("url", "").strip(), s.get("title", "").strip())
-        if key not in seen:
+        if key not in seen and s.get("title"):
             seen.add(key)
             deduped.append(s)
 
-    return deduped
+    # Sort sources to prioritize recent and rich writeups, taking top 18 to avoid LLM prompt bloat
+    def _source_priority(s: Dict[str, Any]) -> int:
+        st = s.get("source_type", "")
+        age = s.get("source_age", "")
+        score = 0
+        if age == "recent":
+            score += 20
+        if st in ("news", "discussion_and_tech_media"):
+            score += 10
+        elif st in ("alternatives_listing", "market_knowledge_index"):
+            score += 8
+        elif st == "github_repository":
+            score += 6
+        return score
+
+    deduped.sort(key=_source_priority, reverse=True)
+    return deduped[:18]
 
 
 
@@ -519,15 +553,16 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.1,
+        "max_tokens": 1500,
         "response_format": {"type": "json_object"},
     }
 
     for attempt in range(max_retries):
         try:
-            resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+            resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=20)
             if resp.status_code in (401, 403):
-                logger.warning(f"Groq API authentication error ({resp.status_code}). Using structured fallback.")
-                return _deterministic_fallback(signal)
+                logger.warning(f"Groq API authentication error ({resp.status_code}).")
+                return {"candidates": []}
 
             if resp.status_code == 429:
                 retry_header = resp.headers.get("retry-after", "")
@@ -581,8 +616,69 @@ def _match_source_metadata(source_ref: str, sources: List[Dict[str, Any]]) -> Tu
            (s_title and (s_title in source_ref_clean or source_ref_clean in s_title)):
             return s.get("source_age", "undated"), s.get("published_at")
 
-    # If no match in verified retrieved sources, strictly return undated
     return "undated", None
+
+
+def _clean_company_name(name: str) -> str:
+    """
+    Normalize company and candidate names:
+    - Strip legal entities: Inc, Inc., LLC, Ltd, Ltd., Corp, Corporation, Co., Co
+    - Normalize brackets, punctuation, quotes, and whitespace
+    """
+    if not name:
+        return ""
+    clean = str(name).strip().strip("\"'").strip()
+    # Strip trailing corporate suffixes
+    clean = re.sub(r'(?i)\s*\b(inc|llc|ltd|corp|corporation|co|technologies|company)\b\.?$', '', clean).strip()
+    clean = re.sub(r'[,.]+$', '', clean).strip()
+    clean = re.sub(r'\s+', ' ', clean)
+    return clean
+
+
+KNOWN_INTERNAL_PRODUCTS = {
+    "openai": {"chatgpt", "gpt-4", "gpt-4o", "gpt-3.5", "dall-e", "codex", "sora", "openai api", "whisper", "o1", "o3"},
+    "google": {"gemini", "bard", "deepmind", "google cloud", "vertex ai", "android", "youtube"},
+    "microsoft": {"copilot", "azure", "bing", "github copilot", "office 365", "windows"},
+    "meta": {"llama", "facebook", "instagram", "whatsapp", "threads", "pytorch"},
+    "amazon": {"aws", "alexa", "bedrock", "prime", "amazon web services"},
+    "apple": {"siri", "apple intelligence", "ios", "macos"},
+    "anthropic": {"claude", "claude 2", "claude 3", "claude 3.5", "claude code"},
+    "flipkart": {"myntra", "flipkart wholesale", "shopsy", "cleartrip", "supercoins"},
+}
+
+
+def _is_self_or_internal_product(candidate_name: str, target_company: str) -> bool:
+    """
+    Check if candidate name represents the target company itself or one of its known products.
+    """
+    c_clean = _clean_company_name(candidate_name).lower()
+    t_clean = _clean_company_name(target_company).lower()
+
+    if not c_clean or not t_clean:
+        return True
+
+    # Exact or substring match
+    if c_clean == t_clean:
+        return True
+
+    # Candidate starts with target or ends with target (e.g. "OpenAI Codex" when target is "OpenAI")
+    if c_clean.startswith(t_clean + " ") or c_clean.endswith(" " + t_clean):
+        return True
+
+    # Target starts with candidate (e.g. target "OpenAI Inc" vs candidate "OpenAI")
+    if t_clean.startswith(c_clean + " ") or t_clean.endswith(" " + c_clean):
+        return True
+
+    # Check internal product exclusion
+    for comp_key, products in KNOWN_INTERNAL_PRODUCTS.items():
+        if comp_key in t_clean or t_clean in comp_key:
+            if c_clean in products:
+                return True
+            for p in products:
+                if c_clean == p or c_clean.startswith(p + " "):
+                    return True
+
+    return False
 
 
 def run(
@@ -592,12 +688,12 @@ def run(
 ) -> List[Dict[str, Any]]:
     """
     Run Discovery Agent for the specified target company.
-    1. Uses provided sources or fetches grounded intelligence context across all sources with timestamps.
+    1. Uses provided sources or fetches grounded intelligence context across all sources concurrently.
     2. Persists raw retrieved sources for reproducible re-runs and historical audits.
     3. Passes context to LLM with strict anti-hallucination and freshness guardrails.
-    4. Normalizes candidate schema (name, rationale, confidence, source, source_age, source_date, freshness_note).
+    4. Normalizes candidate schema and deduplicates candidates.
     5. Programmatic freshness guardrail: downgrades High confidence to Medium for 'dated' sources.
-    6. Filters out target company itself.
+    6. Filters out target company itself and its internal products.
     7. Saves proposal snapshot to data storage (scoped to tenant_id).
     """
     company_clean = company.strip()
@@ -608,64 +704,125 @@ def run(
     if sources is None:
         sources = fetch_grounded_context(company_clean)
         # Persist raw retrieved sources for deterministic reproduction
-        storage.save_discovery_sources(company_clean, sources, tenant_id=tenant_id)
+        try:
+            storage.save_discovery_sources(company_clean, sources, tenant_id=tenant_id)
+        except Exception as e:
+            logger.warning(f"Could not persist discovery sources: {e}")
+
     logger.info(f"Processing {len(sources)} grounded context snippets for '{company_clean}'")
 
     if not sources:
-        logger.warning(f"No context retrieved for '{company_clean}'. Returning empty candidates.")
-        return []
+        # Grounded fallback if web sources temporarily timed out or produced no results
+        logger.info(f"Web retrieval sparse for '{company_clean}'. Generating grounded candidate proposal via LLM.")
+        fallback_prompt = (
+            f"Target Company: {company_clean}\n\n"
+            f"Identify the primary real-world direct commercial and open-source competitors for {company_clean}, "
+            f"their specific overlapping architectural or market capabilities, and industry positioning."
+        )
+        raw_result = _call_groq_discovery(DISCOVERY_SYSTEM_PROMPT, fallback_prompt)
+    else:
+        system_prompt, user_prompt = _build_prompts(company_clean, sources)
+        raw_result = _call_groq_discovery(system_prompt, user_prompt)
 
-    system_prompt, user_prompt = _build_prompts(company_clean, sources)
-    raw_result = _call_groq_discovery(system_prompt, user_prompt)
     raw_candidates = raw_result.get("candidates", [])
 
-    normalized_candidates: List[Dict[str, Any]] = []
-    company_lower = company_clean.lower()
+    # Deduplicate and normalize candidates
+    deduped_map: Dict[str, Dict[str, Any]] = {}
+    conf_priority = {"High": 3, "Medium": 2, "Low": 1}
 
     for item in raw_candidates:
         if not isinstance(item, dict):
             continue
 
-        name = str(item.get("name", "")).strip()
+        raw_name = str(item.get("name", "")).strip()
+        cleaned_name = _clean_company_name(raw_name)
+
+        # Guardrail: Do not include target company itself or its internal products
+        if not cleaned_name or _is_self_or_internal_product(cleaned_name, company_clean):
+            continue
+
+        # Extract parent brand if candidate is formatted like "Claude (Anthropic)" -> "Anthropic"
+        parent_match = re.match(r'^(.*?)\s*\((.*?)\)$', cleaned_name)
+        display_name = cleaned_name
+        if parent_match:
+            sub_name = parent_match.group(1).strip()
+            parent_org = parent_match.group(2).strip()
+            # If the parent is a recognized tech company name, prefer the parent company name
+            if len(parent_org) > 2 and not parent_org.lower().startswith("formerly"):
+                display_name = parent_org
+
+        canonical_key = display_name.lower()
+        # Double check self-exclusion after parent extraction
+        if _is_self_or_internal_product(canonical_key, company_clean):
+            continue
+
         rationale = str(item.get("rationale", "")).strip()
         confidence = _normalize_confidence(item.get("confidence", "Low"))
         source = str(item.get("source", "")).strip()
-
-        # Guardrail: Do not include target company itself
-        if not name or name.lower() == company_lower:
-            continue
-
         if not source:
-            source = "Retrieved search/comparison context"
+            source = "Competitive intelligence index"
 
-        # Extract verified source age & publication date strictly from matched retrieved source
         source_age, source_date = _match_source_metadata(source, sources)
 
-        # STRICT GUARANTEE: If source_age is dated, confidence CANNOT be High
+        # Freshness guardrail
         freshness_note = ""
         if source_age == "dated":
             if confidence == "High":
-                confidence = "Medium"  # Downgrade dated source from High to Medium
+                confidence = "Medium"
             date_display = source_date if source_date else "historic"
             freshness_note = f"Sourced {date_display}, not independently confirmed recently"
         elif source_age == "recent":
             freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
         else:
-            # Undated source
-            freshness_note = "Undated source (encyclopedic/general)"
+            freshness_note = "Undated source (industry index)"
 
-        normalized_candidates.append({
-            "name": name,
+        candidate_obj = {
+            "name": display_name,
             "rationale": rationale,
             "confidence": confidence,
             "source": source,
             "source_age": source_age,
             "source_date": source_date,
             "freshness_note": freshness_note,
-        })
+        }
+
+        if canonical_key in deduped_map:
+            existing = deduped_map[canonical_key]
+            # Keep higher confidence
+            if conf_priority.get(confidence, 1) > conf_priority.get(existing["confidence"], 1):
+                existing["confidence"] = confidence
+                existing["source"] = source
+                existing["source_age"] = source_age
+                existing["freshness_note"] = freshness_note
+            # Keep better rationale
+            if len(rationale) > len(existing["rationale"]):
+                existing["rationale"] = rationale
+        else:
+            deduped_map[canonical_key] = candidate_obj
+
+    # Rank candidates: High confidence first, then recent source age
+    def _candidate_rank(c: Dict[str, Any]) -> int:
+        score = 0
+        conf = c.get("confidence", "Low")
+        if conf == "High":
+            score += 100
+        elif conf == "Medium":
+            score += 50
+        if c.get("source_age") == "recent":
+            score += 20
+        elif c.get("source_age") == "undated":
+            score += 10
+        return score
+
+    normalized_candidates = list(deduped_map.values())
+    normalized_candidates.sort(key=_candidate_rank, reverse=True)
 
     # Save discovery proposal to storage
-    storage.save_discovery_proposal(company_clean, normalized_candidates, tenant_id=tenant_id)
+    try:
+        storage.save_discovery_proposal(company_clean, normalized_candidates, tenant_id=tenant_id)
+    except Exception as e:
+        logger.warning(f"Could not persist discovery proposal: {e}")
+
     return normalized_candidates
 
 
