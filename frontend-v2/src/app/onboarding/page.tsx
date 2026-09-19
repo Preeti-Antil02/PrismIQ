@@ -16,6 +16,7 @@ import {
   Compass,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Plus,
   Trash2,
@@ -131,6 +132,8 @@ export default function OnboardingPage() {
   const [newManualName, setNewManualName] = React.useState("");
   const [showAddManual, setShowAddManual] = React.useState(false);
   const [step3Error, setStep3Error] = React.useState<string | null>(null);
+  const [isDegradedMode, setIsDegradedMode] = React.useState<boolean>(false);
+  const [discoveryMethod, setDiscoveryMethod] = React.useState<string>("llm");
 
   // Step 4 Intelligence Preferences State
   const [selectedTopics, setSelectedTopics] = React.useState<string[]>([
@@ -210,6 +213,9 @@ export default function OnboardingPage() {
       clearTimeout(stageTimer1);
       clearTimeout(stageTimer2);
       clearTimeout(stageTimer3);
+
+      setIsDegradedMode(Boolean(res.degraded));
+      setDiscoveryMethod(res.extraction_method || "llm");
 
       const rawCandidates: DiscoveryCandidate[] = res.candidates || [];
       const parsedItems: ReviewCompetitorItem[] = rawCandidates.map((c, idx) => {
@@ -709,6 +715,33 @@ export default function OnboardingPage() {
               </div>
             </div>
 
+            {isDegradedMode && (
+              <div
+                role="status"
+                className="flex items-start gap-3 p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-xl text-xs text-amber-900 shadow-sm animate-in fade-in duration-200"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-amber-950">Heuristic Fallback Mode</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 text-amber-900">
+                      Reduced Precision
+                    </span>
+                  </div>
+                  <p className="text-amber-800 leading-relaxed">
+                    Competitors were discovered using deterministic pattern matching because LLM synthesis was temporarily unavailable. Results may be less precise — you can retry for full AI analysis or add competitors manually.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => runDiscovery(companyName)}
+                  className="px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300/80 rounded-lg transition-colors cursor-pointer shrink-0"
+                >
+                  Retry AI Discovery
+                </button>
+              </div>
+            )}
+
             {step3Error && (
               <div
                 role="alert"
@@ -839,7 +872,11 @@ export default function OnboardingPage() {
                               {comp.confidence} confidence
                             </span>
 
-                            {comp.sourceAge && (
+                            {comp.freshnessNote && comp.freshnessNote.includes("Indirect") ? (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100/80 text-amber-900 border border-amber-200/60 font-medium">
+                                Indirect Mention
+                              </span>
+                            ) : comp.sourceAge ? (
                               <span
                                 className={`text-[10px] px-1.5 py-0.5 rounded ${
                                   comp.sourceAge === "recent"
@@ -849,7 +886,7 @@ export default function OnboardingPage() {
                               >
                                 {comp.sourceAge === "recent" ? "Recent source" : "Historical"}
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </div>
