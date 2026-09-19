@@ -533,13 +533,130 @@ def _attach_langsmith_usage(usage: Optional[Dict[str, Any]], model: str = "") ->
         logger.debug(f"Could not attach usage metadata to LangSmith span: {e}")
 
 
+class LLMUnavailableError(Exception):
+    """Raised when LLM inference fails due to missing credentials, authentication rejection, or service failure."""
+    pass
+
+
+EXCLUDED_HEURISTIC_WORDS = {
+    "the", "a", "an", "this", "that", "how", "what", "why", "where", "show", "ask", 
+    "github", "wikipedia", "list", "big", "repo", "app", "new", "top", "free",
+    "california", "senate", "court", "lawsuit", "countersuit", "email", "bill",
+    "everything", "someone", "anyone", "everyone", "rocket", "rocketed", "fast",
+    "tracked", "deal", "purchases", "lands", "chief", "calls", "amid", "fears",
+    "news", "times", "post", "blog", "guide", "review", "comparison", "alternative",
+    "competitor", "competitors", "alternatives", "vs", "versus", "option", "casino",
+    "market", "boom", "bust", "help", "helps", "delivery", "partner", "partners",
+    "return", "returns", "income", "tax", "flaw", "found", "detected", "vulnerability",
+    "information", "disclosure", "cross", "site", "scripting", "nifty", "index", "showcase",
+    "article", "title", "user", "users", "choice", "best", "popular", "domestic", "limited"
+}
+
+
+def _clean_heuristic_candidate(raw: str) -> str:
+    c = re.sub(r'^[^\w]+|[^\w]+$', '', raw.strip())
+    c = _clean_company_name(c)
+    # Strip leading/trailing conjunctions and prepositions
+    c = re.sub(r'(?i)\s+\b(and|or|with|the|in|at|by|from|to|for|of)\b$', '', c).strip()
+    c = re.sub(r'(?i)^\b(and|or|with|the|in|at|by|from|to|for|of)\b\s+', '', c).strip()
+    if len(c) < 2 or c.isdigit():
+        return ""
+    words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', c)]
+    if not words or all(w in EXCLUDED_HEURISTIC_WORDS for w in words):
+        return ""
+    if words[0] in EXCLUDED_HEURISTIC_WORDS or words[-1] in EXCLUDED_HEURISTIC_WORDS:
+        return ""
+    return c
+
+
+def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Deterministic fallback parser that extracts candidate competitor entities from
+    retrieved snippets, titles, and URLs when LLM inference is unavailable.
+    """
+    company_clean = company.strip().lower()
+    extracted: Dict[str, Dict[str, Any]] = {}
+
+    patterns = [
+        # Entity vs Target or Target vs Entity (e.g. "Flipkart vs Meesho", "OpenAI vs Anthropic")
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+(?:vs\.?|versus)\s+' + re.escape(company_clean), 0.9),
+        (r'(?i)' + re.escape(company_clean) + r'\s+(?:vs\.?|versus)\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.9),
+        
+        # Entity ... Target competitor (e.g. "Mistral - ... OpenAI competitor")
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—,\(].*?' + re.escape(company_clean) + r'\s+competitor', 0.9),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+is\s+an?\s+' + re.escape(company_clean) + r'\s+competitor', 0.9),
+        
+        # Target competitor Entity (e.g. "OpenAI Codex Competitor Cursor")
+        (r'(?i)' + re.escape(company_clean) + r'(?:\s+[A-Za-z0-9]+)?\s+competitor\s*[\:–—\-]?\s*([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        
+        # Entity ... Target alternative (e.g. "BlindAI ... OpenAI alternative", "LocalAI: Self-hosted OpenAI alternative")
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—:\(].*?' + re.escape(company_clean) + r'\s+alternative', 0.85),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+as\s+an?\s+' + re.escape(company_clean) + r'\s+alternative', 0.85),
+        
+        # competes primarily with Entity / domestic rival Entity
+        (r'(?i)competes\s+primarily\s+with\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        (r'(?i)(?:domestic|primary|major)\s+rival\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        
+        # File/deck patterns: "Samridhi1412/Flipkart_vs_Meesho_Deck"
+        (r'(?i)\b([A-Za-z0-9]+)_vs_' + re.escape(company_clean), 0.85),
+        (r'(?i)' + re.escape(company_clean) + r'_vs_([A-Za-z0-9]+)', 0.85),
+    ]
+
+    for s in sources:
+        title = s.get("title", "")
+        text = s.get("text", "")
+        combined = f"{title}. {text}"
+
+        for pat, base_weight in patterns:
+            for match in re.finditer(pat, combined):
+                cand = match.group(1).strip()
+                cleaned = _clean_heuristic_candidate(cand)
+                if not cleaned:
+                    continue
+                if _is_self_or_internal_product(cleaned, company):
+                    continue
+                
+                key = cleaned.lower()
+                source_ref = title or s.get("url", "")
+                source_age, source_date = _match_source_metadata(source_ref, sources)
+                conf = "Medium" if base_weight >= 0.85 else "Low"
+                if source_age == "dated":
+                    conf = "Low"
+                    freshness_note = f"Sourced {source_date or 'historic'}, not independently confirmed recently"
+                elif source_age == "recent":
+                    freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
+                else:
+                    freshness_note = "Retrieved grounded market intelligence"
+
+                if key not in extracted:
+                    extracted[key] = {
+                        "name": cleaned,
+                        "rationale": f"Directly cited alongside {company.capitalize()} in market intelligence snippet: \"{title[:75]}\".",
+                        "confidence": conf,
+                        "source": source_ref,
+                        "source_age": source_age,
+                        "source_date": source_date,
+                        "freshness_note": freshness_note,
+                        "_weight": base_weight,
+                    }
+                else:
+                    if base_weight > extracted[key]["_weight"]:
+                        extracted[key]["_weight"] = base_weight
+                        extracted[key]["confidence"] = conf
+
+    res = list(extracted.values())
+    for item in res:
+        item.pop("_weight", None)
+    return res
+
+
 @traceable(run_type="llm", name="discovery_agent_llm_call")
 def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
     """Execute Groq completion with JSON object response format, retries, and rate limit backoff."""
     api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        logger.warning("GROQ_API_KEY not set. Returning empty candidate list.")
-        return {"candidates": []}
+    if not api_key or not api_key.strip():
+        logger.warning("GROQ_API_KEY not configured in environment.")
+        raise LLMUnavailableError("GROQ_API_KEY is not configured in backend environment variables.")
 
     model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip()
     headers = {
@@ -557,12 +674,13 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
         "response_format": {"type": "json_object"},
     }
 
+    last_error: Optional[Exception] = None
     for attempt in range(max_retries):
         try:
             resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=20)
             if resp.status_code in (401, 403):
-                logger.warning(f"Groq API authentication error ({resp.status_code}).")
-                return {"candidates": []}
+                logger.error(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key.")
+                raise LLMUnavailableError(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key.")
 
             if resp.status_code == 429:
                 retry_header = resp.headers.get("retry-after", "")
@@ -591,13 +709,19 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
             if isinstance(parsed, dict) and "candidates" in parsed:
                 return parsed
             return {"candidates": []}
+        except LLMUnavailableError:
+            raise
         except Exception as e:
+            last_error = e
             if attempt == max_retries - 1:
                 logger.error(f"Error calling Groq API for discovery ({model}): {e}")
-                return {"candidates": []}
+                raise LLMUnavailableError(f"Groq API call failed after {max_retries} attempts: {e}")
             time.sleep(1.0)
 
-    return {"candidates": []}
+    if last_error:
+        raise LLMUnavailableError(f"Groq API call failed: {last_error}")
+    raise LLMUnavailableError("Groq API call failed to return candidate response.")
+
 
 
 def _match_source_metadata(source_ref: str, sources: List[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
@@ -711,6 +835,9 @@ def run(
 
     logger.info(f"Processing {len(sources)} grounded context snippets for '{company_clean}'")
 
+    llm_error: Optional[Exception] = None
+    raw_candidates: List[Dict[str, Any]] = []
+
     if not sources:
         # Grounded fallback if web sources temporarily timed out or produced no results
         logger.info(f"Web retrieval sparse for '{company_clean}'. Generating grounded candidate proposal via LLM.")
@@ -719,12 +846,32 @@ def run(
             f"Identify the primary real-world direct commercial and open-source competitors for {company_clean}, "
             f"their specific overlapping architectural or market capabilities, and industry positioning."
         )
-        raw_result = _call_groq_discovery(DISCOVERY_SYSTEM_PROMPT, fallback_prompt)
+        try:
+            raw_result = _call_groq_discovery(DISCOVERY_SYSTEM_PROMPT, fallback_prompt)
+            raw_candidates = raw_result.get("candidates", [])
+        except LLMUnavailableError as e:
+            llm_error = e
+            logger.warning(f"LLM discovery failed for '{company_clean}' with sparse sources: {e}")
     else:
         system_prompt, user_prompt = _build_prompts(company_clean, sources)
-        raw_result = _call_groq_discovery(system_prompt, user_prompt)
+        try:
+            raw_result = _call_groq_discovery(system_prompt, user_prompt)
+            raw_candidates = raw_result.get("candidates", [])
+        except LLMUnavailableError as e:
+            llm_error = e
+            logger.warning(f"LLM discovery unavailable for '{company_clean}': {e}. Engaging deterministic heuristic fallback.")
 
-    raw_candidates = raw_result.get("candidates", [])
+    # Heuristic fallback if LLM returned no candidates or failed
+    if not raw_candidates and sources:
+        heuristic_cands = _heuristic_extract_candidates(company_clean, sources)
+        if heuristic_cands:
+            logger.info(f"Deterministic heuristic parser extracted {len(heuristic_cands)} candidates for '{company_clean}'.")
+            raw_candidates = heuristic_cands
+
+    # If heuristic fallback also yielded nothing AND LLM failed specifically due to credentials/outage
+    if not raw_candidates and llm_error is not None:
+        raise llm_error
+
 
     # Deduplicate and normalize candidates
     deduped_map: Dict[str, Dict[str, Any]] = {}
