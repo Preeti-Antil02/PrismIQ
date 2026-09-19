@@ -99,3 +99,60 @@ def test_storage_dual_write_handles_invalid_tenant_gracefully():
 
     p2 = storage.save_discovery_proposal("openai", [], tenant_id="non-uuid-tenant-string")
     assert p2.exists()
+
+
+def test_missing_groq_api_key_raises_llm_unavailable():
+    """Verify missing GROQ_API_KEY raises explicit LLMUnavailableError rather than silently returning empty candidates."""
+    with patch.dict("os.environ", {"GROQ_API_KEY": ""}):
+        with pytest.raises(discovery_agent.LLMUnavailableError, match="GROQ_API_KEY is not configured"):
+            discovery_agent._call_groq_discovery("sys", "user")
+
+
+def test_heuristic_fallback_when_llm_fails():
+    """Verify discovery_agent.run engages heuristic extraction from retrieved sources when LLM is unavailable."""
+    mock_sources = [
+        {"url": "https://news.ycombinator.com", "title": "Ask HN: What's the latest consensus on OpenAI vs. Anthropic?", "source_age": "recent", "published_at": "2026-01-01"},
+        {"url": "https://techcrunch.com", "title": "Mistral — Everything to know about the OpenAI competitor", "source_age": "recent", "published_at": "2026-01-02"},
+        {"url": "https://github.com", "title": "BlindAI API: An open-source and privacy-first OpenAI alternative", "source_age": "dated", "published_at": "2023-01-01"},
+    ]
+
+    with patch.dict("os.environ", {"GROQ_API_KEY": ""}):
+        candidates = discovery_agent.run("openai", sources=mock_sources, tenant_id="c8f13b91-46ef-4682-9975-f85764d8a12e")
+
+    # Heuristic fallback must extract Anthropic and Mistral
+    names = [c["name"].lower() for c in candidates]
+    assert any("anthropic" in n for n in names), f"Expected Anthropic in {names}"
+    assert any("mistral" in n for n in names), f"Expected Mistral in {names}"
+
+
+def test_llm_unavailable_and_no_sources_raises_error():
+    """Verify that when both sources and LLM are unavailable, LLMUnavailableError is propagated."""
+    with patch.dict("os.environ", {"GROQ_API_KEY": ""}):
+        with pytest.raises(discovery_agent.LLMUnavailableError):
+            discovery_agent.run("openai", sources=[], tenant_id="c8f13b91-46ef-4682-9975-f85764d8a12e")
+
+
+def test_api_onboarding_discover_returns_503_on_llm_unavailable():
+    """Verify API endpoint returns HTTP 503 when LLM is unavailable and no candidates could be extracted."""
+    from fastapi.testclient import TestClient
+    from src.api import app, _hash_password
+    import jwt, time
+
+    client = TestClient(app)
+    # Generate test auth token
+    token = jwt.encode(
+        {"sub": "c8f13b91-46ef-4682-9975-f85764d8a12e", "exp": int(time.time()) + 3600},
+        "test_secret",
+        algorithm="HS256"
+    )
+
+    with patch.object(discovery_agent, "run", side_effect=discovery_agent.LLMUnavailableError("Service down")):
+        res = client.post(
+            "/api/onboarding/discover",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"target_company": "openai"}
+        )
+    assert res.status_code == 503
+    assert "LLM inference unavailable" in res.json()["detail"]
+
+
