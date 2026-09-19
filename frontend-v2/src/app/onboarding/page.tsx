@@ -9,6 +9,7 @@ import {
   confirmCompetitors,
   createWorkspaceTopic,
   triggerPipelineRun,
+  fetchWorkspaceConfig,
   type DiscoveryCandidate,
 } from "@/lib/api";
 import {
@@ -134,6 +135,7 @@ export default function OnboardingPage() {
   const [step3Error, setStep3Error] = React.useState<string | null>(null);
   const [isDegradedMode, setIsDegradedMode] = React.useState<boolean>(false);
   const [discoveryMethod, setDiscoveryMethod] = React.useState<string>("llm");
+  const [isConfirmingCompetitors, setIsConfirmingCompetitors] = React.useState<boolean>(false);
 
   // Step 4 Intelligence Preferences State
   const [selectedTopics, setSelectedTopics] = React.useState<string[]>([
@@ -147,7 +149,7 @@ export default function OnboardingPage() {
   const [finalizingStep, setFinalizingStep] = React.useState<string>("Registering company...");
   const [finalizingError, setFinalizingError] = React.useState<string | null>(null);
 
-  // Guard: Redirect unauthenticated users or already onboarded users
+  // Guard: Redirect unauthenticated users and restore persisted workspace state from DB
   React.useEffect(() => {
     if (authLoading) return;
     if (!token && !user) {
@@ -155,15 +157,43 @@ export default function OnboardingPage() {
       return;
     }
 
-    // Check if user already finished onboarding
-    const checkStatus = async () => {
-      const isComplete = await checkOnboardingStatus();
-      if (isComplete && window.location.search.indexOf("force=1") === -1) {
-        router.push("/app");
+    const loadWorkspaceState = async () => {
+      try {
+        const cfg = await fetchWorkspaceConfig();
+        if (cfg.onboarding_complete && window.location.search.indexOf("force=1") === -1) {
+          router.push("/app");
+          return;
+        }
+
+        // Restore target company from database
+        if (cfg.target_company) {
+          setCompanyName(cfg.target_company);
+        }
+
+        // Restore persisted competitors from database
+        if (cfg.competitors && cfg.competitors.length > 0) {
+          const restoredItems: ReviewCompetitorItem[] = cfg.competitors.map((cName, idx) => ({
+            id: `persisted-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
+            name: cName,
+            rationale: `Confirmed competitor for tracking alongside ${cfg.target_company || "your target company"}.`,
+            confidence: "High",
+            source: "Workspace Configuration",
+            selected: true,
+          }));
+          setCompetitors(restoredItems);
+        }
+
+        // If target and competitors already persisted, resume directly on Preferences (Step 4)
+        if (cfg.is_configured && !cfg.onboarding_complete) {
+          setStep(4);
+        }
+      } catch (err) {
+        console.warn("Notice loading workspace config:", err);
       }
     };
-    checkStatus();
-  }, [authLoading, token, user, router, checkOnboardingStatus]);
+
+    loadWorkspaceState();
+  }, [authLoading, token, user, router]);
 
   // Clean and validate website domain
   const cleanDomain = (raw: string): string => {
@@ -303,14 +333,30 @@ export default function OnboardingPage() {
     setCompetitors((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const handleConfirmCompetitorsStep = () => {
+  const handleConfirmCompetitorsStep = async () => {
     const selected = competitors.filter((c) => c.selected);
     if (selected.length === 0) {
       setStep3Error("Please select at least one competitor to track.");
       return;
     }
+    const cleanTarget = companyName.trim();
+    if (!cleanTarget) {
+      setStep3Error("Target company is required.");
+      return;
+    }
+
     setStep3Error(null);
-    setStep(4);
+    setIsConfirmingCompetitors(true);
+
+    try {
+      const selectedNames = selected.map((c) => c.name);
+      await confirmCompetitors(cleanTarget, selectedNames);
+      setStep(4);
+    } catch (err: any) {
+      setStep3Error(err.message || "Failed to persist selected competitors. Please try again.");
+    } finally {
+      setIsConfirmingCompetitors(false);
+    }
   };
 
   // --------------------------------------------------------------------------
@@ -920,14 +966,23 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={handleConfirmCompetitorsStep}
-                disabled={competitors.filter((c) => c.selected).length === 0}
+                disabled={competitors.filter((c) => c.selected).length === 0 || isConfirmingCompetitors}
                 className="py-2.5 px-6 rounded-xl text-white font-bold text-xs tracking-wide transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2 cursor-pointer"
                 style={{
                   background: "linear-gradient(110deg, #3b82f6, #7c3aed 50%, #ec4899)",
                 }}
               >
-                <span>Continue to Intelligence Preferences</span>
-                <ArrowRight className="h-4 w-4" />
+                {isConfirmingCompetitors ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Saving Competitors...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Continue to Intelligence Preferences</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </div>
           </div>
