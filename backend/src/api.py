@@ -270,19 +270,23 @@ def _get_brief_id(filename: str) -> str:
 
 @app.get("/")
 @app.get("/health")
-def health_check() -> Dict[str, Any]:
+def health_check(debug: bool = False) -> Dict[str, Any]:
     """Root public health check endpoint for monitoring and uptime verification."""
     raw_key = os.getenv("GROQ_API_KEY", "")
     clean_key = raw_key.strip().strip("\"'").strip()
-    return {
+    resp: Dict[str, Any] = {
         "status": "ok",
         "service": "PrismIQ Competitive Intelligence API",
         "groq_configured": bool(clean_key),
-        "groq_key_len": len(clean_key),
-        "groq_key_prefix": clean_key[:8] if clean_key else None,
-        "groq_has_quotes": raw_key.startswith('"') or raw_key.startswith("'") or raw_key.endswith('"') or raw_key.endswith("'"),
-        "groq_model": os.getenv("GROQ_MODEL", discovery_agent.DEFAULT_GROQ_MODEL).strip(),
     }
+    if debug:
+        resp.update({
+            "groq_key_len": len(clean_key),
+            "groq_key_prefix": clean_key[:8] if clean_key else None,
+            "groq_has_quotes": raw_key.startswith('"') or raw_key.startswith("'") or raw_key.endswith('"') or raw_key.endswith("'"),
+            "groq_model": os.getenv("GROQ_MODEL", discovery_agent.DEFAULT_GROQ_MODEL).strip(),
+        })
+    return resp
 
 
 
