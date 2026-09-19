@@ -1,8 +1,18 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env if present
-load_dotenv()
+# Load environment variables from .env across possible run directories
+_backend_root = Path(__file__).resolve().parent.parent
+_candidate_envs = [
+    Path.cwd() / ".env",
+    Path.cwd() / "backend" / ".env",
+    _backend_root / ".env",
+]
+for _env_path in _candidate_envs:
+    if _env_path.exists():
+        load_dotenv(_env_path)
+
 
 TARGET_COMPANY: str = os.getenv("TARGET_COMPANY", "Vercel").strip()
 
