@@ -1,3 +1,4 @@
+import re
 import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
@@ -100,12 +101,32 @@ def test_crossed_citation_resolution_for_meesho():
         assert "Flipkart" in candidates_by_name
         # Dedicated source matching: Flipkart must be attributed to Wikipedia: Flipkart, NOT Wikipedia: Shopsy
         assert candidates_by_name["Flipkart"]["source"] == "Wikipedia: Flipkart"
+        assert candidates_by_name["Flipkart"]["confidence"] == "Medium"
 
         assert "Amazon India" in candidates_by_name
-        # Comparative quotation: Amazon India must have an attributed comparison rationale
         amazon_cand = candidates_by_name["Amazon India"]
+        # Comparative quotation: Amazon India must have an attributed comparison rationale
         assert "Wikipedia: Flipkart" in amazon_cand["source"] or "Wikipedia: Flipkart" in amazon_cand["rationale"]
-        assert "competes primarily with Amazon India" in amazon_cand["rationale"]
+        # Must capture full sensible clause without trailing dangling conjunctions
+        assert "in which it competes primarily with Amazon India and domestic rival Meesho" in amazon_cand["rationale"]
+        assert not amazon_cand["rationale"].rstrip(".)\"").endswith(" and")
+        # Indirect candidate must be calibrated to Low confidence with secondary source note
+        assert amazon_cand["confidence"] == "Low"
+        assert "Indirect" in amazon_cand["freshness_note"]
+
+
+def test_clause_extraction_no_mid_sentence_cutoff():
+    """Verify that _extract_containing_clause captures the full semantic clause and strips dangling prepositions."""
+    text = (
+        "According to a 2023 AllianceBernstein report, Flipkart held a 48% market share in the Indian "
+        "e-commerce industry, in which it competes primarily with Amazon India and domestic rival Meesho. "
+        "In 2018, Flipkart was described as having a dominant position."
+    )
+    match = re.search(r"competes\s+primarily\s+with\s+Amazon\s+India", text)
+    assert match is not None
+    clause = discovery_agent._extract_containing_clause(text, match.start(), match.end())
+    assert clause == "in which it competes primarily with Amazon India and domestic rival Meesho"
+    assert not clause.endswith(" and")
 
 
 def test_llm_success_path():
@@ -162,15 +183,27 @@ def test_api_discover_endpoint_metadata(client):
 
 
 def test_api_health_endpoint_details(client, monkeypatch):
-    """Verify that health endpoint surfaces groq_key_prefix, groq_key_len, and groq_model."""
+    """Verify that public health endpoint omits key internals by default, and exposes them under ?debug=true."""
     monkeypatch.setenv("GROQ_API_KEY", "gsk_test1234567890abcdef")
     monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-120b")
-    resp = client.get("/health")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["status"] == "ok"
-    assert data["groq_configured"] is True
-    assert data["groq_key_len"] == len("gsk_test1234567890abcdef")
-    assert data["groq_key_prefix"] == "gsk_test"
-    assert data["groq_has_quotes"] is False
-    assert data["groq_model"] == "openai/gpt-oss-120b"
+
+    # Public unauthenticated health check: key internals omitted
+    resp_pub = client.get("/health")
+    assert resp_pub.status_code == 200
+    pub_data = resp_pub.json()
+    assert pub_data["status"] == "ok"
+    assert pub_data["groq_configured"] is True
+    assert "groq_key_len" not in pub_data
+    assert "groq_key_prefix" not in pub_data
+    assert "groq_model" not in pub_data
+
+    # Gated debug health check: key internals included
+    resp_debug = client.get("/health?debug=true")
+    assert resp_debug.status_code == 200
+    debug_data = resp_debug.json()
+    assert debug_data["status"] == "ok"
+    assert debug_data["groq_configured"] is True
+    assert debug_data["groq_key_len"] == len("gsk_test1234567890abcdef")
+    assert debug_data["groq_key_prefix"] == "gsk_test"
+    assert debug_data["groq_has_quotes"] is False
+    assert debug_data["groq_model"] == "openai/gpt-oss-120b"
