@@ -272,10 +272,16 @@ def _get_brief_id(filename: str) -> str:
 @app.get("/health")
 def health_check() -> Dict[str, Any]:
     """Root public health check endpoint for monitoring and uptime verification."""
+    raw_key = os.getenv("GROQ_API_KEY", "")
+    clean_key = raw_key.strip().strip("\"'").strip()
     return {
         "status": "ok",
         "service": "PrismIQ Competitive Intelligence API",
-        "groq_configured": bool(os.getenv("GROQ_API_KEY")),
+        "groq_configured": bool(clean_key),
+        "groq_key_len": len(clean_key),
+        "groq_key_prefix": clean_key[:8] if clean_key else None,
+        "groq_has_quotes": raw_key.startswith('"') or raw_key.startswith("'") or raw_key.endswith('"') or raw_key.endswith("'"),
+        "groq_model": os.getenv("GROQ_MODEL", discovery_agent.DEFAULT_GROQ_MODEL).strip(),
     }
 
 
@@ -1286,6 +1292,13 @@ def onboard_discover_candidates(
 
     try:
         candidates = discovery_agent.run(target, tenant_id=tenant_id)
+        extraction_method = getattr(candidates, "extraction_method", "llm")
+        degraded = getattr(candidates, "degraded", False)
+        llm_error = getattr(candidates, "llm_error", None)
+        if candidates and isinstance(candidates, list) and len(candidates) > 0 and isinstance(candidates[0], dict):
+            if not getattr(candidates, "extraction_method", None) and candidates[0].get("extraction_method"):
+                extraction_method = candidates[0].get("extraction_method")
+                degraded = (extraction_method == "heuristic_fallback")
     except discovery_agent.LLMUnavailableError as e:
         logger.error(f"Discovery agent LLM unavailable for '{target}': {e}")
         raise HTTPException(
@@ -1299,13 +1312,15 @@ def onboard_discover_candidates(
             detail=f"Competitor discovery couldn't be completed: {str(e)}"
         )
 
-
     return {
         "status": "proposed",
         "tenant_id": tenant_id,
         "target_company": target,
         "candidates_count": len(candidates),
         "candidates": candidates,
+        "extraction_method": extraction_method,
+        "degraded": degraded,
+        "llm_error": llm_error,
     }
 
 
