@@ -827,6 +827,13 @@ def save_tenant_confirmed_companies(
         """
         _execute_batch(cur, comp_registry_sql, [(c,) for c in competitors], page_size=50)
 
+        # Archive any previous target company for this tenant if name is different
+        cur.execute("""
+            UPDATE tenant_tracked_companies
+            SET is_target = FALSE, status = 'archived', updated_at = %s
+            WHERE tenant_id = %s AND is_target = TRUE AND company_name != %s AND status = 'active';
+        """, (now_dt, tid, target))
+
         # Upsert target company into tenant_tracked_companies
         target_ttc_sql = """
             INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
@@ -835,6 +842,20 @@ def save_tenant_confirmed_companies(
             SET is_target = TRUE, status = 'active', updated_at = EXCLUDED.updated_at;
         """
         cur.execute(target_ttc_sql, (tid, target, now_dt, now_dt))
+
+        # Archive any competitors previously active for this tenant that are not in the new confirmed list
+        if competitors:
+            cur.execute("""
+                UPDATE tenant_tracked_companies
+                SET status = 'archived', updated_at = %s
+                WHERE tenant_id = %s AND NOT is_target AND NOT (company_name = ANY(%s)) AND status = 'active';
+            """, (now_dt, tid, competitors))
+        else:
+            cur.execute("""
+                UPDATE tenant_tracked_companies
+                SET status = 'archived', updated_at = %s
+                WHERE tenant_id = %s AND NOT is_target AND status = 'active';
+            """, (now_dt, tid))
 
         # Upsert confirmed competitors into tenant_tracked_companies
         comp_ttc_sql = """
@@ -862,13 +883,20 @@ def save_tenant_confirmed_companies(
 
         logger.info(f"Persisted confirmed tracked companies for tenant {tid}: target={target}, competitors={competitors}")
 
-    # 2. Parity flat-file write
-    save_confirmed_competitors(target, competitors)
-
     # Return structured tracked companies
     tracked = [{"company_name": target, "is_target": True, "status": "active"}]
     for c in competitors:
         tracked.append({"company_name": c, "is_target": False, "status": "active"})
+
+    # 2. Parity flat-file write
+    save_confirmed_competitors(target, competitors)
+    try:
+        tenant_file = _get_data_dir() / f"tracked_companies_{tid}.json"
+        with open(tenant_file, "w", encoding="utf-8") as tf:
+            json.dump(tracked, tf, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to save local tracked companies for tenant {tid}: {e}")
+
     return tracked
 
 
@@ -885,7 +913,21 @@ def untrack_tenant_company(tenant_id: str, company_name: str) -> bool:
             SET status = 'untracked', updated_at = NOW()
             WHERE tenant_id = %s AND company_name = %s AND status = 'active';
         """, (tid, comp))
-        return cur.rowcount > 0
+        rowcount = cur.rowcount
+
+    # Parity local file update
+    try:
+        tenant_file = _get_data_dir() / f"tracked_companies_{tid}.json"
+        if tenant_file.exists():
+            with open(tenant_file, "r", encoding="utf-8") as tf:
+                comps = json.load(tf)
+            updated_comps = [c for c in comps if c.get("company_name") != comp]
+            with open(tenant_file, "w", encoding="utf-8") as tf:
+                json.dump(updated_comps, tf, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to update local tracked file on untrack for {tid}: {e}")
+
+    return rowcount > 0
 
 
 def track_tenant_company(tenant_id: str, company_name: str, is_target: bool = False) -> Dict[str, Any]:
@@ -901,16 +943,33 @@ def track_tenant_company(tenant_id: str, company_name: str, is_target: bool = Fa
             INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
             VALUES (%s, %s, %s, 'active', %s, %s)
             ON CONFLICT (tenant_id, company_name) DO UPDATE
-            SET status = 'active', updated_at = NOW()
+            SET is_target = EXCLUDED.is_target, status = 'active', updated_at = EXCLUDED.updated_at
             RETURNING company_name, is_target, status, added_at;
         """, (tid, comp, is_target, now_dt, now_dt))
         row = cur.fetchone()
-        return {
-            "company_name": row[0],
-            "is_target": row[1],
-            "status": row[2],
-            "added_at": row[3].isoformat() if row[3] else now_dt.isoformat(),
+        entry = {
+            "company_name": row[0] if (row and len(row) > 0 and row[0] != "00000000-0000-0000-0000-000000000000") else comp,
+            "is_target": row[1] if (row and len(row) > 1) else is_target,
+            "status": row[2] if (row and len(row) > 2) else "active",
+            "added_at": row[3].isoformat() if (row and len(row) > 3 and hasattr(row[3], "isoformat")) else now_dt.isoformat(),
         }
+
+    # Parity local file update
+    try:
+        tenant_file = _get_data_dir() / f"tracked_companies_{tid}.json"
+        existing = []
+        if tenant_file.exists():
+            with open(tenant_file, "r", encoding="utf-8") as tf:
+                existing = json.load(tf)
+        # Remove any matching entry first
+        existing = [c for c in existing if c.get("company_name") != comp]
+        existing.append(entry)
+        with open(tenant_file, "w", encoding="utf-8") as tf:
+            json.dump(existing, tf, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to update local tracked file for {tid}: {e}")
+
+    return entry
 
 
 def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
@@ -918,9 +977,10 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
     Retrieve active tracked companies for the authenticated tenant under RLS context.
     Returns list of dicts with company_name, is_target, status, added_at.
     """
+    tid = str(tenant_id).strip()
     if not is_test_environment() and is_live_write_permitted():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tid) as cur:
                 cur.execute("""
                     SELECT company_name, is_target, status, added_at
                     FROM tenant_tracked_companies
@@ -940,7 +1000,80 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
         except Exception as e:
             logger.warning(f"Failed to query tenant tracked companies from Postgres: {e}")
 
+    # Fallback to per-tenant local flat file
+    tenant_file = _get_data_dir() / f"tracked_companies_{tid}.json"
+    if tenant_file.exists():
+        try:
+            with open(tenant_file, "r", encoding="utf-8") as tf:
+                data = json.load(tf)
+                return [c for c in data if c.get("status", "active") == "active"]
+        except Exception as e:
+            logger.warning(f"Failed to read local tracked companies for {tid}: {e}")
+
     return []
+
+
+def get_tenant_workspace_config(tenant_id: str) -> Dict[str, Any]:
+    """
+    Retrieve unified workspace configuration for the authenticated tenant under RLS:
+    - target_company: name of active company where is_target = True
+    - competitors: list of active company names where is_target = False
+    - tracked_companies: full list of active tracked company dicts
+    - topics: active research topics configured for this tenant
+    - has_target: bool
+    - has_competitors: bool
+    - has_preferences: bool
+    - is_configured: bool (has_target and has_competitors)
+    - onboarding_complete: bool (has_target and has_competitors and has_preferences)
+    """
+    tid = str(tenant_id).strip()
+    tracked_companies = get_tenant_tracked_companies(tid)
+
+    target_company = ""
+    competitors = []
+    for c in tracked_companies:
+        if c.get("is_target"):
+            target_company = c.get("company_name", "")
+        else:
+            competitors.append(c.get("company_name", ""))
+
+    # Fallback check from persistent flat file ONLY for OWNER_TENANT_ID in test/offline parity
+    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+    if not target_company and tid == owner_id:
+        for f in _get_data_dir().glob("confirmed_competitors_*.json"):
+            try:
+                with open(f, "r", encoding="utf-8") as fh:
+                    f_data = json.load(fh)
+                    if f_data.get("target_company"):
+                        target_company = f_data["target_company"]
+                        competitors = f_data.get("competitors", [])
+                        tracked_companies = [{"company_name": target_company, "is_target": True, "status": "active"}] + [
+                            {"company_name": comp, "is_target": False, "status": "active"} for comp in competitors
+                        ]
+                        break
+            except Exception:
+                pass
+
+    topics = get_tenant_research_topics(tid, include_paused=False)
+
+    has_target = bool(target_company)
+    has_competitors = len(competitors) > 0
+    has_preferences = len(topics) > 0
+    is_configured = has_target and has_competitors
+    onboarding_complete = is_configured and has_preferences
+
+    return {
+        "tenant_id": tid,
+        "target_company": target_company,
+        "competitors": competitors,
+        "tracked_companies": tracked_companies,
+        "topics": topics,
+        "has_target": has_target,
+        "has_competitors": has_competitors,
+        "has_preferences": has_preferences,
+        "is_configured": is_configured,
+        "onboarding_complete": onboarding_complete,
+    }
 
 
 def load_confirmed_competitors(
