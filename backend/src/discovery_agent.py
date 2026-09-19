@@ -538,225 +538,37 @@ class LLMUnavailableError(Exception):
     pass
 
 
-EXCLUDED_HEURISTIC_WORDS = {
-    "the", "a", "an", "this", "that", "how", "what", "why", "where", "show", "ask", 
-    "github", "wikipedia", "list", "big", "repo", "app", "new", "top", "free",
-    "california", "senate", "court", "lawsuit", "countersuit", "email", "bill",
-    "everything", "someone", "anyone", "everyone", "rocket", "rocketed", "fast",
-    "tracked", "deal", "purchases", "lands", "chief", "calls", "amid", "fears",
-    "news", "times", "post", "blog", "guide", "review", "comparison", "alternative",
-    "competitor", "competitors", "alternatives", "vs", "versus", "option", "casino",
-    "market", "boom", "bust", "help", "helps", "delivery", "partner", "partners",
-    "return", "returns", "income", "tax", "flaw", "found", "detected", "vulnerability",
-    "information", "disclosure", "cross", "site", "scripting", "nifty", "index", "showcase",
-    "article", "title", "user", "users", "choice", "best", "popular", "domestic", "limited"
-}
-
-
-def _clean_heuristic_candidate(raw: str) -> str:
-    c = re.sub(r'^[^\w]+|[^\w]+$', '', raw.strip())
-    c = _clean_company_name(c)
-    # Strip leading/trailing conjunctions and prepositions
-    c = re.sub(r'(?i)\s+\b(and|or|with|the|in|at|by|from|to|for|of)\b$', '', c).strip()
-    c = re.sub(r'(?i)^\b(and|or|with|the|in|at|by|from|to|for|of)\b\s+', '', c).strip()
-    if len(c) < 2 or c.isdigit():
-        return ""
-    words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', c)]
-    if not words or all(w in EXCLUDED_HEURISTIC_WORDS for w in words):
-        return ""
-    if words[0] in EXCLUDED_HEURISTIC_WORDS or words[-1] in EXCLUDED_HEURISTIC_WORDS:
-        return ""
-    return c
-
-
-def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Deterministic fallback parser that extracts candidate competitor entities from
-    retrieved snippets, titles, and URLs when LLM inference is unavailable.
-    """
-    company_clean = company.strip().lower()
-    extracted: Dict[str, Dict[str, Any]] = {}
-
-    patterns = [
-        # Entity vs Target or Target vs Entity (e.g. "Flipkart vs Meesho", "OpenAI vs Anthropic")
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+(?:vs\.?|versus)\s+' + re.escape(company_clean), 0.9),
-        (r'(?i)' + re.escape(company_clean) + r'\s+(?:vs\.?|versus)\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.9),
-        
-        # Entity ... Target competitor (e.g. "Mistral - ... OpenAI competitor")
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—,\(].*?' + re.escape(company_clean) + r'\s+competitor', 0.9),
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+is\s+an?\s+' + re.escape(company_clean) + r'\s+competitor', 0.9),
-        
-        # Target competitor Entity (e.g. "OpenAI Codex Competitor Cursor")
-        (r'(?i)' + re.escape(company_clean) + r'(?:\s+[A-Za-z0-9]+)?\s+competitor\s*[\:–—\-]?\s*([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
-        
-        # Entity ... Target alternative (e.g. "BlindAI ... OpenAI alternative", "LocalAI: Self-hosted OpenAI alternative")
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—:\(].*?' + re.escape(company_clean) + r'\s+alternative', 0.85),
-        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+as\s+an?\s+' + re.escape(company_clean) + r'\s+alternative', 0.85),
-        
-        # competes primarily with Entity / domestic rival Entity
-        (r'(?i)competes\s+primarily\s+with\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
-        (r'(?i)(?:domestic|primary|major)\s+rival\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
-        
-        # File/deck patterns: "Samridhi1412/Flipkart_vs_Meesho_Deck"
-        (r'(?i)\b([A-Za-z0-9]+)_vs_' + re.escape(company_clean), 0.85),
-        (r'(?i)' + re.escape(company_clean) + r'_vs_([A-Za-z0-9]+)', 0.85),
-    ]
-
-    for s in sources:
-        title = s.get("title", "")
-        text = s.get("text", "")
-        combined = f"{title}. {text}"
-
-        for pat, base_weight in patterns:
-            for match in re.finditer(pat, combined):
-                cand = match.group(1).strip()
-                cleaned = _clean_heuristic_candidate(cand)
-                if not cleaned:
-                    continue
-                if _is_self_or_internal_product(cleaned, company):
-                    continue
-                
-                key = cleaned.lower()
-                source_ref = title or s.get("url", "")
-                source_age, source_date = _match_source_metadata(source_ref, sources)
-                conf = "Medium" if base_weight >= 0.85 else "Low"
-                if source_age == "dated":
-                    conf = "Low"
-                    freshness_note = f"Sourced {source_date or 'historic'}, not independently confirmed recently"
-                elif source_age == "recent":
-                    freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
-                else:
-                    freshness_note = "Retrieved grounded market intelligence"
-
-                if key not in extracted:
-                    extracted[key] = {
-                        "name": cleaned,
-                        "rationale": f"Directly cited alongside {company.capitalize()} in market intelligence snippet: \"{title[:75]}\".",
-                        "confidence": conf,
-                        "source": source_ref,
-                        "source_age": source_age,
-                        "source_date": source_date,
-                        "freshness_note": freshness_note,
-                        "_weight": base_weight,
-                    }
-                else:
-                    if base_weight > extracted[key]["_weight"]:
-                        extracted[key]["_weight"] = base_weight
-                        extracted[key]["confidence"] = conf
-
-    res = list(extracted.values())
-    for item in res:
-        item.pop("_weight", None)
-    return res
-
-
-@traceable(run_type="llm", name="discovery_agent_llm_call")
-def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
-    """Execute Groq completion with JSON object response format, retries, and rate limit backoff."""
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key or not api_key.strip():
-        logger.warning("GROQ_API_KEY not configured in environment.")
-        raise LLMUnavailableError("GROQ_API_KEY is not configured in backend environment variables.")
-
-    model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip()
-    headers = {
-        "Authorization": f"Bearer {api_key.strip()}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        "temperature": 0.1,
-        "max_tokens": 1500,
-        "response_format": {"type": "json_object"},
-    }
-
-    last_error: Optional[Exception] = None
-    for attempt in range(max_retries):
-        try:
-            resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=20)
-            if resp.status_code in (401, 403):
-                logger.error(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key.")
-                raise LLMUnavailableError(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key.")
-
-            if resp.status_code == 429:
-                retry_header = resp.headers.get("retry-after", "")
-                try:
-                    retry_after = float(retry_header)
-                except ValueError:
-                    retry_after = 2.0 * (attempt + 1)
-                backoff = min(max(retry_after, 2.0), 6.0)
-                logger.warning(f"Groq 429 rate limit hit. Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})...")
-                time.sleep(backoff)
-                continue
-
-            resp.raise_for_status()
-            res_data = resp.json()
-
-            # Attach token usage and cost metadata to active LangSmith span
-            usage = res_data.get("usage")
-            if usage and isinstance(usage, dict):
-                _attach_langsmith_usage(usage, model=model)
-
-            content = res_data["choices"][0]["message"]["content"]
-
-            cleaned_content = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
-            cleaned_content = re.sub(r"\s*```$", "", cleaned_content.strip())
-            parsed = json.loads(cleaned_content)
-            if isinstance(parsed, dict) and "candidates" in parsed:
-                return parsed
-            return {"candidates": []}
-        except LLMUnavailableError:
-            raise
-        except Exception as e:
-            last_error = e
-            if attempt == max_retries - 1:
-                logger.error(f"Error calling Groq API for discovery ({model}): {e}")
-                raise LLMUnavailableError(f"Groq API call failed after {max_retries} attempts: {e}")
-            time.sleep(1.0)
-
-    if last_error:
-        raise LLMUnavailableError(f"Groq API call failed: {last_error}")
-    raise LLMUnavailableError("Groq API call failed to return candidate response.")
-
-
-
-def _match_source_metadata(source_ref: str, sources: List[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
-    """
-    Match candidate source citation against retrieved sources list to extract verified date and source_age.
-    STRICT: If not matched to a verified source in the retrieved context, returns ('undated', None).
-    NEVER guesses or defaults to 'recent'.
-    """
-    source_ref_clean = source_ref.strip().lower()
-    
-    # Try exact or substring URL/Title match against actual retrieved sources
-    for s in sources:
-        s_url = s.get("url", "").strip().lower()
-        s_title = s.get("title", "").strip().lower()
-        if (s_url and (s_url in source_ref_clean or source_ref_clean in s_url)) or \
-           (s_title and (s_title in source_ref_clean or source_ref_clean in s_title)):
-            return s.get("source_age", "undated"), s.get("published_at")
-
-    return "undated", None
-
+# ============================================================================
+# Name Cleaning, Canonical Brand Key & Self-Exclusion Guardrails
+# ============================================================================
 
 def _clean_company_name(name: str) -> str:
     """
     Normalize company and candidate names:
-    - Strip legal entities: Inc, Inc., LLC, Ltd, Ltd., Corp, Corporation, Co., Co
+    - Strip legal entities: Inc, Inc., LLC, Ltd, Ltd., Corp, Corporation, Co., Co, PBC
     - Normalize brackets, punctuation, quotes, and whitespace
     """
     if not name:
         return ""
     clean = str(name).strip().strip("\"'").strip()
-    # Strip trailing corporate suffixes
-    clean = re.sub(r'(?i)\s*\b(inc|llc|ltd|corp|corporation|co|technologies|company)\b\.?$', '', clean).strip()
+    clean = re.sub(r'(?i)\s*\b(inc|llc|ltd|corp|corporation|co|technologies|company|pbc)\b\.?$', '', clean).strip()
     clean = re.sub(r'[,.]+$', '', clean).strip()
     clean = re.sub(r'\s+', ' ', clean)
     return clean
+
+
+def _canonical_brand_key(name: str) -> str:
+    """
+    Produce canonical brand identifier for deduplication across both LLM and heuristic extraction:
+    - Strips corporate suffixes: inc, llc, corp, ltd, co, corporation, company, holdings, group, pbc
+    - Strips brand/tech/geo modifiers: ai, labs, research, technologies, technology, software, solutions, systems, platform, india, global, cloud
+    - e.g. 'Mistral' and 'Mistral AI' both collapse to 'mistral'
+    - e.g. 'Amazon' and 'Amazon India' both collapse to 'amazon'
+    """
+    clean = _clean_company_name(name).lower()
+    clean = re.sub(r'(?i)\b(ai|labs|research|technologies|technology|software|solutions|systems|platform|corp|inc|llc|pbc|india|global|cloud)\b', '', clean)
+    clean = re.sub(r'[^a-z0-9]+', '', clean).strip()
+    return clean or name.lower().strip()
 
 
 KNOWN_INTERNAL_PRODUCTS = {
@@ -805,24 +617,311 @@ def _is_self_or_internal_product(candidate_name: str, target_company: str) -> bo
     return False
 
 
-def run(
+# ============================================================================
+# Garbage Entity Filters & Non-Entity Noun Blacklist
+# ============================================================================
+
+DISQUALIFYING_NON_ENTITY_NOUNS = {
+    "archives", "archive", "email", "emails", "lawsuit", "countersuit", "hearing",
+    "hearings", "antitrust", "ruling", "order", "investigation", "ban", "case", "trial",
+    "dispute", "battle", "feud", "drama", "war", "story", "video", "interview", "speech",
+    "podcast", "transcript", "deck", "slides", "report", "study", "data", "dataset",
+    "benchmark", "paper", "survey", "doc", "docs", "documentation", "release", "version",
+    "model", "models", "weight", "weights", "token", "tokens", "code", "sdk", "library",
+    "framework", "plugin", "extension", "prompt", "prompts", "system", "bill", "senate",
+    "regulation", "act", "law", "memo", "memos", "leak", "leaks", "news", "article",
+    "times", "journal", "post", "press", "update", "updates", "consensus", "tier",
+    "review", "pricing", "cost", "valuation", "funding", "round", "deal", "ipo",
+    "shares", "stock", "partnership", "agreement", "contract", "purchase", "purchases",
+    "acquisition", "merger", "casino", "option", "options", "tax", "taxes", "refund",
+    "refunds", "flaw", "vulnerability", "disclosure", "fast", "tracked", "rocketed",
+    "title", "chief", "calls", "amid", "fears", "someone", "anyone", "everyone", "choice",
+    "best", "popular", "domestic", "limited", "company", "competitor", "competitors", "alternative",
+    "alternatives", "versus", "vs", "cve"
+}
+
+EXCLUDED_HEURISTIC_WORDS = {
+    "the", "a", "an", "this", "that", "how", "what", "why", "where", "show", "ask", 
+    "github", "wikipedia", "list", "big", "repo", "app", "new", "top", "free",
+    "california", "senate", "court", "lawsuit", "countersuit", "email", "bill",
+    "everything", "someone", "anyone", "everyone", "rocket", "rocketed", "fast",
+    "tracked", "deal", "purchases", "lands", "chief", "calls", "amid", "fears",
+    "news", "times", "post", "blog", "guide", "review", "comparison", "alternative",
+    "competitor", "competitors", "alternatives", "vs", "versus", "option", "casino",
+    "market", "boom", "bust", "help", "helps", "delivery", "partner", "partners",
+    "return", "returns", "income", "tax", "flaw", "found", "detected", "vulnerability",
+    "information", "disclosure", "cross", "site", "scripting", "nifty", "index", "showcase",
+    "article", "title", "user", "users", "choice", "best", "popular", "domestic", "limited", "cve"
+}
+
+
+def _clean_heuristic_candidate(raw: str, target_company: str = "") -> str:
+    """Sanitize candidate string and reject garbage entities, title fragments, and non-companies."""
+    c = re.sub(r'^[^\w]+|[^\w]+$', '', raw.strip())
+    c = _clean_company_name(c)
+    # Strip leading/trailing conjunctions and prepositions
+    c = re.sub(r'(?i)\s+\b(and|or|with|the|in|at|by|from|to|for|of)\b$', '', c).strip()
+    c = re.sub(r'(?i)^\b(and|or|with|the|in|at|by|from|to|for|of)\b\s+', '', c).strip()
+    if len(c) < 2 or c.isdigit():
+        return ""
+    if re.search(r'(?i)\bcve[-_\d]', c):
+        return ""
+    words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', c)]
+    if not words:
+        return ""
+    # Reject if any word in candidate name is in the disqualifying non-entity blacklist
+    for w in words:
+        if w in DISQUALIFYING_NON_ENTITY_NOUNS:
+            return ""
+    if words[0] in EXCLUDED_HEURISTIC_WORDS or words[-1] in EXCLUDED_HEURISTIC_WORDS:
+        return ""
+    if target_company and _is_self_or_internal_product(c, target_company):
+        return ""
+    return c
+
+
+# ============================================================================
+# Deterministic Heuristic Extraction Fallback (Crossed-Citation & Attribution Fixed)
+# ============================================================================
+
+def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Deterministic fallback parser that extracts candidate competitor entities from
+    retrieved snippets, titles, and URLs when LLM inference is unavailable.
+    Guarantees strict attribution pairing and eliminates crossed citations.
+    """
+    company_clean = company.strip().lower()
+    extracted: Dict[str, Dict[str, Any]] = {}
+
+    patterns = [
+        # Entity vs Target or Target vs Entity (e.g. "Flipkart vs Meesho", "OpenAI vs Anthropic")
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+(?:vs\.?|versus)\s+' + re.escape(company_clean), 0.9),
+        (r'(?i)' + re.escape(company_clean) + r'\s+(?:vs\.?|versus)\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.9),
+        
+        # Entity ... Target competitor (e.g. "Mistral - ... OpenAI competitor")
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—,\(].*?' + re.escape(company_clean) + r'\s+competitor', 0.9),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+is\s+an?\s+' + re.escape(company_clean) + r'\s+competitor', 0.9),
+        
+        # Target competitor Entity (e.g. "OpenAI Codex Competitor Cursor")
+        (r'(?i)' + re.escape(company_clean) + r'(?:\s+[A-Za-z0-9]+)?\s+competitor\s*[\:–—\-]?\s*([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        
+        # Entity ... Target alternative (e.g. "BlindAI ... OpenAI alternative", "LocalAI: Self-hosted OpenAI alternative")
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—:\(].*?' + re.escape(company_clean) + r'\s+alternative', 0.85),
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})\s+as\s+an?\s+' + re.escape(company_clean) + r'\s+alternative', 0.85),
+        
+        # competes primarily with Entity / domestic rival Entity
+        (r'(?i)competes\s+primarily\s+with\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        (r'(?i)(?:domestic|primary|major)\s+rival\s+([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,2})', 0.85),
+        
+        # File/deck patterns: "Samridhi1412/Flipkart_vs_Meesho_Deck"
+        (r'(?i)\b([A-Za-z0-9]+)_vs_' + re.escape(company_clean), 0.85),
+        (r'(?i)' + re.escape(company_clean) + r'_vs_([A-Za-z0-9]+)', 0.85),
+    ]
+
+    # Index sources for dedicated entity profile matching
+    # e.g., "Wikipedia: Flipkart" -> dedicated source for Flipkart
+    dedicated_sources: Dict[str, Dict[str, Any]] = {}
+    for s in sources:
+        title = s.get("title", "")
+        # Wikipedia: Entity
+        wiki_m = re.match(r'^Wikipedia:\s*([A-Za-z0-9\.\s]+?)(?:\s*\([^)]+\))?$', title)
+        if wiki_m:
+            cand = _clean_heuristic_candidate(wiki_m.group(1), company)
+            if cand:
+                dedicated_sources[_canonical_brand_key(cand)] = s
+        # AlternativeTo: Entity
+        alt_m = re.match(r'^AlternativeTo:\s*([A-Za-z0-9\.\s]+?)(?:\s*\(.*?\))?$', title)
+        if alt_m:
+            cand = _clean_heuristic_candidate(alt_m.group(1), company)
+            if cand:
+                dedicated_sources[_canonical_brand_key(cand)] = s
+
+    for s in sources:
+        title = s.get("title", "")
+        text = s.get("text", "")
+        combined = f"{title}. {text}"
+
+        for pat, base_weight in patterns:
+            for match in re.finditer(pat, combined):
+                cand = match.group(1).strip()
+                cleaned = _clean_heuristic_candidate(cand, company)
+                if not cleaned:
+                    continue
+                if _is_self_or_internal_product(cleaned, company):
+                    continue
+                
+                ckey = _canonical_brand_key(cleaned)
+                
+                # Grounding pairing: If a dedicated primary source exists for this candidate
+                # in the retrieved context (e.g. "Wikipedia: Flipkart"), use that as primary source
+                primary_source = dedicated_sources.get(ckey, s)
+                source_ref = primary_source.get("title") or primary_source.get("url", "")
+                source_age, source_date = _match_source_metadata(source_ref, sources)
+                
+                conf = "Medium" if base_weight >= 0.85 else "Low"
+                if source_age == "dated":
+                    conf = "Low"
+                    freshness_note = f"Sourced {source_date or 'historic'}, not independently confirmed recently"
+                elif source_age == "recent":
+                    freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
+                else:
+                    freshness_note = "Retrieved grounded market intelligence"
+
+                # Accurate rationale avoiding crossed citations:
+                matched_snippet = match.group(0).strip()
+                if primary_source is not s:
+                    rationale = f"Dedicated market intelligence profile for {cleaned} ({source_ref}), cited alongside {company.capitalize()} in market comparison."
+                elif matched_snippet:
+                    rationale = f"Cited in market comparison: \"{matched_snippet}\" (documented in {title[:60]})."
+                else:
+                    rationale = f"Directly cited alongside {company.capitalize()} in market intelligence source: \"{title[:75]}\"."
+
+                if ckey not in extracted:
+                    extracted[ckey] = {
+                        "name": cleaned,
+                        "rationale": rationale,
+                        "confidence": conf,
+                        "source": source_ref,
+                        "source_age": source_age,
+                        "source_date": source_date,
+                        "freshness_note": freshness_note,
+                        "_weight": base_weight,
+                    }
+                else:
+                    # If this match has a longer/more formal display name (e.g. "Mistral AI" vs "Mistral")
+                    if len(cleaned) > len(extracted[ckey]["name"]):
+                        extracted[ckey]["name"] = cleaned
+                    if base_weight > extracted[ckey]["_weight"]:
+                        extracted[ckey]["_weight"] = base_weight
+                        extracted[ckey]["confidence"] = conf
+                        extracted[ckey]["rationale"] = rationale
+                        extracted[ckey]["source"] = source_ref
+                        extracted[ckey]["source_age"] = source_age
+                        extracted[ckey]["source_date"] = source_date
+                        extracted[ckey]["freshness_note"] = freshness_note
+
+    res = list(extracted.values())
+    for item in res:
+        item.pop("_weight", None)
+    return res
+
+
+@traceable(run_type="llm", name="discovery_agent_llm_call")
+def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
+    """Execute Groq completion with JSON object response format, retries, and rate limit backoff."""
+    raw_key = os.getenv("GROQ_API_KEY", "")
+    api_key = raw_key.strip().strip("\"'").strip()
+    if not api_key:
+        logger.warning("GROQ_API_KEY not configured in environment.")
+        raise LLMUnavailableError("GROQ_API_KEY is not configured in backend environment variables.")
+
+    model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip()
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.1,
+        "max_tokens": 1500,
+        "response_format": {"type": "json_object"},
+    }
+
+    last_error: Optional[Exception] = None
+    for attempt in range(max_retries):
+        try:
+            resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=20)
+            if resp.status_code in (401, 403):
+                logger.error(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key: {resp.text[:200]}")
+                raise LLMUnavailableError(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key: {resp.text[:200]}")
+
+            if resp.status_code == 429:
+                retry_header = resp.headers.get("retry-after", "")
+                try:
+                    retry_after = float(retry_header)
+                except ValueError:
+                    retry_after = 2.0 * (attempt + 1)
+                backoff = min(max(retry_after, 2.0), 6.0)
+                logger.warning(f"Groq 429 rate limit hit. Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})...")
+                time.sleep(backoff)
+                continue
+
+            if resp.status_code != 200:
+                logger.error(f"Groq API returned HTTP {resp.status_code}: {resp.text}")
+                raise LLMUnavailableError(f"Groq API HTTP {resp.status_code}: {resp.text[:200]}")
+
+            res_data = resp.json()
+
+            # Attach token usage and cost metadata to active LangSmith span
+            usage = res_data.get("usage")
+            if usage and isinstance(usage, dict):
+                _attach_langsmith_usage(usage, model=model)
+
+            content = res_data["choices"][0]["message"]["content"]
+
+            cleaned_content = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
+            cleaned_content = re.sub(r"\s*```$", "", cleaned_content.strip())
+            parsed = json.loads(cleaned_content)
+            if isinstance(parsed, dict) and "candidates" in parsed:
+                return parsed
+            return {"candidates": []}
+        except LLMUnavailableError:
+            raise
+        except Exception as e:
+            last_error = e
+            if attempt == max_retries - 1:
+                logger.error(f"Error calling Groq API for discovery ({model}): {e}")
+                raise LLMUnavailableError(f"Groq API call failed after {max_retries} attempts: {e}")
+            time.sleep(1.0)
+
+    if last_error:
+        raise LLMUnavailableError(f"Groq API call failed: {last_error}")
+    raise LLMUnavailableError("Groq API call failed to return candidate response.")
+
+
+def _match_source_metadata(source_ref: str, sources: List[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
+    """
+    Match candidate source citation against retrieved sources list to extract verified date and source_age.
+    STRICT: If not matched to a verified source in the retrieved context, returns ('undated', None).
+    NEVER guesses or defaults to 'recent'.
+    """
+    source_ref_clean = source_ref.strip().lower()
+    
+    # Try exact or substring URL/Title match against actual retrieved sources
+    for s in sources:
+        s_url = s.get("url", "").strip().lower()
+        s_title = s.get("title", "").strip().lower()
+        if (s_url and (s_url in source_ref_clean or source_ref_clean in s_url)) or \
+           (s_title and (s_title in source_ref_clean or source_ref_clean in s_title)):
+            return s.get("source_age", "undated"), s.get("published_at")
+
+    return "undated", None
+
+
+def run_with_meta(
     company: str,
     sources: Optional[List[Dict[str, Any]]] = None,
     tenant_id: Optional[str] = None,
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     """
-    Run Discovery Agent for the specified target company.
-    1. Uses provided sources or fetches grounded intelligence context across all sources concurrently.
-    2. Persists raw retrieved sources for reproducible re-runs and historical audits.
-    3. Passes context to LLM with strict anti-hallucination and freshness guardrails.
-    4. Normalizes candidate schema and deduplicates candidates.
-    5. Programmatic freshness guardrail: downgrades High confidence to Medium for 'dated' sources.
-    6. Filters out target company itself and its internal products.
-    7. Saves proposal snapshot to data storage (scoped to tenant_id).
+    Run Discovery Agent returning candidates alongside execution metadata:
+    - candidates: List[Dict[str, Any]]
+    - extraction_method: 'llm' | 'heuristic_fallback'
+    - degraded: bool (true when fell through to heuristic fallback)
+    - llm_error: str | None
     """
     company_clean = company.strip()
     if not company_clean:
-        return []
+        return {
+            "candidates": [],
+            "extraction_method": "llm",
+            "degraded": False,
+            "llm_error": None,
+        }
 
     logger.info(f"Running Discovery Agent for target company: '{company_clean}' (tenant: {tenant_id})")
     if sources is None:
@@ -836,7 +935,9 @@ def run(
     logger.info(f"Processing {len(sources)} grounded context snippets for '{company_clean}'")
 
     llm_error: Optional[Exception] = None
+    llm_error_msg: Optional[str] = None
     raw_candidates: List[Dict[str, Any]] = []
+    extraction_method = "llm"
 
     if not sources:
         # Grounded fallback if web sources temporarily timed out or produced no results
@@ -851,6 +952,7 @@ def run(
             raw_candidates = raw_result.get("candidates", [])
         except LLMUnavailableError as e:
             llm_error = e
+            llm_error_msg = str(e)
             logger.warning(f"LLM discovery failed for '{company_clean}' with sparse sources: {e}")
     else:
         system_prompt, user_prompt = _build_prompts(company_clean, sources)
@@ -859,6 +961,7 @@ def run(
             raw_candidates = raw_result.get("candidates", [])
         except LLMUnavailableError as e:
             llm_error = e
+            llm_error_msg = str(e)
             logger.warning(f"LLM discovery unavailable for '{company_clean}': {e}. Engaging deterministic heuristic fallback.")
 
     # Heuristic fallback if LLM returned no candidates or failed
@@ -867,13 +970,13 @@ def run(
         if heuristic_cands:
             logger.info(f"Deterministic heuristic parser extracted {len(heuristic_cands)} candidates for '{company_clean}'.")
             raw_candidates = heuristic_cands
+            extraction_method = "heuristic_fallback"
 
     # If heuristic fallback also yielded nothing AND LLM failed specifically due to credentials/outage
     if not raw_candidates and llm_error is not None:
         raise llm_error
 
-
-    # Deduplicate and normalize candidates
+    # Deduplicate and normalize candidates consistently across both paths
     deduped_map: Dict[str, Dict[str, Any]] = {}
     conf_priority = {"High": 3, "Medium": 2, "Low": 1}
 
@@ -884,8 +987,12 @@ def run(
         raw_name = str(item.get("name", "")).strip()
         cleaned_name = _clean_company_name(raw_name)
 
-        # Guardrail: Do not include target company itself or its internal products
+        # Sanity filter against garbage nouns and self-exclusion
         if not cleaned_name or _is_self_or_internal_product(cleaned_name, company_clean):
+            continue
+
+        words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', cleaned_name)]
+        if any(w in DISQUALIFYING_NON_ENTITY_NOUNS for w in words):
             continue
 
         # Extract parent brand if candidate is formatted like "Claude (Anthropic)" -> "Anthropic"
@@ -898,9 +1005,9 @@ def run(
             if len(parent_org) > 2 and not parent_org.lower().startswith("formerly"):
                 display_name = parent_org
 
-        canonical_key = display_name.lower()
-        # Double check self-exclusion after parent extraction
-        if _is_self_or_internal_product(canonical_key, company_clean):
+        # Use canonical brand key so "Mistral" and "Mistral AI" share the exact same key "mistral"
+        canonical_key = _canonical_brand_key(display_name)
+        if not canonical_key or _is_self_or_internal_product(canonical_key, company_clean):
             continue
 
         rationale = str(item.get("rationale", "")).strip()
@@ -931,10 +1038,14 @@ def run(
             "source_age": source_age,
             "source_date": source_date,
             "freshness_note": freshness_note,
+            "extraction_method": extraction_method,
         }
 
         if canonical_key in deduped_map:
             existing = deduped_map[canonical_key]
+            # Prefer longer / more formal display name (e.g. "Mistral AI" over "Mistral")
+            if len(display_name) > len(existing["name"]):
+                existing["name"] = display_name
             # Keep higher confidence
             if conf_priority.get(confidence, 1) > conf_priority.get(existing["confidence"], 1):
                 existing["confidence"] = confidence
@@ -970,7 +1081,36 @@ def run(
     except Exception as e:
         logger.warning(f"Could not persist discovery proposal: {e}")
 
-    return normalized_candidates
+    return {
+        "candidates": normalized_candidates,
+        "extraction_method": extraction_method,
+        "degraded": (extraction_method == "heuristic_fallback"),
+        "llm_error": llm_error_msg,
+    }
+
+
+class CandidatesResult(list):
+    """List subclass preserving transparent discovery execution metadata."""
+    def __init__(self, iterable=None, extraction_method="llm", degraded=False, llm_error=None):
+        super().__init__(iterable or [])
+        self.extraction_method = extraction_method
+        self.degraded = degraded
+        self.llm_error = llm_error
+
+
+def run(
+    company: str,
+    sources: Optional[List[Dict[str, Any]]] = None,
+    tenant_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Backward-compatible runner returning List[Dict[str, Any]] with execution metadata attributes."""
+    meta = run_with_meta(company, sources=sources, tenant_id=tenant_id)
+    return CandidatesResult(
+        meta["candidates"],
+        extraction_method=meta["extraction_method"],
+        degraded=meta["degraded"],
+        llm_error=meta["llm_error"],
+    )
 
 
 def interactive_confirm(target_company: str, candidates: List[Dict[str, Any]]) -> List[str]:
