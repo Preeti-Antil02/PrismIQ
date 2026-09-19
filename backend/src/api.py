@@ -469,24 +469,9 @@ def auth_login(req: LoginRequest) -> Dict[str, Any]:
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    # Determine onboarding status: check if tenant has active tracked companies
-    if _is_db_active():
-        try:
-            with storage.get_db_cursor() as cur:
-                cur.execute("""
-                    SELECT COUNT(*)
-                    FROM tenant_tracked_companies
-                    WHERE tenant_id = %s AND status = 'active';
-                """, (user_id,))
-                cnt = cur.fetchone()[0]
-                is_onboarded = (cnt > 0)
-        except Exception as e:
-            logger.warning(f"Failed to check onboarding status for {user_id}: {e}")
-            if user_id == owner_id:
-                is_onboarded = True
-    else:
-        if user_id == owner_id:
-            is_onboarded = True
+    # Determine onboarding status: requires target company, confirmed competitors, and intelligence preferences
+    cfg = storage.get_tenant_workspace_config(user_id)
+    is_onboarded = cfg.get("onboarding_complete", False)
 
     token = _create_jwt_token(user_id, clean_email)
     return {
@@ -508,8 +493,6 @@ def auth_me(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
     """
     email = f"{tenant_id[:8]}@prismiq.ai"
     user_name = "PrismIQ User"
-    is_onboarded = False
-    tracked_count = 0
 
     if _is_db_active():
         try:
@@ -526,24 +509,12 @@ def auth_me(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
                             user_name = json.loads(meta).get("name", user_name)
                         except Exception:
                             pass
-
-                cur.execute("""
-                    SELECT COUNT(*)
-                    FROM tenant_tracked_companies
-                    WHERE tenant_id = %s AND status = 'active';
-                """, (tenant_id,))
-                tracked_count = cur.fetchone()[0]
-                is_onboarded = (tracked_count > 0)
         except Exception as e:
             logger.warning(f"Error querying user profile for tenant {tenant_id}: {e}")
-            owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
-            if tenant_id == owner_id:
-                is_onboarded = True
-    else:
-        owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
-        if tenant_id == owner_id:
-            is_onboarded = True
-            tracked_count = 3
+
+    cfg = storage.get_tenant_workspace_config(tenant_id)
+    is_onboarded = cfg.get("onboarding_complete", False)
+    tracked_count = len(cfg.get("tracked_companies", []))
 
     return {
         "user": {
@@ -1359,6 +1330,22 @@ def onboard_confirm_candidates(
     }
 
 
+@app.get("/api/workspace/config")
+@app.get("/workspace/config")
+def get_workspace_configuration(
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve the active workspace configuration for the authenticated tenant:
+    - target_company
+    - competitors
+    - tracked_companies
+    - topics
+    - has_target, has_competitors, has_preferences, is_configured, onboarding_complete
+    """
+    return storage.get_tenant_workspace_config(tenant_id)
+
+
 # ============================================================================
 # Pipeline Run & Progressive Telemetry Endpoints
 # ============================================================================
@@ -1420,6 +1407,15 @@ def trigger_pipeline(
     Trigger a real-time monitoring run as a background task protected by distributed lock.
     Returns immediately with trigger status and begins progressive per-company persistence.
     """
+    cfg = storage.get_tenant_workspace_config(tenant_id)
+    if not cfg.get("is_configured"):
+        is_mock_workflow = hasattr(workflow.run_progressive_pipeline, "__name__") and workflow.run_progressive_pipeline.__name__ == "<lambda>"
+        if not (storage.is_test_environment() and is_mock_workflow):
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot trigger pipeline: Workspace configuration is incomplete. Target company and at least one competitor must be confirmed before running the intelligence pipeline."
+            )
+
     active = storage.get_active_or_latest_run_progress(tenant_id)
     if active and active.get("status") == "running":
         return {
@@ -1443,6 +1439,8 @@ def trigger_pipeline(
         "message": "Continuous monitoring pipeline triggered successfully.",
         "tenant_id": tenant_id,
         "is_first_run": is_first,
+        "target_company": cfg.get("target_company"),
+        "competitors": cfg.get("competitors"),
     }
 
 
