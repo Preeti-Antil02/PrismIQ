@@ -861,7 +861,11 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
         logger.warning("GROQ_API_KEY not configured in environment.")
         raise LLMUnavailableError("GROQ_API_KEY is not configured in backend environment variables.")
 
-    model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip()
+    raw_model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip().strip("\"'").strip()
+    if not raw_model or " " in raw_model or "(" in raw_model:
+        model = DEFAULT_GROQ_MODEL
+    else:
+        model = raw_model
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
