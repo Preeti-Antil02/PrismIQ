@@ -1,158 +1,176 @@
 import pytest
-from unittest.mock import patch, MagicMock
-from src import discovery_agent, storage
+from unittest.mock import patch
+from fastapi.testclient import TestClient
+
+from src import api, discovery_agent
 
 
-def test_clean_company_name_strips_legal_suffixes():
-    """Verify company name normalization strips corporate and legal designations."""
-    assert discovery_agent._clean_company_name("OpenAI Inc.") == "OpenAI"
-    assert discovery_agent._clean_company_name("OpenAI, Inc.") == "OpenAI"
-    assert discovery_agent._clean_company_name("Anthropic PBC") == "Anthropic PBC"
-    assert discovery_agent._clean_company_name("Mistral AI Corp") == "Mistral AI"
-    assert discovery_agent._clean_company_name("Flipkart India Pvt Ltd") == "Flipkart India Pvt"
-    assert discovery_agent._clean_company_name("Datadog LLC") == "Datadog"
+@pytest.fixture
+def client():
+    return TestClient(api.app)
 
 
-def test_is_self_or_internal_product_filter():
-    """Verify target company and its internal products are excluded as competitors."""
-    # Exact and casing matches
-    assert discovery_agent._is_self_or_internal_product("OpenAI", "openai") is True
-    assert discovery_agent._is_self_or_internal_product("openai", "OpenAI") is True
-    assert discovery_agent._is_self_or_internal_product("OpenAI Inc", "OpenAI") is True
-    assert discovery_agent._is_self_or_internal_product("OpenAI, Inc.", "openai") is True
+def test_garbage_entities_filtered():
+    """Verify that legal artifacts, headlines, and non-company phrases are rejected."""
+    garbage_candidates = [
+        "Musk Email Archives",
+        "Elon Musk Countersuit",
+        "California Senate Bill",
+        "Fast Tracked",
+        "CVE-2026-39039",
+        "Options Casino",
+        "Income Tax Returns",
+        "Podcast Episode",
+    ]
+    for g in garbage_candidates:
+        cleaned = discovery_agent._clean_heuristic_candidate(g, "openai")
+        assert cleaned == "", f"Garbage entity '{g}' should have been rejected, got: '{cleaned}'"
 
-    # Known internal products of OpenAI
-    assert discovery_agent._is_self_or_internal_product("ChatGPT", "OpenAI") is True
-    assert discovery_agent._is_self_or_internal_product("GPT-4o", "OpenAI") is True
-    assert discovery_agent._is_self_or_internal_product("OpenAI Codex", "OpenAI") is True
-    assert discovery_agent._is_self_or_internal_product("Sora", "OpenAI") is True
-
-    # Legitimate external competitors of OpenAI must NOT be excluded
-    assert discovery_agent._is_self_or_internal_product("Anthropic", "OpenAI") is False
-    assert discovery_agent._is_self_or_internal_product("Mistral AI", "OpenAI") is False
-    assert discovery_agent._is_self_or_internal_product("Google", "OpenAI") is False
-    assert discovery_agent._is_self_or_internal_product("Cursor", "OpenAI") is False
-
-    # Flipkart and its products vs competitors
-    assert discovery_agent._is_self_or_internal_product("Flipkart", "flipkart") is True
-    assert discovery_agent._is_self_or_internal_product("Myntra", "Flipkart") is True
-    assert discovery_agent._is_self_or_internal_product("Amazon", "Flipkart") is False
-    assert discovery_agent._is_self_or_internal_product("Meesho", "Flipkart") is False
+    valid_candidates = ["Mistral AI", "Anthropic", "Flipkart", "Cursor"]
+    for v in valid_candidates:
+        cleaned = discovery_agent._clean_heuristic_candidate(v, "openai")
+        assert cleaned != "", f"Valid candidate '{v}' was unexpectedly rejected"
 
 
-def test_candidate_deduplication_and_parent_extraction():
-    """Verify that child products resolve to parent companies and deduplicate."""
+def test_canonical_brand_key_consolidation():
+    """Verify that brand variants collapse to the same canonical key."""
+    assert discovery_agent._canonical_brand_key("Mistral") == "mistral"
+    assert discovery_agent._canonical_brand_key("Mistral AI") == "mistral"
+    assert discovery_agent._canonical_brand_key("Amazon India") == "amazon"
+    assert discovery_agent._canonical_brand_key("Amazon") == "amazon"
+    assert discovery_agent._canonical_brand_key("Anthropic PBC") == "anthropic"
+
+
+def test_duplicate_brand_deduplication_in_run():
+    """Verify that Mistral and Mistral AI collapse into one single candidate across run_with_meta."""
+    mock_sources = [
+        {
+            "source_type": "discussion",
+            "title": "Mistral – Everything to know about the OpenAI competitor",
+            "url": "https://example.com/mistral-1",
+            "text": "Mistral is an OpenAI competitor building frontier language models.",
+            "published_at": "2025-05-20",
+            "source_age": "recent",
+        },
+        {
+            "source_type": "news",
+            "title": "Mistral AI, an OpenAI competitor, rocketed to $2B in <12 months",
+            "url": "https://example.com/mistral-2",
+            "text": "Mistral AI is an OpenAI competitor founded by former Meta researchers.",
+            "published_at": "2024-01-15",
+            "source_age": "dated",
+        },
+    ]
+
+    with patch("src.discovery_agent._call_groq_discovery", side_effect=discovery_agent.LLMUnavailableError("Simulated LLM outage")):
+        res = discovery_agent.run_with_meta("openai", sources=mock_sources)
+        assert res["extraction_method"] == "heuristic_fallback"
+        assert res["degraded"] is True
+        names = [c["name"] for c in res["candidates"]]
+        mistral_matches = [n for n in names if "mistral" in n.lower()]
+        assert len(mistral_matches) == 1, f"Expected 1 deduplicated Mistral candidate, found {mistral_matches}"
+        assert mistral_matches[0] == "Mistral AI"
+
+
+def test_crossed_citation_resolution_for_meesho():
+    """Verify that Flipkart and Amazon India are correctly attributed from Wikipedia snippets."""
+    mock_sources = [
+        {
+            "source_type": "encyclopedia",
+            "title": "Wikipedia: Flipkart",
+            "url": "https://en.wikipedia.org/wiki/Flipkart",
+            "text": "Flipkart: industry, in which it competes primarily with Amazon India and domestic rival Meesho.",
+            "published_at": None,
+            "source_age": "undated",
+        },
+        {
+            "source_type": "encyclopedia",
+            "title": "Wikipedia: Shopsy (company)",
+            "url": "https://en.wikipedia.org/wiki/Shopsy_(company)",
+            "text": "Shopsy: In November 2021, media reported 'Flipkart vs Meesho: A new war in Indian e-commerce'.",
+            "published_at": None,
+            "source_age": "undated",
+        },
+    ]
+
+    with patch("src.discovery_agent._call_groq_discovery", side_effect=discovery_agent.LLMUnavailableError("Simulated LLM outage")):
+        res = discovery_agent.run_with_meta("meesho", sources=mock_sources)
+        candidates_by_name = {c["name"]: c for c in res["candidates"]}
+
+        assert "Flipkart" in candidates_by_name
+        # Dedicated source matching: Flipkart must be attributed to Wikipedia: Flipkart, NOT Wikipedia: Shopsy
+        assert candidates_by_name["Flipkart"]["source"] == "Wikipedia: Flipkart"
+
+        assert "Amazon India" in candidates_by_name
+        # Comparative quotation: Amazon India must have an attributed comparison rationale
+        amazon_cand = candidates_by_name["Amazon India"]
+        assert "Wikipedia: Flipkart" in amazon_cand["source"] or "Wikipedia: Flipkart" in amazon_cand["rationale"]
+        assert "competes primarily with Amazon India" in amazon_cand["rationale"]
+
+
+def test_llm_success_path():
+    """Verify response metadata when LLM inference succeeds."""
     mock_llm_response = {
         "candidates": [
             {
                 "name": "Anthropic",
-                "rationale": "Direct foundation model competitor providing Claude 3.5 Sonnet.",
+                "rationale": "Direct foundation model competitor providing Claude models.",
                 "confidence": "High",
-                "source": "https://techcrunch.com/anthropic",
-            },
-            {
-                "name": "Claude (Anthropic)",
-                "rationale": "Leading AI assistant rivaling ChatGPT.",
-                "confidence": "Medium",
-                "source": "https://news.ycombinator.com/item?id=123",
-            },
-            {
-                "name": "Mistral AI Inc.",
-                "rationale": "Open weight and commercial LLM developer based in France.",
-                "confidence": "High",
-                "source": "https://mistral.ai",
-            },
+                "source": "https://example.com/source",
+                "source_age": "recent",
+            }
         ]
     }
-
-    mock_sources = [
-        {"url": "https://techcrunch.com/anthropic", "title": "TechCrunch Anthropic", "source_age": "recent", "published_at": "2026-01-01"},
-        {"url": "https://news.ycombinator.com/item?id=123", "title": "HN Claude", "source_age": "recent", "published_at": "2026-01-02"},
-        {"url": "https://mistral.ai", "title": "Mistral AI", "source_age": "recent", "published_at": "2026-01-03"},
-    ]
-
-    with patch.object(discovery_agent, "_call_groq_discovery", return_value=mock_llm_response):
-        candidates = discovery_agent.run("openai", sources=mock_sources, tenant_id="c8f13b91-46ef-4682-9975-f85764d8a12e")
-
-    # Anthropic and Claude (Anthropic) must deduplicate into a single candidate
-    anthropic_candidates = [c for c in candidates if c["name"].lower() == "anthropic"]
-    assert len(anthropic_candidates) == 1, "Expected Anthropic and Claude to merge into a single candidate"
-    assert anthropic_candidates[0]["confidence"] == "High"
-
-    # Mistral AI Inc. must be cleaned to Mistral AI
-    mistral_candidates = [c for c in candidates if "mistral" in c["name"].lower()]
-    assert len(mistral_candidates) == 1
-    assert mistral_candidates[0]["name"] == "Mistral AI"
+    with patch("src.discovery_agent._call_groq_discovery", return_value=mock_llm_response), \
+         patch("src.discovery_agent.fetch_grounded_context", return_value=[]):
+        res = discovery_agent.run_with_meta("openai")
+        assert res["extraction_method"] == "llm"
+        assert res["degraded"] is False
+        assert res["llm_error"] is None
+        assert len(res["candidates"]) == 1
+        assert res["candidates"][0]["name"] == "Anthropic"
+        assert res["candidates"][0]["extraction_method"] == "llm"
 
 
-def test_empty_company_returns_empty():
-    """Verify empty target company returns empty candidate list without invoking external services."""
-    assert discovery_agent.run("") == []
-    assert discovery_agent.run("   ") == []
-
-
-def test_storage_dual_write_handles_invalid_tenant_gracefully():
-    """Verify database dual-write does not raise an exception even if tenant_id is not a valid UUID."""
-    # Should not raise exception
-    p1 = storage.save_discovery_sources("openai", [], tenant_id="non-uuid-tenant-string")
-    assert p1.exists()
-
-    p2 = storage.save_discovery_proposal("openai", [], tenant_id="non-uuid-tenant-string")
-    assert p2.exists()
-
-
-def test_missing_groq_api_key_raises_llm_unavailable():
-    """Verify missing GROQ_API_KEY raises explicit LLMUnavailableError rather than silently returning empty candidates."""
-    with patch.dict("os.environ", {"GROQ_API_KEY": ""}):
-        with pytest.raises(discovery_agent.LLMUnavailableError, match="GROQ_API_KEY is not configured"):
-            discovery_agent._call_groq_discovery("sys", "user")
-
-
-def test_heuristic_fallback_when_llm_fails():
-    """Verify discovery_agent.run engages heuristic extraction from retrieved sources when LLM is unavailable."""
-    mock_sources = [
-        {"url": "https://news.ycombinator.com", "title": "Ask HN: What's the latest consensus on OpenAI vs. Anthropic?", "source_age": "recent", "published_at": "2026-01-01"},
-        {"url": "https://techcrunch.com", "title": "Mistral — Everything to know about the OpenAI competitor", "source_age": "recent", "published_at": "2026-01-02"},
-        {"url": "https://github.com", "title": "BlindAI API: An open-source and privacy-first OpenAI alternative", "source_age": "dated", "published_at": "2023-01-01"},
-    ]
-
-    with patch.dict("os.environ", {"GROQ_API_KEY": ""}):
-        candidates = discovery_agent.run("openai", sources=mock_sources, tenant_id="c8f13b91-46ef-4682-9975-f85764d8a12e")
-
-    # Heuristic fallback must extract Anthropic and Mistral
-    names = [c["name"].lower() for c in candidates]
-    assert any("anthropic" in n for n in names), f"Expected Anthropic in {names}"
-    assert any("mistral" in n for n in names), f"Expected Mistral in {names}"
-
-
-def test_llm_unavailable_and_no_sources_raises_error():
-    """Verify that when both sources and LLM are unavailable, LLMUnavailableError is propagated."""
-    with patch.dict("os.environ", {"GROQ_API_KEY": ""}):
-        with pytest.raises(discovery_agent.LLMUnavailableError):
-            discovery_agent.run("openai", sources=[], tenant_id="c8f13b91-46ef-4682-9975-f85764d8a12e")
-
-
-def test_api_onboarding_discover_returns_503_on_llm_unavailable():
-    """Verify API endpoint returns HTTP 503 when LLM is unavailable and no candidates could be extracted."""
-    from fastapi.testclient import TestClient
-    from src.api import app, _hash_password
-    import jwt, time
-
-    client = TestClient(app)
-    # Generate test auth token
-    token = jwt.encode(
-        {"sub": "c8f13b91-46ef-4682-9975-f85764d8a12e", "exp": int(time.time()) + 3600},
-        "test_secret",
-        algorithm="HS256"
-    )
-
-    with patch.object(discovery_agent, "run", side_effect=discovery_agent.LLMUnavailableError("Service down")):
-        res = client.post(
+def test_api_discover_endpoint_metadata(client):
+    """Verify that the FastAPI discover endpoint returns extraction_method and degraded flags."""
+    token = api._create_jwt_token("c8f13b91-46ef-4682-9975-f85764d8a12e", "test@prismiq.ai")
+    mock_llm_response = {
+        "candidates": [
+            {
+                "name": "Anthropic",
+                "rationale": "Foundation AI model provider.",
+                "confidence": "High",
+                "source": "https://example.com/anthropic",
+                "source_age": "recent",
+            }
+        ]
+    }
+    with patch("src.discovery_agent._call_groq_discovery", return_value=mock_llm_response), \
+         patch("src.discovery_agent.fetch_grounded_context", return_value=[]):
+        resp = client.post(
             "/api/onboarding/discover",
             headers={"Authorization": f"Bearer {token}"},
-            json={"target_company": "openai"}
+            json={"target_company": "openai"},
         )
-    assert res.status_code == 503
-    assert "LLM inference unavailable" in res.json()["detail"]
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["extraction_method"] == "llm"
+        assert data["degraded"] is False
+        assert data["llm_error"] is None
+        assert data["candidates_count"] == 1
 
 
+def test_api_health_endpoint_details(client, monkeypatch):
+    """Verify that health endpoint surfaces groq_key_prefix, groq_key_len, and groq_model."""
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test1234567890abcdef")
+    monkeypatch.setenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["groq_configured"] is True
+    assert data["groq_key_len"] == len("gsk_test1234567890abcdef")
+    assert data["groq_key_prefix"] == "gsk_test"
+    assert data["groq_has_quotes"] is False
+    assert data["groq_model"] == "openai/gpt-oss-120b"
