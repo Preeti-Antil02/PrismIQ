@@ -19,6 +19,7 @@ import {
   fetchFindings,
   fetchWorkspaceTopics,
   fetchPipelineStatus,
+  fetchWorkspaceConfig,
   type TrackedCompany,
   type ConsolidatedEventRecord,
   type PipelineProgress,
@@ -64,22 +65,38 @@ export default function OverviewPage() {
   const loadIntelligence = React.useCallback(async (showSkeleton = false) => {
     if (showSkeleton) setLoading(true);
     try {
-      const [compsRes, briefRes, eventsRes, findingsRes, topicsRes] = await Promise.allSettled([
+      const [compsRes, briefRes, eventsRes, findingsRes, topicsRes, configRes] = await Promise.allSettled([
         fetchTrackedCompanies(),
         fetchLatestBrief(),
         fetchEvents({ limit: 15 }),
         fetchFindings(),
         fetchWorkspaceTopics(),
+        fetchWorkspaceConfig(),
       ]);
 
-      // 1. Process tracked companies
+      // 1. Process tracked companies with workspace config fallback
       let currentComps: TrackedCompany[] = [];
-      if (compsRes.status === "fulfilled" && Array.isArray(compsRes.value)) {
+      if (compsRes.status === "fulfilled" && Array.isArray(compsRes.value) && compsRes.value.length > 0) {
         currentComps = compsRes.value;
-        setTrackedCompanies(currentComps);
+      } else if (configRes.status === "fulfilled" && configRes.value?.tracked_companies?.length > 0) {
+        currentComps = configRes.value.tracked_companies;
+      } else if (configRes.status === "fulfilled" && configRes.value?.target_company) {
+        currentComps = [
+          { company_name: configRes.value.target_company, is_target: true, status: "active" },
+          ...(configRes.value.competitors || []).map((c) => ({
+            company_name: c,
+            is_target: false,
+            status: "active",
+          })),
+        ];
       }
+      setTrackedCompanies(currentComps);
 
-      const currentTarget = currentComps.find((c) => c.is_target)?.company_name || currentComps[0]?.company_name || "";
+      const currentTarget =
+        currentComps.find((c) => c.is_target)?.company_name ||
+        (configRes.status === "fulfilled" ? configRes.value?.target_company : "") ||
+        currentComps[0]?.company_name ||
+        "";
       const competitors = currentComps.filter((c) => !c.is_target);
 
       // 2. Process real events
@@ -125,18 +142,24 @@ export default function OverviewPage() {
       });
       setCompetitiveMovements(pulseItems);
 
-      // 4. Process research topics
-      if (topicsRes.status === "fulfilled" && Array.isArray(topicsRes.value)) {
-        const mappedTopics: ResearchTopicItem[] = topicsRes.value.slice(0, 3).map((t, idx) => ({
+      // 4. Process research topics with workspace config fallback
+      let rawTopics: any[] = [];
+      if (topicsRes.status === "fulfilled" && Array.isArray(topicsRes.value) && topicsRes.value.length > 0) {
+        rawTopics = topicsRes.value;
+      } else if (configRes.status === "fulfilled" && Array.isArray(configRes.value?.topics) && configRes.value.topics.length > 0) {
+        rawTopics = configRes.value.topics;
+      }
+      if (rawTopics.length > 0) {
+        const mappedTopics: ResearchTopicItem[] = rawTopics.slice(0, 3).map((t, idx) => ({
           topic: t.topic_label,
           symbol: idx === 0 ? "✦" : idx === 1 ? "⌁" : "◈",
-          status: t.is_active ? "Active" : "Paused",
+          status: t.is_active !== false ? "Active" : "Paused",
           explanation: t.keywords?.length
             ? `Monitored keywords: ${t.keywords.slice(0, 4).join(", ")}`
             : "Configured research theme under continuous monitoring.",
           contextCompany: currentTarget || "Workspace",
           contextText: `Monitored under ${currentTarget || "workspace"} scope`,
-          statusClass: t.is_active
+          statusClass: t.is_active !== false
             ? "text-[var(--green)] bg-[rgba(57,217,154,0.08)] border-[var(--green)]/20"
             : "text-[var(--amber)] bg-[rgba(255,180,90,0.08)] border-[var(--amber)]/20",
           borderAccent: idx === 0 ? "var(--cyan)" : idx === 1 ? "var(--magenta)" : "var(--violet)",
