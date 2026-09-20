@@ -8,7 +8,10 @@ import sys
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import quote_plus
+import urllib.request
+import urllib.parse
+import xml.etree.ElementTree as ET
+from email.utils import parsedate_to_datetime
 import requests
 
 try:
@@ -52,8 +55,10 @@ GUARDRAILS (STRICT):
 1. No generic or unfalsifiable rationales: Do NOT use vague filler like "they are in the same space" or "they are a competitor". State specifically what products, architectures, or market overlaps exist (e.g. frontend hosting, serverless edge compute, Jamstack deployments, payment processing API, application performance monitoring).
 2. Grounding & Zero Hallucination: Every suggested candidate competitor MUST be explicitly supported by and traceable to at least one of the provided retrieved sources. If a company is not mentioned or supported in the retrieved sources, do NOT include it.
 3. No Cherry-Picking / Distortion: State the competitive relationship accurately based on what the source documents.
-4. INCLUSIVENESS & FRESHNESS CALIBRATION:
-   - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit or prune older competitors (e.g. Wavefront, SignalFX, WePay, Paymill); include them so the human reviewer can inspect and confirm or reject them.
+4. INCLUSIVENESS, FRESHNESS CALIBRATION & COMPREHENSIVENESS:
+   - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit or prune older or smaller competitors (e.g. Wavefront, SignalFX, WePay, Paymill, Place, EAB, EverCommerce); include them so the human reviewer can inspect and confirm or reject them.
+   - When sources contain comparison listings, competitor matrices, or market overviews (e.g. "Competitors include Company A, Company B, and Company C"), extract EACH distinct competitor rather than just 1 or 2.
+   - Aim to produce a comprehensive list of all grounded competitors (typically 6-12 candidates when supported by sources).
    - "High" confidence requires recent, checkable facts (sources from the last ~18 months, or actively maintained repositories).
    - If a candidate competitor is grounded ONLY in a "dated" source (older than ~18 months, e.g. 2011, 2014, 2016, 2021) without recent corroboration, do NOT assign High confidence. Assign Medium or Low confidence and set "source_age" to "dated".
    - "Medium": Significant product or functional overlap, or a moderately dated source with ongoing market presence.
@@ -133,7 +138,7 @@ DEFAULT_REQUEST_HEADERS = {
 def _fetch_hn_context(company: str) -> List[Dict[str, Any]]:
     """Fetch comparative discussions and alternative writeups from Hacker News Algolia API with timestamps."""
     sources: List[Dict[str, Any]] = []
-    queries = [f"{company} alternative", f"{company} vs", f"{company} competitor"]
+    queries = [f"{company} alternative", f"{company} vs", f"{company} competitor", company]
     
     def _search_hn_query(q: str) -> List[Dict[str, Any]]:
         res = []
@@ -418,11 +423,88 @@ def _fetch_alternativeto_context(company: str) -> List[Dict[str, Any]]:
     return sources
 
 
+def _fetch_gnews_competitor_context(company: str) -> List[Dict[str, Any]]:
+    """Fetch recent competitor news and rival comparisons from Google News RSS with publication dates."""
+    sources: List[Dict[str, Any]] = []
+    queries = [f"{company} competitors", f"{company} vs", f"{company} rival"]
+    headers = dict(DEFAULT_REQUEST_HEADERS)
+    seen_links = set()
+    for q in queries:
+        try:
+            encoded = urllib.parse.quote(q)
+            url = f"https://news.google.com/rss/search?q={encoded}&hl=en-US&gl=US&ceid=US:en"
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                content = resp.read()
+            root = ET.fromstring(content)
+            for it in root.findall(".//item")[:4]:
+                link = (it.findtext("link") or "").strip()
+                title = (it.findtext("title") or "").strip()
+                pub_str = (it.findtext("pubDate") or "").strip()
+                if not title or link in seen_links:
+                    continue
+                seen_links.add(link)
+                dt = None
+                if pub_str:
+                    try:
+                        dt = parsedate_to_datetime(pub_str)
+                    except Exception:
+                        pass
+                age_flag, date_str = _compute_source_age(dt)
+                sources.append({
+                    "source_type": "news",
+                    "title": title,
+                    "url": link,
+                    "published_at": date_str,
+                    "source_age": age_flag,
+                    "text": f"Google News: '{title}'. Published: {date_str or 'unknown'} ({age_flag}). Query: '{q}'.",
+                })
+        except Exception as e:
+            logger.debug(f"Google News RSS error for '{q}': {e}")
+    return sources
+
+
+def _fetch_comparison_index_context(company: str) -> List[Dict[str, Any]]:
+    """Fetch structured web comparison listings from DuckDuckGo HTML search."""
+    sources: List[Dict[str, Any]] = []
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return sources
+
+    headers = dict(DEFAULT_REQUEST_HEADERS)
+    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(company)}+competitors+alternatives"
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            html = resp.read()
+        soup = BeautifulSoup(html, "html.parser")
+        for res in soup.select(".result")[:8]:
+            title_a = res.select_one(".result__title a")
+            snippet = res.select_one(".result__snippet")
+            if not title_a:
+                continue
+            t_text = title_a.get_text(strip=True)
+            s_text = snippet.get_text(strip=True) if snippet else ""
+            href = title_a.get("href", "")
+            sources.append({
+                "source_type": "alternatives_listing",
+                "title": f"Comparison Index: {t_text}",
+                "url": href,
+                "published_at": None,
+                "source_age": "undated",
+                "text": f"{t_text}: {s_text} (comparison index)",
+            })
+    except Exception as e:
+        logger.debug(f"Comparison index search error for '{company}': {e}")
+    return sources
+
+
 def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
     """
     Gather and deduplicate multi-source grounded intelligence context across
-    Hacker News, GitHub, Wikipedia, Currents news, DuckDuckGo, and AlternativeTo
-    concurrently via ThreadPoolExecutor.
+    Hacker News, GitHub, Wikipedia, Currents news, DuckDuckGo Knowledge, AlternativeTo,
+    Google News RSS, and web comparison indexes concurrently via ThreadPoolExecutor.
     """
     fetchers = [
         ("hn", lambda: _fetch_hn_context(company)),
@@ -431,45 +513,57 @@ def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
         ("currents", lambda: _fetch_currents_context(company)),
         ("duckduckgo", lambda: _fetch_duckduckgo_context(company)),
         ("alternativeto", lambda: _fetch_alternativeto_context(company)),
+        ("gnews", lambda: _fetch_gnews_competitor_context(company)),
+        ("comparison_index", lambda: _fetch_comparison_index_context(company)),
     ]
 
     raw_sources: List[Dict[str, Any]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(fetchers)) as executor:
         future_map = {executor.submit(fn): name for name, fn in fetchers}
-        for fut in concurrent.futures.as_completed(future_map):
-            name = future_map[fut]
-            try:
-                items = fut.result(timeout=5.0)
-                raw_sources.extend(items)
-            except Exception as e:
-                logger.debug(f"Source fetcher '{name}' encountered timeout or error: {e}")
+        try:
+            for fut in concurrent.futures.as_completed(future_map, timeout=6.0):
+                name = future_map[fut]
+                try:
+                    items = fut.result()
+                    raw_sources.extend(items)
+                except Exception as e:
+                    logger.debug(f"Source fetcher '{name}' encountered error: {e}")
+        except concurrent.futures.TimeoutError:
+            logger.debug("Some source fetchers reached 6.0s timeout; proceeding with collected sources.")
 
-    # Deduplicate sources by URL or Title
+    # Deduplicate sources and group by category
     seen = set()
-    deduped: List[Dict[str, Any]] = []
+    by_category: Dict[str, List[Dict[str, Any]]] = {
+        "alternatives_listing": [],
+        "news": [],
+        "wikipedia": [],
+        "discussion_and_tech_media": [],
+        "github_repository": [],
+        "market_knowledge_index": [],
+    }
+
     for s in raw_sources:
         key = (s.get("url", "").strip(), s.get("title", "").strip())
         if key not in seen and s.get("title"):
             seen.add(key)
-            deduped.append(s)
+            # Enforce concise excerpt text to prevent prompt bloat (safe under Groq 8000 TPM limit)
+            s["text"] = str(s.get("text", "")).strip()[:350]
+            cat = s.get("source_type", "market_knowledge_index")
+            if cat in by_category:
+                by_category[cat].append(s)
+            else:
+                by_category["market_knowledge_index"].append(s)
 
-    # Sort sources to prioritize recent and rich writeups, taking top 18 to avoid LLM prompt bloat
-    def _source_priority(s: Dict[str, Any]) -> int:
-        st = s.get("source_type", "")
-        age = s.get("source_age", "")
-        score = 0
-        if age == "recent":
-            score += 20
-        if st in ("news", "discussion_and_tech_media"):
-            score += 10
-        elif st in ("alternatives_listing", "market_knowledge_index"):
-            score += 8
-        elif st == "github_repository":
-            score += 6
-        return score
+    # Select top balanced 18 sources ensuring cross-domain representation
+    curated: List[Dict[str, Any]] = []
+    curated.extend(by_category["alternatives_listing"][:6])
+    curated.extend(by_category["news"][:4])
+    curated.extend(by_category["wikipedia"][:3])
+    curated.extend(by_category["discussion_and_tech_media"][:3])
+    curated.extend(by_category["github_repository"][:2])
+    curated.extend(by_category["market_knowledge_index"][:2])
 
-    deduped.sort(key=_source_priority, reverse=True)
-    return deduped[:18]
+    return curated[:18]
 
 
 

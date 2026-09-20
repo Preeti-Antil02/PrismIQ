@@ -579,6 +579,9 @@ def test_fetch_grounded_context_includes_alternativeto():
          patch.object(discovery_agent, "_fetch_github_context", return_value=[]), \
          patch.object(discovery_agent, "_fetch_wikipedia_context", return_value=[]), \
          patch.object(discovery_agent, "_fetch_currents_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_duckduckgo_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_gnews_competitor_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_comparison_index_context", return_value=[]), \
          patch.object(discovery_agent, "_fetch_alternativeto_context", return_value=mock_alt_sources):
 
         context = discovery_agent.fetch_grounded_context("PostHog")
@@ -586,4 +589,29 @@ def test_fetch_grounded_context_includes_alternativeto():
     assert len(context) == 1
     assert context[0]["source_type"] == "alternatives_listing"
     assert "Mixpanel" in context[0]["title"]
+
+
+def test_fetch_grounded_context_balances_categories():
+    """Verify fetch_grounded_context balances sources across comparison, news, wikipedia, and hn."""
+    mock_alts = [{"source_type": "alternatives_listing", "title": f"Alt {i}", "url": f"https://alt{i}.com", "text": "alt"} for i in range(10)]
+    mock_news = [{"source_type": "news", "title": f"News {i}", "url": f"https://news{i}.com", "text": "news"} for i in range(10)]
+    mock_wiki = [{"source_type": "wikipedia", "title": f"Wiki {i}", "url": f"https://wiki{i}.com", "text": "wiki"} for i in range(5)]
+
+    with patch.object(discovery_agent, "_fetch_hn_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_github_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_wikipedia_context", return_value=mock_wiki), \
+         patch.object(discovery_agent, "_fetch_currents_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_duckduckgo_context", return_value=[]), \
+         patch.object(discovery_agent, "_fetch_gnews_competitor_context", return_value=mock_news), \
+         patch.object(discovery_agent, "_fetch_comparison_index_context", return_value=mock_alts), \
+         patch.object(discovery_agent, "_fetch_alternativeto_context", return_value=[]):
+
+        context = discovery_agent.fetch_grounded_context("Meesho")
+
+    # Should take up to 6 alts, 4 news, 3 wiki -> 13 items total
+    assert len(context) == 13
+    types = [c["source_type"] for c in context]
+    assert types.count("alternatives_listing") == 6
+    assert types.count("news") == 4
+    assert types.count("wikipedia") == 3
 
