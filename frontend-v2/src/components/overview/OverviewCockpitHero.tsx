@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "@/lib/timeUtils";
 import { type PipelineProgress } from "@/lib/api";
 
@@ -87,12 +88,12 @@ export function OverviewCockpitHero({
             </>
           ) : (
             <>
-              <span className="inline-block w-2 h-2 rounded-full bg-[var(--green)] shadow-[0_0_8px_var(--green)] animate-pulse" />
+              <span className={cn("inline-block w-2 h-2 rounded-full", timeInfo?.relative ? "bg-[var(--green)] shadow-[0_0_8px_var(--green)] animate-pulse" : "bg-amber-400/80 shadow-[0_0_8px_rgba(251,191,36,0.5)]")} />
               <span>
                 {timeInfo?.relative ? (
                   <>Updated <strong className="text-white font-semibold">{timeInfo.relative}</strong></>
                 ) : (
-                  <strong className="text-white font-semibold">Continuous monitoring active</strong>
+                  <strong className="text-amber-200/90 font-semibold">Initial pipeline sweep pending</strong>
                 )}
               </span>
             </>
