@@ -22,6 +22,8 @@ interface ResearchRadarFieldProps {
 }
 
 export function ResearchRadarField({ topics }: ResearchRadarFieldProps) {
+  const sweptCount = topics.filter((t) => !t.status.includes("Pending")).length;
+
   return (
     <section className="space-y-4" aria-label="Emerging in your research">
       {/* Header */}
@@ -33,9 +35,13 @@ export function ResearchRadarField({ topics }: ResearchRadarFieldProps) {
           </div>
           <h3 className="font-serif text-2xl sm:text-[24px] font-normal mt-1 section-title-gradient leading-snug flex items-center gap-2">
             <span>
-              {topics.length > 0
-                ? `${topics.length} configured research ${topics.length === 1 ? "theme" : "themes"} under continuous monitoring`
-                : "Configured research themes under continuous monitoring"}
+              {topics.length === 0
+                ? "Configured research themes under continuous monitoring"
+                : sweptCount === topics.length
+                ? `${topics.length} configured research ${topics.length === 1 ? "theme" : "themes"} under continuous evaluation`
+                : sweptCount > 0
+                ? `${sweptCount} of ${topics.length} research themes evaluated (${topics.length - sweptCount} pending initial sweep)`
+                : `${topics.length} configured research themes (initial sweep pending)`}
             </span>
           </h3>
         </div>
@@ -66,7 +72,7 @@ export function ResearchRadarField({ topics }: ResearchRadarFieldProps) {
             <span className="w-2 h-2 rounded-full bg-[var(--cyan)] shadow-[0_0_8px_var(--cyan)] animate-ping" />
             <span className="text-[#a9aab4] uppercase tracking-wider font-semibold">Radar Field Scan Active</span>
           </div>
-          <span className="tracking-widest hidden sm:inline">COORDINATES: MONITORED THEMES [{topics.length}/{topics.length} ACTIVE]</span>
+          <span className="tracking-widest hidden sm:inline">COORDINATES: MONITORED THEMES [{sweptCount}/{topics.length} SWEPT]</span>
         </div>
 
         {/* Research Frontier Nodes Grid */}
