@@ -73,13 +73,43 @@ def _check_cloudflare_attribution(signal: Dict[str, Any], queried_company: str) 
         return signal
 
 
-def _fetch_news_from_google_rss(company: str, days: int = 7) -> List[Dict[str, Any]]:
+def _fetch_news_from_google_rss(
+    company: str,
+    days: int = 7,
+    primary_domain: Optional[str] = None,
+    industry_category: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """
     Fallback news collector querying Google News RSS feed for real-world company articles.
     Provides 100% resilient real journalistic news coverage when Currents API is rate-limited or unavailable.
+    When company name is a common dictionary word, uses primary_domain to construct domain-scoped queries.
     """
+    from . import storage
+
+    # Look up entity anchor if not explicitly provided
+    if not primary_domain:
+        anchor = storage.get_entity_anchor(company)
+        if anchor:
+            primary_domain = anchor.get("primary_domain")
+            if not industry_category:
+                industry_category = anchor.get("industry_category")
+
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
-    encoded_query = urllib.parse.quote(company)
+
+    # Construct search query: domain-scoped for common dictionary words
+    query_text = company
+    is_common = relevance_verifier.is_dictionary_word(company)
+    if is_common and primary_domain:
+        dom_clean = primary_domain.lower().strip()
+        dom_stem = dom_clean.split(".")[0]
+        if len(dom_stem) >= 4 and not relevance_verifier.is_dictionary_word(dom_stem):
+            # Domain stem is a distinct coined brand name (e.g. "Carousell" from carousell.com)
+            query_text = dom_stem
+        else:
+            # Domain stem is also a generic word (e.g. "place" from place.com); scope strictly to site
+            query_text = f"site:{dom_clean}"
+
+    encoded_query = urllib.parse.quote(query_text)
     url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -99,6 +129,10 @@ def _fetch_news_from_google_rss(company: str, days: int = 7) -> List[Dict[str, A
             link = (it.findtext("link") or "").strip()
             if not link or link in seen_urls:
                 continue
+
+            src = it.find("source")
+            source_url = (src.attrib.get("url") if src is not None else "") or ""
+            source_name = (src.text if src is not None else "") or ""
 
             pub_str = (it.findtext("pubDate") or "").strip()
             pub_iso = pub_str
@@ -122,8 +156,12 @@ def _fetch_news_from_google_rss(company: str, days: int = 7) -> List[Dict[str, A
             raw_signal = {
                 "source": "news",
                 "company": company,
+                "primary_domain": primary_domain,
+                "industry_category": industry_category,
                 "title": raw_title,
                 "url": link,
+                "source_url": source_url,
+                "source_name": source_name,
                 "published_at": pub_iso,
                 "raw_excerpt": clean_desc or raw_title,
             }
@@ -143,7 +181,17 @@ def _fetch_news_from_google_rss(company: str, days: int = 7) -> List[Dict[str, A
 
 
 def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any]]:
-    """Fetch recent news articles related to the company from Currents API with Google News RSS fallback."""
+    """
+    Fetch recent news articles related to the company from Currents API with Google News RSS fallback.
+    For common dictionary-word entities, routes directly to domain-anchored Google News RSS to prevent
+    celebrity/homonym noise pollution.
+    """
+    if relevance_verifier.is_dictionary_word(company):
+        # Currents API returns 100% false-positive noise for plain English dictionary words
+        # (e.g. Instagram photo carousels for 'Carousel', idioms for 'Place') and does not index
+        # company press release domains. Bypass directly to domain-anchored Google News RSS.
+        return _fetch_news_from_google_rss(company, days=days)
+
     api_key = os.getenv("CURRENTS_API_KEY")
     signals: List[Dict[str, Any]] = []
 

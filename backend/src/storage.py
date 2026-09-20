@@ -1022,6 +1022,115 @@ def track_tenant_company(
     return entry
 
 
+CANONICAL_COMPANY_METADATA = {
+    "meesho": {"domain": "meesho.com", "category": "Social Commerce / E-Commerce"},
+    "Meesho": {"domain": "meesho.com", "category": "Social Commerce / E-Commerce"},
+    "Flipkart": {"domain": "flipkart.com", "category": "E-Commerce"},
+    "flipkart": {"domain": "flipkart.com", "category": "E-Commerce"},
+    "Myntra": {"domain": "myntra.com", "category": "Fashion E-Commerce"},
+    "Amazon (India)": {"domain": "amazon.in", "category": "E-Commerce"},
+    "Amazon India": {"domain": "amazon.in", "category": "E-Commerce"},
+    "Amazon": {"domain": "amazon.com", "category": "E-Commerce & Cloud"},
+    "Anthropic": {"domain": "anthropic.com", "category": "Artificial Intelligence / LLMs"},
+    "BigCommerce": {"domain": "bigcommerce.com", "category": "E-Commerce SaaS"},
+    "Carousel": {"domain": "carousell.com", "category": "C2C Marketplace / Classifieds"},
+    "Carousell": {"domain": "carousell.com", "category": "C2C Marketplace / Classifieds"},
+    "Cloudflare Pages/Workers": {"domain": "cloudflare.com", "category": "Cloud / Edge Computing"},
+    "Croma": {"domain": "croma.com", "category": "Consumer Electronics Retail"},
+    "EAB": {"domain": "eab.com", "category": "Education Consulting & Technology"},
+    "EverCommerce": {"domain": "evercommerce.com", "category": "Service Commerce SaaS"},
+    "Gobble": {"domain": "gobble.com", "category": "Meal Kit Delivery"},
+    "Lazada": {"domain": "lazada.com", "category": "Southeast Asia E-Commerce"},
+    "Netlify": {"domain": "netlify.com", "category": "Web Hosting & DevOps"},
+    "Nykaa Fashion": {"domain": "nykaafashion.com", "category": "Beauty & Fashion E-Commerce"},
+    "OpenAI": {"domain": "openai.com", "category": "Artificial Intelligence"},
+    "Place": {"domain": "place.com", "category": "Real Estate Technology / SaaS"},
+    "Poshmark": {"domain": "poshmark.com", "category": "Secondhand Fashion Marketplace"},
+    "PostHog": {"domain": "posthog.com", "category": "Product Analytics"},
+    "Sagazo": {"domain": "sagazo.com", "category": "AI E-Commerce Optimization"},
+    "Segment": {"domain": "segment.com", "category": "Customer Data Platform / Analytics"},
+    "Shopify": {"domain": "shopify.com", "category": "E-Commerce Platform"},
+    "Shopsy": {"domain": "shopsy.in", "category": "Budget Social Commerce"},
+    "Stripe": {"domain": "stripe.com", "category": "Fintech & Payments Infrastructure"},
+    "StyleBuddy": {"domain": "stylebuddy.fashion", "category": "Fashion Styling & Personal Shopping"},
+    "Temu": {"domain": "temu.com", "category": "Discount E-Commerce"},
+    "Vercel": {"domain": "vercel.com", "category": "Frontend Cloud Platform"},
+    "WooCommerce": {"domain": "woocommerce.com", "category": "Open-Source E-Commerce"},
+    "66Analytics": {"domain": "66analytics.com", "category": "Web Analytics"},
+    "Ajio": {"domain": "ajio.com", "category": "Fashion E-Commerce"},
+}
+
+
+def get_entity_anchor(company_name: str) -> Optional[Dict[str, Optional[str]]]:
+    """
+    Look up primary_domain and industry_category for a tracked company.
+    Queries tenant_tracked_companies from PostgreSQL under active status,
+    falling back to CANONICAL_COMPANY_METADATA.
+    """
+    comp = str(company_name).strip()
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                cur.execute("""
+                    SELECT primary_domain, industry_category
+                    FROM tenant_tracked_companies
+                    WHERE company_name ILIKE %s AND status = 'active' AND (primary_domain IS NOT NULL OR industry_category IS NOT NULL)
+                    ORDER BY updated_at DESC
+                    LIMIT 1;
+                """, (comp,))
+                row = cur.fetchone()
+                if row and (row[0] or row[1]):
+                    return {
+                        "primary_domain": row[0],
+                        "industry_category": row[1],
+                    }
+        except Exception as e:
+            logger.warning(f"Failed to query entity anchor for '{comp}' from Postgres: {e}")
+
+    # Fallback to canonical metadata
+    meta = CANONICAL_COMPANY_METADATA.get(comp) or CANONICAL_COMPANY_METADATA.get(comp.lower())
+    if meta:
+        return {
+            "primary_domain": meta.get("domain"),
+            "industry_category": meta.get("category"),
+        }
+    return None
+
+
+def get_entity_anchors() -> Dict[str, Dict[str, Optional[str]]]:
+    """
+    Retrieve all active entity anchors across tenant_tracked_companies.
+    Returns mapping: {company_name: {"primary_domain": ..., "industry_category": ...}}
+    """
+    anchors: Dict[str, Dict[str, Optional[str]]] = {}
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                cur.execute("""
+                    SELECT DISTINCT company_name, primary_domain, industry_category
+                    FROM tenant_tracked_companies
+                    WHERE status = 'active' AND (primary_domain IS NOT NULL OR industry_category IS NOT NULL);
+                """)
+                rows = cur.fetchall()
+                for r in rows:
+                    if r and r[0]:
+                        anchors[r[0]] = {
+                            "primary_domain": r[1],
+                            "industry_category": r[2],
+                        }
+        except Exception as e:
+            logger.warning(f"Failed to query distinct entity anchors from Postgres: {e}")
+
+    # Merge canonical fallback metadata for missing
+    for c, meta in CANONICAL_COMPANY_METADATA.items():
+        if c not in anchors:
+            anchors[c] = {
+                "primary_domain": meta.get("domain"),
+                "industry_category": meta.get("category"),
+            }
+    return anchors
+
+
 def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
     """
     Retrieve active tracked companies for the authenticated tenant under RLS context.

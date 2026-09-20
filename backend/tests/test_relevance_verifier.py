@@ -216,6 +216,20 @@ def test_amazon_india_currency_investment_prevents_false_negative():
 
 def test_common_noun_stopgap_suppresses_unanchored_dictionary_words():
     """Verify single dictionary words without registry profile or domain anchor are suppressed by stopgap."""
+    unanchored_sig = {
+        "company": "Bolt",
+        "title": "Bolt of lightning strikes tree in residential neighborhood",
+        "url": "https://localnews.com/weather/lightning-strike",
+        "raw_excerpt": "A powerful bolt of lightning caused localized outages.",
+    }
+    is_rel, reason = verify_news_relevance(unanchored_sig)
+    assert not is_rel
+    assert "Stopgap protection" in reason
+    assert "Common-noun dictionary word 'Bolt'" in reason
+
+
+def test_common_noun_with_domain_anchor_suppresses_unmatched_news():
+    """Verify anchored common words reject generic idiom/homonym collisions that lack domain match."""
     # Place: idiom / common verb
     place_sig = {
         "company": "Place",
@@ -225,8 +239,7 @@ def test_common_noun_stopgap_suppresses_unanchored_dictionary_words():
     }
     is_rel, reason = verify_news_relevance(place_sig)
     assert not is_rel
-    assert "Stopgap protection" in reason
-    assert "Common-noun dictionary word 'Place'" in reason
+    assert "lacking domain anchor match for 'place.com'" in reason
 
     # Carousel: baggage carousel / UI widget
     carousel_sig = {
@@ -237,33 +250,33 @@ def test_common_noun_stopgap_suppresses_unanchored_dictionary_words():
     }
     is_rel, reason = verify_news_relevance(carousel_sig)
     assert not is_rel
-    assert "Stopgap protection" in reason
-    assert "Common-noun dictionary word 'Carousel'" in reason
-
-    # Segment: UN assembly meeting segment
-    segment_sig = {
-        "company": "Segment",
-        "title": "North Korean vice foreign minister to attend UN General assembly",
-        "url": "https://thestar.com.my/news/world/un-assembly",
-        "raw_excerpt": "plans to attend a high-level segment of the United Nations General Assembly",
-    }
-    is_rel, reason = verify_news_relevance(segment_sig)
-    assert not is_rel
-    assert "Stopgap protection" in reason
+    assert "lacking domain anchor match for 'carousell.com'" in reason
 
 
 def test_common_noun_with_domain_anchor_passes_verification():
-    """Verify single dictionary words pass if an official domain anchor is present."""
+    """Verify single dictionary words pass if an official domain or brand anchor is present."""
+    # Place: direct domain match
     anchored_sig = {
         "company": "Place",
         "primary_domain": "place.com",
-        "title": "Real estate technology platform Place announces Series B expansion",
-        "url": "https://place.com/press/series-b-expansion",
-        "raw_excerpt": "Place announced a new funding round to scale its brokerage operations.",
+        "title": "Corporate Careers - place.com",
+        "url": "https://place.com/careers",
+        "raw_excerpt": "Real estate technology platform Place announces corporate hiring expansion.",
     }
     is_rel, reason = verify_news_relevance(anchored_sig)
     assert is_rel
     assert "Verified: Direct primary domain match 'place.com'" in reason
+
+    # Carousel: brand anchor match from domain stem "carousell"
+    carousell_sig = {
+        "company": "Carousel",
+        "title": "Carousell CEO: AI improving trust on our platform - CNBC",
+        "url": "https://cnbc.com/2026/09/carousell-ceo-interview",
+        "raw_excerpt": "Quek Siu Rui discussed recommerce AI moderation on the Carousell platform.",
+    }
+    is_rel, reason = verify_news_relevance(carousell_sig)
+    assert is_rel
+    assert "Verified: Primary domain brand anchor match 'carousell' from 'carousell.com'" in reason
 
 
 def test_anthropic_registered_profile_verifies():

@@ -556,16 +556,31 @@ def verify_news_relevance(
         t = signal_or_text.get("title", "")
         e = signal_or_text.get("raw_excerpt", "")
         u = signal_or_text.get("url", "")
+        source_url = signal_or_text.get("source_url", "")
+        source_name = signal_or_text.get("source_name", "")
         primary_domain = signal_or_text.get("primary_domain") or signal_or_text.get("domain") or ""
     else:
         comp = company or ""
         t = title or str(signal_or_text)
         e = excerpt
         u = url
+        source_url = ""
+        source_name = ""
         primary_domain = ""
 
     comp_clean = comp.strip()
-    full_text = f"{t} {e} {u}".lower()
+
+    # Look up primary_domain from storage if not already attached to signal
+    if not primary_domain and comp_clean:
+        try:
+            from . import storage
+            anchor = storage.get_entity_anchor(comp_clean)
+            if anchor and anchor.get("primary_domain"):
+                primary_domain = anchor["primary_domain"]
+        except Exception:
+            pass
+
+    full_text = f"{t} {e} {u} {source_url} {source_name}".lower()
 
     # Parse parenthetical qualifier if present (e.g. "Amazon (India)" -> base="Amazon", qualifier="India")
     m_paren = re.match(r"^([^(]+)\s*\(([^)]+)\)$", comp_clean)
@@ -585,8 +600,16 @@ def verify_news_relevance(
             if dom in full_text:
                 return True, f"Verified: Direct domain match '{dom}'"
 
-    if primary_domain and primary_domain.lower() in full_text:
-        return True, f"Verified: Direct primary domain match '{primary_domain}'"
+    if primary_domain:
+        dom_clean = primary_domain.lower().strip()
+        if dom_clean in full_text:
+            return True, f"Verified: Direct primary domain match '{primary_domain}'"
+
+        # Check domain stem if domain is a coined brand name (e.g. "carousell" from "carousell.com")
+        dom_stem = dom_clean.split(".")[0]
+        if len(dom_stem) >= 4 and not is_dictionary_word(dom_stem):
+            if re.search(r"\b" + re.escape(dom_stem) + r"\b", full_text, re.IGNORECASE):
+                return True, f"Verified: Primary domain brand anchor match '{dom_stem}' from '{primary_domain}'"
 
     # 2. Specific branded terms and executive names (High confidence verification)
     if profile:
@@ -608,6 +631,12 @@ def verify_news_relevance(
         # Do NOT let coined proper noun matching apply to plain English words.
         if not profile and not primary_domain:
             return False, f"Suppressed: Common-noun dictionary word '{comp_clean}' without registry profile or domain anchor (Stopgap protection)"
+
+        # If anchored by a primary domain but not in COMPANY_REGISTRY,
+        # an article MUST have matched the domain or unique brand stem in Step 1.
+        # Generic dictionary word collisions (e.g. baggage carousel theft, TV show plans in place) are rejected.
+        if primary_domain and not profile:
+            return False, f"Suppressed: Common-noun dictionary word '{comp_clean}' lacking domain anchor match for '{primary_domain}'"
 
         # Step 4a: Check negative indicators (known idioms, fashion, clothing, animal stripes, etc.)
         neg_indicators = profile.get("negative_indicators", []) if profile else []
