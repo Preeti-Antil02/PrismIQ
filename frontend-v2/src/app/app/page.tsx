@@ -137,6 +137,8 @@ export default function OverviewPage() {
 
       // 3. Process competitive pulse from tracked competitors with honest real data derivation
       const loadedSignals = (signalsRes.status === "fulfilled" && signalsRes.value?.signals) ? signalsRes.value.signals : [];
+      const hasPipelineExecuted = loadedSignals.length > 0 || loadedEvents.length > 0;
+
       const pulseItems: CompetitivePulseItem[] = (competitors.length > 0 ? competitors : currentComps).map((c) => {
         const compLower = c.company_name.toLowerCase();
         const compEvent = loadedEvents.find((e) => e.company_name.toLowerCase() === compLower);
@@ -157,6 +159,14 @@ export default function OverviewPage() {
             domain: "Signals Recorded",
             status: "ingested" as const,
             signalCount: compSignals.length,
+          };
+        } else if (hasPipelineExecuted) {
+          return {
+            company: c.company_name,
+            meaningfulMovement: "Zero activity detected across news, GitHub & jobs in monitored window (last 7 days)",
+            domain: "No Signals Found",
+            status: "no_coverage" as const,
+            signalCount: 0,
           };
         } else {
           return {
