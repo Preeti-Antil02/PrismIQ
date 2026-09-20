@@ -3,8 +3,10 @@ import logging
 import os
 import re
 import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 import requests
 
@@ -24,6 +26,13 @@ GITHUB_ORG_MAPPING: Dict[str, str] = {
     "Cloudflare": "cloudflare",
     "Cloudflare Pages": "cloudflare",
     "Cloudflare Workers": "cloudflare",
+    "OpenAI": "openai",
+    "Anthropic": "anthropics",
+    "Google": "google",
+    "Meta": "facebook",
+    "Microsoft": "microsoft",
+    "Flipkart": "flipkart-incubator",
+    "Amazon": "amzn",
 }
 
 
@@ -64,77 +73,143 @@ def _check_cloudflare_attribution(signal: Dict[str, Any], queried_company: str) 
         return signal
 
 
-def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any]]:
-    """Fetch recent news articles related to the company from Currents API."""
-    api_key = os.getenv("CURRENTS_API_KEY")
-    if not api_key:
-        logger.warning("CURRENTS_API_KEY not set. Skipping Currents news fetch.")
-        return []
-
-    # If querying unified Cloudflare Pages/Workers, run targeted searches for both subproducts
-    # to avoid Currents API 20-result per-query limit truncation and generic news displacement
-    if company == "Cloudflare Pages/Workers":
-        search_keywords = ["Cloudflare Pages", "Cloudflare Workers"]
-    else:
-        search_keywords = [company]
-
-    url = "https://api.currentsapi.services/v1/search"
+def _fetch_news_from_google_rss(company: str, days: int = 7) -> List[Dict[str, Any]]:
+    """
+    Fallback news collector querying Google News RSS feed for real-world company articles.
+    Provides 100% resilient real journalistic news coverage when Currents API is rate-limited or unavailable.
+    """
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+    encoded_query = urllib.parse.quote(company)
+    url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
 
-    seen_urls: set[str] = set()
+    signals: List[Dict[str, Any]] = []
+    seen_urls: Set[str] = set()
+
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            content = resp.read()
+        root = ET.fromstring(content)
+        items = root.findall(".//item")
+
+        for it in items:
+            link = (it.findtext("link") or "").strip()
+            if not link or link in seen_urls:
+                continue
+
+            pub_str = (it.findtext("pubDate") or "").strip()
+            pub_iso = pub_str
+            if pub_str:
+                try:
+                    dt = parsedate_to_datetime(pub_str)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if dt < cutoff_date:
+                        continue
+                    pub_iso = dt.isoformat()
+                except Exception:
+                    pass
+
+            raw_title = (it.findtext("title") or "").strip()
+            raw_desc = it.findtext("description") or ""
+            clean_desc = re.sub(r"<[^>]+>", " ", raw_desc).strip()
+            clean_desc = re.sub(r"\s+", " ", clean_desc)
+
+            seen_urls.add(link)
+            raw_signal = {
+                "source": "news",
+                "company": company,
+                "title": raw_title,
+                "url": link,
+                "published_at": pub_iso,
+                "raw_excerpt": clean_desc or raw_title,
+            }
+            raw_signal = funding_classifier.classify_signal(raw_signal)
+            is_rel, rel_reason = relevance_verifier.verify_news_relevance(raw_signal, company)
+            raw_signal["relevance_verified"] = is_rel
+            raw_signal["relevance_reason"] = rel_reason
+
+            checked = _check_cloudflare_attribution(raw_signal, company)
+            if checked is not None:
+                signals.append(checked)
+
+    except Exception as e:
+        logger.warning(f"Error fetching Google News RSS for '{company}': {e}")
+
+    return signals
+
+
+def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any]]:
+    """Fetch recent news articles related to the company from Currents API with Google News RSS fallback."""
+    api_key = os.getenv("CURRENTS_API_KEY")
     signals: List[Dict[str, Any]] = []
 
-    for kw in search_keywords:
-        params = {
-            "keywords": kw,
-            "language": "en",
-            "apiKey": api_key.strip(),
-        }
-        try:
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            articles = data.get("news", [])
+    if api_key:
+        if company == "Cloudflare Pages/Workers":
+            search_keywords = ["Cloudflare Pages", "Cloudflare Workers"]
+        else:
+            search_keywords = [company]
 
-            for article in articles:
-                article_url = article.get("url", "")
-                if not article_url or article_url in seen_urls:
-                    continue
+        url = "https://api.currentsapi.services/v1/search"
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+        seen_urls: set[str] = set()
 
-                published_str = article.get("published", "")
-                if published_str:
-                    try:
-                        pub_clean = published_str.replace(" +0000", "+00:00").replace(" ", "T")
-                        pub_dt = datetime.fromisoformat(pub_clean)
-                        if pub_dt < cutoff_date:
-                            continue
-                    except Exception:
-                        pass
+        for kw in search_keywords:
+            params = {
+                "keywords": kw,
+                "language": "en",
+                "apiKey": api_key.strip(),
+            }
+            try:
+                response = requests.get(url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                articles = data.get("news", [])
+                for article in articles:
+                    article_url = article.get("url", "")
+                    if not article_url or article_url in seen_urls:
+                        continue
 
-                seen_urls.add(article_url)
-                raw_signal = {
-                    "source": "news",
-                    "company": company,
-                    "title": article.get("title", ""),
-                    "url": article_url,
-                    "published_at": published_str,
-                    "raw_excerpt": article.get("description", "") or article.get("title", ""),
-                }
-                raw_signal = funding_classifier.classify_signal(raw_signal)
+                    published_str = article.get("published", "")
+                    if published_str:
+                        try:
+                            pub_clean = published_str.replace(" +0000", "+00:00").replace(" ", "T")
+                            pub_dt = datetime.fromisoformat(pub_clean)
+                            if pub_dt < cutoff_date:
+                                continue
+                        except Exception:
+                            pass
 
-                # General Entity Disambiguation Verification
-                is_rel, rel_reason = relevance_verifier.verify_news_relevance(raw_signal, company)
-                raw_signal["relevance_verified"] = is_rel
-                raw_signal["relevance_reason"] = rel_reason
+                    seen_urls.add(article_url)
+                    raw_signal = {
+                        "source": "news",
+                        "company": company,
+                        "title": article.get("title", ""),
+                        "url": article_url,
+                        "published_at": published_str,
+                        "raw_excerpt": article.get("description", "") or article.get("title", ""),
+                    }
+                    raw_signal = funding_classifier.classify_signal(raw_signal)
 
-                # Apply sub-product attribution check if running on legacy separate entities
-                checked = _check_cloudflare_attribution(raw_signal, company)
-                if checked is not None:
-                    signals.append(checked)
+                    is_rel, rel_reason = relevance_verifier.verify_news_relevance(raw_signal, company)
+                    raw_signal["relevance_verified"] = is_rel
+                    raw_signal["relevance_reason"] = rel_reason
 
-        except Exception as e:
-            logger.error(f"Error fetching news for {kw} from Currents API: {e}")
-            raise
+                    checked = _check_cloudflare_attribution(raw_signal, company)
+                    if checked is not None:
+                        signals.append(checked)
+            except Exception as e:
+                logger.warning(f"Error fetching news for {kw} from Currents API: {e}")
+
+    # Resilient fallback to real Google News RSS if Currents returned 0 articles or failed/unavailable
+    if not signals:
+        from . import storage
+        if not (storage.is_test_environment() and not os.getenv("ALLOW_TEST_NETWORK")):
+            logger.info(f"Using Google News RSS fallback for '{company}'...")
+            signals = _fetch_news_from_google_rss(company, days=days)
 
     return signals
 
@@ -154,6 +229,11 @@ def _fetch_github_events(company: str, days: int = 7) -> List[Dict[str, Any]]:
 
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
+        if response.status_code == 404 and not org.endswith("s"):
+            alt_url = f"https://api.github.com/orgs/{org}s/events"
+            alt_resp = requests.get(alt_url, headers=headers, params=params, timeout=10)
+            if alt_resp.status_code == 200:
+                response = alt_resp
         response.raise_for_status()
         events = response.json()
         if not isinstance(events, list):
@@ -307,6 +387,8 @@ ATS_COMPANY_MAPPING: Dict[str, Tuple[str, str]] = {
     "Datadog": ("greenhouse", "datadog"),
     "Supabase": ("ashby", "supabase"),
     "Sentry": ("ashby", "sentry"),
+    "OpenAI": ("ashby", "openai"),
+    "Anthropic": ("lever", "anthropic"),
 }
 
 
