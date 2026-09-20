@@ -608,10 +608,10 @@ def test_fetch_grounded_context_balances_categories():
 
         context = discovery_agent.fetch_grounded_context("Meesho")
 
-    # Should take up to 6 alts, 4 news, 3 wiki -> 13 items total
-    assert len(context) == 13
+    # Should take up to 4 alts, 4 news, 4 wiki -> 12 items total
+    assert len(context) == 12
     types = [c["source_type"] for c in context]
-    assert types.count("alternatives_listing") == 6
+    assert types.count("alternatives_listing") == 4
     assert types.count("news") == 4
-    assert types.count("wikipedia") == 3
+    assert types.count("wikipedia") == 4
 

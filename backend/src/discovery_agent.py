@@ -55,10 +55,10 @@ GUARDRAILS (STRICT):
 1. No generic or unfalsifiable rationales: Do NOT use vague filler like "they are in the same space" or "they are a competitor". State specifically what products, architectures, or market overlaps exist (e.g. frontend hosting, serverless edge compute, Jamstack deployments, payment processing API, application performance monitoring).
 2. Grounding & Zero Hallucination: Every suggested candidate competitor MUST be explicitly supported by and traceable to at least one of the provided retrieved sources. If a company is not mentioned or supported in the retrieved sources, do NOT include it.
 3. No Cherry-Picking / Distortion: State the competitive relationship accurately based on what the source documents.
-4. INCLUSIVENESS, FRESHNESS CALIBRATION & COMPREHENSIVENESS:
+4. INCLUSIVENESS, FRESHNESS CALIBRATION & GROUNDING STANDARD:
    - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit or prune older or smaller competitors (e.g. Wavefront, SignalFX, WePay, Paymill, Place, EAB, EverCommerce); include them so the human reviewer can inspect and confirm or reject them.
-   - When sources contain comparison listings, competitor matrices, or market overviews (e.g. "Competitors include Company A, Company B, and Company C"), extract EACH distinct competitor rather than just 1 or 2.
-   - Aim to produce a comprehensive list of all grounded competitors (typically 6-12 candidates when supported by sources).
+   - When sources contain comparison listings, competitor matrices, or market overviews (e.g. "Competitors include Company A, Company B, and Company C"), extract EACH distinct competitor supported by the source.
+   - Grounding standard: Only include candidate competitors with explicit, verifiable evidence of competitive overlap in the sources. Do NOT invent candidates or include tangentially related companies simply to hit a quantity target.
    - "High" confidence requires recent, checkable facts (sources from the last ~18 months, or actively maintained repositories).
    - If a candidate competitor is grounded ONLY in a "dated" source (older than ~18 months, e.g. 2011, 2014, 2016, 2021) without recent corroboration, do NOT assign High confidence. Assign Medium or Low confidence and set "source_age" to "dated".
    - "Medium": Significant product or functional overlap, or a moderately dated source with ongoing market presence.
@@ -221,12 +221,13 @@ def _fetch_github_context(company: str) -> List[Dict[str, Any]]:
 
 
 def _fetch_wikipedia_context(company: str) -> List[Dict[str, Any]]:
-    """Fetch encyclopedic background and competitor mentions from Wikipedia REST API."""
+    """Fetch encyclopedic background and competitor mentions from Wikipedia REST API with parallel queries."""
     sources: List[Dict[str, Any]] = []
     headers = {"User-Agent": "PrismIQ-Competitive-Intelligence/2.0 (research@prismiq.ai)"}
     queries = [company, f"{company} competitors", f"{company} software"]
 
-    for q in queries:
+    def _query_wiki(q: str) -> List[Dict[str, Any]]:
+        res = []
         try:
             url = "https://en.wikipedia.org/w/api.php"
             params = {
@@ -243,7 +244,7 @@ def _fetch_wikipedia_context(company: str) -> List[Dict[str, Any]]:
                     title = str(item.get("title", "")).strip()
                     snippet = re.sub(r"<[^>]+>", " ", str(item.get("snippet", ""))).strip()
                     page_url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
-                    sources.append({
+                    res.append({
                         "source_type": "wikipedia",
                         "title": f"Wikipedia: {title}",
                         "url": page_url,
@@ -253,6 +254,11 @@ def _fetch_wikipedia_context(company: str) -> List[Dict[str, Any]]:
                     })
         except Exception as e:
             logger.debug(f"Wikipedia API error for '{q}': {e}")
+        return res
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(queries)) as pool:
+        for r in pool.map(_query_wiki, queries):
+            sources.extend(r)
 
     return sources
 
@@ -520,16 +526,16 @@ def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
     raw_sources: List[Dict[str, Any]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(fetchers)) as executor:
         future_map = {executor.submit(fn): name for name, fn in fetchers}
-        try:
-            for fut in concurrent.futures.as_completed(future_map, timeout=6.0):
-                name = future_map[fut]
-                try:
-                    items = fut.result()
-                    raw_sources.extend(items)
-                except Exception as e:
-                    logger.debug(f"Source fetcher '{name}' encountered error: {e}")
-        except concurrent.futures.TimeoutError:
-            logger.debug("Some source fetchers reached 6.0s timeout; proceeding with collected sources.")
+        done, not_done = concurrent.futures.wait(future_map.keys(), timeout=7.0)
+        for fut in done:
+            name = future_map[fut]
+            try:
+                items = fut.result()
+                raw_sources.extend(items)
+            except Exception as e:
+                logger.debug(f"Source fetcher '{name}' encountered error: {e}")
+        if not_done:
+            logger.debug(f"{len(not_done)} source fetchers timed out after 7.0s; proceeding with completed sources.")
 
     # Deduplicate sources and group by category
     seen = set()
@@ -556,12 +562,11 @@ def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
 
     # Select top balanced 18 sources ensuring cross-domain representation
     curated: List[Dict[str, Any]] = []
-    curated.extend(by_category["alternatives_listing"][:6])
+    curated.extend(by_category["alternatives_listing"][:4])
     curated.extend(by_category["news"][:4])
-    curated.extend(by_category["wikipedia"][:3])
+    curated.extend(by_category["wikipedia"][:4])
     curated.extend(by_category["discussion_and_tech_media"][:3])
-    curated.extend(by_category["github_repository"][:2])
-    curated.extend(by_category["market_knowledge_index"][:2])
+    curated.extend(by_category["github_repository"][:3])
 
     return curated[:18]
 
@@ -947,7 +952,7 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
 
 
 @traceable(run_type="llm", name="discovery_agent_llm_call")
-def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
+def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 6) -> Dict[str, Any]:
     """Execute Groq completion with JSON object response format, retries, and rate limit backoff."""
     raw_key = os.getenv("GROQ_API_KEY", "")
     api_key = raw_key.strip().strip("\"'").strip()
@@ -971,7 +976,7 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.1,
-        "max_tokens": 1500,
+        "max_tokens": 1000,
         "response_format": {"type": "json_object"},
     }
 
@@ -988,8 +993,8 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
                 try:
                     retry_after = float(retry_header)
                 except ValueError:
-                    retry_after = 2.0 * (attempt + 1)
-                backoff = min(max(retry_after, 2.0), 6.0)
+                    retry_after = 3.0 * (attempt + 1)
+                backoff = min(max(retry_after, 3.0), 20.0)
                 logger.warning(f"Groq 429 rate limit hit. Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})...")
                 time.sleep(backoff)
                 continue
