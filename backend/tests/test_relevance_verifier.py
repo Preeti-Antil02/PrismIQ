@@ -121,3 +121,38 @@ def test_coined_company_names():
     }
     is_rel, _ = verify_news_relevance(vercel_signal)
     assert is_rel
+
+
+def test_qualified_company_names_amazon_india():
+    """Verify qualified company names like 'Amazon (India)' match both qualified and base entity mentions."""
+    # Qualified match with region
+    signal_regional = {
+        "company": "Amazon (India)",
+        "title": "Amazon launches Alexa+ in India with Hindi support | TechCrunch",
+        "url": "https://techcrunch.com/2026/09/amazon-india-alexa",
+        "raw_excerpt": "Amazon introduced its new conversational AI assistant Alexa+ in India today.",
+    }
+    is_rel, reason = verify_news_relevance(signal_regional)
+    assert is_rel
+    assert "Qualified entity match" in reason or "Verified" in reason
+
+    # Base entity match
+    signal_base = {
+        "company": "Amazon (India)",
+        "title": "Amazon Now reaches $1b annualized sales in India",
+        "url": "https://example.com/amazon-sales",
+        "raw_excerpt": "Quick commerce arm reaches new milestone across urban hubs.",
+    }
+    is_rel, _ = verify_news_relevance(signal_base)
+    assert is_rel
+
+    # Completely unrelated article should still be suppressed
+    signal_unrelated = {
+        "company": "Amazon (India)",
+        "title": "Local high school football scores and highlights",
+        "url": "https://sportsweekly.com/high-school-scores",
+        "raw_excerpt": "The Tigers defeated the Eagles 24-14 in Friday night action.",
+    }
+    is_rel, reason = verify_news_relevance(signal_unrelated)
+    assert not is_rel
+    assert "Suppressed" in reason
