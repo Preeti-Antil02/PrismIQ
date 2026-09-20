@@ -79,7 +79,10 @@ export function OverviewCockpitHero({
             <>
               <span className="inline-block w-2 h-2 rounded-full bg-[var(--cyan)] shadow-[0_0_8px_var(--cyan)] animate-ping" />
               <span>
-                Pipeline syncing: <strong className="text-white font-semibold">{completedCompanies}/{totalCompanies} complete</strong>
+                Pipeline syncing:{" "}
+                <strong className="text-white font-semibold">
+                  {totalCompanies > 0 ? `${completedCompanies}/${totalCompanies} complete` : "Initializing..."}
+                </strong>
               </span>
             </>
           ) : (
