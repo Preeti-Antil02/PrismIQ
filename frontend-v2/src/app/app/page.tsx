@@ -15,6 +15,8 @@ import { MethodologyQuietLayer } from "@/components/overview/MethodologyQuietLay
 import {
   fetchLatestBrief,
   fetchEvents,
+  fetchSignals,
+  fetchLatestRadar,
   fetchTrackedCompanies,
   fetchFindings,
   fetchWorkspaceTopics,
@@ -65,13 +67,15 @@ export default function OverviewPage() {
   const loadIntelligence = React.useCallback(async (showSkeleton = false) => {
     if (showSkeleton) setLoading(true);
     try {
-      const [compsRes, briefRes, eventsRes, findingsRes, topicsRes, configRes] = await Promise.allSettled([
+      const [compsRes, briefRes, eventsRes, findingsRes, topicsRes, configRes, signalsRes, radarRes] = await Promise.allSettled([
         fetchTrackedCompanies(),
         fetchLatestBrief(),
-        fetchEvents({ limit: 15 }),
+        fetchEvents({ limit: 50 }),
         fetchFindings(),
         fetchWorkspaceTopics(),
         fetchWorkspaceConfig(),
+        fetchSignals({ limit: 300 }),
+        fetchLatestRadar(),
       ]);
 
       // 1. Process tracked companies with workspace config fallback
@@ -131,39 +135,97 @@ export default function OverviewPage() {
         setEvents([]);
       }
 
-      // 3. Process competitive pulse from tracked competitors
+      // 3. Process competitive pulse from tracked competitors with honest real data derivation
+      const loadedSignals = (signalsRes.status === "fulfilled" && signalsRes.value?.signals) ? signalsRes.value.signals : [];
       const pulseItems: CompetitivePulseItem[] = (competitors.length > 0 ? competitors : currentComps).map((c) => {
-        const compEvent = loadedEvents.find((e) => e.company_name.toLowerCase() === c.company_name.toLowerCase());
-        return {
-          company: c.company_name,
-          meaningfulMovement: compEvent?.title || "Continuous monitoring active",
-          domain: compEvent ? "Verified Movement" : "Monitored Competitor",
-        };
+        const compLower = c.company_name.toLowerCase();
+        const compEvent = loadedEvents.find((e) => e.company_name.toLowerCase() === compLower);
+        const compSignals = loadedSignals.filter((s) => s.company_name.toLowerCase() === compLower);
+
+        if (compEvent) {
+          return {
+            company: c.company_name,
+            meaningfulMovement: compEvent.title,
+            domain: "Verified Movement",
+            status: "verified" as const,
+            signalCount: compSignals.length,
+          };
+        } else if (compSignals.length > 0) {
+          return {
+            company: c.company_name,
+            meaningfulMovement: `${compSignals.length} raw ${compSignals.length === 1 ? "signal" : "signals"} recorded • Awaiting consolidation`,
+            domain: "Signals Recorded",
+            status: "ingested" as const,
+            signalCount: compSignals.length,
+          };
+        } else {
+          return {
+            company: c.company_name,
+            meaningfulMovement: "No signals recorded yet • Pending initial sweep",
+            domain: "Pending Sweep",
+            status: "pending" as const,
+            signalCount: 0,
+          };
+        }
       });
       setCompetitiveMovements(pulseItems);
 
-      // 4. Process research topics with workspace config fallback
+      // 4. Process research topics with live radar evaluations cross-reference
       let rawTopics: any[] = [];
       if (topicsRes.status === "fulfilled" && Array.isArray(topicsRes.value) && topicsRes.value.length > 0) {
         rawTopics = topicsRes.value;
       } else if (configRes.status === "fulfilled" && Array.isArray(configRes.value?.topics) && configRes.value.topics.length > 0) {
         rawTopics = configRes.value.topics;
       }
+
+      const radarEvals = (radarRes.status === "fulfilled" && radarRes.value?.evaluations) ? radarRes.value.evaluations : [];
+
       if (rawTopics.length > 0) {
-        const mappedTopics: ResearchTopicItem[] = rawTopics.slice(0, 3).map((t, idx) => ({
-          topic: t.topic_label,
-          symbol: idx === 0 ? "✦" : idx === 1 ? "⌁" : "◈",
-          status: t.is_active !== false ? "Active" : "Paused",
-          explanation: t.keywords?.length
-            ? `Monitored keywords: ${t.keywords.slice(0, 4).join(", ")}`
-            : "Configured research theme under continuous monitoring.",
-          contextCompany: currentTarget || "Workspace",
-          contextText: `Monitored under ${currentTarget || "workspace"} scope`,
-          statusClass: t.is_active !== false
-            ? "text-[var(--green)] bg-[rgba(57,217,154,0.08)] border-[var(--green)]/20"
-            : "text-[var(--amber)] bg-[rgba(255,180,90,0.08)] border-[var(--amber)]/20",
-          borderAccent: idx === 0 ? "var(--cyan)" : idx === 1 ? "var(--magenta)" : "var(--violet)",
-        }));
+        const mappedTopics: ResearchTopicItem[] = rawTopics.slice(0, 3).map((t, idx) => {
+          const matchingEval = radarEvals.find(
+            (ev: any) =>
+              (ev.topic_id && t.id && ev.topic_id === t.id) ||
+              ev.topic_label?.toLowerCase() === t.topic_label?.toLowerCase()
+          );
+
+          let status = "Pending Sweep";
+          let statusClass = "text-[var(--amber)] bg-[rgba(255,180,90,0.08)] border-[var(--amber)]/20";
+          let explanation = t.keywords?.length
+            ? `Monitored keywords: ${t.keywords.slice(0, 4).join(", ")} (awaiting initial sweep)`
+            : "Configured research theme • Awaiting pipeline sweep.";
+
+          if (matchingEval) {
+            const itemCount = matchingEval.research_item_count || 0;
+            if (itemCount > 0) {
+              status = `Active (${itemCount} ${itemCount === 1 ? "paper" : "papers"})`;
+              statusClass = "text-[var(--green)] bg-[rgba(57,217,154,0.08)] border-[var(--green)]/20";
+              explanation = matchingEval.why_it_matters || `${itemCount} research signals evaluated in latest sweep.`;
+            } else if (matchingEval.state_change_detected) {
+              status = "Shifts Detected";
+              statusClass = "text-[var(--green)] bg-[rgba(57,217,154,0.08)] border-[var(--green)]/20";
+              explanation = matchingEval.why_it_matters || "Directional shifts detected across monitored sources.";
+            } else {
+              status = "Audited (No shifts)";
+              statusClass = "text-[#79d7ff] bg-[rgba(121,215,255,0.08)] border-[#79d7ff]/20";
+              explanation = "Swept across tracked sources with zero matching signals.";
+            }
+          } else if (t.is_active === false) {
+            status = "Paused";
+            statusClass = "text-[var(--amber)] bg-[rgba(255,180,90,0.08)] border-[var(--amber)]/20";
+            explanation = "Topic monitoring paused by tenant configuration.";
+          }
+
+          return {
+            topic: t.topic_label,
+            symbol: idx === 0 ? "✦" : idx === 1 ? "⌁" : "◈",
+            status,
+            explanation,
+            contextCompany: currentTarget || "Workspace",
+            contextText: `Monitored under ${currentTarget || "workspace"} scope`,
+            statusClass,
+            borderAccent: idx === 0 ? "var(--cyan)" : idx === 1 ? "var(--magenta)" : "var(--violet)",
+          };
+        });
         setRadarTopics(mappedTopics);
       } else {
         setRadarTopics([]);
