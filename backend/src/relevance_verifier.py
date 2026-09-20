@@ -419,6 +419,19 @@ COMMON_ENGLISH_NOUNS = {
     "anchor", "bolt", "glide", "drift", "ember", "beacon", "roast",
 }
 
+# Regional / domain expansions for parenthetical qualifiers
+# Allows regional qualifiers (e.g. "India") to match canonical demonyms ("Indian"),
+# major technology hubs ("Bengaluru", "Hyderabad"), and domestic financial markers ("₹", "crore").
+QUALIFIER_EXPANSIONS: Dict[str, List[str]] = {
+    "india": [
+        r"\bindia\b", r"\bindian\b",
+        r"\bbengaluru\b", r"\bbangalore\b", r"\bhyderabad\b",
+        r"\bmumbai\b", r"\bdelhi\b", r"\bgurugram\b", r"\bgurgaon\b",
+        r"\bnoida\b", r"\bpune\b", r"\bchennai\b",
+        r"₹", r"\bcrores?\b", r"\blakhs?\b",
+    ]
+}
+
 
 def verify_news_relevance(
     signal_or_text: Union[Dict[str, Any], str],
@@ -527,13 +540,18 @@ def verify_news_relevance(
         base_lower = base_name.lower()
         qual_lower = qualifier.lower()
         base_pat = r"\b" + re.escape(base_lower) + r"\b"
-        qual_pat = r"\b" + re.escape(qual_lower) + r"\b"
 
         # Check if base company name is present in article text
         if not re.search(base_pat, full_text):
             return False, f"Suppressed: Base company name '{base_name}' not found in article text"
 
-        # Geographical / environmental homonym guard (specifically for Amazon)
+        # NOTE ON HOMONYM GUARDS:
+        # The geographical/environmental guard below is a narrow, hand-built heuristic specifically
+        # implemented to prevent South American geographical homonym collisions for the company name "Amazon"
+        # during climate/monsoon articles (e.g. El Niño). It is NOT a general semantic disambiguation principle.
+        # Other tracked or future companies with common-noun, geographical, or acronym names
+        # (e.g. Place, Carousel, EAB, Patagonia) carry distinct homonym risks that this list does not address
+        # and require either explicit registry profiles or upstream NER entity linking.
         if base_lower == "amazon":
             geo_negative_patterns = [
                 r"\brainforest\b", r"\bdeforestation\b", r"\bamazon\s+basin\b",
@@ -549,30 +567,26 @@ def verify_news_relevance(
             if has_geo_neg and not has_biz:
                 return False, "Suppressed: Amazon geographical/environmental context (rainforest/river/weather) without commercial operations"
 
+        # Retrieve qualifier pattern list (supporting regional expansions like hubs & demonyms)
+        qual_patterns = QUALIFIER_EXPANSIONS.get(qual_lower, [r"\b" + re.escape(qual_lower) + r"\b"])
+
         # Bounded association check:
-        # A qualifier like (India) requires direct or bounded association with the base company:
-        # Condition A: Direct compound phrase (e.g. "Amazon India", "Amazon's India", "Amazon in India", "Amazon to India")
-        direct_compound = re.search(
-            r"\b" + re.escape(base_lower) + r"(?:['’]s)?\s+(?:in\s+|to\s+|,\s+)?\b" + re.escape(qual_lower) + r"\b",
-            full_text
-        )
-        if direct_compound:
-            return True, f"Verified: Direct qualified entity compound '{base_name} {qualifier}' match"
+        # A qualifier like (India) requires direct or bounded association with the base company
+        for q_pat in qual_patterns:
+            # Condition A: Direct compound phrase (e.g. "Amazon India", "Amazon's Bengaluru", "Amazon in India")
+            compound_pat = r"\b" + re.escape(base_lower) + r"(?:['’]s)?\s+(?:in\s+|to\s+|,\s+)?" + q_pat
+            if re.search(compound_pat, full_text):
+                return True, f"Verified: Direct qualified entity compound '{base_name}' with '{qualifier}' ({q_pat})"
 
-        # Condition B: Both base and qualifier present in headline (title)
-        if re.search(base_pat, t.lower()) and re.search(qual_pat, t.lower()):
-            return True, f"Verified: Qualified entity pairing in title '{base_name}' and '{qualifier}'"
+            # Condition B: Both base and qualifier present in headline (title)
+            if re.search(base_pat, t.lower()) and re.search(q_pat, t.lower()):
+                return True, f"Verified: Qualified entity pairing in title '{base_name}' and '{qualifier}' ({q_pat})"
 
-        # Condition C: Bounded sentence-level co-occurrence (within same sentence, max 120 characters)
-        bounded_same_sentence = re.search(
-            r"\b" + re.escape(base_lower) + r"\b[^.?!;\n]{0,120}\b" + re.escape(qual_lower) + r"\b",
-            full_text
-        ) or re.search(
-            r"\b" + re.escape(qual_lower) + r"\b[^.?!;\n]{0,120}\b" + re.escape(base_lower) + r"\b",
-            full_text
-        )
-        if bounded_same_sentence:
-            return True, f"Verified: Bounded sentence co-occurrence of '{base_name}' and '{qualifier}'"
+            # Condition C: Bounded sentence-level co-occurrence (within same sentence, max 120 characters)
+            bounded_1 = re.search(r"\b" + re.escape(base_lower) + r"\b[^.?!;\n]{0,120}" + q_pat, full_text)
+            bounded_2 = re.search(q_pat + r"[^.?!;\n]{0,120}\b" + re.escape(base_lower) + r"\b", full_text)
+            if bounded_1 or bounded_2:
+                return True, f"Verified: Bounded sentence co-occurrence of '{base_name}' and '{qualifier}' ({q_pat})"
 
         # Condition D: If qualifier is in URL domain or path (e.g. amazon.in or /india/)
         if f"{base_lower}.in" in u or f"/{qual_lower}/" in u:
