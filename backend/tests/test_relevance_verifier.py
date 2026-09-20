@@ -156,3 +156,33 @@ def test_qualified_company_names_amazon_india():
     is_rel, reason = verify_news_relevance(signal_unrelated)
     assert not is_rel
     assert "Suppressed" in reason
+
+
+def test_amazon_india_geographical_homonym_suppressed():
+    """Verify El Niño / Amazon rainforest homonym articles with separate India mentions are suppressed."""
+    signal = {
+        "company": "Amazon (India)",
+        "title": "El Niño arrived early. Why its impact was felt from India to the Panama Canal",
+        "url": "https://economictimes.indiatimes.com/news/environment/global-warming/el-nio-arrived-early",
+        "raw_excerpt": (
+            "El Niño's early onset has triggered a cascade of atypical weather events worldwide. "
+            "India faced not only monsoon challenges but also significant shifts in policy due to insufficient rainfall. "
+            "Meanwhile, South America grappled with both severe flooding and drought conditions affecting the Amazon."
+        ),
+    }
+    is_rel, reason = verify_news_relevance(signal)
+    assert not is_rel
+    assert "geographical/environmental context" in reason or "lacks bounded association" in reason
+
+
+def test_amazon_india_unbounded_us_corporate_news_suppressed():
+    """Verify US corporate/labor articles without India operational relevance are suppressed for Amazon (India)."""
+    signal = {
+        "company": "Amazon (India)",
+        "title": "Amazon Unveils $1.5 Billion Pay Hike, Pushing Average Compensation Over $32/Hour",
+        "url": "https://www.ndtvprofit.com/business/amazon-unveils-pay-hike",
+        "raw_excerpt": "Amazon has raised its minimum starting pay to $20 an hour. Its average total compensation is now over $32 per hour.",
+    }
+    is_rel, reason = verify_news_relevance(signal)
+    assert not is_rel
+    assert "lacks bounded association with qualifier 'India'" in reason
