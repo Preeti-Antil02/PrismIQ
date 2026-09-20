@@ -313,6 +313,9 @@ export interface RadarEvaluation {
   research_item_count: number;
   research_item_ids: string[];
   competitor_connections: Record<string, RadarCompetitorConnection>;
+  state_change_detected?: boolean;
+  why_it_matters?: string;
+  created_at?: string;
 }
 
 export interface RadarApiResponse {
@@ -794,7 +797,7 @@ export async function fetchPipelineStatus(): Promise<PipelineProgress> {
       return {
         status: "idle",
         current_phase: "idle",
-        progress_message: "Continuous monitoring active",
+        progress_message: "Pipeline idle — scheduled for autonomous daily run",
         total_companies: 0,
         completed_companies: 0,
         completed_company_names: [],
@@ -806,7 +809,7 @@ export async function fetchPipelineStatus(): Promise<PipelineProgress> {
     return {
       status: "idle",
       current_phase: "idle",
-      progress_message: "Continuous monitoring active",
+      progress_message: "Pipeline idle — scheduled for autonomous daily run",
       total_companies: 0,
       completed_companies: 0,
       completed_company_names: [],
