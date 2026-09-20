@@ -186,3 +186,29 @@ def test_amazon_india_unbounded_us_corporate_news_suppressed():
     is_rel, reason = verify_news_relevance(signal)
     assert not is_rel
     assert "lacks bounded association with qualifier 'India'" in reason
+
+
+def test_amazon_india_bengaluru_hub_prevents_false_negative():
+    """Verify major Indian tech hubs (e.g. Bengaluru, Hyderabad) satisfy qualifier association even without literal 'India'."""
+    signal = {
+        "company": "Amazon (India)",
+        "title": "Amazon opens massive 10,000-seat tech hub in Bengaluru for AI workloads",
+        "url": "https://techcrunch.com/2026/09/amazon-bengaluru-ai-hub",
+        "raw_excerpt": "The new Bengaluru campus will house global engineering teams focusing on agentic architectures.",
+    }
+    is_rel, reason = verify_news_relevance(signal)
+    assert is_rel
+    assert "Verified" in reason
+
+
+def test_amazon_india_currency_investment_prevents_false_negative():
+    """Verify domestic currency and financial markers (₹, crore) satisfy regional grounding."""
+    signal = {
+        "company": "Amazon (India)",
+        "title": "Amazon commits ₹10,000 crore investment to expand quick delivery network",
+        "url": "https://economictimes.indiatimes.com/amazon-investment",
+        "raw_excerpt": "The capital injection will support dark store infrastructure across top tier-2 clusters.",
+    }
+    is_rel, reason = verify_news_relevance(signal)
+    assert is_rel
+    assert "Verified" in reason
