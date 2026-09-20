@@ -799,23 +799,8 @@ def list_tracked_companies(tenant_id: str = Depends(get_current_tenant)) -> Dict
     List companies currently tracked by the authenticated tenant under RLS.
     """
     try:
-        with storage.get_tenant_db_cursor(tenant_id) as cur:
-            cur.execute("""
-                SELECT company_name, is_target, status, added_at
-                FROM tenant_tracked_companies
-                WHERE status = 'active'
-                ORDER BY is_target DESC, company_name ASC;
-            """)
-            rows = cur.fetchall()
-            comps = []
-            for r in rows:
-                comps.append({
-                    "company_name": r[0],
-                    "is_target": r[1],
-                    "status": r[2],
-                    "added_at": r[3].isoformat() if r[3] else None,
-                })
-            return {"tracked_companies": comps, "count": len(comps)}
+        comps = storage.get_tenant_tracked_companies(tenant_id)
+        return {"tracked_companies": comps, "count": len(comps)}
     except Exception as e:
         if not storage.is_test_environment():
             raise HTTPException(status_code=500, detail=f"Database query error: {e}")
@@ -924,20 +909,27 @@ def list_signals(
                 LEFT JOIN findings f ON (ce.event_id = f.event_id AND f.tenant_id = %s::uuid)
                 WHERE ttc.status = 'active'
             """
+            company_val = str(company).strip() if isinstance(company, str) and company.strip() else None
+            source_val = str(source).strip() if isinstance(source, str) and source.strip() else None
+            tier_val = str(tier).strip() if isinstance(tier, str) and tier.strip() else None
+            conf_val = str(confidence).strip() if isinstance(confidence, str) and confidence.strip() else None
+            lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
+            off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
+
             params: List[Any] = [tenant_id]
 
-            if company:
+            if company_val:
                 base_query += " AND rs.company_name = %s"
-                params.append(company)
-            if source:
+                params.append(company_val)
+            if source_val:
                 base_query += " AND LOWER(rs.source) = LOWER(%s)"
-                params.append(source)
-            if tier:
+                params.append(source_val)
+            if tier_val:
                 base_query += " AND (LOWER(f.tier) = LOWER(%s) OR (f.tier IS NULL AND LOWER(%s) = 'nice-to-know'))"
-                params.extend([tier, tier])
-            if confidence:
+                params.extend([tier_val, tier_val])
+            if conf_val:
                 base_query += " AND (LOWER(f.confidence) = LOWER(%s) OR LOWER(ce.fact_confidence) = LOWER(%s))"
-                params.extend([confidence, confidence])
+                params.extend([conf_val, conf_val])
 
             # Get total count before pagination
             count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_sub;"
@@ -951,7 +943,7 @@ def list_signals(
                 ORDER BY sub.published_timestamp DESC NULLS LAST, sub.published_at DESC
                 LIMIT %s OFFSET %s;
             """
-            params.extend([limit, offset])
+            params.extend([lim_val, off_val])
 
             cur.execute(final_query, params)
             rows = cur.fetchall()
@@ -1046,9 +1038,16 @@ def list_events(
                 LEFT JOIN findings f ON (ce.event_id = f.event_id AND f.tenant_id = %s::uuid)
                 WHERE ttc.status = 'active'
             """
+            company_val = str(company).strip() if isinstance(company, str) and company.strip() else None
+            tier_val = str(tier).strip() if isinstance(tier, str) and tier.strip() else None
+            conf_val = str(confidence).strip() if isinstance(confidence, str) and confidence.strip() else None
+            inc_all_val = bool(include_all) if isinstance(include_all, bool) else False
+            lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
+            off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
+
             params: List[Any] = [tenant_id]
 
-            if not include_all:
+            if not inc_all_val:
                 base_query += """
                   AND (
                     ce.corroboration_count > 1
@@ -1076,15 +1075,15 @@ def list_events(
                   )
                 """
 
-            if company:
+            if company_val:
                 base_query += " AND ce.company_name = %s"
-                params.append(company)
-            if tier:
+                params.append(company_val)
+            if tier_val:
                 base_query += " AND (REPLACE(LOWER(f.tier), '_', '-') = REPLACE(LOWER(%s), '_', '-') OR (f.tier IS NULL AND REPLACE(LOWER(%s), '_', '-') = 'nice-to-know'))"
-                params.extend([tier, tier])
-            if confidence:
+                params.extend([tier_val, tier_val])
+            if conf_val:
                 base_query += " AND (LOWER(ce.fact_confidence) = LOWER(%s) OR LOWER(f.confidence) = LOWER(%s))"
-                params.extend([confidence, confidence])
+                params.extend([conf_val, conf_val])
 
             count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_sub;"
             cur.execute(count_query, params)
@@ -1096,7 +1095,7 @@ def list_events(
                 ORDER BY sub.published_timestamp DESC NULLS LAST, sub.published_at DESC
                 LIMIT %s OFFSET %s;
             """
-            params.extend([limit, offset])
+            params.extend([lim_val, off_val])
 
             cur.execute(final_query, params)
             rows = cur.fetchall()
