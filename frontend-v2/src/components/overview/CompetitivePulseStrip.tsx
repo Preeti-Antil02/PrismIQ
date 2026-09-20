@@ -12,7 +12,7 @@ export interface CompetitivePulseItem {
   meaningfulMovement: string;
   domain: string;
   accentColor?: string;
-  status?: "verified" | "ingested" | "pending";
+  status?: "verified" | "ingested" | "pending" | "no_coverage";
   signalCount?: number;
 }
 
@@ -60,7 +60,9 @@ export function CompetitivePulseStrip({ movements }: CompetitivePulseStripProps)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {movements.map((c, i) => {
           const accentColor =
-            c.status === "pending"
+            c.status === "no_coverage"
+              ? "rgba(148, 163, 184, 0.35)"
+              : c.status === "pending"
               ? "rgba(255, 180, 90, 0.4)"
               : c.status === "ingested"
               ? "var(--cyan)"
@@ -114,7 +116,9 @@ export function CompetitivePulseStrip({ movements }: CompetitivePulseStripProps)
                 {/* Movement text */}
                 <p className={cn(
                   "text-xs leading-relaxed line-clamp-2 transition-colors",
-                  c.status === "pending" ? "text-[#7a7b85] italic" : "text-[#b8b8c2] group-hover:text-white/90"
+                  c.status === "pending" ? "text-[#7a7b85] italic" :
+                  c.status === "no_coverage" ? "text-[#71717a]" :
+                  "text-[#b8b8c2] group-hover:text-white/90"
                 )}>
                   {c.meaningfulMovement}
                 </p>
@@ -125,11 +129,23 @@ export function CompetitivePulseStrip({ movements }: CompetitivePulseStripProps)
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{
-                    backgroundColor: c.status === "pending" ? "rgba(255, 180, 90, 0.6)" : accentColor,
-                    boxShadow: c.status === "pending" ? "none" : `0 0 8px ${accentColor}`,
+                    backgroundColor:
+                      c.status === "pending"
+                        ? "rgba(255, 180, 90, 0.6)"
+                        : c.status === "no_coverage"
+                        ? "rgba(148, 163, 184, 0.5)"
+                        : accentColor,
+                    boxShadow:
+                      c.status === "pending" || c.status === "no_coverage"
+                        ? "none"
+                        : `0 0 8px ${accentColor}`,
                   }}
                 />
-                <span className={cn("truncate", c.status === "pending" && "text-amber-300/70 font-semibold")}>
+                <span className={cn(
+                  "truncate",
+                  c.status === "pending" && "text-amber-300/70 font-semibold",
+                  c.status === "no_coverage" && "text-zinc-400 font-medium"
+                )}>
                   {c.domain}
                 </span>
               </div>
