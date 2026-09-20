@@ -2494,6 +2494,32 @@ def complete_pipeline_run(
             logger.warning(f"Failed to complete pipeline_run_progress in Postgres: {e}")
 
 
+def _format_run_progress_row(row: Any) -> Dict[str, Any]:
+    """Helper to convert a pipeline_run_progress row into a clean dictionary."""
+    return {
+        "run_id": str(row[0]),
+        "tenant_id": str(row[1]) if row[1] else None,
+        "status": row[2],
+        "current_phase": row[3],
+        "progress_message": row[4],
+        "total_companies": row[5],
+        "completed_companies": row[6],
+        "completed_company_names": row[7] if isinstance(row[7], list) else (json.loads(row[7]) if row[7] else []),
+        "current_company": row[8],
+        "total_sources": row[9],
+        "completed_sources": row[10],
+        "source_health": row[11] if isinstance(row[11], dict) else (json.loads(row[11]) if row[11] else {}),
+        "source_errors": row[12] if isinstance(row[12], dict) else (json.loads(row[12]) if row[12] else {}),
+        "first_visible_data_at": row[13].isoformat() if hasattr(row[13], "isoformat") else (str(row[13]) if row[13] else None),
+        "time_to_first_data_seconds": float(row[14]) if row[14] is not None else None,
+        "is_first_run": bool(row[15]),
+        "started_at": row[16].isoformat() if hasattr(row[16], "isoformat") else str(row[16]),
+        "updated_at": row[17].isoformat() if hasattr(row[17], "isoformat") else str(row[17]),
+        "completed_at": row[18].isoformat() if hasattr(row[18], "isoformat") else (str(row[18]) if row[18] else None),
+        "total_duration_seconds": float(row[19]) if row[19] is not None else None,
+    }
+
+
 def get_active_or_latest_run_progress(
     tenant_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
@@ -2503,7 +2529,19 @@ def get_active_or_latest_run_progress(
         try:
             with get_db_cursor() as cur:
                 if not isinstance(cur, MockCursor):
-                    query = """
+                    # Reap stale runs older than 30 minutes to prevent distributed deadlocks
+                    cur.execute("""
+                        UPDATE pipeline_run_progress
+                        SET status = 'timed_out',
+                            current_phase = 'timed_out',
+                            progress_message = 'Monitoring run timed out after 30 minutes',
+                            completed_at = NOW(),
+                            updated_at = NOW()
+                        WHERE status = 'running'
+                          AND started_at < NOW() - INTERVAL '30 minutes';
+                    """)
+
+                    base_select = """
                         SELECT run_id, tenant_id, status, current_phase, progress_message,
                                total_companies, completed_companies, completed_company_names,
                                current_company, total_sources, completed_sources,
@@ -2511,45 +2549,62 @@ def get_active_or_latest_run_progress(
                                time_to_first_data_seconds, is_first_run, started_at,
                                updated_at, completed_at, total_duration_seconds
                         FROM pipeline_run_progress
-                        WHERE (%s IS NULL OR tenant_id = %s OR tenant_id IS NULL)
+                    """
+
+                    if tenant_id:
+                        cur.execute(f"""
+                            {base_select}
+                            WHERE tenant_id = %s::uuid
+                            ORDER BY (CASE WHEN status = 'running' THEN 0 ELSE 1 END), started_at DESC
+                            LIMIT 1;
+                        """, (tenant_id,))
+                        row = cur.fetchone()
+                        if row:
+                            return _format_run_progress_row(row)
+
+                    # Global run fallback (or when tenant_id is None)
+                    cur.execute(f"""
+                        {base_select}
+                        WHERE tenant_id IS NULL
                         ORDER BY (CASE WHEN status = 'running' THEN 0 ELSE 1 END), started_at DESC
                         LIMIT 1;
-                    """
-                    cur.execute(query, (tenant_id, tenant_id))
+                    """)
                     row = cur.fetchone()
                     if row:
-                        return {
-                            "run_id": str(row[0]),
-                            "tenant_id": str(row[1]) if row[1] else None,
-                            "status": row[2],
-                            "current_phase": row[3],
-                            "progress_message": row[4],
-                            "total_companies": row[5],
-                            "completed_companies": row[6],
-                            "completed_company_names": row[7] if isinstance(row[7], list) else (json.loads(row[7]) if row[7] else []),
-                            "current_company": row[8],
-                            "total_sources": row[9],
-                            "completed_sources": row[10],
-                            "source_health": row[11] if isinstance(row[11], dict) else (json.loads(row[11]) if row[11] else {}),
-                            "source_errors": row[12] if isinstance(row[12], dict) else (json.loads(row[12]) if row[12] else {}),
-                            "first_visible_data_at": row[13].isoformat() if hasattr(row[13], "isoformat") else (str(row[13]) if row[13] else None),
-                            "time_to_first_data_seconds": float(row[14]) if row[14] is not None else None,
-                            "is_first_run": bool(row[15]),
-                            "started_at": row[16].isoformat() if hasattr(row[16], "isoformat") else str(row[16]),
-                            "updated_at": row[17].isoformat() if hasattr(row[17], "isoformat") else str(row[17]),
-                            "completed_at": row[18].isoformat() if hasattr(row[18], "isoformat") else (str(row[18]) if row[18] else None),
-                            "total_duration_seconds": float(row[19]) if row[19] is not None else None,
-                        }
+                        return _format_run_progress_row(row)
         except Exception as e:
             logger.warning(f"Failed to query pipeline_run_progress from Postgres: {e}")
 
     # 2. In-memory fallback
-    matches = [
-        r for r in _IN_MEMORY_RUN_PROGRESS.values()
-        if tenant_id is None or r.get("tenant_id") == tenant_id or r.get("tenant_id") is None
-    ]
-    if matches:
-        sorted_runs = sorted(matches, key=lambda x: (0 if x.get("status") == "running" else 1, x.get("started_at", "")), reverse=False)
+    now = datetime.now(timezone.utc)
+    for r in _IN_MEMORY_RUN_PROGRESS.values():
+        if r.get("status") == "running" and r.get("started_at"):
+            try:
+                st = datetime.fromisoformat(r["started_at"])
+                if (now - st).total_seconds() > 1800:
+                    r["status"] = "timed_out"
+                    r["current_phase"] = "timed_out"
+                    r["progress_message"] = "Monitoring run timed out after 30 minutes"
+            except Exception:
+                pass
+
+    if tenant_id:
+        tenant_runs = [r for r in _IN_MEMORY_RUN_PROGRESS.values() if r.get("tenant_id") == tenant_id]
+        if tenant_runs:
+            sorted_runs = sorted(
+                tenant_runs,
+                key=lambda x: (0 if x.get("status") == "running" else 1, x.get("started_at", "")),
+                reverse=False,
+            )
+            return sorted_runs[0]
+
+    global_runs = [r for r in _IN_MEMORY_RUN_PROGRESS.values() if r.get("tenant_id") is None]
+    if global_runs:
+        sorted_runs = sorted(
+            global_runs,
+            key=lambda x: (0 if x.get("status") == "running" else 1, x.get("started_at", "")),
+            reverse=False,
+        )
         return sorted_runs[0]
 
     return None
