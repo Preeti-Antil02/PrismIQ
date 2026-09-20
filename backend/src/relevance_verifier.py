@@ -454,8 +454,17 @@ def verify_news_relevance(
     comp_clean = comp.strip()
     full_text = f"{t} {e} {u}".lower()
 
-    # Look up company profile in registry
-    profile = COMPANY_REGISTRY.get(comp_clean)
+    # Parse parenthetical qualifier if present (e.g. "Amazon (India)" -> base="Amazon", qualifier="India")
+    m_paren = re.match(r"^([^(]+)\s*\(([^)]+)\)$", comp_clean)
+    if m_paren:
+        base_name = m_paren.group(1).strip()
+        qualifier = m_paren.group(2).strip()
+    else:
+        base_name = comp_clean
+        qualifier = None
+
+    # Look up company profile in registry (exact name, or base name if qualified)
+    profile = COMPANY_REGISTRY.get(comp_clean) or (COMPANY_REGISTRY.get(base_name) if qualifier else None)
 
     # 1. Direct domain match (High confidence verification)
     if profile:
@@ -475,7 +484,7 @@ def verify_news_relevance(
         is_common = profile.get("is_common_word", False)
     else:
         # Fallback check against known common-noun words
-        first_word = comp_clean.lower().split()[0] if comp_clean else ""
+        first_word = base_name.lower().split()[0] if base_name else ""
         is_common = first_word in COMMON_ENGLISH_NOUNS
 
     # 4. Common-Word Company Disambiguation
@@ -512,14 +521,27 @@ def verify_news_relevance(
 
         return True, f"Verified: Contextual match with business terms {matched_biz[:2]}"
 
-    # 5. Non-Common Coined Company Names (e.g. Vercel, Netlify)
+    # 5. Non-Common Coined Company Names & Qualified Entities (e.g. Vercel, Netlify, Amazon (India))
     # Distinctive proper nouns with no dictionary meaning have negligible chance of generic collision.
     comp_pattern = r"\b" + re.escape(comp_clean.lower()) + r"\b"
     if re.search(comp_pattern, full_text):
         return True, f"Verified: Distinctive coined company name '{comp_clean}' match"
 
+    # Qualified / parenthetical match (e.g. "Amazon" in text, and "India" in text)
+    if qualifier and base_name:
+        base_pattern = r"\b" + re.escape(base_name.lower()) + r"\b"
+        if re.search(base_pattern, full_text):
+            qual_pattern = r"\b" + re.escape(qualifier.lower()) + r"\b"
+            if re.search(qual_pattern, full_text):
+                return True, f"Verified: Qualified entity match '{base_name}' ({qualifier})"
+            if base_name.lower() not in COMMON_ENGLISH_NOUNS:
+                return True, f"Preserved: Base company name '{base_name}' match"
+
     # Default fallback: If company name appears at all, preserve conservatively
     if comp_clean.lower() in full_text:
         return True, "Preserved: Company name present (conservative bias)"
+
+    if qualifier and base_name and base_name.lower() in full_text and base_name.lower() not in COMMON_ENGLISH_NOUNS:
+        return True, f"Preserved: Base company name '{base_name}' present (conservative bias)"
 
     return False, f"Suppressed: Company name '{comp_clean}' not found in article text"
