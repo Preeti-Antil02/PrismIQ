@@ -322,9 +322,17 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
 
     # Phase 1: Ingest shared domain research items across all active tenant topics
     try:
-        topic_research_items = monitoring_agent.fetch_topic_research_items(days=14)
+        active_topics = []
+        for t in tenants:
+            for top in t.get("topics", []):
+                if top not in active_topics:
+                    active_topics.append(top)
+        topic_research_items = monitoring_agent.fetch_topic_research_items(
+            topics=active_topics if active_topics else None,
+            days=14,
+        )
         if topic_research_items:
-            logger.info(f"Phase 1: Ingested {len(topic_research_items)} global domain research items across active topics.")
+            logger.info(f"Phase 1: Ingested {len(topic_research_items)} domain research items across active topics.")
     except Exception as e:
         logger.warning(f"Failed to fetch global topic research items: {e}")
 
@@ -345,6 +353,13 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
 def noise_suppression_node(state: PipelineState) -> Dict[str, Any]:
     """Filters true raw noise upstream and persists suppression decisions globally."""
     logger.info("LangGraph Node 3/8 (Phase 1): Noise Suppression - Filtering low-value raw noise...")
+    run_id = state.get("run_id")
+    if run_id:
+        storage.update_pipeline_progress(
+            run_id,
+            phase="filtering_noise",
+            message="Filtering low-value raw noise...",
+        )
     if state.get("kept_signals") is not None:
         return {
             "kept_signals": state.get("kept_signals", []),
@@ -375,6 +390,13 @@ def event_consolidation_node(state: PipelineState) -> Dict[str, Any]:
     Computes single canonical fact_confidence on consolidated_events per Option A schema.
     """
     logger.info("LangGraph Node 4/8 (Phase 1): Event Consolidation - Clustering signals into canonical events...")
+    run_id = state.get("run_id")
+    if run_id:
+        storage.update_pipeline_progress(
+            run_id,
+            phase="consolidating_events",
+            message="Clustering signals into canonical events...",
+        )
     phase_timing = dict(state.get("phase_timing") or {})
     phase_timing["phase1_end"] = time.time()
     phase1_dur = phase_timing["phase1_end"] - phase_timing.get("phase1_start", phase_timing["phase1_end"])
@@ -466,7 +488,14 @@ def analysis_node(state: PipelineState) -> Dict[str, Any]:
 def synthesis_node(state: PipelineState) -> Dict[str, Any]:
     """Performs cross-competitor theme rollups and pattern detection per active tenant."""
     logger.info("LangGraph Node 6/8 (Phase 2): Synthesis - Cross-competitor theme and pattern rollup per tenant...")
+    run_id = state.get("run_id")
     tenant_results = dict(state.get("tenant_results") or {})
+    if run_id:
+        storage.update_pipeline_progress(
+            run_id,
+            phase="synthesizing",
+            message=f"Cross-competitor theme rollups and pattern detection for {len(tenant_results)} tenants...",
+        )
     phase_timing = dict(state.get("phase_timing") or {})
     owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
     primary_synthesis: Dict[str, Any] = {}
@@ -499,7 +528,14 @@ def synthesis_node(state: PipelineState) -> Dict[str, Any]:
 def report_node(state: PipelineState) -> Dict[str, Any]:
     """Renders executive brief per tenant with tenant-scoped research activity change detection."""
     logger.info("LangGraph Node 7/8 (Phase 2): Report - Generating executive markdown brief per tenant...")
+    run_id = state.get("run_id")
     tenant_results = dict(state.get("tenant_results") or {})
+    if run_id:
+        storage.update_pipeline_progress(
+            run_id,
+            phase="generating_brief",
+            message=f"Generating executive brief and research radar for {len(tenant_results)} tenants...",
+        )
     phase_timing = dict(state.get("phase_timing") or {})
     supervisor_decisions = state.get("supervisor_decisions", {})
     source_health = state.get("source_health", {})
