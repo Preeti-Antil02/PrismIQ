@@ -212,3 +212,69 @@ def test_amazon_india_currency_investment_prevents_false_negative():
     is_rel, reason = verify_news_relevance(signal)
     assert is_rel
     assert "Verified" in reason
+
+
+def test_common_noun_stopgap_suppresses_unanchored_dictionary_words():
+    """Verify single dictionary words without registry profile or domain anchor are suppressed by stopgap."""
+    # Place: idiom / common verb
+    place_sig = {
+        "company": "Place",
+        "title": "'I want even bigger action scenes': Neagley season 2 already has plans in place despite no renewal",
+        "url": "https://techradar.com/streaming/amazon-prime-video/neagley-season-2-update",
+        "raw_excerpt": "there are plans in place.",
+    }
+    is_rel, reason = verify_news_relevance(place_sig)
+    assert not is_rel
+    assert "Stopgap protection" in reason
+    assert "Common-noun dictionary word 'Place'" in reason
+
+    # Carousel: baggage carousel / UI widget
+    carousel_sig = {
+        "company": "Carousel",
+        "title": "Vietnamese woman arrested for stealing luggage from baggage carousel at airport",
+        "url": "https://e.vnexpress.net/news/news/crime/luggage-theft",
+        "raw_excerpt": "stealing a luxury suitcase from a baggage carousel at Suvarnabhumi airport",
+    }
+    is_rel, reason = verify_news_relevance(carousel_sig)
+    assert not is_rel
+    assert "Stopgap protection" in reason
+    assert "Common-noun dictionary word 'Carousel'" in reason
+
+    # Segment: UN assembly meeting segment
+    segment_sig = {
+        "company": "Segment",
+        "title": "North Korean vice foreign minister to attend UN General assembly",
+        "url": "https://thestar.com.my/news/world/un-assembly",
+        "raw_excerpt": "plans to attend a high-level segment of the United Nations General Assembly",
+    }
+    is_rel, reason = verify_news_relevance(segment_sig)
+    assert not is_rel
+    assert "Stopgap protection" in reason
+
+
+def test_common_noun_with_domain_anchor_passes_verification():
+    """Verify single dictionary words pass if an official domain anchor is present."""
+    anchored_sig = {
+        "company": "Place",
+        "primary_domain": "place.com",
+        "title": "Real estate technology platform Place announces Series B expansion",
+        "url": "https://place.com/press/series-b-expansion",
+        "raw_excerpt": "Place announced a new funding round to scale its brokerage operations.",
+    }
+    is_rel, reason = verify_news_relevance(anchored_sig)
+    assert is_rel
+    assert "Verified: Direct primary domain match 'place.com'" in reason
+
+
+def test_anthropic_registered_profile_verifies():
+    """Verify Anthropic AI signals pass via canonical COMPANY_REGISTRY profile."""
+    anthropic_sig = {
+        "company": "Anthropic",
+        "title": "Anthropic launches Claude 3.5 Sonnet with enhanced agentic reasoning capabilities",
+        "url": "https://techcrunch.com/2026/09/anthropic-claude-3-5-sonnet",
+        "raw_excerpt": "Dario Amodei announced major performance gains in complex code generation.",
+    }
+    is_rel, reason = verify_news_relevance(anthropic_sig)
+    assert is_rel
+    assert "Verified" in reason
+

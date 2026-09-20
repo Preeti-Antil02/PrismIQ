@@ -405,6 +405,30 @@ COMPANY_REGISTRY: Dict[str, Dict[str, Any]] = {
         ],
         "negative_indicators": [],
     },
+    "Anthropic": {
+        "is_common_word": False,
+        "domains": [
+            "anthropic.com",
+        ],
+        "branded_terms": [
+            r"\bclaude\b",
+            r"\bamodei\b",
+            r"\bdario\s+amodei\b",
+            r"\bconstitutional\s+ai\b",
+            r"\bprompt\s+caching\b",
+            r"\banthropic\s+(?:ai|api|model|claude|research)\b",
+        ],
+        "business_context": [
+            r"\bartificial\s+intelligence\b",
+            r"\bai\b",
+            r"\bllms?\b",
+            r"\bfrontier\s+models?\b",
+            r"\blarge\s+language\s+models?\b",
+            r"\breasoning\b",
+            r"\bsafety\b",
+        ],
+        "negative_indicators": [],
+    },
 }
 
 # Aliases for Cloudflare variants
@@ -417,7 +441,81 @@ COMMON_ENGLISH_NOUNS = {
     "stripe", "gobble", "square", "box", "apple", "target", "block",
     "nest", "ring", "clover", "scale", "ramp", "branch", "blend",
     "anchor", "bolt", "glide", "drift", "ember", "beacon", "roast",
+    "place", "carousel", "segment",
 }
+
+# Dictionary word initialization with WordNet & NLTK Words + Fallback
+_WORDNET_AVAILABLE: Optional[bool] = None
+_NLTK_WORDS_AVAILABLE: Optional[bool] = None
+_WORDNET_CORPUS: Any = None
+_NLTK_WORDS_CORPUS: Optional[set] = None
+
+
+def _init_dictionary_corpora() -> None:
+    """Lazily initialize dictionary corpora for robust common-word detection."""
+    global _WORDNET_AVAILABLE, _NLTK_WORDS_AVAILABLE, _WORDNET_CORPUS, _NLTK_WORDS_CORPUS
+    if _WORDNET_AVAILABLE is not None:
+        return
+    try:
+        from nltk.corpus import wordnet
+        _ = wordnet.synsets("test")
+        _WORDNET_CORPUS = wordnet
+        _WORDNET_AVAILABLE = True
+    except Exception:
+        try:
+            import nltk
+            nltk.download("wordnet", quiet=True)
+            from nltk.corpus import wordnet
+            _ = wordnet.synsets("test")
+            _WORDNET_CORPUS = wordnet
+            _WORDNET_AVAILABLE = True
+        except Exception:
+            _WORDNET_AVAILABLE = False
+
+    try:
+        from nltk.corpus import words
+        _NLTK_WORDS_CORPUS = set(w.lower() for w in words.words())
+        _NLTK_WORDS_AVAILABLE = True
+    except Exception:
+        try:
+            import nltk
+            nltk.download("words", quiet=True)
+            from nltk.corpus import words
+            _NLTK_WORDS_CORPUS = set(w.lower() for w in words.words())
+            _NLTK_WORDS_AVAILABLE = True
+        except Exception:
+            _NLTK_WORDS_AVAILABLE = False
+
+
+def is_dictionary_word(name: str) -> bool:
+    """
+    Check if a company name is a single standard English dictionary word.
+    Uses WordNet synset inspection and NLTK words corpus with offline fallback.
+    """
+    if not name:
+        return False
+    clean = name.strip()
+    # If entity has spaces, hyphens, or qualifiers, it's not a bare single dictionary word
+    if len(clean.split()) > 1 or "(" in clean or ")" in clean or "-" in clean or "/" in clean:
+        return False
+
+    clean_lower = clean.lower()
+    _init_dictionary_corpora()
+
+    if _WORDNET_AVAILABLE and _WORDNET_CORPUS:
+        try:
+            syns = _WORDNET_CORPUS.synsets(clean_lower)
+            if syns:
+                return True
+        except Exception:
+            pass
+
+    if _NLTK_WORDS_AVAILABLE and _NLTK_WORDS_CORPUS:
+        if clean_lower in _NLTK_WORDS_CORPUS:
+            return True
+
+    return clean_lower in COMMON_ENGLISH_NOUNS
+
 
 # Regional / domain expansions for parenthetical qualifiers
 # Allows regional qualifiers (e.g. "India") to match canonical demonyms ("Indian"),
@@ -458,11 +556,13 @@ def verify_news_relevance(
         t = signal_or_text.get("title", "")
         e = signal_or_text.get("raw_excerpt", "")
         u = signal_or_text.get("url", "")
+        primary_domain = signal_or_text.get("primary_domain") or signal_or_text.get("domain") or ""
     else:
         comp = company or ""
         t = title or str(signal_or_text)
         e = excerpt
         u = url
+        primary_domain = ""
 
     comp_clean = comp.strip()
     full_text = f"{t} {e} {u}".lower()
@@ -485,6 +585,9 @@ def verify_news_relevance(
             if dom in full_text:
                 return True, f"Verified: Direct domain match '{dom}'"
 
+    if primary_domain and primary_domain.lower() in full_text:
+        return True, f"Verified: Direct primary domain match '{primary_domain}'"
+
     # 2. Specific branded terms and executive names (High confidence verification)
     if profile:
         for brand_pat in profile.get("branded_terms", []):
@@ -496,12 +599,16 @@ def verify_news_relevance(
     if profile:
         is_common = profile.get("is_common_word", False)
     else:
-        # Fallback check against known common-noun words
-        first_word = base_name.lower().split()[0] if base_name else ""
-        is_common = first_word in COMMON_ENGLISH_NOUNS
+        is_common = is_dictionary_word(base_name)
 
-    # 4. Common-Word Company Disambiguation
-    if is_common:
+    # 4. Common-Word Company Disambiguation & Stopgap Protection
+    if is_common and not qualifier:
+        # PART 1 STOPGAP: If a single dictionary word lacks an explicit registry profile
+        # or domain anchor, immediately suppress news signals at the noise-suppression layer.
+        # Do NOT let coined proper noun matching apply to plain English words.
+        if not profile and not primary_domain:
+            return False, f"Suppressed: Common-noun dictionary word '{comp_clean}' without registry profile or domain anchor (Stopgap protection)"
+
         # Step 4a: Check negative indicators (known idioms, fashion, clothing, animal stripes, etc.)
         neg_indicators = profile.get("negative_indicators", []) if profile else []
         matched_neg = None
