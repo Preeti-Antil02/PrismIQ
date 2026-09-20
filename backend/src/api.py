@@ -1073,6 +1073,8 @@ def list_events(
                     AND ce.contributing_sources = '["jobs"]'::jsonb
                     AND NOT ce.title ~* '(vp|vice president|director|head of|chief|principal|fellow)'
                   )
+                  AND COALESCE(f.tier, '') != 'quarantined'
+                  AND COALESCE(ce.fact_confidence, '') != 'Quarantined'
                 """
 
             if company_val:
