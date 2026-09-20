@@ -678,20 +678,22 @@ def save_discovery_proposal(
                 prop_id_row = cur.fetchone()
                 prop_id = prop_id_row[0] if prop_id_row else "00000000-0000-0000-0000-000000000000"
 
-                # Insert candidates
+                # Insert candidates with domain and category
                 dc_sql = """
                     INSERT INTO discovery_candidates (
                         tenant_id, proposal_id, target_company, name, rationale, confidence,
-                        source, source_age, source_date, freshness_note, status
+                        source, source_age, source_date, freshness_note, status, domain, category
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (tenant_id, target_company, name, source) DO UPDATE
                     SET rationale = EXCLUDED.rationale,
                         confidence = EXCLUDED.confidence,
                         source_age = EXCLUDED.source_age,
                         source_date = EXCLUDED.source_date,
                         freshness_note = EXCLUDED.freshness_note,
-                        status = EXCLUDED.status;
+                        status = EXCLUDED.status,
+                        domain = COALESCE(EXCLUDED.domain, discovery_candidates.domain),
+                        category = COALESCE(EXCLUDED.category, discovery_candidates.category);
                 """
                 dc_params = []
                 for c in candidates:
@@ -708,7 +710,9 @@ def save_discovery_proposal(
                         c.get("confidence", "Low"), c.get("source", ""),
                         c.get("source_age", "undated"),
                         str(c.get("source_date")) if c.get("source_date") else None,
-                        c.get("freshness_note"), c.get("status", "proposed")
+                        c.get("freshness_note"), c.get("status", "proposed"),
+                        c.get("domain") or c.get("primary_domain"),
+                        c.get("category") or c.get("industry_category")
                     ))
                 _execute_batch(cur, dc_sql, dc_params, page_size=50)
                 logger.info(f"Dual-write: persisted discovery proposal and {len(dc_params)} candidates for tenant {tid} to PostgreSQL.")
@@ -798,21 +802,37 @@ def save_tenant_confirmed_companies(
     tenant_id: str,
     target_company: str,
     confirmed_competitors: List[str],
+    competitor_metadata: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Write confirmed onboarding company selection directly into tenant_tracked_companies.
-    1. Inserts target company as is_target = TRUE, status = 'active'.
-    2. Inserts confirmed competitors as is_target = FALSE, status = 'active'.
-    3. Ensures companies exist in global canonical registry.
-    4. Updates discovery_candidates status to 'confirmed' for selected, 'rejected' for omitted.
+    1. Inserts target company as is_target = TRUE, status = 'active' with domain/category.
+    2. Inserts confirmed competitors as is_target = FALSE, status = 'active' with domain/category.
+    3. Inherits domain and category from discovery_candidates or competitor_metadata.
+    4. Ensures companies exist in global canonical registry.
+    5. Updates discovery_candidates status to 'confirmed' for selected, 'rejected' for omitted.
     """
     tid = str(tenant_id).strip()
     target = str(target_company).strip()
     competitors = [str(c).strip() for c in confirmed_competitors if str(c).strip()]
     now_dt = datetime.now(timezone.utc)
+    meta_map = competitor_metadata or {}
 
     # 1. Primary PostgreSQL Write
     with get_db_cursor() as cur:
+        # Fetch candidate metadata from discovery_candidates if available
+        candidate_meta: Dict[str, Dict[str, str]] = {}
+        try:
+            cur.execute("""
+                SELECT LOWER(name), domain, category
+                FROM discovery_candidates
+                WHERE tenant_id = %s AND (domain IS NOT NULL OR category IS NOT NULL);
+            """, (tid,))
+            for row in cur.fetchall():
+                candidate_meta[row[0]] = {"domain": row[1], "category": row[2]}
+        except Exception:
+            pass
+
         # Ensure target company in companies registry
         cur.execute(
             "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
@@ -834,14 +854,21 @@ def save_tenant_confirmed_companies(
             WHERE tenant_id = %s AND is_target = TRUE AND company_name != %s AND status = 'active';
         """, (now_dt, tid, target))
 
-        # Upsert target company into tenant_tracked_companies
+        # Upsert target company into tenant_tracked_companies with domain/category
+        target_meta = meta_map.get(target) or candidate_meta.get(target.lower()) or {}
+        target_domain = target_meta.get("domain") or target_meta.get("primary_domain")
+        target_cat = target_meta.get("category") or target_meta.get("industry_category")
+
         target_ttc_sql = """
-            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
-            VALUES (%s, %s, TRUE, 'active', %s, %s)
+            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, added_at, updated_at)
+            VALUES (%s, %s, TRUE, 'active', %s, %s, %s, %s)
             ON CONFLICT (tenant_id, company_name) DO UPDATE
-            SET is_target = TRUE, status = 'active', updated_at = EXCLUDED.updated_at;
+            SET is_target = TRUE, status = 'active',
+                primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
+                industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
+                updated_at = EXCLUDED.updated_at;
         """
-        cur.execute(target_ttc_sql, (tid, target, now_dt, now_dt))
+        cur.execute(target_ttc_sql, (tid, target, target_domain, target_cat, now_dt, now_dt))
 
         # Archive any competitors previously active for this tenant that are not in the new confirmed list
         if competitors:
@@ -857,14 +884,22 @@ def save_tenant_confirmed_companies(
                 WHERE tenant_id = %s AND NOT is_target AND status = 'active';
             """, (now_dt, tid))
 
-        # Upsert confirmed competitors into tenant_tracked_companies
+        # Upsert confirmed competitors into tenant_tracked_companies with domain/category
         comp_ttc_sql = """
-            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
-            VALUES (%s, %s, FALSE, 'active', %s, %s)
+            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, added_at, updated_at)
+            VALUES (%s, %s, FALSE, 'active', %s, %s, %s, %s)
             ON CONFLICT (tenant_id, company_name) DO UPDATE
-            SET is_target = FALSE, status = 'active', updated_at = EXCLUDED.updated_at;
+            SET is_target = FALSE, status = 'active',
+                primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
+                industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
+                updated_at = EXCLUDED.updated_at;
         """
-        ttc_params = [(tid, c, now_dt, now_dt) for c in competitors]
+        ttc_params = []
+        for c in competitors:
+            c_meta = meta_map.get(c) or candidate_meta.get(c.lower()) or {}
+            c_dom = c_meta.get("domain") or c_meta.get("primary_domain")
+            c_cat = c_meta.get("category") or c_meta.get("industry_category")
+            ttc_params.append((tid, c, c_dom, c_cat, now_dt, now_dt))
         _execute_batch(cur, comp_ttc_sql, ttc_params, page_size=50)
 
         # Update candidate statuses in discovery_candidates if present
@@ -884,9 +919,9 @@ def save_tenant_confirmed_companies(
         logger.info(f"Persisted confirmed tracked companies for tenant {tid}: target={target}, competitors={competitors}")
 
     # Return structured tracked companies
-    tracked = [{"company_name": target, "is_target": True, "status": "active"}]
-    for c in competitors:
-        tracked.append({"company_name": c, "is_target": False, "status": "active"})
+    tracked = [{"company_name": target, "is_target": True, "status": "active", "primary_domain": target_domain, "industry_category": target_cat}]
+    for c, param in zip(competitors, ttc_params):
+        tracked.append({"company_name": c, "is_target": False, "status": "active", "primary_domain": param[2], "industry_category": param[3]})
 
     # 2. Parity flat-file write
     save_confirmed_competitors(target, competitors)
@@ -930,28 +965,43 @@ def untrack_tenant_company(tenant_id: str, company_name: str) -> bool:
     return rowcount > 0
 
 
-def track_tenant_company(tenant_id: str, company_name: str, is_target: bool = False) -> Dict[str, Any]:
+def track_tenant_company(
+    tenant_id: str,
+    company_name: str,
+    is_target: bool = False,
+    primary_domain: Optional[str] = None,
+    industry_category: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Add or reactivate a tracked company for a tenant under RLS.
+    Add or reactivate a tracked company for a tenant under RLS, with optional domain anchor.
     """
     tid = str(tenant_id).strip()
     comp = str(company_name).strip()
+    dom = str(primary_domain).strip().lower() if primary_domain else None
+    cat = str(industry_category).strip() if industry_category else None
     now_dt = datetime.now(timezone.utc)
+
     with get_db_cursor() as cur:
         cur.execute("INSERT INTO companies (name, status) VALUES (%s, 'confirmed') ON CONFLICT (name) DO NOTHING;", (comp,))
         cur.execute("""
-            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, added_at, updated_at)
-            VALUES (%s, %s, %s, 'active', %s, %s)
+            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, added_at, updated_at)
+            VALUES (%s, %s, %s, 'active', %s, %s, %s, %s)
             ON CONFLICT (tenant_id, company_name) DO UPDATE
-            SET is_target = EXCLUDED.is_target, status = 'active', updated_at = EXCLUDED.updated_at
-            RETURNING company_name, is_target, status, added_at;
-        """, (tid, comp, is_target, now_dt, now_dt))
+            SET is_target = EXCLUDED.is_target,
+                status = 'active',
+                primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
+                industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
+                updated_at = EXCLUDED.updated_at
+            RETURNING company_name, is_target, status, primary_domain, industry_category, added_at;
+        """, (tid, comp, is_target, dom, cat, now_dt, now_dt))
         row = cur.fetchone()
         entry = {
-            "company_name": row[0] if (row and len(row) > 0 and row[0] != "00000000-0000-0000-0000-000000000000") else comp,
-            "is_target": row[1] if (row and len(row) > 1) else is_target,
-            "status": row[2] if (row and len(row) > 2) else "active",
-            "added_at": row[3].isoformat() if (row and len(row) > 3 and hasattr(row[3], "isoformat")) else now_dt.isoformat(),
+            "company_name": row[0] if row else comp,
+            "is_target": row[1] if row else is_target,
+            "status": row[2] if row else "active",
+            "primary_domain": row[3] if row else dom,
+            "industry_category": row[4] if row else cat,
+            "added_at": row[5].isoformat() if (row and hasattr(row[5], "isoformat")) else now_dt.isoformat(),
         }
 
     # Parity local file update
