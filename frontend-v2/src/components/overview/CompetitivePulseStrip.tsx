@@ -12,6 +12,8 @@ export interface CompetitivePulseItem {
   meaningfulMovement: string;
   domain: string;
   accentColor?: string;
+  status?: "verified" | "ingested" | "pending";
+  signalCount?: number;
 }
 
 interface CompetitivePulseStripProps {
@@ -58,7 +60,11 @@ export function CompetitivePulseStrip({ movements }: CompetitivePulseStripProps)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {movements.map((c, i) => {
           const accentColor =
-            i === 0
+            c.status === "pending"
+              ? "rgba(255, 180, 90, 0.4)"
+              : c.status === "ingested"
+              ? "var(--cyan)"
+              : i === 0
               ? "var(--cyan)"
               : i === 1
               ? "var(--magenta)"
@@ -106,21 +112,26 @@ export function CompetitivePulseStrip({ movements }: CompetitivePulseStripProps)
                 </div>
 
                 {/* Movement text */}
-                <p className="text-xs text-[#b8b8c2] leading-relaxed line-clamp-2 group-hover:text-white/90 transition-colors">
+                <p className={cn(
+                  "text-xs leading-relaxed line-clamp-2 transition-colors",
+                  c.status === "pending" ? "text-[#7a7b85] italic" : "text-[#b8b8c2] group-hover:text-white/90"
+                )}>
                   {c.meaningfulMovement}
                 </p>
               </div>
 
-              {/* Bottom: Domain Category with glowing dot */}
+              {/* Bottom: Domain Category with status indicator */}
               <div className="pt-3 mt-3 border-t border-white/[0.04] flex items-center gap-1.5 text-[10px] font-mono text-[#8e8f9a]">
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{
-                    backgroundColor: accentColor,
-                    boxShadow: `0 0 8px ${accentColor}`,
+                    backgroundColor: c.status === "pending" ? "rgba(255, 180, 90, 0.6)" : accentColor,
+                    boxShadow: c.status === "pending" ? "none" : `0 0 8px ${accentColor}`,
                   }}
                 />
-                <span className="truncate">{c.domain}</span>
+                <span className={cn("truncate", c.status === "pending" && "text-amber-300/70 font-semibold")}>
+                  {c.domain}
+                </span>
               </div>
             </div>
           );
