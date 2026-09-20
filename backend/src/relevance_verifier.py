@@ -521,27 +521,73 @@ def verify_news_relevance(
 
         return True, f"Verified: Contextual match with business terms {matched_biz[:2]}"
 
-    # 5. Non-Common Coined Company Names & Qualified Entities (e.g. Vercel, Netlify, Amazon (India))
+    # 5. Qualified Entities (e.g. "Amazon (India)")
+    # When a regional/domain qualifier is specified, require bounded co-occurrence
+    if qualifier and base_name:
+        base_lower = base_name.lower()
+        qual_lower = qualifier.lower()
+        base_pat = r"\b" + re.escape(base_lower) + r"\b"
+        qual_pat = r"\b" + re.escape(qual_lower) + r"\b"
+
+        # Check if base company name is present in article text
+        if not re.search(base_pat, full_text):
+            return False, f"Suppressed: Base company name '{base_name}' not found in article text"
+
+        # Geographical / environmental homonym guard (specifically for Amazon)
+        if base_lower == "amazon":
+            geo_negative_patterns = [
+                r"\brainforest\b", r"\bdeforestation\b", r"\bamazon\s+basin\b",
+                r"\bamazon\s+river\b", r"\bel\s+niño\b", r"\bwildfires?\b",
+            ]
+            biz_patterns = [
+                r"\be-?commerce\b", r"\bretail\b", r"\bprime\b", r"\balexa\b",
+                r"\bcloud\b", r"\baws\b", r"\bmarketplace\b", r"\bnow\b",
+                r"\bquick\s+commerce\b", r"\bdeliver(?:y|ies)\b", r"\bsales\b",
+            ]
+            has_geo_neg = any(re.search(pat, full_text) for pat in geo_negative_patterns)
+            has_biz = any(re.search(pat, full_text) for pat in biz_patterns)
+            if has_geo_neg and not has_biz:
+                return False, "Suppressed: Amazon geographical/environmental context (rainforest/river/weather) without commercial operations"
+
+        # Bounded association check:
+        # A qualifier like (India) requires direct or bounded association with the base company:
+        # Condition A: Direct compound phrase (e.g. "Amazon India", "Amazon's India", "Amazon in India", "Amazon to India")
+        direct_compound = re.search(
+            r"\b" + re.escape(base_lower) + r"(?:['’]s)?\s+(?:in\s+|to\s+|,\s+)?\b" + re.escape(qual_lower) + r"\b",
+            full_text
+        )
+        if direct_compound:
+            return True, f"Verified: Direct qualified entity compound '{base_name} {qualifier}' match"
+
+        # Condition B: Both base and qualifier present in headline (title)
+        if re.search(base_pat, t.lower()) and re.search(qual_pat, t.lower()):
+            return True, f"Verified: Qualified entity pairing in title '{base_name}' and '{qualifier}'"
+
+        # Condition C: Bounded sentence-level co-occurrence (within same sentence, max 120 characters)
+        bounded_same_sentence = re.search(
+            r"\b" + re.escape(base_lower) + r"\b[^.?!;\n]{0,120}\b" + re.escape(qual_lower) + r"\b",
+            full_text
+        ) or re.search(
+            r"\b" + re.escape(qual_lower) + r"\b[^.?!;\n]{0,120}\b" + re.escape(base_lower) + r"\b",
+            full_text
+        )
+        if bounded_same_sentence:
+            return True, f"Verified: Bounded sentence co-occurrence of '{base_name}' and '{qualifier}'"
+
+        # Condition D: If qualifier is in URL domain or path (e.g. amazon.in or /india/)
+        if f"{base_lower}.in" in u or f"/{qual_lower}/" in u:
+            return True, f"Verified: Regional URL attribution for '{base_name}' ({qualifier})"
+
+        return False, f"Suppressed: Base company '{base_name}' present but lacks bounded association with qualifier '{qualifier}'"
+
+    # 6. Non-Common Coined Company Names (e.g. Vercel, Netlify)
     # Distinctive proper nouns with no dictionary meaning have negligible chance of generic collision.
     comp_pattern = r"\b" + re.escape(comp_clean.lower()) + r"\b"
     if re.search(comp_pattern, full_text):
         return True, f"Verified: Distinctive coined company name '{comp_clean}' match"
 
-    # Qualified / parenthetical match (e.g. "Amazon" in text, and "India" in text)
-    if qualifier and base_name:
-        base_pattern = r"\b" + re.escape(base_name.lower()) + r"\b"
-        if re.search(base_pattern, full_text):
-            qual_pattern = r"\b" + re.escape(qualifier.lower()) + r"\b"
-            if re.search(qual_pattern, full_text):
-                return True, f"Verified: Qualified entity match '{base_name}' ({qualifier})"
-            if base_name.lower() not in COMMON_ENGLISH_NOUNS:
-                return True, f"Preserved: Base company name '{base_name}' match"
-
     # Default fallback: If company name appears at all, preserve conservatively
     if comp_clean.lower() in full_text:
         return True, "Preserved: Company name present (conservative bias)"
-
-    if qualifier and base_name and base_name.lower() in full_text and base_name.lower() not in COMMON_ENGLISH_NOUNS:
-        return True, f"Preserved: Base company name '{base_name}' present (conservative bias)"
 
     return False, f"Suppressed: Company name '{comp_clean}' not found in article text"
