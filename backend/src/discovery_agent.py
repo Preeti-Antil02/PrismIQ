@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import sys
+import threading
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -34,6 +35,17 @@ DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 VALID_CONFIDENCE_LEVELS = {"High", "Medium", "Low"}
 VALID_SOURCE_AGES = {"recent", "dated", "undated"}
 
+# Groq Daily Token Budget Tracking & Alerting Configuration (200k TPD ceiling)
+GROQ_DAILY_TOKEN_LIMIT = 200000
+GROQ_TOKEN_WARNING_THRESHOLD = 0.80  # 80% = 160,000 tokens
+_TOKEN_USAGE_LOCK = threading.Lock()
+_DAILY_TOKEN_USAGE: Dict[str, Any] = {
+    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+    "tokens_used": 0,
+    "last_updated": datetime.now(timezone.utc).isoformat(),
+    "warning_logged": False,
+}
+
 DISCOVERY_SYSTEM_PROMPT = """You are a senior competitive intelligence analyst for PrismIQ.
 Given a target company and a set of retrieved, verified sources (technical writeups, comparisons, repositories, news, and encyclopedia articles), your job is to identify, rank, and return candidate competitors.
 
@@ -56,7 +68,7 @@ GUARDRAILS (STRICT):
 2. Grounding & Zero Hallucination: Every suggested candidate competitor MUST be explicitly supported by and traceable to at least one of the provided retrieved sources. If a company is not mentioned or supported in the retrieved sources, do NOT include it.
 3. No Cherry-Picking / Distortion: State the competitive relationship accurately based on what the source documents.
 4. INCLUSIVENESS, FRESHNESS CALIBRATION & GROUNDING STANDARD:
-   - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit or prune older or smaller competitors (e.g. Wavefront, SignalFX, WePay, Paymill, Place, EAB, EverCommerce); include them so the human reviewer can inspect and confirm or reject them.
+   - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit or prune older or smaller competitors (e.g. Wavefront, SignalFx, WePay, Paymill, Jitsu); include them so the human reviewer can inspect and confirm or reject them.
    - When sources contain comparison listings, competitor matrices, or market overviews (e.g. "Competitors include Company A, Company B, and Company C"), extract EACH distinct competitor supported by the source.
    - Grounding standard: Only include candidate competitors with explicit, verifiable evidence of competitive overlap in the sources. Do NOT invent candidates or include tangentially related companies simply to hit a quantity target.
    - "High" confidence requires recent, checkable facts (sources from the last ~18 months, or actively maintained repositories).
@@ -64,7 +76,12 @@ GUARDRAILS (STRICT):
    - "Medium": Significant product or functional overlap, or a moderately dated source with ongoing market presence.
    - "Low": Niche/partial overlap, or heavily dated source with historic/unconfirmed current status.
 5. Do NOT include the target company itself as a candidate competitor.
-6. Rank candidates starting with direct and recent competitors first, followed by dated or niche competitors."""
+6. Rank candidates starting with direct and recent competitors first, followed by dated or niche competitors.
+7. GEOGRAPHIC & OPERATIONAL OVERLAP (ZERO BOGUS ARTIFACTS):
+   - A genuine competitor MUST have plausible, demonstrable market overlap with the target company (shared customers, shared operating geography, or directly competing products).
+   - Automated comparison indices and lookalike databases (e.g. LATKA, CB Insights, Apistemic) frequently group companies by abstract tags (e.g. broad "E-Commerce", "SaaS") or financial brackets (e.g. ARR tiers) rather than true competitive rivalry.
+   - Do NOT include companies that operate in completely disjoint geographic markets with zero shared customers or operations (e.g. do NOT pair an Indian domestic consumer marketplace like Meesho with regional Southeast Asian marketplaces like Lazada or Turkish platforms like Trendyol Group, unless explicit evidence of direct market entry/competition is provided in the text).
+   - Do NOT include companies in completely unrelated industries grouped solely by revenue brackets (e.g. do NOT pair retail with real estate SaaS like Place, higher education tech like EAB, or home services software like EverCommerce)."""
 
 
 def _parse_iso_or_date(date_val: Any) -> Optional[datetime]:
@@ -989,6 +1006,14 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
                 raise LLMUnavailableError(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key: {resp.text[:200]}")
 
             if resp.status_code == 429:
+                # Synchronize Groq daily usage if reported in 429 error response
+                tpd_match = re.search(r"tokens per day \(TPD\): Limit \d+, Used (\d+)", resp.text)
+                if tpd_match:
+                    try:
+                        used_tokens = int(tpd_match.group(1))
+                        _sync_groq_daily_usage(used_tokens)
+                    except Exception:
+                        pass
                 retry_header = resp.headers.get("retry-after", "")
                 try:
                     retry_after = float(retry_header)
@@ -1005,10 +1030,13 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
 
             res_data = resp.json()
 
-            # Attach token usage and cost metadata to active LangSmith span
+            # Attach token usage and cost metadata to active LangSmith span and daily token tracker
             usage = res_data.get("usage")
             if usage and isinstance(usage, dict):
                 _attach_langsmith_usage(usage, model=model)
+                tot_tokens = usage.get("total_tokens", 0)
+                if tot_tokens > 0:
+                    _record_groq_token_usage(tot_tokens, model=model)
 
             content = res_data["choices"][0]["message"]["content"]
 
@@ -1032,6 +1060,103 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
     raise LLMUnavailableError("Groq API call failed to return candidate response.")
 
 
+def _record_groq_token_usage(tokens: int, model: str = DEFAULT_GROQ_MODEL) -> Dict[str, Any]:
+    """Record token consumption in the rolling daily budget tracker and alert if exceeding 80%."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with _TOKEN_USAGE_LOCK:
+        if _DAILY_TOKEN_USAGE.get("date") != today:
+            _DAILY_TOKEN_USAGE["date"] = today
+            _DAILY_TOKEN_USAGE["tokens_used"] = 0
+            _DAILY_TOKEN_USAGE["warning_logged"] = False
+        _DAILY_TOKEN_USAGE["tokens_used"] += tokens
+        _DAILY_TOKEN_USAGE["last_updated"] = datetime.now(timezone.utc).isoformat()
+        current_used = _DAILY_TOKEN_USAGE["tokens_used"]
+        warning_logged = _DAILY_TOKEN_USAGE.get("warning_logged", False)
+
+        usage_pct = (current_used / GROQ_DAILY_TOKEN_LIMIT) * 100
+        if current_used >= (GROQ_DAILY_TOKEN_LIMIT * GROQ_TOKEN_WARNING_THRESHOLD) and not warning_logged:
+            logger.warning(
+                f"[GROQ_TOKEN_BUDGET_ALERT] Daily Groq token usage has crossed warning threshold: "
+                f"{current_used}/{GROQ_DAILY_TOKEN_LIMIT} tokens ({usage_pct:.1f}%). "
+                f"Model: {model}. Approaching 200k TPD ceiling — risk of degrading to heuristic fallback."
+            )
+            _DAILY_TOKEN_USAGE["warning_logged"] = True
+
+        try:
+            os.makedirs("data", exist_ok=True)
+            with open("data/groq_daily_token_usage.json", "w", encoding="utf-8") as f:
+                json.dump(_DAILY_TOKEN_USAGE, f)
+        except Exception:
+            pass
+
+    return get_groq_token_budget_status()
+
+
+def _sync_groq_daily_usage(used_tokens: int) -> Dict[str, Any]:
+    """Sync Groq daily usage from exact 'Used X' reported in Groq 429 error message."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with _TOKEN_USAGE_LOCK:
+        _DAILY_TOKEN_USAGE["date"] = today
+        _DAILY_TOKEN_USAGE["tokens_used"] = max(_DAILY_TOKEN_USAGE.get("tokens_used", 0), used_tokens)
+        _DAILY_TOKEN_USAGE["last_updated"] = datetime.now(timezone.utc).isoformat()
+        current_used = _DAILY_TOKEN_USAGE["tokens_used"]
+        usage_pct = (current_used / GROQ_DAILY_TOKEN_LIMIT) * 100
+        logger.warning(
+            f"[GROQ_TOKEN_BUDGET_SYNC] Synced Groq 24h TPD usage from API response: "
+            f"{current_used}/{GROQ_DAILY_TOKEN_LIMIT} tokens ({usage_pct:.1f}%)."
+        )
+        if current_used >= (GROQ_DAILY_TOKEN_LIMIT * GROQ_TOKEN_WARNING_THRESHOLD):
+            _DAILY_TOKEN_USAGE["warning_logged"] = True
+        try:
+            os.makedirs("data", exist_ok=True)
+            with open("data/groq_daily_token_usage.json", "w", encoding="utf-8") as f:
+                json.dump(_DAILY_TOKEN_USAGE, f)
+        except Exception:
+            pass
+
+    return get_groq_token_budget_status()
+
+
+def get_groq_token_budget_status() -> Dict[str, Any]:
+    """Return the real-time Groq daily token budget status and warning alerts."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with _TOKEN_USAGE_LOCK:
+        if _DAILY_TOKEN_USAGE.get("date") != today:
+            try:
+                if os.path.exists("data/groq_daily_token_usage.json"):
+                    with open("data/groq_daily_token_usage.json", "r", encoding="utf-8") as f:
+                        disk_data = json.load(f)
+                        if disk_data.get("date") == today:
+                            _DAILY_TOKEN_USAGE.update(disk_data)
+            except Exception:
+                pass
+            if _DAILY_TOKEN_USAGE.get("date") != today:
+                _DAILY_TOKEN_USAGE["date"] = today
+                _DAILY_TOKEN_USAGE["tokens_used"] = 0
+                _DAILY_TOKEN_USAGE["warning_logged"] = False
+
+        used = _DAILY_TOKEN_USAGE.get("tokens_used", 0)
+        remaining = max(0, GROQ_DAILY_TOKEN_LIMIT - used)
+        usage_pct = round((used / GROQ_DAILY_TOKEN_LIMIT) * 100, 1)
+        threshold_crossed = (used >= GROQ_DAILY_TOKEN_LIMIT * GROQ_TOKEN_WARNING_THRESHOLD)
+        status = "healthy"
+        if used >= GROQ_DAILY_TOKEN_LIMIT:
+            status = "exhausted"
+        elif threshold_crossed:
+            status = "warning"
+
+        return {
+            "daily_limit": GROQ_DAILY_TOKEN_LIMIT,
+            "used_today": used,
+            "remaining_tokens": remaining,
+            "usage_pct": usage_pct,
+            "warning_threshold_pct": int(GROQ_TOKEN_WARNING_THRESHOLD * 100),
+            "warning_threshold_crossed": threshold_crossed,
+            "status": status,
+            "last_updated": _DAILY_TOKEN_USAGE.get("last_updated"),
+        }
+
+
 def _match_source_metadata(source_ref: str, sources: List[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
     """
     Match candidate source citation against retrieved sources list to extract verified date and source_age.
@@ -1049,6 +1174,48 @@ def _match_source_metadata(source_ref: str, sources: List[Dict[str, Any]]) -> Tu
             return s.get("source_age", "undated"), s.get("published_at")
 
     return "undated", None
+
+
+def _analyze_candidate_corroboration(candidate_name: str, sources: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Evaluate independent cross-source corroboration for a candidate competitor:
+    - Identifies all sources mentioning the candidate.
+    - Categorizes sources into directory scrapers ('alternatives_listing') vs independent sources
+      ('news', 'wikipedia', 'github_repository', 'discussion_and_tech_media').
+    - Detects candidates that are supported SOLELY by comparison directories without any
+      independent market, journalistic, or repository proof.
+    """
+    name_clean = candidate_name.strip().lower()
+    name_tokens = [t for t in re.findall(r'[a-z0-9]+', name_clean) if len(t) > 2]
+
+    matched_sources: List[Dict[str, Any]] = []
+    source_types: set[str] = set()
+
+    for s in sources:
+        title = str(s.get("title", "")).lower()
+        text = str(s.get("text", "") or s.get("snippet", "")).lower()
+        combined = f"{title} {text}"
+
+        # Match exact name or co-occurrence of distinct tokens
+        if name_clean in combined or (name_tokens and all(tok in combined for tok in name_tokens)):
+            matched_sources.append(s)
+            stype = str(s.get("source_type", "")).strip().lower()
+            if stype:
+                source_types.add(stype)
+
+    directory_types = {"alternatives_listing"}
+    independent_types = {st for st in source_types if st not in directory_types}
+
+    is_directory_only = (len(source_types) > 0 and len(independent_types) == 0)
+    is_corroborated = (len(independent_types) >= 1)
+
+    return {
+        "is_directory_only": is_directory_only,
+        "is_corroborated": is_corroborated,
+        "source_types": sorted(list(source_types)),
+        "independent_types": sorted(list(independent_types)),
+        "matched_sources_count": len(matched_sources),
+    }
 
 
 def run_with_meta(
@@ -1181,6 +1348,24 @@ def run_with_meta(
         else:
             freshness_note = "Undated source (industry index)"
 
+        corrob = _analyze_candidate_corroboration(display_name, sources)
+        is_dir_only = corrob["is_directory_only"]
+        is_corroborated = corrob["is_corroborated"]
+
+        if is_dir_only:
+            # Single comparison directory listing without independent journalistic, repository, or encyclopedic corroboration
+            if confidence in ("High", "Medium"):
+                confidence = "Low"
+            freshness_note = "Unverified directory match — single comparison listing lacking independent news, repository, or encyclopedic corroboration"
+            tier = "peripheral"
+            is_directory_artifact_risk = True
+        elif is_corroborated and confidence in ("High", "Medium"):
+            tier = "core"
+            is_directory_artifact_risk = False
+        else:
+            tier = "peripheral"
+            is_directory_artifact_risk = False
+
         candidate_obj = {
             "name": display_name,
             "rationale": rationale,
@@ -1190,6 +1375,11 @@ def run_with_meta(
             "source_date": source_date,
             "freshness_note": freshness_note,
             "extraction_method": extraction_method,
+            "tier": tier,
+            "is_directory_only": is_dir_only,
+            "is_directory_artifact_risk": is_directory_artifact_risk,
+            "corroboration_status": "multi_source_corroborated" if is_corroborated else ("unverified_directory" if is_dir_only else "single_source"),
+            "corroborated_source_types": corrob["source_types"],
         }
 
         if canonical_key in deduped_map:
@@ -1197,6 +1387,10 @@ def run_with_meta(
             # Prefer longer / more formal display name (e.g. "Mistral AI" over "Mistral")
             if len(display_name) > len(existing["name"]):
                 existing["name"] = display_name
+            # Preserve core tier if any occurrence was corroborated
+            if candidate_obj["tier"] == "core":
+                existing["tier"] = "core"
+                existing["is_directory_artifact_risk"] = False
             # Keep higher confidence
             if conf_priority.get(confidence, 1) > conf_priority.get(existing["confidence"], 1):
                 existing["confidence"] = confidence
@@ -1209,9 +1403,11 @@ def run_with_meta(
         else:
             deduped_map[canonical_key] = candidate_obj
 
-    # Rank candidates: High confidence first, then recent source age
+    # Rank candidates: Core competitors first, then High confidence, then recent source age
     def _candidate_rank(c: Dict[str, Any]) -> int:
         score = 0
+        if c.get("tier") == "core":
+            score += 200
         conf = c.get("confidence", "Low")
         if conf == "High":
             score += 100
@@ -1221,6 +1417,8 @@ def run_with_meta(
             score += 20
         elif c.get("source_age") == "undated":
             score += 10
+        if c.get("is_directory_artifact_risk"):
+            score -= 150
         return score
 
     normalized_candidates = list(deduped_map.values())
@@ -1232,21 +1430,25 @@ def run_with_meta(
     except Exception as e:
         logger.warning(f"Could not persist discovery proposal: {e}")
 
+    token_budget = get_groq_token_budget_status()
+
     return {
         "candidates": normalized_candidates,
         "extraction_method": extraction_method,
         "degraded": (extraction_method == "heuristic_fallback"),
         "llm_error": llm_error_msg,
+        "token_budget": token_budget,
     }
 
 
 class CandidatesResult(list):
     """List subclass preserving transparent discovery execution metadata."""
-    def __init__(self, iterable=None, extraction_method="llm", degraded=False, llm_error=None):
+    def __init__(self, iterable=None, extraction_method="llm", degraded=False, llm_error=None, token_budget=None):
         super().__init__(iterable or [])
         self.extraction_method = extraction_method
         self.degraded = degraded
         self.llm_error = llm_error
+        self.token_budget = token_budget
 
 
 def run(
@@ -1261,6 +1463,7 @@ def run(
         extraction_method=meta["extraction_method"],
         degraded=meta["degraded"],
         llm_error=meta["llm_error"],
+        token_budget=meta.get("token_budget"),
     )
 
 

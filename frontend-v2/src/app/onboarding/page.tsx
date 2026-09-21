@@ -109,6 +109,10 @@ interface ReviewCompetitorItem {
   website?: string;
   selected: boolean;
   isManual?: boolean;
+  tier?: "core" | "peripheral";
+  isDirectoryOnly?: boolean;
+  isDirectoryArtifactRisk?: boolean;
+  corroborationStatus?: string;
 }
 
 export default function OnboardingPage() {
@@ -270,6 +274,8 @@ export default function OnboardingPage() {
           (c.sources && c.sources.join(", ")) ||
           `Competitive index & domain crawl for ${target}`;
 
+        const isCore = c.tier === "core" || (!c.is_directory_only && confLevel === "High");
+
         return {
           id: `disc-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
           name: cName,
@@ -279,7 +285,11 @@ export default function OnboardingPage() {
           sourceAge: c.source_age,
           freshnessNote: c.freshness_note,
           website: c.website,
-          selected: true, // Default to selected so user can review and deselect
+          selected: isCore, // Core candidates pre-selected; peripheral candidates opt-in
+          tier: (c.tier as "core" | "peripheral") || (isCore ? "core" : "peripheral"),
+          isDirectoryOnly: Boolean(c.is_directory_only),
+          isDirectoryArtifactRisk: Boolean(c.is_directory_artifact_risk),
+          corroborationStatus: c.corroboration_status,
         };
       });
 
@@ -906,6 +916,19 @@ export default function OnboardingPage() {
                           </div>
 
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {comp.tier === "core" ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200/80">
+                                Core Competitor
+                              </span>
+                            ) : comp.isDirectoryOnly ? (
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-900 border border-amber-300/80"
+                                title="Single comparison directory listing without independent news, repo, or wiki verification"
+                              >
+                                Directory Match
+                              </span>
+                            ) : null}
+
                             <span
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                                 comp.confidence === "High"

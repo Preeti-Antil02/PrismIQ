@@ -1292,6 +1292,7 @@ def onboard_discover_candidates(
             detail=f"Competitor discovery couldn't be completed: {str(e)}"
         )
 
+    token_budget = getattr(candidates, "token_budget", None) or discovery_agent.get_groq_token_budget_status()
     return {
         "status": "proposed",
         "tenant_id": tenant_id,
@@ -1301,6 +1302,7 @@ def onboard_discover_candidates(
         "extraction_method": extraction_method,
         "degraded": degraded,
         "llm_error": llm_error,
+        "token_budget": token_budget,
     }
 
 

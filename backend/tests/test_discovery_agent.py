@@ -615,3 +615,123 @@ def test_fetch_grounded_context_balances_categories():
     assert types.count("news") == 4
     assert types.count("wikipedia") == 4
 
+
+def test_corroboration_safeguard_flags_directory_only_candidate():
+    """Verify that candidate supported ONLY by comparison directories is flagged as unverified directory match."""
+    sources = [
+        {
+            "source_type": "alternatives_listing",
+            "title": "Comparison Index: Top Meesho Competitors - CB Insights",
+            "text": "Meesho top competitors include Lazada, Temu, and Flipkart.",
+            "url": "https://cbinsights.com/meesho",
+        },
+        {
+            "source_type": "news",
+            "title": "Flipkart expands quick commerce",
+            "text": "Flipkart competes directly against Amazon and Meesho.",
+            "url": "https://news.com/flipkart",
+        }
+    ]
+
+    # Lazada appears ONLY in alternatives_listing
+    lazada_res = discovery_agent._analyze_candidate_corroboration("Lazada", sources)
+    assert lazada_res["is_directory_only"] is True
+    assert lazada_res["is_corroborated"] is False
+    assert lazada_res["source_types"] == ["alternatives_listing"]
+
+    # Flipkart appears in alternatives_listing AND news
+    flipkart_res = discovery_agent._analyze_candidate_corroboration("Flipkart", sources)
+    assert flipkart_res["is_directory_only"] is False
+    assert flipkart_res["is_corroborated"] is True
+    assert "news" in flipkart_res["independent_types"]
+
+
+def test_candidate_tiering_and_directory_artifact_downgrade():
+    """Verify run_with_meta tiers core vs peripheral and demotes directory-only artifacts to Low confidence."""
+    mock_sources = [
+        {
+            "source_type": "alternatives_listing",
+            "title": "Comparison Index: LATKA Meesho Alternatives",
+            "text": "Top Meesho alternatives include Place and EverCommerce.",
+            "url": "https://latka.com/meesho",
+        },
+        {
+            "source_type": "wikipedia",
+            "title": "Wikipedia: Flipkart",
+            "text": "Flipkart competes primarily with Amazon India and domestic rival Meesho.",
+            "url": "https://en.wikipedia.org/wiki/Flipkart",
+            "source_age": "recent",
+        }
+    ]
+
+    mock_llm_candidates = {
+        "candidates": [
+            {
+                "name": "Flipkart",
+                "rationale": "Leading Indian e-commerce marketplace competing directly with Meesho.",
+                "confidence": "High",
+                "source": "Wikipedia: Flipkart",
+                "source_age": "recent",
+            },
+            {
+                "name": "Place",
+                "rationale": "Grouped in comparison directory.",
+                "confidence": "High",  # LLM erroneously gave High confidence
+                "source": "Comparison Index: LATKA Meesho Alternatives",
+                "source_age": "undated",
+            }
+        ]
+    }
+
+    with patch.object(discovery_agent, "_call_groq_discovery", return_value=mock_llm_candidates):
+        res = discovery_agent.run_with_meta("Meesho", sources=mock_sources)
+
+    cands = res["candidates"]
+    c_map = {c["name"]: c for c in cands}
+
+    # Flipkart is corroborated by Wikipedia -> tier core, retains High confidence
+    assert c_map["Flipkart"]["tier"] == "core"
+    assert c_map["Flipkart"]["confidence"] == "High"
+    assert c_map["Flipkart"]["is_directory_only"] is False
+    assert c_map["Flipkart"]["is_directory_artifact_risk"] is False
+
+    # Place is directory-only -> demoted to Low, flagged as directory artifact risk, tier peripheral
+    assert c_map["Place"]["tier"] == "peripheral"
+    assert c_map["Place"]["confidence"] == "Low"
+    assert c_map["Place"]["is_directory_only"] is True
+    assert c_map["Place"]["is_directory_artifact_risk"] is True
+    assert "Unverified directory match" in c_map["Place"]["freshness_note"]
+
+
+def test_groq_token_budget_tracker_records_usage_and_alerts():
+    """Verify that Groq token usage increments and warns when crossing 80% ceiling."""
+    # Reset usage
+    discovery_agent._DAILY_TOKEN_USAGE["tokens_used"] = 0
+    discovery_agent._DAILY_TOKEN_USAGE["warning_logged"] = False
+
+    status1 = discovery_agent._record_groq_token_usage(1000)
+    assert status1["used_today"] == 1000
+    assert status1["status"] == "healthy"
+    assert status1["warning_threshold_crossed"] is False
+
+    # Jump to 165,000 tokens (>80%)
+    status2 = discovery_agent._record_groq_token_usage(164000)
+    assert status2["used_today"] == 165000
+    assert status2["status"] == "warning"
+    assert status2["warning_threshold_crossed"] is True
+
+    # Jump beyond 200,000 tokens
+    status3 = discovery_agent._record_groq_token_usage(40000)
+    assert status3["used_today"] == 205000
+    assert status3["status"] == "exhausted"
+
+
+def test_groq_token_budget_sync_from_429():
+    """Verify that _sync_groq_daily_usage syncs the exact count reported by Groq 429 errors."""
+    discovery_agent._DAILY_TOKEN_USAGE["tokens_used"] = 5000
+    status = discovery_agent._sync_groq_daily_usage(198304)
+    assert status["used_today"] == 198304
+    assert status["status"] == "warning"
+    assert status["warning_threshold_crossed"] is True
+
+

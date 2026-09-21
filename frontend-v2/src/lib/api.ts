@@ -534,6 +534,17 @@ export interface WorkspaceSettings {
   api_status: string;
 }
 
+export interface GroqTokenBudgetStatus {
+  daily_limit: number;
+  used_today: number;
+  remaining_tokens: number;
+  usage_pct: number;
+  warning_threshold_pct: number;
+  warning_threshold_crossed: boolean;
+  status: "healthy" | "warning" | "exhausted";
+  last_updated?: string;
+}
+
 export interface DiscoveryCandidate {
   company_name?: string;
   name?: string;
@@ -547,6 +558,11 @@ export interface DiscoveryCandidate {
   freshness_note?: string;
   website?: string;
   extraction_method?: "llm" | "heuristic_fallback" | string;
+  tier?: "core" | "peripheral";
+  is_directory_only?: boolean;
+  is_directory_artifact_risk?: boolean;
+  corroboration_status?: "multi_source_corroborated" | "unverified_directory" | "single_source" | string;
+  corroborated_source_types?: string[];
 }
 
 export interface DiscoveryResponse {
@@ -558,6 +574,7 @@ export interface DiscoveryResponse {
   extraction_method?: "llm" | "heuristic_fallback" | string;
   degraded?: boolean;
   llm_error?: string | null;
+  token_budget?: GroqTokenBudgetStatus | null;
 }
 
 export async function fetchWorkspaceTopics(includePaused: boolean = true): Promise<ResearchTopic[]> {
