@@ -424,8 +424,8 @@ def _fetch_alternativeto_context(company: str) -> List[Dict[str, Any]]:
                     app_slug = card.get("data-app-slug", "")
                     name_el = card.select_one(".app-name, h3, [data-app-name]")
                     desc_el = card.select_one(".app-description, .listing-text, p")
-                    name = name_el.get_text(strip=True) if name_el else (app_slug.replace("-", " ").title() if app_slug else "")
-                    desc = desc_el.get_text(strip=True) if desc_el else ""
+                    name = name_el.get_text(separator=" ", strip=True) if name_el else (app_slug.replace("-", " ").title() if app_slug else "")
+                    desc = desc_el.get_text(separator=" ", strip=True) if desc_el else ""
 
                     if not name or name.lower() == company.strip().lower():
                         continue
@@ -507,8 +507,8 @@ def _fetch_comparison_index_context(company: str) -> List[Dict[str, Any]]:
             snippet = res.select_one(".result__snippet")
             if not title_a:
                 continue
-            t_text = title_a.get_text(strip=True)
-            s_text = snippet.get_text(strip=True) if snippet else ""
+            t_text = title_a.get_text(separator=" ", strip=True)
+            s_text = snippet.get_text(separator=" ", strip=True) if snippet else ""
             href = title_a.get("href", "")
             sources.append({
                 "source_type": "alternatives_listing",
@@ -543,7 +543,7 @@ def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
     raw_sources: List[Dict[str, Any]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(fetchers)) as executor:
         future_map = {executor.submit(fn): name for name, fn in fetchers}
-        done, not_done = concurrent.futures.wait(future_map.keys(), timeout=7.0)
+        done, not_done = concurrent.futures.wait(future_map.keys(), timeout=12.0)
         for fut in done:
             name = future_map[fut]
             try:
@@ -552,7 +552,7 @@ def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
             except Exception as e:
                 logger.debug(f"Source fetcher '{name}' encountered error: {e}")
         if not_done:
-            logger.debug(f"{len(not_done)} source fetchers timed out after 7.0s; proceeding with completed sources.")
+            logger.debug(f"{len(not_done)} source fetchers timed out after 12.0s; proceeding with completed sources.")
 
     # Deduplicate sources and group by category
     seen = set()
@@ -746,14 +746,22 @@ DISQUALIFYING_NON_ENTITY_NOUNS = {
     "model", "models", "weight", "weights", "token", "tokens", "code", "sdk", "library",
     "framework", "plugin", "extension", "prompt", "prompts", "system", "bill", "senate",
     "regulation", "act", "law", "memo", "memos", "leak", "leaks", "news", "article",
-    "times", "journal", "post", "press", "update", "updates", "consensus", "tier",
-    "review", "pricing", "cost", "valuation", "funding", "round", "deal", "ipo",
+    "times", "journal", "post", "press", "update", "updates", "consensus", "concensus", "tier",
+    "review", "reviews", "pricing", "cost", "valuation", "funding", "round", "deal", "ipo",
     "shares", "stock", "partnership", "agreement", "contract", "purchase", "purchases",
     "acquisition", "merger", "casino", "option", "options", "tax", "taxes", "refund",
     "refunds", "flaw", "vulnerability", "disclosure", "fast", "tracked", "rocketed",
     "title", "chief", "calls", "amid", "fears", "someone", "anyone", "everyone", "choice",
     "best", "popular", "domestic", "limited", "company", "competitor", "competitors", "alternative",
-    "alternatives", "versus", "vs", "cve"
+    "alternatives", "versus", "vs", "cve", "financials", "strengths", "commerce", "reseller",
+    "resellers", "seller", "sellers", "buyer", "buyers", "economy", "growth", "risk", "factors",
+    "overview", "insight", "insights", "launchpad", "creator", "creators", "sandwitch", "shoppers",
+    "picks", "budget", "rating", "ratings", "month", "vote", "votes", "apps", "shops", "writing",
+    "privacy", "automation", "coding", "intelligence", "analysis", "customer", "customers", "team",
+    "size", "curated", "using", "below", "business", "businesses", "organization", "organizations",
+    "directly", "inside", "beautiful", "floating", "glassmorphism", "panel", "online", "marketplaces",
+    "entry", "encyclopedia", "undated", "alexa", "quot", "similar", "browse", "prices", "ranked",
+    "owler", "saashub", "semrush", "sourceforge", "compworth"
 }
 
 EXCLUDED_HEURISTIC_WORDS = {
@@ -773,17 +781,23 @@ EXCLUDED_HEURISTIC_WORDS = {
 
 def _clean_heuristic_candidate(raw: str, target_company: str = "") -> str:
     """Sanitize candidate string and reject garbage entities, title fragments, and non-companies."""
+    raw = re.sub(r'^(?:the|top|best|discover|see|compare|our list of|list of|meet the|revealed|some of the|including)\s+', '', raw, flags=re.IGNORECASE)
+    raw = re.sub(r'(?i)\s+(?:—|–|-)?\s*\b(?:by|based on|ordered by|giving|according to|ranging from|for)\b.*$', '', raw)
     c = re.sub(r'^[^\w]+|[^\w]+$', '', raw.strip())
     c = _clean_company_name(c)
+    c = c.strip("'\"")
     # Strip leading/trailing conjunctions and prepositions
     c = re.sub(r'(?i)\s+\b(and|or|with|the|in|at|by|from|to|for|of)\b$', '', c).strip()
     c = re.sub(r'(?i)^\b(and|or|with|the|in|at|by|from|to|for|of)\b\s+', '', c).strip()
-    if len(c) < 2 or c.isdigit():
+    if len(c) < 2 or c.isdigit() or len(c) > 35:
+        return ""
+    # Reject standalone generic geographical terms
+    if c.lower() in {"india", "us", "usa", "uk", "california", "europe", "asia", "global", "san francisco"}:
         return ""
     if re.search(r'(?i)\bcve[-_\d]', c):
         return ""
     words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', c)]
-    if not words:
+    if not words or len(words) > 4:
         return ""
     # Reject if any word in candidate name is in the disqualifying non-entity blacklist
     for w in words:
@@ -837,12 +851,142 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
     company_clean = company.strip().lower()
     extracted: Dict[str, Dict[str, Any]] = {}
 
-    patterns = [
+    # Index sources for dedicated entity profile matching
+    # e.g., "Wikipedia: Flipkart" -> dedicated source for Flipkart
+    dedicated_sources: Dict[str, Dict[str, Any]] = {}
+    for s in sources:
+        title = s.get("title", "")
+        if re.search(r'(?i)wikipedia:\s*(?:list of|timeline of|history of|controversy|incident|products and applications)', title):
+            continue
+        wiki_m = re.match(r'^Wikipedia:\s*([A-Za-z0-9\.\s]+?)(?:\s*\([^)]+\))?$', title)
+        if wiki_m:
+            cand = _clean_heuristic_candidate(wiki_m.group(1), company)
+            if cand:
+                dedicated_sources[_canonical_brand_key(cand)] = s
+        alt_m = re.match(r'^AlternativeTo:\s*([A-Za-z0-9\.\s]+?)(?:\s*\(.*?\))?$', title)
+        if alt_m:
+            cand = _clean_heuristic_candidate(alt_m.group(1), company)
+            if cand:
+                dedicated_sources[_canonical_brand_key(cand)] = s
+
+    def _record_candidate(cand: str, rationale: str, source_obj: Dict[str, Any], weight: float, conf: str, is_direct: bool = False):
+        cleaned = _clean_heuristic_candidate(cand, company)
+        if not cleaned or _is_self_or_internal_product(cleaned, company):
+            return
+        ckey = _canonical_brand_key(cleaned)
+        if not ckey or _is_self_or_internal_product(ckey, company):
+            return
+
+        is_direct_dedicated = is_direct or (ckey in dedicated_sources)
+        primary_source = dedicated_sources.get(ckey, source_obj)
+        source_ref = primary_source.get("title") or primary_source.get("url", "")
+        source_age, source_date = _match_source_metadata(source_ref, sources)
+
+        if is_direct_dedicated:
+            effective_conf = "Medium" if weight >= 0.85 else "Low"
+            if source_age == "dated":
+                effective_conf = "Low"
+                freshness_note = f"Sourced {source_date or 'historic'}, not independently confirmed recently"
+            elif source_age == "recent":
+                freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
+            else:
+                freshness_note = "Retrieved grounded market intelligence"
+            effective_rationale = (
+                f"Dedicated market intelligence profile for {cleaned} ({source_ref}), cited alongside {company.capitalize()} in market comparison."
+                if not rationale else rationale
+            )
+        else:
+            effective_conf = "Low"
+            freshness_note = "Indirect market comparison mention (secondary source)"
+            effective_rationale = rationale
+
+        if ckey not in extracted:
+            extracted[ckey] = {
+                "name": cleaned,
+                "rationale": effective_rationale,
+                "confidence": effective_conf,
+                "source": source_ref,
+                "source_age": source_age,
+                "source_date": source_date,
+                "freshness_note": freshness_note,
+                "_weight": weight,
+                "_is_direct": is_direct_dedicated,
+            }
+        else:
+            # If this match has a longer/more formal display name (e.g. "Mistral AI" vs "Mistral")
+            if len(cleaned) > len(extracted[ckey]["name"]):
+                extracted[ckey]["name"] = cleaned
+            # If previously indirect, but now found a direct dedicated profile, upgrade to direct
+            if is_direct_dedicated and not extracted[ckey].get("_is_direct", False):
+                extracted[ckey]["_is_direct"] = True
+                extracted[ckey]["_weight"] = weight
+                extracted[ckey]["confidence"] = effective_conf
+                extracted[ckey]["rationale"] = effective_rationale
+                extracted[ckey]["source"] = source_ref
+                extracted[ckey]["source_age"] = source_age
+                extracted[ckey]["source_date"] = source_date
+                extracted[ckey]["freshness_note"] = freshness_note
+            elif weight > extracted[ckey]["_weight"]:
+                extracted[ckey]["_weight"] = weight
+                if extracted[ckey].get("_is_direct", False):
+                    extracted[ckey]["confidence"] = effective_conf
+                else:
+                    extracted[ckey]["confidence"] = "Low"
+                extracted[ckey]["rationale"] = effective_rationale
+                extracted[ckey]["source"] = source_ref
+                extracted[ckey]["source_age"] = source_age
+                extracted[ckey]["source_date"] = source_date
+                extracted[ckey]["freshness_note"] = freshness_note
+
+    # 1. Ingest dedicated structured profiles from Wikipedia (with company/platform tags) & AlternativeTo
+    for s in sources:
+        title = s.get("title", "")
+        if re.search(r'(?i)wikipedia:\s*(?:list of|timeline of|history of|controversy|incident|products and applications)', title):
+            continue
+        wiki_m = re.match(r'^Wikipedia:\s*([A-Za-z0-9\.\s]+?)(?:\s*\((company|e-commerce|software|app|retailer|marketplace|corporation|firm)\))?$', title, flags=re.IGNORECASE)
+        if wiki_m:
+            entity = wiki_m.group(1).strip()
+            is_company_tagged = bool(wiki_m.group(2))
+            if is_company_tagged and entity.lower() != company_clean:
+                _record_candidate(
+                    entity,
+                    f"Dedicated encyclopedia profile for {entity} ({title}) retrieved via competitor intelligence.",
+                    s,
+                    0.88,
+                    "Medium",
+                    is_direct=True,
+                )
+        alt_m = re.match(r'^AlternativeTo:\s*([A-Za-z0-9\.\s]+?)(?:\s*\(.*?\))?$', title)
+        if alt_m:
+            entity = alt_m.group(1).strip()
+            if entity.lower() != company_clean:
+                _record_candidate(
+                    entity,
+                    f"Structured alternative profile on AlternativeTo for {entity}.",
+                    s,
+                    0.88,
+                    "Medium",
+                    is_direct=True,
+                )
+
+    # 2. Text-based patterns (lists and single comparison clauses)
+    list_patterns = [
+        # "Meesho's top competitors include Temu, Flipkart, and Lazada"
+        r'(?i)(?:competitors|alternatives|rivals)\s+(?:include|are|such as|like)\s+([^.\n;]+)',
+        # "Discover Meesho's top competitors in 2026: Flipkart, Trendyol Group, Snapdeal"
+        r'(?i)(?:top|direct|major|main|primary|key)?\s*(?:competitors|alternatives|rivals)(?:\s+in\s+\d{4})?\s*[:–—\-]\s*([^.\n;]+)',
+        # "analyzes products on Amazon, Flipkart, Myntra, and Meesho" or "scrapes product reviews from Amazon, Flipkart, Croma & Reliance Digital"
+        r'(?i)(?:analyzes?|compares?|monitors?|tracks?|scrapes?|aggregates?|collects?)\s+(?:product\s+reviews|products|prices|features|services)?\s+(?:on|across|between|from)\s+([^.\n;]+)',
+        # "Competitors Eternal and Swiggy"
+        r'(?i)(?:competitors|rivals)\s+([A-Z][a-zA-Z0-9]+(?:\s*(?:and|or|&)\s*[A-Z][a-zA-Z0-9]+))',
+    ]
+
+    single_patterns = [
         # Entity vs Target or Target vs Entity (e.g. "Flipkart vs Meesho", "OpenAI vs Anthropic")
         (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s+(?:vs\.?|versus)\s+' + re.escape(company_clean), 0.9),
         (r'(?i)' + re.escape(company_clean) + r'\s+(?:vs\.?|versus)\s+([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})', 0.9),
         
-        # Entity ... Target competitor (e.g. "Mistral - ... OpenAI competitor")
+        # Entity ... Target competitor (e.g. "Mistral AI, an OpenAI competitor...")
         (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s*[\-–—,\(].*?' + re.escape(company_clean) + r'\s+competitor', 0.9),
         (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s+is\s+an?\s+' + re.escape(company_clean) + r'\s+competitor', 0.9),
         
@@ -857,109 +1001,54 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
         (r'(?i)competes\s+primarily\s+with\s+([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Za-z0-9]+){0,2})', 0.85),
         (r'(?i)(?:domestic|primary|major)\s+rival\s+([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Za-z0-9]+){0,2})', 0.85),
         
+        # Target is Entity for ... (e.g. "Meesho is Shopify for...")
+        (r'(?i)' + re.escape(company_clean) + r'.*?\bis\s+([A-Z][a-zA-Z0-9]+)\s+for\b', 0.85),
+
         # File/deck patterns: "Samridhi1412/Flipkart_vs_Meesho_Deck"
         (r'(?i)\b([A-Za-z0-9]+)_vs_' + re.escape(company_clean), 0.85),
         (r'(?i)' + re.escape(company_clean) + r'_vs_([A-Za-z0-9]+)', 0.85),
     ]
 
-    # Index sources for dedicated entity profile matching
-    # e.g., "Wikipedia: Flipkart" -> dedicated source for Flipkart
-    dedicated_sources: Dict[str, Dict[str, Any]] = {}
-    for s in sources:
-        title = s.get("title", "")
-        # Wikipedia: Entity
-        wiki_m = re.match(r'^Wikipedia:\s*([A-Za-z0-9\.\s]+?)(?:\s*\([^)]+\))?$', title)
-        if wiki_m:
-            cand = _clean_heuristic_candidate(wiki_m.group(1), company)
-            if cand:
-                dedicated_sources[_canonical_brand_key(cand)] = s
-        # AlternativeTo: Entity
-        alt_m = re.match(r'^AlternativeTo:\s*([A-Za-z0-9\.\s]+?)(?:\s*\(.*?\))?$', title)
-        if alt_m:
-            cand = _clean_heuristic_candidate(alt_m.group(1), company)
-            if cand:
-                dedicated_sources[_canonical_brand_key(cand)] = s
-
     for s in sources:
         title = s.get("title", "")
         text = s.get("text", "")
-        combined = f"{title}. {text}"
+        # Strip synthetic query suffix: "Query: '...'"
+        text_clean = re.sub(r"\.\s*Query:\s*'[^\']*'\.?\s*", "", text)
+        combined = f"{title}. {text_clean}"
 
-        for pat, base_weight in patterns:
+        # Test multi-entity list patterns
+        for pat in list_patterns:
+            for m in re.finditer(pat, combined):
+                list_str = m.group(1)
+                items = re.split(r'[,;/]|\s+(?:and|or|&)\s+', list_str)
+                for it in items:
+                    it = it.strip()
+                    it = re.sub(r'^\d+[\.\)]\s*', '', it).strip()
+                    _record_candidate(
+                        it,
+                        f"Cited in competitor landscape listing: \"{m.group(0)[:90]}\" ({title[:40]}).",
+                        s,
+                        0.85,
+                        "Medium",
+                    )
+
+        # Test single comparison patterns
+        for pat, base_weight in patterns if False else single_patterns:
             for match in re.finditer(pat, combined):
                 cand = match.group(1).strip()
-                cleaned = _clean_heuristic_candidate(cand, company)
-                if not cleaned:
-                    continue
-                if _is_self_or_internal_product(cleaned, company):
-                    continue
-                
-                ckey = _canonical_brand_key(cleaned)
-                
-                # Grounding pairing: If a dedicated primary source exists for this candidate
-                # in the retrieved context (e.g. "Wikipedia: Flipkart"), use that as primary source
-                is_direct_dedicated_source = (ckey in dedicated_sources)
-                primary_source = dedicated_sources.get(ckey, s)
-                source_ref = primary_source.get("title") or primary_source.get("url", "")
-                source_age, source_date = _match_source_metadata(source_ref, sources)
-                
-                if is_direct_dedicated_source:
-                    conf = "Medium" if base_weight >= 0.85 else "Low"
-                    if source_age == "dated":
-                        conf = "Low"
-                        freshness_note = f"Sourced {source_date or 'historic'}, not independently confirmed recently"
-                    elif source_age == "recent":
-                        freshness_note = f"Recent source ({source_date})" if source_date else "Recent source"
-                    else:
-                        freshness_note = "Retrieved grounded market intelligence"
-                    rationale = f"Dedicated market intelligence profile for {cleaned} ({source_ref}), cited alongside {company.capitalize()} in market comparison."
+                containing_clause = _extract_containing_clause(combined, match.start(), match.end())
+                if containing_clause:
+                    rationale = f"Cited in market comparison: \"{containing_clause}\" (documented in {title[:60]})."
                 else:
-                    # Indirect secondary mention inside another entity's source article
-                    conf = "Low"
-                    freshness_note = "Indirect market comparison mention (secondary source)"
-                    containing_clause = _extract_containing_clause(combined, match.start(), match.end())
-                    if containing_clause:
-                        rationale = f"Cited in market comparison: \"{containing_clause}\" (documented in {title[:60]})."
-                    else:
-                        rationale = f"Secondary in-snippet mention alongside {company.capitalize()} in {title[:60]}."
+                    rationale = f"Secondary in-snippet mention alongside {company.capitalize()} in {title[:60]}."
 
-                if ckey not in extracted:
-                    extracted[ckey] = {
-                        "name": cleaned,
-                        "rationale": rationale,
-                        "confidence": conf,
-                        "source": source_ref,
-                        "source_age": source_age,
-                        "source_date": source_date,
-                        "freshness_note": freshness_note,
-                        "_weight": base_weight,
-                        "_is_direct": is_direct_dedicated_source,
-                    }
-                else:
-                    # If this match has a longer/more formal display name (e.g. "Mistral AI" vs "Mistral")
-                    if len(cleaned) > len(extracted[ckey]["name"]):
-                        extracted[ckey]["name"] = cleaned
-                    # If previously indirect, but now found a direct dedicated profile, upgrade to direct
-                    if is_direct_dedicated_source and not extracted[ckey].get("_is_direct", False):
-                        extracted[ckey]["_is_direct"] = True
-                        extracted[ckey]["_weight"] = base_weight
-                        extracted[ckey]["confidence"] = conf
-                        extracted[ckey]["rationale"] = rationale
-                        extracted[ckey]["source"] = source_ref
-                        extracted[ckey]["source_age"] = source_age
-                        extracted[ckey]["source_date"] = source_date
-                        extracted[ckey]["freshness_note"] = freshness_note
-                    elif base_weight > extracted[ckey]["_weight"]:
-                        extracted[ckey]["_weight"] = base_weight
-                        if not extracted[ckey].get("_is_direct", False):
-                            extracted[ckey]["confidence"] = "Low"
-                        else:
-                            extracted[ckey]["confidence"] = conf
-                        extracted[ckey]["rationale"] = rationale
-                        extracted[ckey]["source"] = source_ref
-                        extracted[ckey]["source_age"] = source_age
-                        extracted[ckey]["source_date"] = source_date
-                        extracted[ckey]["freshness_note"] = freshness_note
+                _record_candidate(
+                    cand,
+                    rationale,
+                    s,
+                    base_weight,
+                    "Medium" if base_weight >= 0.85 else "Low",
+                )
 
     res = list(extracted.values())
     for item in res:
@@ -1008,12 +1097,16 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
             if resp.status_code == 429:
                 # Synchronize Groq daily usage if reported in 429 error response
                 tpd_match = re.search(r"tokens per day \(TPD\): Limit \d+, Used (\d+)", resp.text)
-                if tpd_match:
-                    try:
-                        used_tokens = int(tpd_match.group(1))
-                        _sync_groq_daily_usage(used_tokens)
-                    except Exception:
-                        pass
+                if tpd_match or "tokens per day (TPD)" in resp.text:
+                    if tpd_match:
+                        try:
+                            used_tokens = int(tpd_match.group(1))
+                            _sync_groq_daily_usage(used_tokens)
+                        except Exception:
+                            pass
+                    logger.warning("Groq daily token limit exceeded (TPD). Bypassing retries to engage deterministic fallback immediately.")
+                    raise LLMUnavailableError(f"Groq daily token limit exceeded (TPD): {resp.text[:200]}")
+
                 retry_header = resp.headers.get("retry-after", "")
                 try:
                     retry_after = float(retry_header)
@@ -1289,7 +1382,8 @@ def run_with_meta(
             extraction_method = "heuristic_fallback"
 
     # If heuristic fallback also yielded nothing AND LLM failed specifically due to credentials/outage
-    if not raw_candidates and llm_error is not None:
+    # Only raise if sources were present to analyze; if sources were genuinely empty, preserve empty state
+    if not raw_candidates and llm_error is not None and sources:
         raise llm_error
 
     # Deduplicate and normalize candidates consistently across both paths
