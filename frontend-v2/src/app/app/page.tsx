@@ -204,7 +204,7 @@ export default function OverviewPage() {
             ? `Monitored keywords: ${t.keywords.slice(0, 4).join(", ")} (awaiting initial sweep)`
             : "Configured research theme • Awaiting pipeline sweep.";
 
-          if (matchingEval) {
+          if (matchingEval && !matchingEval.pending_sweep && matchingEval.cycle_id !== "pending") {
             const itemCount = matchingEval.research_item_count || 0;
             if (itemCount > 0) {
               status = `Active (${itemCount} ${itemCount === 1 ? "paper" : "papers"})`;
