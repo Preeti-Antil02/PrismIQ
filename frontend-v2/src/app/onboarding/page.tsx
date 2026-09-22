@@ -758,7 +758,7 @@ export default function OnboardingPage() {
               {/* Counter Pill & Manual Add Toggle */}
               <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
                 <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200/70">
-                  {competitors.filter((c) => c.selected).length} selected
+                  {competitors.filter((c) => c.selected).length} of {competitors.length} selected
                 </span>
                 <button
                   type="button"
