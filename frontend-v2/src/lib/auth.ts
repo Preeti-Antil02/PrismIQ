@@ -10,7 +10,7 @@ export interface AuthUser {
 }
 
 export const DEFAULT_TENANT_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID || "c8f13b91-46ef-4682-9975-f85764d8a12e";
+  process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID || "8553449a-c998-4727-be01-9aeb724038cb";
 
 export function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
@@ -46,22 +46,22 @@ export function getClientAuthToken(tenantId?: string): string {
   if (typeof window !== "undefined") {
     const stored = localStorage.getItem("prismiq_tenant_token");
     if (stored) return stored;
-    if (!tenantId) return "";
   }
 
-  if (!tenantId) {
+  const tid = tenantId || DEFAULT_TENANT_ID;
+  if (!tid) {
     return "";
   }
 
-  // Construct well-formed JWT with sub = tenantId
+  // Construct well-formed JWT with sub = tid
   const header = { alg: "HS256", typ: "JWT" };
   const payload = {
-    sub: tenantId,
+    sub: tid,
     aud: "authenticated",
     role: "authenticated",
-    email: `${tenantId.slice(0, 8)}@prismiq.ai`,
+    email: `${tid.slice(0, 8)}@prismiq.ai`,
     iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+    exp: Math.floor(Date.now() / 1000) + 86400 * 7,
   };
 
   const b64Url = (obj: unknown) => {

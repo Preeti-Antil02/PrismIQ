@@ -1,0 +1,408 @@
+/* ============================================================
+   PrismIQ New Internal Application Design System — Light & Spacious
+   Directly derived from the approved public landing page visual language
+   ============================================================ */
+
+:root {
+  --app-bg: #fbfaf8;
+  --app-ink: #17171b;
+  --app-muted: #70717a;
+  --app-subtle: #9ca3af;
+  --app-line: rgba(20, 20, 30, 0.08);
+  --app-line-strong: rgba(20, 20, 30, 0.14);
+  --app-surface: #ffffff;
+  --app-surface-subtle: rgba(250, 250, 252, 0.85);
+  --app-surface-elevated: #ffffff;
+  --app-surface-hover: #fafafc;
+
+  /* Prism Accent Palette */
+  --app-v: #8b72ff;
+  --app-c: #72d7e8;
+  --app-p: #ffb89d;
+  --app-r: #f4a8ca;
+  --app-blue: #2563eb;
+  --app-indigo: #4f46e5;
+
+  /* Shadows */
+  --app-shadow-sm: 0 2px 8px rgba(25, 25, 45, 0.04);
+  --app-shadow-md: 0 10px 30px rgba(36, 28, 68, 0.06);
+  --app-shadow-lg: 0 20px 50px rgba(36, 28, 68, 0.09);
+  --app-shadow-glow: 0 14px 45px rgba(139, 114, 255, 0.12);
+
+  /* Tier Colors */
+  --app-must-bg: #fff1f2;
+  --app-must-text: #e11d48;
+  --app-must-border: #fecdd3;
+
+  --app-should-bg: #eff6ff;
+  --app-should-text: #2563eb;
+  --app-should-border: #bfdbfe;
+
+  --app-nice-bg: #f8fafc;
+  --app-nice-text: #64748b;
+  --app-nice-border: #e2e8f0;
+
+  /* Confidence Colors */
+  --app-conf-high-bg: #ecfdf5;
+  --app-conf-high-text: #059669;
+  --app-conf-high-dot: #10b981;
+
+  --app-conf-med-bg: #fffbeb;
+  --app-conf-med-text: #d97706;
+  --app-conf-med-dot: #f59e0b;
+
+  --app-conf-low-bg: #f4f4f5;
+  --app-conf-low-text: #71717a;
+  --app-conf-low-dot: #9ca3af;
+}
+
+/* ============================================================
+   APPLICATION ROOT CONTAINER
+   ============================================================ */
+.prismiq-app-root {
+  min-height: 100vh;
+  color: var(--app-ink);
+  background-color: var(--app-bg);
+  background-image:
+    radial-gradient(circle at 10% 8%, rgba(139, 114, 255, 0.09), transparent 32rem),
+    radial-gradient(circle at 90% 12%, rgba(114, 215, 232, 0.10), transparent 30rem),
+    radial-gradient(circle at 52% 58%, rgba(244, 168, 202, 0.06), transparent 38rem),
+    linear-gradient(180deg, #fbfaf8 0%, #f7f6f3 100%);
+  background-attachment: fixed;
+  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================
+   TYPOGRAPHY & ACCENTS
+   ============================================================ */
+.app-title-lg {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--app-ink);
+  line-height: 1.25;
+}
+
+.app-title-md {
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--app-ink);
+  line-height: 1.3;
+}
+
+.app-title-sm {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--app-ink);
+}
+
+.app-caption {
+  font-size: 13px;
+  color: var(--app-muted);
+  line-height: 1.5;
+}
+
+.app-label-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--app-subtle);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Gradient Text matching landing page */
+.app-gradient-text {
+  background: linear-gradient(110deg, #6e57dc, #a36de8 36%, #35a9c2 75%, #d07aa9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Eyebrow Pill matching landing page */
+.app-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #595a63;
+  box-shadow: var(--app-shadow-sm);
+}
+
+.app-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--app-v), var(--app-c));
+  box-shadow: 0 0 10px rgba(139, 114, 255, 0.6);
+}
+
+/* ============================================================
+   SURFACES & CARDS
+   ============================================================ */
+.app-card {
+  border: 1px solid var(--app-line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--app-shadow-md);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+.app-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--app-shadow-lg);
+  border-color: rgba(20, 20, 30, 0.12);
+}
+
+.app-card-solid {
+  border: 1px solid var(--app-line);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--app-shadow-sm);
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.app-btn:hover {
+  transform: translateY(-1px);
+}
+
+.app-btn:active {
+  transform: translateY(0);
+}
+
+.app-btn-dark {
+  background: #17171b;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(20, 20, 30, 0.18);
+}
+.app-btn-dark:hover {
+  background: #000000;
+  box-shadow: 0 6px 18px rgba(20, 20, 30, 0.24);
+}
+
+.app-btn-light {
+  background: #ffffff;
+  border: 1px solid var(--app-line);
+  color: var(--app-ink);
+  box-shadow: var(--app-shadow-sm);
+}
+.app-btn-light:hover {
+  background: #fafafc;
+  border-color: var(--app-line-strong);
+}
+
+.app-btn-grad {
+  background: linear-gradient(110deg, #3b82f6, #7c3aed 50%, #ec4899);
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.24);
+}
+.app-btn-grad:hover {
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.32);
+}
+
+.app-btn-ghost {
+  background: transparent;
+  color: var(--app-muted);
+}
+.app-btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--app-ink);
+}
+
+/* ============================================================
+   PILLS & BADGES
+   ============================================================ */
+.app-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+/* Tier Badges */
+.app-tier-must {
+  background: var(--app-must-bg);
+  color: var(--app-must-text);
+  border-color: var(--app-must-border);
+}
+
+.app-tier-should {
+  background: var(--app-should-bg);
+  color: var(--app-should-text);
+  border-color: var(--app-should-border);
+}
+
+.app-tier-nice {
+  background: var(--app-nice-bg);
+  color: var(--app-nice-text);
+  border-color: var(--app-nice-border);
+}
+
+/* Confidence Badges */
+.app-conf-high {
+  background: var(--app-conf-high-bg);
+  color: var(--app-conf-high-text);
+}
+.app-conf-med {
+  background: var(--app-conf-med-bg);
+  color: var(--app-conf-med-text);
+}
+.app-conf-low {
+  background: var(--app-conf-low-bg);
+  color: var(--app-conf-low-text);
+}
+
+/* Source Type Badges */
+.app-source-news { background: #eff6ff; color: #2563eb; }
+.app-source-github { background: #f5f3ff; color: #7c3aed; }
+.app-source-jobs { background: #fdf2f8; color: #db2777; }
+.app-source-pricing { background: #ecfdf5; color: #059669; }
+.app-source-research { background: #fff7ed; color: #ea580c; }
+
+/* ============================================================
+   TABLE & DATA LISTS
+   ============================================================ */
+.app-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--app-line);
+  background: #ffffff;
+}
+
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.app-table th {
+  padding: 12px 16px;
+  background: #fafafc;
+  color: var(--app-muted);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.app-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--app-line);
+  color: var(--app-ink);
+}
+
+.app-table tr:last-child td {
+  border-bottom: none;
+}
+
+.app-table tr:hover td {
+  background: #fafafc;
+}
+
+/* ============================================================
+   LIGHT SHIMMER SKELETONS
+   ============================================================ */
+@keyframes appShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.app-skeleton {
+  background: linear-gradient(90deg, #f0eef5 25%, #f9f8fc 50%, #f0eef5 75%);
+  background-size: 200% 100%;
+  animation: appShimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   FILTER STRIP & SEARCH
+   ============================================================ */
+.app-filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.app-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--app-line);
+  background: #ffffff;
+  color: #595a63;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.app-filter-btn:hover {
+  background: #f4f4f7;
+  color: var(--app-ink);
+}
+
+.app-filter-btn-active {
+  background: #17171b !important;
+  color: #ffffff !important;
+  border-color: #17171b !important;
+  box-shadow: 0 2px 8px rgba(20, 20, 30, 0.15);
+}
+
+.app-search-input {
+  width: 100%;
+  max-width: 320px;
+  padding: 8px 14px 8px 36px;
+  border: 1px solid var(--app-line);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--app-ink);
+  font-size: 13px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.app-search-input:focus {
+  border-color: var(--app-indigo);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
