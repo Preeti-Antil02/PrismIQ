@@ -1395,9 +1395,29 @@ def get_pipeline_status(
         }
 
     is_active = progress.get("status") == "running"
+
+    # Compute current live tracked company count for this tenant.
+    # Lets the frontend detect when the last completed run covered fewer
+    # companies than are currently tracked (new competitors confirmed after last run).
+    try:
+        tracked_rows = storage.get_tenant_tracked_companies(tenant_id)
+        current_tracked_count = len([c for c in tracked_rows if c.get("status") == "active"])
+    except Exception:
+        current_tracked_count = progress.get("total_companies", 0)
+
+    run_total = progress.get("total_companies", 0)
+    needs_resweep = (
+        not is_active
+        and progress.get("status") != "running"
+        and current_tracked_count > 0
+        and run_total < current_tracked_count
+    )
+
     return {
         **progress,
         "is_active": is_active,
+        "current_tracked_count": current_tracked_count,
+        "needs_resweep": needs_resweep,
     }
 
 
@@ -1557,29 +1577,23 @@ def get_latest_radar_endpoint(
             prior["topic_id"] = str(top.get("id") or "")
             evals.append(prior)
         else:
-            topic_items = storage.get_research_items_for_topics([lbl])
-            tracked_rows = storage.get_tenant_tracked_companies(tenant_id)
-            competitors = [c["company_name"] for c in tracked_rows if not c.get("is_target")]
-            if not competitors:
-                evals.append({
-                    "topic_id": str(top.get("id") or ""),
-                    "topic_label": lbl,
-                    "keywords": top.get("keywords") or [],
-                    "cycle_id": "none",
-                    "research_item_count": len(topic_items),
-                    "research_item_ids": [str(i.get("id")) for i in topic_items if i.get("id")],
-                    "competitor_connections": {},
-                })
-                continue
-
-            ev = research_radar.evaluate_topic_radar(
-                topic=top,
-                research_items=topic_items,
-                competitors=competitors,
-                pipeline_signals=[],
-                tenant_id=tenant_id,
-            )
-            evals.append(ev)
+            # No prior pipeline sweep has produced a real evaluation for this topic.
+            # Return an honest "pending" state — do NOT fabricate a synthetic evaluation
+            # that would cause the frontend to display "Audited (No shifts)" when no
+            # actual sweep has run for this tenant's current tracked companies.
+            evals.append({
+                "topic_id": str(top.get("id") or ""),
+                "topic_label": lbl,
+                "keywords": top.get("keywords") or [],
+                "cycle_id": "pending",
+                "research_item_count": 0,
+                "research_item_ids": [],
+                "competitor_connections": {},
+                "why_it_matters": None,
+                "verified_sources": [],
+                "state_change_detected": False,
+                "pending_sweep": True,
+            })
 
     return {"evaluations": evals, "count": len(evals)}
 
