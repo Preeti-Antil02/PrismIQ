@@ -315,6 +315,7 @@ export interface RadarEvaluation {
   competitor_connections: Record<string, RadarCompetitorConnection>;
   state_change_detected?: boolean;
   why_it_matters?: string;
+  pending_sweep?: boolean;
   created_at?: string;
 }
 
@@ -800,6 +801,8 @@ export interface PipelineProgress {
   completed_at?: string | null;
   total_duration_seconds?: number | null;
   is_active: boolean;
+  current_tracked_count?: number;
+  needs_resweep?: boolean;
 }
 
 export async function fetchPipelineStatus(): Promise<PipelineProgress> {
