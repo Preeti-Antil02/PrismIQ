@@ -1,10 +1,8 @@
-import { EventsWorkspace } from "@/components/events/EventsWorkspace";
+"use client";
 
-export const metadata = {
-  title: "Events | PrismIQ — Event Intelligence Timeline",
-  description: "What real-world events happened, and what's the evidence behind each one?",
-};
+import * as React from "react";
+import { EventsPage } from "@/components/app/EventsPage";
 
-export default function EventsPage() {
-  return <EventsWorkspace />;
+export default function Page() {
+  return <EventsPage />;
 }
