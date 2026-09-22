@@ -1,3 +1,5 @@
+import time
+import requests
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock
 from src import monitoring_agent
@@ -232,4 +234,74 @@ def test_targeted_fallback_for_truncated_feed_summary():
         assert sig["title"] == "Compute that takes any shape"
         assert sig["source"] == "research"
         assert "Hive control plane" in sig["raw_excerpt"] or "microVM snapshots" in sig["raw_excerpt"]
+
+
+def test_query_arxiv_with_resilience_429_backoff_and_recovery(monkeypatch):
+    """Verify that arXiv 429 rate limit triggers backoff and succeeds on retry."""
+    sleep_calls = []
+    monkeypatch.setattr(monitoring_agent.time, "sleep", lambda s: sleep_calls.append(s))
+
+    resp_429 = MagicMock()
+    resp_429.status_code = 429
+    resp_429.headers = {"retry-after": "4.0"}
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.text = "<feed>success</feed>"
+
+    with patch("requests.get", side_effect=[resp_429, resp_200]) as mock_get:
+        res = monitoring_agent._query_arxiv_with_resilience(
+            url="http://export.arxiv.org/api/query?search_query=all:openai",
+            headers={},
+            context_label="OpenAI",
+            timeout=25,
+            max_retries=2,
+        )
+        assert res == "<feed>success</feed>"
+        assert mock_get.call_count == 2
+        assert len(sleep_calls) == 1
+        assert sleep_calls[0] == 4.0
+
+
+def test_query_arxiv_with_resilience_timeout_backoff_and_recovery(monkeypatch):
+    """Verify that arXiv read timeout triggers backoff and succeeds on retry."""
+    sleep_calls = []
+    monkeypatch.setattr(monitoring_agent.time, "sleep", lambda s: sleep_calls.append(s))
+
+    resp_200 = MagicMock()
+    resp_200.status_code = 200
+    resp_200.text = "<feed>recovered after timeout</feed>"
+
+    with patch("requests.get", side_effect=[requests.exceptions.ReadTimeout("Read timed out"), resp_200]) as mock_get:
+        res = monitoring_agent._query_arxiv_with_resilience(
+            url="http://export.arxiv.org/api/query?search_query=all:anthropic",
+            headers={},
+            context_label="Anthropic",
+            timeout=25,
+            max_retries=2,
+        )
+        assert res == "<feed>recovered after timeout</feed>"
+        assert mock_get.call_count == 2
+        assert len(sleep_calls) == 1
+        assert sleep_calls[0] == 3.0
+
+
+def test_query_arxiv_with_resilience_exhaustion_on_repeated_timeouts(monkeypatch):
+    """Verify that repeated arXiv timeouts exhaust retries cleanly without crashing."""
+    sleep_calls = []
+    monkeypatch.setattr(monitoring_agent.time, "sleep", lambda s: sleep_calls.append(s))
+
+    with patch("requests.get", side_effect=requests.exceptions.ReadTimeout("Read timed out (timeout=25)")) as mock_get:
+        res = monitoring_agent._query_arxiv_with_resilience(
+            url="http://export.arxiv.org/api/query?search_query=all:google",
+            headers={},
+            context_label="Google",
+            timeout=25,
+            max_retries=2,
+        )
+        assert res is None
+        assert mock_get.call_count == 2
+        assert len(sleep_calls) == 1
+        assert sleep_calls[0] == 3.0
+
 
