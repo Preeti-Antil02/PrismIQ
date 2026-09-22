@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
+import time
 import requests
 
 from . import config
@@ -689,6 +690,76 @@ COMPANY_FEED_URLS: Dict[str, List[str]] = {
 }
 
 
+def _query_arxiv_with_resilience(
+    url: str,
+    headers: Dict[str, str],
+    context_label: str,
+    timeout: int = 25,
+    max_retries: int = 2,
+) -> Optional[str]:
+    """
+    Query the official arXiv API with exponential backoff and rate-limit resilience,
+    matching the Groq resilience pattern proven to work under load.
+    Handles HTTP 429 (rate limit), HTTP 503, read timeouts, and connection drops.
+    """
+    last_error: Optional[str] = None
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, headers=headers, timeout=timeout)
+            if response.status_code == 429:
+                retry_header = response.headers.get("retry-after", "")
+                try:
+                    retry_after = float(retry_header)
+                except ValueError:
+                    retry_after = 3.0 * (attempt + 1)
+                backoff = min(max(retry_after, 3.0), 15.0)
+                logger.warning(
+                    f"arXiv 429 rate limit hit for '{context_label}'. "
+                    f"Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(backoff)
+                continue
+
+            if response.status_code == 503:
+                backoff = 3.0 * (attempt + 1)
+                logger.warning(
+                    f"arXiv 503 service unavailable for '{context_label}'. "
+                    f"Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(backoff)
+                continue
+
+            if response.status_code != 200:
+                logger.warning(
+                    f"arXiv API returned status {response.status_code} for '{context_label}'"
+                )
+                return None
+
+            return response.text
+
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            last_error = f"{type(e).__name__}: {e}"
+            if attempt < max_retries - 1:
+                backoff = 3.0 * (attempt + 1)
+                logger.warning(
+                    f"arXiv query timed out or connection dropped for '{context_label}' "
+                    f"(timeout={timeout}s): {e}. Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(backoff)
+            else:
+                logger.error(
+                    f"arXiv query failed after {max_retries} attempts for '{context_label}': {last_error}"
+                )
+                return None
+        except Exception as e:
+            logger.error(f"Unexpected error querying arXiv API for '{context_label}': {e}")
+            return None
+
+    if last_error:
+        logger.error(f"arXiv query exhausted {max_retries} attempts for '{context_label}': {last_error}")
+    return None
+
+
 def _fetch_arxiv_papers(company: str, days: int = 30) -> List[Dict[str, Any]]:
     """
     Query the official arXiv API (export.arxiv.org/api/query) for formal papers.
@@ -701,13 +772,12 @@ def _fetch_arxiv_papers(company: str, days: int = 30) -> List[Dict[str, Any]]:
     headers = {"User-Agent": "PrismIQ-ResearchMonitor/1.0 (contact@prismiq.internal)"}
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code != 200:
-            logger.warning(f"arXiv API returned status {response.status_code} for '{company}'")
-            return []
+    xml_text = _query_arxiv_with_resilience(url, headers=headers, context_label=company, timeout=25, max_retries=2)
+    if not xml_text:
+        return []
 
-        root = ET.fromstring(response.text)
+    try:
+        root = ET.fromstring(xml_text)
         ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
         entries = root.findall("atom:entry", ns)
         signals: List[Dict[str, Any]] = []
@@ -765,7 +835,7 @@ def _fetch_arxiv_papers(company: str, days: int = 30) -> List[Dict[str, Any]]:
 
         return signals
     except Exception as e:
-        logger.error(f"Error querying arXiv API for '{company}': {e}")
+        logger.error(f"Error parsing arXiv XML response for '{company}': {e}")
         return []
 
 
@@ -1059,13 +1129,12 @@ def _fetch_arxiv_topic_papers(
     if seen_urls is not None:
         seen.update(_normalize_canonical_url(u) for u in list(seen) if u)
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code != 200:
-            logger.warning(f"arXiv API returned status {response.status_code} for topic '{topic_label}'")
-            return []
+    xml_text = _query_arxiv_with_resilience(url, headers=headers, context_label=f"topic '{topic_label}'", timeout=25, max_retries=2)
+    if not xml_text:
+        return []
 
-        root = ET.fromstring(response.text)
+    try:
+        root = ET.fromstring(xml_text)
         ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
         entries = root.findall("atom:entry", ns)
         items: List[Dict[str, Any]] = []
@@ -1131,7 +1200,7 @@ def _fetch_arxiv_topic_papers(
 
         return items
     except Exception as e:
-        logger.error(f"Error querying arXiv API for topic '{topic_label}': {e}")
+        logger.error(f"Error parsing arXiv XML response for topic '{topic_label}': {e}")
         return []
 
 
