@@ -170,6 +170,25 @@ export function OverviewCockpitHero({
         </div>
       )}
 
+      {/* Coverage Gap Notice — last run completed but new companies were added since */}
+      {!isPipelineRunning && !isTimedOut && pipelineProgress?.needs_resweep && (
+        <div className="rounded-[6px] border border-[var(--violet)]/40 bg-[rgba(165,107,255,0.08)] px-3.5 py-2.5 text-xs flex items-center justify-between gap-3 shadow-[0_0_16px_rgba(165,107,255,0.1)]">
+          <div className="flex items-center gap-2 font-mono text-[11.5px] text-[#d4c4ff]">
+            <span className="text-[var(--violet)]">◈</span>
+            <span>
+              <strong className="text-white font-semibold">
+                {(pipelineProgress.current_tracked_count || 0) - (pipelineProgress.total_companies || 0)} new{" "}
+                {(pipelineProgress.current_tracked_count || 0) - (pipelineProgress.total_companies || 0) === 1 ? "competitor" : "competitors"}
+              </strong>{" "}
+              added since last sweep — trigger a new run to fetch their signals.
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-[var(--violet)] uppercase tracking-wider shrink-0 border border-[var(--violet)]/30 px-2 py-0.5 rounded">
+            Partial Coverage
+          </span>
+        </div>
+      )}
+
       {/* Compact single-line telemetry status strip for historical degradation */}
       {!isPipelineRunning && !isTimedOut && hasPartialDegradation && (
         <div className="rounded-[5px] border border-[rgba(255,180,90,0.25)] bg-gradient-to-r from-[rgba(255,180,90,0.08)] via-[rgba(165,107,255,0.03)] to-transparent px-3 py-2 text-xs text-[#c8c8d0] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 shadow-[0_0_24px_rgba(255,180,90,0.035)]">
