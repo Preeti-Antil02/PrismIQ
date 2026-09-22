@@ -1,10 +1,8 @@
-import { SignalsWorkspace } from "@/components/signals/SignalsWorkspace";
+"use client";
 
-export const metadata = {
-  title: "Signals | PrismIQ — Evidence Exploration Workspace",
-  description: "Individual evidence detected across monitored channels.",
-};
+import * as React from "react";
+import { SignalsPage } from "@/components/app/SignalsPage";
 
-export default function SignalsPage() {
-  return <SignalsWorkspace />;
+export default function Page() {
+  return <SignalsPage />;
 }
