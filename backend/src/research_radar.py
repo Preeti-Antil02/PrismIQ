@@ -120,7 +120,7 @@ def _match_keywords_in_text(text: str, keywords: List[str]) -> List[str]:
     return matched
 
 
-def fetch_source_real_content(url: str, timeout: int = 8) -> Tuple[bool, str, str]:
+def fetch_source_real_content(url: str, timeout: int = 20) -> Tuple[bool, str, str]:
     """
     Fetch the actual real content (title, text/abstract) of an external URL or arXiv ID.
     Returns:
@@ -132,6 +132,7 @@ def fetch_source_real_content(url: str, timeout: int = 8) -> Tuple[bool, str, st
     import urllib.parse
     import xml.etree.ElementTree as ET
     import ssl
+    import time
 
     ctx = ssl._create_unverified_context()
     headers = {
@@ -143,25 +144,30 @@ def fetch_source_real_content(url: str, timeout: int = 8) -> Tuple[bool, str, st
     if arxiv_id_match:
         arxiv_id = arxiv_id_match.group(1)
         api_url = f"http://export.arxiv.org/api/query?id_list={arxiv_id}"
-        try:
-            req = urllib.request.Request(api_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-                body = resp.read().decode("utf-8", errors="replace")
-                root = ET.fromstring(body)
-                ns = {"atom": "http://www.w3.org/2005/Atom"}
-                entries = root.findall("atom:entry", ns)
-                if not entries:
-                    return False, "", "No entries returned by arXiv API"
-                entry = entries[0]
-                t_el = entry.find("atom:title", ns)
-                s_el = entry.find("atom:summary", ns)
-                real_title = t_el.text.strip().replace("\n", " ") if t_el is not None and t_el.text else ""
-                real_abstract = s_el.text.strip().replace("\n", " ") if s_el is not None and s_el.text else ""
-                if "error" in real_title.lower() or not real_title:
-                    return False, "", "arXiv returned error entry"
-                return True, real_title, real_abstract
-        except Exception as e:
-            return False, "", f"arXiv query error: {e}"
+        last_arxiv_err = "Unknown error"
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(api_url, headers=headers)
+                with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+                    body = resp.read().decode("utf-8", errors="replace")
+                    root = ET.fromstring(body)
+                    ns = {"atom": "http://www.w3.org/2005/Atom"}
+                    entries = root.findall("atom:entry", ns)
+                    if not entries:
+                        return False, "", "No entries returned by arXiv API"
+                    entry = entries[0]
+                    t_el = entry.find("atom:title", ns)
+                    s_el = entry.find("atom:summary", ns)
+                    real_title = t_el.text.strip().replace("\n", " ") if t_el is not None and t_el.text else ""
+                    real_abstract = s_el.text.strip().replace("\n", " ") if s_el is not None and s_el.text else ""
+                    if "error" in real_title.lower() or not real_title:
+                        return False, "", "arXiv returned error entry"
+                    return True, real_title, real_abstract
+            except Exception as e:
+                last_arxiv_err = str(e)
+                if attempt == 0:
+                    time.sleep(2.0)
+        return False, "", f"arXiv query error: {last_arxiv_err}"
 
     # Case 2: Standard web page URL
     try:
