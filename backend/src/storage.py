@@ -64,18 +64,22 @@ DEFAULT_SUPABASE_DB_URL = "postgresql://postgres.hmjcqdthzgzsmhpivrdb:ZmdM#9is&T
 def is_live_write_permitted() -> bool:
     """
     Fail-closed authorization check for live PostgreSQL database connections/writes.
-    Requires explicit, deliberate opt-in via ALLOW_LIVE_WRITE=true, ALLOW_PROD_WRITE=true,
-    or FORCE_LIVE_DB=1.
-    Any ad hoc CLI invocation, unconfigured script, or manual run without explicit opt-in
-    fails CLOSED by default to prevent production data pollution.
+    1. In test environment (pytest, PRISMIQ_ENV='test'), strictly fails closed (returns False)
+       to guarantee zero test data pollution in production.
+    2. If ALLOW_LIVE_WRITE or ALLOW_PROD_WRITE is explicitly configured, honors boolean flag.
+    3. In production container / web service runtime (Render sets RENDER=true and PORT),
+       defaults to True when database URL is present so production API can read/write data.
+    4. Ad hoc CLI scripts without explicit flags fail closed to prevent accidental data pollution.
     """
     if is_test_environment():
         return False
-    return (
-        os.getenv("ALLOW_LIVE_WRITE", "").lower() in ("true", "1", "yes")
-        or os.getenv("ALLOW_PROD_WRITE", "").lower() in ("true", "1", "yes")
-        or os.getenv("FORCE_LIVE_DB", "").lower() in ("true", "1", "yes")
-    )
+    env_val = os.getenv("ALLOW_LIVE_WRITE") or os.getenv("ALLOW_PROD_WRITE") or os.getenv("FORCE_LIVE_DB")
+    if env_val is not None:
+        return env_val.lower() in ("true", "1", "yes")
+    # In production web service container (Render automatically injects RENDER=true and PORT)
+    if (os.getenv("RENDER") or os.getenv("PORT")) and bool(get_db_url()):
+        return True
+    return False
 
 
 
