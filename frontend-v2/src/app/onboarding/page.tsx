@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
+import { createTenantToken } from "@/lib/auth";
 import {
   discoverCompetitors,
   confirmCompetitors,
@@ -153,6 +154,36 @@ export default function OnboardingPage() {
   const [finalizingStep, setFinalizingStep] = React.useState<string>("Registering company...");
   const [finalizingError, setFinalizingError] = React.useState<string | null>(null);
 
+  // Already onboarded workspace detection & prompt
+  const [showAlreadyOnboardedPrompt, setShowAlreadyOnboardedPrompt] = React.useState<boolean>(false);
+  const [existingTarget, setExistingTarget] = React.useState<string>("");
+
+  // Start fresh company onboarding with a clean tenant ID
+  const handleStartNewWorkspace = React.useCallback(() => {
+    const newTid = crypto.randomUUID();
+    if (typeof window !== "undefined") {
+      localStorage.setItem("prismiq_active_tenant_id", newTid);
+      const freshToken = createTenantToken(newTid);
+      localStorage.setItem("prismiq_tenant_token", freshToken);
+      localStorage.removeItem("prismiq_onboarding_state");
+      localStorage.setItem(
+        "prismiq_user",
+        JSON.stringify({
+          id: newTid,
+          email: `${newTid.slice(0, 8)}@prismiq.ai`,
+          name: "New Workspace",
+          tenant_id: newTid,
+        })
+      );
+    }
+    setCompanyName("");
+    setCompanyWebsite("");
+    setCompanyDescription("");
+    setCompetitors([]);
+    setShowAlreadyOnboardedPrompt(false);
+    setStep(1);
+  }, []);
+
   // Guard: Redirect unauthenticated users and restore persisted workspace state from DB
   React.useEffect(() => {
     if (authLoading) return;
@@ -163,9 +194,22 @@ export default function OnboardingPage() {
 
     const loadWorkspaceState = async () => {
       try {
+        const isNewMode = typeof window !== "undefined" && (
+          window.location.search.includes("new=1") ||
+          window.location.search.includes("force=1") ||
+          window.location.search.includes("reset=1")
+        );
+
+        if (isNewMode) {
+          handleStartNewWorkspace();
+          return;
+        }
+
         const cfg = await fetchWorkspaceConfig();
-        if (cfg.onboarding_complete && window.location.search.indexOf("force=1") === -1) {
-          router.push("/app");
+
+        if (cfg.onboarding_complete) {
+          setExistingTarget(cfg.target_company || "configured");
+          setShowAlreadyOnboardedPrompt(true);
           return;
         }
 
@@ -197,7 +241,7 @@ export default function OnboardingPage() {
     };
 
     loadWorkspaceState();
-  }, [authLoading, token, user, router]);
+  }, [authLoading, token, user, router, handleStartNewWorkspace]);
 
   // Clean and validate website domain
   const cleanDomain = (raw: string): string => {
@@ -419,6 +463,25 @@ export default function OnboardingPage() {
 
       setFinalizingStep("Generating initial intelligence workspace...");
 
+      // Save new workspace to custom workspaces list so it shows in the workspace switcher dropdown
+      try {
+        const activeTid = localStorage.getItem("prismiq_active_tenant_id") || "";
+        if (activeTid) {
+          const raw = localStorage.getItem("prismiq_custom_workspaces");
+          const existing = raw ? JSON.parse(raw) : [];
+          const entry = {
+            tenant_id: activeTid,
+            name: `${companyName.trim()} Intelligence`,
+            target: companyName.trim(),
+            sector: "Custom Workspace",
+          };
+          const updated = [...existing.filter((w: any) => w.tenant_id !== activeTid), entry];
+          localStorage.setItem("prismiq_custom_workspaces", JSON.stringify(updated));
+        }
+      } catch {
+        // ignore
+      }
+
       // Short delay for database consistency and visual confirmation
       setTimeout(() => {
         router.push("/app");
@@ -527,12 +590,48 @@ export default function OnboardingPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-4 w-full max-w-5xl mx-auto">
-        {renderProgressBar()}
+        {showAlreadyOnboardedPrompt ? (
+          <div className="w-full max-w-xl bg-white/95 backdrop-blur-xl border border-[rgba(20,20,30,0.08)] shadow-[0_24px_60px_rgba(36,28,68,0.08)] rounded-2xl p-8 sm:p-10 space-y-7 animate-in fade-in zoom-in-95 duration-200 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <div className="space-y-2">
+              <span className="ps-eyebrow mb-1 mx-auto inline-flex">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                Active Workspace Configured
+              </span>
+              <h1 className="text-2xl font-bold tracking-tight text-[#17171b]">
+                You are currently tracking <span className="text-purple-600">{existingTarget}</span>
+              </h1>
+              <p className="text-xs sm:text-sm text-[#70717a] max-w-md mx-auto leading-relaxed">
+                Your workspace is active and monitoring competitive intelligence. You can view your current dashboard or set up a brand-new company workspace.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => router.push("/app")}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-zinc-900 hover:bg-zinc-800 text-white transition-all shadow-sm cursor-pointer"
+              >
+                Go to {existingTarget} Dashboard →
+              </button>
+              <button
+                type="button"
+                onClick={handleStartNewWorkspace}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/80 transition-all cursor-pointer"
+              >
+                + Set Up Another Company
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {renderProgressBar()}
 
-        {/* ==================================================================== */}
-        {/* STEP 1: YOUR COMPANY */}
-        {/* ==================================================================== */}
-        {step === 1 && (
+            {/* ==================================================================== */}
+            {/* STEP 1: YOUR COMPANY */}
+            {/* ==================================================================== */}
+            {step === 1 && (
           <div className="w-full max-w-xl bg-white/95 backdrop-blur-xl border border-[rgba(20,20,30,0.08)] shadow-[0_24px_60px_rgba(36,28,68,0.08)] rounded-2xl p-8 sm:p-10 space-y-7 animate-in fade-in zoom-in-95 duration-200">
             <div className="space-y-2 text-center">
               <span className="ps-eyebrow mb-1">
@@ -1185,7 +1284,9 @@ export default function OnboardingPage() {
             )}
           </div>
         )}
-      </main>
+      </>
+    )}
+  </main>
 
       {/* Footer */}
       <footer className="w-full max-w-5xl mx-auto px-6 py-6 text-center text-xs text-[#9ea0a8]">

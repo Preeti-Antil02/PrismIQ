@@ -25,8 +25,10 @@ import {
   LogOut,
   Sparkles,
   ExternalLink,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { createTenantToken } from "@/lib/auth";
 import {
   fetchWorkspaceConfig,
   fetchPipelineStatus,
@@ -64,6 +66,13 @@ export const AVAILABLE_WORKSPACES = [
   },
 ];
 
+export interface WorkspaceItem {
+  tenant_id: string;
+  name: string;
+  target: string;
+  sector: string;
+}
+
 interface WorkspaceContextType {
   targetCompany: string;
   tenantId: string;
@@ -73,6 +82,8 @@ interface WorkspaceContextType {
   triggerSweep: () => Promise<void>;
   isSweeping: boolean;
   refreshConfig: () => Promise<void>;
+  allWorkspaces: WorkspaceItem[];
+  startNewCompanyOnboarding: () => void;
 }
 
 const WorkspaceContext = React.createContext<WorkspaceContextType>({
@@ -84,6 +95,8 @@ const WorkspaceContext = React.createContext<WorkspaceContextType>({
   triggerSweep: async () => {},
   isSweeping: false,
   refreshConfig: async () => {},
+  allWorkspaces: AVAILABLE_WORKSPACES,
+  startNewCompanyOnboarding: () => {},
 });
 
 export function useWorkspace() {
@@ -141,6 +154,7 @@ const NAV_SECTIONS = [
       { name: "Companies & Competitors", href: "/app/workspace/watchlist", icon: Building2 },
       { name: "Delivery", href: "/app/workspace/delivery", icon: Bell },
       { name: "Settings", href: "/app/workspace/settings", icon: Settings },
+      { name: "Onboard New Company", href: "/onboarding?new=1", icon: Sparkles },
     ],
   },
 ];
@@ -162,6 +176,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     return "8553449a-c998-4727-be01-9aeb724038cb"; // Default to Meesho
   });
+
+  const [customWorkspaces, setCustomWorkspaces] = React.useState<
+    Array<{ tenant_id: string; name: string; target: string; sector: string }>
+  >(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("prismiq_custom_workspaces");
+        if (raw) return JSON.parse(raw);
+      } catch {
+        // ignore
+      }
+    }
+    return [];
+  });
+
+  // Combine built-in workspaces with custom user-created workspaces
+  const allWorkspaces = React.useMemo(() => {
+    const combined = [...AVAILABLE_WORKSPACES];
+    for (const cw of customWorkspaces) {
+      if (!combined.some((w) => w.tenant_id === cw.tenant_id)) {
+        combined.push(cw);
+      }
+    }
+    return combined;
+  }, [customWorkspaces]);
 
   const [config, setConfig] = React.useState<WorkspaceConfig | null>(null);
   const [pipeline, setPipeline] = React.useState<PipelineProgress | null>(null);
@@ -190,6 +229,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Auto-record active workspace if missing from list
+  React.useEffect(() => {
+    if (config?.target_company && activeTenantId) {
+      const existsInAvailable = AVAILABLE_WORKSPACES.some((w) => w.tenant_id === activeTenantId);
+      const existsInCustom = customWorkspaces.some((w) => w.tenant_id === activeTenantId);
+      if (!existsInAvailable && !existsInCustom) {
+        const newEntry = {
+          tenant_id: activeTenantId,
+          name: `${config.target_company} Intelligence`,
+          target: config.target_company,
+          sector: "Custom Workspace",
+        };
+        const updated = [...customWorkspaces, newEntry];
+        setCustomWorkspaces(updated);
+        try {
+          localStorage.setItem("prismiq_custom_workspaces", JSON.stringify(updated));
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [config, activeTenantId, customWorkspaces]);
+
   // Fetch pipeline status
   const checkPipeline = React.useCallback(async () => {
     try {
@@ -210,9 +272,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Target company name
   const targetCompany = React.useMemo(() => {
     if (config?.target_company) return config.target_company;
-    const match = AVAILABLE_WORKSPACES.find((w) => w.tenant_id === activeTenantId);
+    const match = allWorkspaces.find((w) => w.tenant_id === activeTenantId);
     return match ? match.target : "Meesho";
-  }, [config, activeTenantId]);
+  }, [config, activeTenantId, allWorkspaces]);
 
   // Switch workspace
   const switchWorkspace = React.useCallback(
@@ -220,17 +282,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setActiveTenantId(newTenantId);
       if (typeof window !== "undefined") {
         localStorage.setItem("prismiq_active_tenant_id", newTenantId);
-        // Also update the client token to target this tenant
-        const { getClientAuthToken } = require("@/lib/auth");
-        const token = getClientAuthToken(newTenantId);
+        // Explicitly construct and store token for this specific tenant
+        const token = createTenantToken(newTenantId);
         localStorage.setItem("prismiq_tenant_token", token);
+
+        const ws = allWorkspaces.find((w) => w.tenant_id === newTenantId);
+        const targetName = ws ? ws.target : "Workspace";
+        localStorage.setItem(
+          "prismiq_user",
+          JSON.stringify({
+            id: newTenantId,
+            email: `${newTenantId.slice(0, 8)}@prismiq.ai`,
+            name: `${targetName} Workspace`,
+            tenant_id: newTenantId,
+          })
+        );
         setWorkspaceMenuOpen(false);
         // Refresh page to reset all memory caches
         window.location.reload();
       }
     },
-    []
+    [allWorkspaces]
   );
+
+  // Start onboarding a brand new target company
+  const startNewCompanyOnboarding = React.useCallback(() => {
+    if (typeof window !== "undefined") {
+      setWorkspaceMenuOpen(false);
+      const newTid = crypto.randomUUID();
+      localStorage.setItem("prismiq_active_tenant_id", newTid);
+      const token = createTenantToken(newTid);
+      localStorage.setItem("prismiq_tenant_token", token);
+      localStorage.removeItem("prismiq_onboarding_state");
+      localStorage.setItem(
+        "prismiq_user",
+        JSON.stringify({
+          id: newTid,
+          email: `${newTid.slice(0, 8)}@prismiq.ai`,
+          name: "New Workspace",
+          tenant_id: newTid,
+        })
+      );
+      router.push("/onboarding?new=1");
+    }
+  }, [router]);
+
 
   // Trigger sweep
   const triggerSweep = React.useCallback(async () => {
@@ -256,6 +352,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         triggerSweep,
         isSweeping,
         refreshConfig,
+        allWorkspaces,
+        startNewCompanyOnboarding,
       }}
     >
       <EvidenceContext.Provider value={{ openEvidence, closeEvidence }}>
@@ -326,8 +424,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         Strict Tenant-Isolated State
                       </div>
                     </div>
-                    <div className="py-1 space-y-1">
-                      {AVAILABLE_WORKSPACES.map((ws) => (
+                    <div className="py-1 space-y-1 max-h-64 overflow-y-auto">
+                      {allWorkspaces.map((ws) => (
                         <button
                           key={ws.tenant_id}
                           onClick={() => switchWorkspace(ws.tenant_id)}
@@ -346,6 +444,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           )}
                         </button>
                       ))}
+                    </div>
+
+                    {/* Action to Onboard a New Company */}
+                    <div className="pt-2 mt-1 border-t border-zinc-100">
+                      <button
+                        type="button"
+                        onClick={startNewCompanyOnboarding}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50/80 hover:bg-purple-100 transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ Set Up Another Company</span>
+                      </button>
                     </div>
                   </div>
                 )}

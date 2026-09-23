@@ -15,6 +15,7 @@ import {
   Radio,
   Clock,
   Sparkles,
+  Plus,
 } from "lucide-react";
 import { useWorkspace, AVAILABLE_WORKSPACES } from "./AppShell";
 import { useAuth } from "@/lib/AuthContext";
@@ -31,7 +32,7 @@ import {
 } from "@/lib/api";
 
 export function SettingsPage() {
-  const { targetCompany, tenantId, switchWorkspace } = useWorkspace();
+  const { targetCompany, tenantId, switchWorkspace, allWorkspaces, startNewCompanyOnboarding } = useWorkspace();
   const { user, logout } = useAuth();
 
   const [loading, setLoading] = React.useState(true);
@@ -225,11 +226,11 @@ export function SettingsPage() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {AVAILABLE_WORKSPACES.map((ws) => (
+              {(allWorkspaces || AVAILABLE_WORKSPACES).map((ws) => (
                 <button
                   key={ws.tenant_id}
                   onClick={() => switchWorkspace(ws.tenant_id)}
-                  className={`p-4 rounded-xl border text-left transition-all ${
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                     tenantId === ws.tenant_id
                       ? "bg-purple-50 border-purple-300 shadow-xs"
                       : "bg-white border-[rgba(20,20,30,0.08)] hover:bg-zinc-50"
@@ -252,6 +253,16 @@ export function SettingsPage() {
                   )}
                 </button>
               ))}
+            </div>
+
+            <div className="pt-2 border-t border-zinc-100 flex items-center justify-between">
+              <span className="text-xs text-[#70717a]">
+                Need to monitor a different competitor or industry?
+              </span>
+              <PrismButton variant="light" size="sm" onClick={startNewCompanyOnboarding} className="text-purple-700 hover:bg-purple-50">
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                <span>+ Set Up Another Company</span>
+              </PrismButton>
             </div>
           </PrismCard>
 
