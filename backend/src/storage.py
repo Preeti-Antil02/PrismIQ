@@ -647,6 +647,36 @@ def save_brief(
     return timestamped_report
 
 
+def ensure_tenant_user_exists(cur, tenant_id: str, email: Optional[str] = None) -> None:
+    """
+    Ensure the tenant UUID exists in auth.users so foreign key constraints on tenant tables never fail.
+    Idempotent: inserts default authenticated user record if not present.
+    """
+    if not tenant_id:
+        return
+    if isinstance(cur, MockCursor):
+        return
+    tid = str(tenant_id).strip()
+    user_email = email or f"{tid[:8]}@prismiq.ai"
+    try:
+        cur.execute("""
+            INSERT INTO auth.users (
+                id, instance_id, aud, role, email, email_confirmed_at,
+                raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+            )
+            VALUES (
+                %s, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+                %s, NOW(),
+                '{"provider":"email","providers":["email"]}'::jsonb,
+                '{"name":"Tenant User"}'::jsonb,
+                NOW(), NOW()
+            )
+            ON CONFLICT (id) DO NOTHING;
+        """, (tid, user_email))
+    except Exception as e:
+        logger.warning(f"Could not ensure tenant user {tid} in auth.users: {e}")
+
+
 def save_discovery_proposal(
     target_company: str,
     candidates: List[Dict[str, Any]],
@@ -670,6 +700,7 @@ def save_discovery_proposal(
             # Validate UUID syntax before passing to Postgres UUID column
             uuid.UUID(str(tid))
             with get_db_cursor() as cur:
+                ensure_tenant_user_exists(cur, tid)
                 # Ensure target company exists in companies registry
                 cur.execute(
                     "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
@@ -830,6 +861,9 @@ def save_tenant_confirmed_companies(
 
     # 1. Primary PostgreSQL Write
     with get_db_cursor() as cur:
+        # Guarantee parent tenant row exists in auth.users before foreign key references
+        ensure_tenant_user_exists(cur, tid)
+
         # Fetch candidate metadata from discovery_candidates if available
         candidate_meta: Dict[str, Dict[str, str]] = {}
         try:
@@ -992,6 +1026,7 @@ def track_tenant_company(
     now_dt = datetime.now(timezone.utc)
 
     with get_db_cursor() as cur:
+        ensure_tenant_user_exists(cur, tid)
         cur.execute("INSERT INTO companies (name, status) VALUES (%s, 'confirmed') ON CONFLICT (name) DO NOTHING;", (comp,))
         cur.execute("""
             INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, added_at, updated_at)
@@ -1677,6 +1712,7 @@ def save_tenant_delivery_config(
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id) as cur:
+                ensure_tenant_user_exists(cur, tid)
                 cur.execute("""
                     INSERT INTO tenant_delivery_configs (
                         tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
@@ -1805,6 +1841,7 @@ def save_tenant_research_topic(
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id) as cur:
+                ensure_tenant_user_exists(cur, tenant_id)
                 cur.execute("""
                     INSERT INTO tenant_research_topics (
                         id, tenant_id, topic_label, keywords, source, is_active, created_at, updated_at

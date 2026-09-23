@@ -207,3 +207,69 @@ def test_api_health_endpoint_details(client, monkeypatch):
     assert debug_data["groq_key_prefix"] == "gsk_test"
     assert debug_data["groq_has_quotes"] is False
     assert debug_data["groq_model"] == "openai/gpt-oss-120b"
+
+
+def test_groq_cascade_on_tpd_rate_limit(monkeypatch):
+    """Verify that when the primary model hits 429 TPD limit, Groq cascades to fallback model."""
+    call_log = []
+
+    def mock_post(url, headers=None, json=None, timeout=None):
+        model = json.get("model")
+        call_log.append(model)
+        class MockResp:
+            def __init__(self, status_code, text, json_data=None):
+                self.status_code = status_code
+                self.text = text
+                self._json = json_data or {}
+                self.headers = {}
+            def json(self):
+                return self._json
+
+        if model == "openai/gpt-oss-120b":
+            # Return TPD rate limit error
+            return MockResp(
+                429,
+                '{"error":{"message":"Rate limit reached for model `openai/gpt-oss-120b` on tokens per day (TPD): Limit 200000, Used 199990, Requested 500."}}'
+            )
+        elif model == "openai/gpt-oss-20b":
+            # Succeed on fallback model
+            return MockResp(
+                200,
+                '{"choices":[{"message":{"content":"{\\"candidates\\":[{\\"name\\":\\"Flipkart\\",\\"rationale\\":\\"E-commerce rival\\",\\"confidence\\":\\"High\\"}]}"}}]}',
+                {"choices": [{"message": {"content": '{"candidates":[{"name":"Flipkart","rationale":"E-commerce rival","confidence":"High"}]}'}}]}
+            )
+        return MockResp(500, "Unexpected model")
+
+    monkeypatch.setattr(discovery_agent.requests, "post", mock_post)
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_dummy")
+
+    result = discovery_agent._call_groq_discovery("meesho", [])
+    assert "candidates" in result
+    assert len(result["candidates"]) == 1
+    assert result["candidates"][0]["name"] == "Flipkart"
+    assert "openai/gpt-oss-120b" in call_log
+    assert "openai/gpt-oss-20b" in call_log
+
+
+def test_onboarding_confirm_with_new_tenant_uuid(client):
+    """Verify that confirming onboarding with a brand new tenant UUID does not 500."""
+    import uuid
+
+    new_tenant_id = str(uuid.uuid4())
+    token = api._create_jwt_token(new_tenant_id, f"{new_tenant_id[:8]}@test.com")
+
+    resp = client.post(
+        "/api/onboarding/confirm",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "target_company": "meesho",
+            "confirmed_competitors": ["Flipkart", "Amazon India"],
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "confirmed"
+    assert data["target_company"] == "meesho"
+    assert len(data["tracked_companies"]) == 3
+
+

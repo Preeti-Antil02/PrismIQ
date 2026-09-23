@@ -32,6 +32,12 @@ logger = logging.getLogger(__name__)
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
+FALLBACK_GROQ_MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+]
 VALID_CONFIDENCE_LEVELS = {"High", "Medium", "Low"}
 VALID_SOURCE_AGES = {"recent", "dated", "undated"}
 
@@ -64,24 +70,24 @@ Return ONLY a valid JSON object with a single key "candidates" containing an arr
 }
 
 GUARDRAILS (STRICT):
-1. No generic or unfalsifiable rationales: Do NOT use vague filler like "they are in the same space" or "they are a competitor". State specifically what products, architectures, or market overlaps exist (e.g. frontend hosting, serverless edge compute, Jamstack deployments, payment processing API, application performance monitoring).
+1. No generic or unfalsifiable rationales: Do NOT use vague filler like "they are in the same space" or "they are a competitor". State specifically what products, architectures, or market overlaps exist (e.g. e-commerce marketplace, social commerce platform, retail distribution, API architecture, application performance monitoring).
 2. Grounding & Zero Hallucination: Every suggested candidate competitor MUST be explicitly supported by and traceable to at least one of the provided retrieved sources. If a company is not mentioned or supported in the retrieved sources, do NOT include it.
 3. No Cherry-Picking / Distortion: State the competitive relationship accurately based on what the source documents.
 4. INCLUSIVENESS, FRESHNESS CALIBRATION & GROUNDING STANDARD:
-   - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit or prune older or smaller competitors (e.g. Wavefront, SignalFx, WePay, Paymill, Jitsu); include them so the human reviewer can inspect and confirm or reject them.
-   - When sources contain comparison listings, competitor matrices, or market overviews (e.g. "Competitors include Company A, Company B, and Company C"), extract EACH distinct competitor supported by the source.
-   - Grounding standard: Only include candidate competitors with explicit, verifiable evidence of competitive overlap in the sources. Do NOT invent candidates or include tangentially related companies simply to hit a quantity target.
-   - "High" confidence requires recent, checkable facts (sources from the last ~18 months, or actively maintained repositories).
-   - If a candidate competitor is grounded ONLY in a "dated" source (older than ~18 months, e.g. 2011, 2014, 2016, 2021) without recent corroboration, do NOT assign High confidence. Assign Medium or Low confidence and set "source_age" to "dated".
+   - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit direct, indirect, or peripheral competitors; include them so the human reviewer can inspect and confirm or reject them.
+   - When sources contain comparison listings, competitor matrices, or market overviews (e.g. "Competitors include Company A, Company B, and Company C", or comparisons between platforms), extract EACH distinct competitor supported by the source.
+   - Grounding standard: Only include candidate competitors with explicit, verifiable evidence of competitive overlap in the sources. Do NOT invent candidates or include tangentially related non-business entities.
+   - "High" confidence requires recent, checkable facts (sources from the last ~18 months, or actively maintained repositories/platforms).
+   - If a candidate competitor is grounded ONLY in a "dated" source (older than ~18 months) without recent corroboration, do NOT assign High confidence. Assign Medium or Low confidence and set "source_age" to "dated".
    - "Medium": Significant product or functional overlap, or a moderately dated source with ongoing market presence.
    - "Low": Niche/partial overlap, or heavily dated source with historic/unconfirmed current status.
 5. Do NOT include the target company itself as a candidate competitor.
 6. Rank candidates starting with direct and recent competitors first, followed by dated or niche competitors.
-7. GEOGRAPHIC & OPERATIONAL OVERLAP (ZERO BOGUS ARTIFACTS):
-   - A genuine competitor MUST have plausible, demonstrable market overlap with the target company (shared customers, shared operating geography, or directly competing products).
-   - Automated comparison indices and lookalike databases (e.g. LATKA, CB Insights, Apistemic) frequently group companies by abstract tags (e.g. broad "E-Commerce", "SaaS") or financial brackets (e.g. ARR tiers) rather than true competitive rivalry.
-   - Do NOT include companies that operate in completely disjoint geographic markets with zero shared customers or operations (e.g. do NOT pair an Indian domestic consumer marketplace like Meesho with regional Southeast Asian marketplaces like Lazada or Turkish platforms like Trendyol Group, unless explicit evidence of direct market entry/competition is provided in the text).
-   - Do NOT include companies in completely unrelated industries grouped solely by revenue brackets (e.g. do NOT pair retail with real estate SaaS like Place, higher education tech like EAB, or home services software like EverCommerce)."""
+7. RELEVANCE & OPERATIONAL OVERLAP:
+   - A genuine competitor MUST have plausible, demonstrable market overlap with the target company (shared customers, shared operating domain, or directly competing products/services).
+   - Automated comparison indices frequently group companies by abstract database tags or financial metrics. Filter out companies from completely unrelated industries that appear purely due to financial or directory categorization (e.g. do not pair retail platforms with unrelated real estate software or higher education tools).
+   - For retail marketplaces, surface direct platforms (e-commerce rivals, online marketplaces, social commerce platforms) mentioned across comparisons and industry news."""
+
 
 
 def _parse_iso_or_date(date_val: Any) -> Optional[datetime]:
@@ -241,7 +247,7 @@ def _fetch_wikipedia_context(company: str) -> List[Dict[str, Any]]:
     """Fetch encyclopedic background and competitor mentions from Wikipedia REST API with parallel queries."""
     sources: List[Dict[str, Any]] = []
     headers = {"User-Agent": "PrismIQ-Competitive-Intelligence/2.0 (research@prismiq.ai)"}
-    queries = [company, f"{company} competitors", f"{company} software"]
+    queries = [company, f"{company} competitors", f"{company} alternatives", f"{company} vs"]
 
     def _query_wiki(q: str) -> List[Dict[str, Any]]:
         res = []
@@ -326,7 +332,7 @@ def _fetch_duckduckgo_context(company: str) -> List[Dict[str, Any]]:
     Zero-scraping JSON endpoint that returns disambiguated entities, competitor topics, and descriptions.
     """
     sources: List[Dict[str, Any]] = []
-    queries = [f"{company} alternatives", f"{company} competitors"]
+    queries = [f"{company} alternatives", f"{company} competitors", f"{company} vs", f"companies like {company}"]
 
     for q in queries:
         try:
@@ -449,7 +455,7 @@ def _fetch_alternativeto_context(company: str) -> List[Dict[str, Any]]:
 def _fetch_gnews_competitor_context(company: str) -> List[Dict[str, Any]]:
     """Fetch recent competitor news and rival comparisons from Google News RSS with publication dates."""
     sources: List[Dict[str, Any]] = []
-    queries = [f"{company} competitors", f"{company} vs", f"{company} rival"]
+    queries = [f"{company} competitors", f"{company} vs", f"{company} rival", f"{company} competition"]
     headers = dict(DEFAULT_REQUEST_HEADERS)
     seen_links = set()
     for q in queries:
@@ -584,6 +590,7 @@ def fetch_grounded_context(company: str) -> List[Dict[str, Any]]:
     curated.extend(by_category["wikipedia"][:4])
     curated.extend(by_category["discussion_and_tech_media"][:3])
     curated.extend(by_category["github_repository"][:3])
+    curated.extend(by_category["market_knowledge_index"][:3])
 
     return curated[:18]
 
@@ -943,14 +950,18 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
         title = s.get("title", "")
         if re.search(r'(?i)wikipedia:\s*(?:list of|timeline of|history of|controversy|incident|products and applications)', title):
             continue
-        wiki_m = re.match(r'^Wikipedia:\s*([A-Za-z0-9\.\s]+?)(?:\s*\((company|e-commerce|software|app|retailer|marketplace|corporation|firm)\))?$', title, flags=re.IGNORECASE)
+        wiki_m = re.match(r'^Wikipedia:\s*([A-Za-z0-9\.\s]+?)(?:\s*\(([^)]+)\))?$', title, flags=re.IGNORECASE)
         if wiki_m:
             entity = wiki_m.group(1).strip()
-            is_company_tagged = bool(wiki_m.group(2))
-            if is_company_tagged and entity.lower() != company_clean:
+            tag = (wiki_m.group(2) or "").lower()
+            snippet = s.get("text", "").lower()
+            combined_desc = f"{snippet} {tag}"
+            is_business = bool(re.search(r'\b(company|e-commerce|ecommerce|software|app|retailer|marketplace|corporation|firm|service|platform|website|portal|competes|competitor|rival|headquartered|industry|startup|enterprise|conglomerate)\b', combined_desc))
+            is_bio = bool(re.search(r'\b(actor|actress|filmography|politician|singer|cricketer|film|cinema|born|starred|fashion\s+model)\b', combined_desc))
+            if is_business and not is_bio and entity.lower() != company_clean and not _is_self_or_internal_product(entity, company_clean):
                 _record_candidate(
                     entity,
-                    f"Dedicated encyclopedia profile for {entity} ({title}) retrieved via competitor intelligence.",
+                    f"Dedicated encyclopedia profile for {entity} ({title}) cited alongside {company.capitalize()}.",
                     s,
                     0.88,
                     "Medium",
@@ -977,11 +988,18 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
         r'(?i)(?:top|direct|major|main|primary|key)?\s*(?:competitors|alternatives|rivals)(?:\s+in\s+\d{4})?\s*[:–—\-]\s*([^.\n;]+)',
         # "analyzes products on Amazon, Flipkart, Myntra, and Meesho" or "scrapes product reviews from Amazon, Flipkart, Croma & Reliance Digital"
         r'(?i)(?:analyzes?|compares?|monitors?|tracks?|scrapes?|aggregates?|collects?)\s+(?:product\s+reviews|products|prices|features|services)?\s+(?:on|across|between|from)\s+([^.\n;]+)',
+        # "products/sellers/merchants on Amazon, Flipkart, Myntra, and Meesho"
+        r'(?i)(?:products|listings|merchants|sellers|catalog|shopping)\s+(?:on|from|across|in)\s+([^.\n;]+)',
+        # "platforms/marketplaces/retailers like Amazon, Flipkart, Snapdeal, and Meesho"
+        r'(?i)(?:platforms|marketplaces|services|e-commerce\s+apps|retailers|sites)\s+(?:like|such\s+as)\s+([^.\n;]+)',
         # "Competitors Eternal and Swiggy"
         r'(?i)(?:competitors|rivals)\s+([A-Z][a-zA-Z0-9]+(?:\s*(?:and|or|&)\s*[A-Z][a-zA-Z0-9]+))',
     ]
 
     single_patterns = [
+        # Subject: ... competes ... with <target> (e.g. "Flipkart: ... competes primarily with Amazon India and domestic rival Meesho")
+        (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)?)\s*:\s*.*?\b(?:competes|rival|rivalry|alternative)\b.*?' + re.escape(company_clean), 0.88),
+        
         # Entity vs Target or Target vs Entity (e.g. "Flipkart vs Meesho", "OpenAI vs Anthropic")
         (r'(?i)\b([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})\s+(?:vs\.?|versus)\s+' + re.escape(company_clean), 0.9),
         (r'(?i)' + re.escape(company_clean) + r'\s+(?:vs\.?|versus)\s+([A-Z][a-zA-Z0-9]+(?:\s+(?!and\b|or\b|with\b|the\b|in\b|to\b|of\b)[A-Z][a-zA-Z0-9]+){0,2})', 0.9),
@@ -1058,8 +1076,11 @@ def _heuristic_extract_candidates(company: str, sources: List[Dict[str, Any]]) -
 
 
 @traceable(run_type="llm", name="discovery_agent_llm_call")
-def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 6) -> Dict[str, Any]:
-    """Execute Groq completion with JSON object response format, retries, and rate limit backoff."""
+def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int = 4) -> Dict[str, Any]:
+    """
+    Execute Groq completion with JSON object response format, multi-model fallback cascade,
+    and adaptive rate limit handling.
+    """
     raw_key = os.getenv("GROQ_API_KEY", "")
     api_key = raw_key.strip().strip("\"'").strip()
     if not api_key:
@@ -1067,89 +1088,111 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
         raise LLMUnavailableError("GROQ_API_KEY is not configured in backend environment variables.")
 
     raw_model = os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL).strip().strip("\"'").strip()
-    if not raw_model or " " in raw_model or "(" in raw_model:
-        model = DEFAULT_GROQ_MODEL
-    else:
-        model = raw_model
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        "temperature": 0.1,
-        "max_tokens": 1000,
-        "response_format": {"type": "json_object"},
-    }
+    initial_model = DEFAULT_GROQ_MODEL if (not raw_model or " " in raw_model or "(" in raw_model) else raw_model
+
+    # Build model chain with initial_model first, followed by other fallback candidates without duplicates
+    model_chain = [initial_model]
+    for fb in FALLBACK_GROQ_MODELS:
+        if fb not in model_chain:
+            model_chain.append(fb)
 
     last_error: Optional[Exception] = None
-    for attempt in range(max_retries):
-        try:
-            resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=20)
-            if resp.status_code in (401, 403):
-                logger.error(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key: {resp.text[:200]}")
-                raise LLMUnavailableError(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key: {resp.text[:200]}")
 
-            if resp.status_code == 429:
-                # Synchronize Groq daily usage if reported in 429 error response
-                tpd_match = re.search(r"tokens per day \(TPD\): Limit \d+, Used (\d+)", resp.text)
-                if tpd_match or "tokens per day (TPD)" in resp.text:
-                    if tpd_match:
-                        try:
-                            used_tokens = int(tpd_match.group(1))
-                            _sync_groq_daily_usage(used_tokens)
-                        except Exception:
-                            pass
-                    logger.warning("Groq daily token limit exceeded (TPD). Bypassing retries to engage deterministic fallback immediately.")
-                    raise LLMUnavailableError(f"Groq daily token limit exceeded (TPD): {resp.text[:200]}")
+    for m_idx, model in enumerate(model_chain):
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.1,
+            "max_tokens": 2500,
+            "response_format": {"type": "json_object"},
+        }
 
-                retry_header = resp.headers.get("retry-after", "")
-                try:
-                    retry_after = float(retry_header)
-                except ValueError:
-                    retry_after = 3.0 * (attempt + 1)
-                backoff = min(max(retry_after, 3.0), 20.0)
-                logger.warning(f"Groq 429 rate limit hit. Backing off for {backoff:.1f}s (attempt {attempt + 1}/{max_retries})...")
-                time.sleep(backoff)
-                continue
+        has_next_model = (m_idx < len(model_chain) - 1)
+        model_retries = 2 if has_next_model else max_retries
 
-            if resp.status_code != 200:
-                logger.error(f"Groq API returned HTTP {resp.status_code}: {resp.text}")
-                raise LLMUnavailableError(f"Groq API HTTP {resp.status_code}: {resp.text[:200]}")
+        for attempt in range(model_retries):
+            try:
+                resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=25)
+                if resp.status_code in (401, 403):
+                    logger.error(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key: {resp.text[:200]}")
+                    raise LLMUnavailableError(f"Groq API authentication error ({resp.status_code}): Invalid or rejected API key: {resp.text[:200]}")
 
-            res_data = resp.json()
+                if resp.status_code == 429:
+                    tpd_match = re.search(r"tokens per day \(TPD\): Limit \d+, Used (\d+)", resp.text)
+                    if tpd_match or "tokens per day (TPD)" in resp.text:
+                        if tpd_match:
+                            try:
+                                used_tokens = int(tpd_match.group(1))
+                                _sync_groq_daily_usage(used_tokens)
+                            except Exception:
+                                pass
+                        if has_next_model:
+                            logger.warning(f"Groq model '{model}' daily TPD limit exceeded. Cascading to fallback model '{model_chain[m_idx + 1]}'...")
+                            break  # Try next model in cascade
+                        logger.warning("Groq daily token limit exceeded across all models (TPD). Engaging heuristic fallback.")
+                        raise LLMUnavailableError(f"Groq daily token limit exceeded (TPD): {resp.text[:200]}")
 
-            # Attach token usage and cost metadata to active LangSmith span and daily token tracker
-            usage = res_data.get("usage")
-            if usage and isinstance(usage, dict):
-                _attach_langsmith_usage(usage, model=model)
-                tot_tokens = usage.get("total_tokens", 0)
-                if tot_tokens > 0:
-                    _record_groq_token_usage(tot_tokens, model=model)
+                    if has_next_model and attempt >= 1:
+                        logger.warning(f"Groq 429 rate limit hit on model '{model}'. Cascading to fallback model '{model_chain[m_idx + 1]}'...")
+                        break
 
-            content = res_data["choices"][0]["message"]["content"]
+                    retry_header = resp.headers.get("retry-after", "")
+                    try:
+                        retry_after = float(retry_header)
+                    except ValueError:
+                        retry_after = 2.0 * (attempt + 1)
+                    backoff = min(max(retry_after, 2.0), 10.0)
+                    logger.warning(f"Groq 429 on '{model}'. Backing off {backoff:.1f}s (attempt {attempt + 1}/{model_retries})...")
+                    time.sleep(backoff)
+                    continue
 
-            cleaned_content = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
-            cleaned_content = re.sub(r"\s*```$", "", cleaned_content.strip())
-            parsed = json.loads(cleaned_content)
-            if isinstance(parsed, dict) and "candidates" in parsed:
-                return parsed
-            return {"candidates": []}
-        except LLMUnavailableError:
-            raise
-        except Exception as e:
-            last_error = e
-            if attempt == max_retries - 1:
-                logger.error(f"Error calling Groq API for discovery ({model}): {e}")
-                raise LLMUnavailableError(f"Groq API call failed after {max_retries} attempts: {e}")
-            time.sleep(1.0)
+                if resp.status_code == 400 and ("json_validate_failed" in resp.text or "Failed to validate JSON" in resp.text):
+                    if has_next_model:
+                        logger.warning(f"Groq model '{model}' encountered JSON schema validation issue. Cascading to '{model_chain[m_idx + 1]}'...")
+                        break
+
+                if resp.status_code != 200:
+                    logger.warning(f"Groq API returned HTTP {resp.status_code} for model '{model}': {resp.text[:200]}")
+                    if has_next_model:
+                        break
+                    raise LLMUnavailableError(f"Groq API HTTP {resp.status_code}: {resp.text[:200]}")
+
+                res_data = resp.json()
+
+                # Attach token usage and cost metadata to active LangSmith span and daily token tracker
+                usage = res_data.get("usage")
+                if usage and isinstance(usage, dict):
+                    _attach_langsmith_usage(usage, model=model)
+                    tot_tokens = usage.get("total_tokens", 0)
+                    if tot_tokens > 0:
+                        _record_groq_token_usage(tot_tokens, model=model)
+
+                content = res_data["choices"][0]["message"]["content"]
+                cleaned_content = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
+                cleaned_content = re.sub(r"\s*```$", "", cleaned_content.strip())
+                parsed = json.loads(cleaned_content)
+                if isinstance(parsed, dict) and "candidates" in parsed:
+                    logger.info(f"Groq discovery synthesis succeeded with model '{model}': {len(parsed['candidates'])} candidates returned.")
+                    return parsed
+                return {"candidates": []}
+
+            except LLMUnavailableError:
+                raise
+            except Exception as e:
+                last_error = e
+                if attempt == model_retries - 1:
+                    logger.warning(f"Error calling Groq API for '{model}': {e}")
+                time.sleep(1.0)
 
     if last_error:
-        raise LLMUnavailableError(f"Groq API call failed: {last_error}")
+        raise LLMUnavailableError(f"Groq API call failed across all models in cascade: {last_error}")
     raise LLMUnavailableError("Groq API call failed to return candidate response.")
 
 
@@ -1373,13 +1416,22 @@ def run_with_meta(
             llm_error_msg = str(e)
             logger.warning(f"LLM discovery unavailable for '{company_clean}': {e}. Engaging deterministic heuristic fallback.")
 
-    # Heuristic fallback if LLM returned no candidates or failed
-    if not raw_candidates and sources:
+    # Merge grounded heuristic candidates when available to maximize recall and prevent omission
+    if sources:
         heuristic_cands = _heuristic_extract_candidates(company_clean, sources)
-        if heuristic_cands:
-            logger.info(f"Deterministic heuristic parser extracted {len(heuristic_cands)} candidates for '{company_clean}'.")
-            raw_candidates = heuristic_cands
-            extraction_method = "heuristic_fallback"
+        if not raw_candidates:
+            if heuristic_cands:
+                logger.info(f"Deterministic heuristic parser extracted {len(heuristic_cands)} candidates for '{company_clean}'.")
+                raw_candidates = heuristic_cands
+                extraction_method = "heuristic_fallback"
+        else:
+            # Merge grounded candidates cited in comparisons that LLM synthesis omitted
+            existing_keys = {_canonical_brand_key(c.get("name", "")) for c in raw_candidates if isinstance(c, dict)}
+            for hc in heuristic_cands:
+                h_key = _canonical_brand_key(hc.get("name", ""))
+                if h_key and h_key not in existing_keys:
+                    raw_candidates.append(hc)
+                    existing_keys.add(h_key)
 
     # If heuristic fallback also yielded nothing AND LLM failed specifically due to credentials/outage
     # Only raise if sources were present to analyze; if sources were genuinely empty, preserve empty state
