@@ -14,4 +14,16 @@ services:
         value: published_briefs
       - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: ALLOW_LIVE_WRITE
+        value: "true"
+      - key: OWNER_TENANT_ID
+        value: 8553449a-c998-4727-be01-9aeb724038cb
+      - key: CURRENTS_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
 

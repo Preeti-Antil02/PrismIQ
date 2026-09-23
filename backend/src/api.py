@@ -278,6 +278,8 @@ def health_check(debug: bool = False) -> Dict[str, Any]:
         "status": "ok",
         "service": "PrismIQ Competitive Intelligence API",
         "groq_configured": bool(clean_key),
+        "db_configured": bool(storage.get_db_url()),
+        "live_write_permitted": storage.is_live_write_permitted(),
     }
     if debug:
         resp.update({
@@ -289,6 +291,8 @@ def health_check(debug: bool = False) -> Dict[str, Any]:
                 if (not os.getenv("GROQ_MODEL") or " " in os.getenv("GROQ_MODEL", "") or "(" in os.getenv("GROQ_MODEL", ""))
                 else os.getenv("GROQ_MODEL", "").strip()
             ),
+            "db_configured": bool(storage.get_db_url()),
+            "live_write_permitted": storage.is_live_write_permitted(),
         })
     return resp
 
