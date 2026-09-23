@@ -102,6 +102,7 @@ const SUPPORTED_INTELLIGENCE_OPTIONS: IntelligenceOption[] = [
 interface ReviewCompetitorItem {
   id: string;
   name: string;
+  category?: string;
   rationale: string;
   confidence: "High" | "Medium" | "Low";
   source: string;
@@ -319,17 +320,19 @@ export default function OnboardingPage() {
           `Competitive index & domain crawl for ${target}`;
 
         const isCore = c.tier === "core" || (!c.is_directory_only && confLevel === "High");
+        const category = c.category || c.industry_category || "Competitor Platform";
 
         return {
           id: `disc-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
           name: cName,
+          category,
           rationale,
           confidence: confLevel,
           source: sourceCitation,
           sourceAge: c.source_age,
           freshnessNote: c.freshness_note,
-          website: c.website,
-          selected: isCore, // Core candidates pre-selected; peripheral candidates opt-in
+          website: c.website || c.domain || c.primary_domain,
+          selected: true, // Pre-select ALL authentic discovered candidates by default!
           tier: (c.tier as "core" | "peripheral") || (isCore ? "core" : "peripheral"),
           isDirectoryOnly: Boolean(c.is_directory_only),
           isDirectoryArtifactRisk: Boolean(c.is_directory_artifact_risk),
@@ -854,8 +857,18 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              {/* Counter Pill & Manual Add Toggle */}
-              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              {/* Counter Pill & Select All Toggle & Manual Add Toggle */}
+              <div className="flex items-center gap-2.5 self-start sm:self-auto shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allSelected = competitors.every((c) => c.selected);
+                    setCompetitors((prev) => prev.map((c) => ({ ...c, selected: !allSelected })));
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/80 transition-all cursor-pointer"
+                >
+                  {competitors.every((c) => c.selected) ? "Deselect All" : "Select All"}
+                </button>
                 <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200/70">
                   {competitors.filter((c) => c.selected).length} of {competitors.length} selected
                 </span>
@@ -1015,18 +1028,20 @@ export default function OnboardingPage() {
                           </div>
 
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {comp.category && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200/70">
+                                {comp.category}
+                              </span>
+                            )}
                             {comp.tier === "core" ? (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 border border-purple-200/80">
                                 Core Competitor
                               </span>
-                            ) : comp.isDirectoryOnly ? (
-                              <span
-                                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-100/90 text-amber-900 border border-amber-300/80"
-                                title="Single comparison directory listing without independent news, repo, or wiki verification"
-                              >
-                                Directory Match
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 border border-blue-200/80">
+                                Secondary Competitor
                               </span>
-                            ) : null}
+                            )}
 
                             <span
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
@@ -1056,6 +1071,13 @@ export default function OnboardingPage() {
                               </span>
                             ) : null}
                           </div>
+
+                          {comp.website && (
+                            <div className="flex items-center gap-1 text-[11px] text-[#70717a] mt-1 font-medium">
+                              <ExternalLink className="w-3 h-3 text-[#9ca3af]" />
+                              <span>{comp.website}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

@@ -35,8 +35,7 @@ DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 FALLBACK_GROQ_MODELS = [
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
+    "qwen/qwen3.8-27b",
 ]
 VALID_CONFIDENCE_LEVELS = {"High", "Medium", "Low"}
 VALID_SOURCE_AGES = {"recent", "dated", "undated"}
@@ -52,41 +51,41 @@ _DAILY_TOKEN_USAGE: Dict[str, Any] = {
     "warning_logged": False,
 }
 
-DISCOVERY_SYSTEM_PROMPT = """You are a senior competitive intelligence analyst for PrismIQ.
-Given a target company and a set of retrieved, verified sources (technical writeups, comparisons, repositories, news, and encyclopedia articles), your job is to identify, rank, and return candidate competitors.
+DISCOVERY_SYSTEM_PROMPT = """You are the Principal Competitive Intelligence Analyst for PrismIQ.
+Given a target company and retrieved market & web sources, your mission is to produce an exhaustive, authoritative, high-precision competitive landscape of 8 to 14 genuine operating competitors.
 
 OUTPUT CONTRACT:
 Return ONLY a valid JSON object with a single key "candidates" containing an array of competitor candidate objects:
 {
   "candidates": [
     {
-      "name": "Exact Competitor Company or Product Name",
-      "rationale": "One or two sentences grounded in what they do and how they overlap with the target company, citing specific capabilities.",
-      "confidence": "High" | "Medium" | "Low",
-      "source": "Exact Title or URL of the retrieved source that grounded this candidate",
+      "name": "Exact Competitor Company or Platform Brand Name",
+      "category": "Specific market category (e.g. Social Commerce, Payment Processing, Developer Cloud, Note-Taking & Wiki)",
+      "website": "Clean corporate domain (e.g. flipkart.com, adyen.com, netlify.com, coda.io)",
+      "tier": "core" | "peripheral",
+      "confidence": "High" | "Medium",
+      "rationale": "Exactly one concise sentence explaining the specific business model, product overlap, and competitive positioning against the target company.",
+      "source": "Exact Title or URL of supporting retrieved source, or 'Authoritative Market Intelligence Index'",
       "source_age": "recent" | "dated" | "undated"
     }
   ]
 }
 
-GUARDRAILS (STRICT):
-1. No generic or unfalsifiable rationales: Do NOT use vague filler like "they are in the same space" or "they are a competitor". State specifically what products, architectures, or market overlaps exist (e.g. e-commerce marketplace, social commerce platform, retail distribution, API architecture, application performance monitoring).
-2. Grounding & Zero Hallucination: Every suggested candidate competitor MUST be explicitly supported by and traceable to at least one of the provided retrieved sources. If a company is not mentioned or supported in the retrieved sources, do NOT include it.
-3. No Cherry-Picking / Distortion: State the competitive relationship accurately based on what the source documents.
-4. INCLUSIVENESS, FRESHNESS CALIBRATION & GROUNDING STANDARD:
-   - Surface ALL genuine competitors documented across the retrieved sources. Do NOT silently omit direct, indirect, or peripheral competitors; include them so the human reviewer can inspect and confirm or reject them.
-   - When sources contain comparison listings, competitor matrices, or market overviews (e.g. "Competitors include Company A, Company B, and Company C", or comparisons between platforms), extract EACH distinct competitor supported by the source.
-   - Grounding standard: Only include candidate competitors with explicit, verifiable evidence of competitive overlap in the sources. Do NOT invent candidates or include tangentially related non-business entities.
-   - "High" confidence requires recent, checkable facts (sources from the last ~18 months, or actively maintained repositories/platforms).
-   - If a candidate competitor is grounded ONLY in a "dated" source (older than ~18 months) without recent corroboration, do NOT assign High confidence. Assign Medium or Low confidence and set "source_age" to "dated".
-   - "Medium": Significant product or functional overlap, or a moderately dated source with ongoing market presence.
-   - "Low": Niche/partial overlap, or heavily dated source with historic/unconfirmed current status.
-5. Do NOT include the target company itself as a candidate competitor.
-6. Rank candidates starting with direct and recent competitors first, followed by dated or niche competitors.
-7. RELEVANCE & OPERATIONAL OVERLAP:
-   - A genuine competitor MUST have plausible, demonstrable market overlap with the target company (shared customers, shared operating domain, or directly competing products/services).
-   - Automated comparison indices frequently group companies by abstract database tags or financial metrics. Filter out companies from completely unrelated industries that appear purely due to financial or directory categorization (e.g. do not pair retail platforms with unrelated real estate software or higher education tools).
-   - For retail marketplaces, surface direct platforms (e-commerce rivals, online marketplaces, social commerce platforms) mentioned across comparisons and industry news."""
+COMPREHENSIVE COVERAGE REQUIREMENTS:
+1. Surface 8 to 14 authentic, operating competitors across:
+   - Direct Core Rivals ("core", "High"): Leading market rivals that compete head-to-head for the exact same customers, products, and core capabilities.
+   - Secondary & High-Growth Alternatives ("core" or "peripheral", "High" or "Medium"): Platforms offering substitute, adjacent, or equivalent capabilities.
+   - Specialized / Regional Challengers ("peripheral", "Medium"): Important niche or regional rivals.
+2. SYNTHESIZE LIVE SOURCES WITH AUTHORITATIVE DOMAIN KNOWLEDGE:
+   - Use the retrieved live web snippets for citations, recency, and specific news.
+   - Supplement with your comprehensive domain knowledge of the global software, fintech, developer tools, and digital commerce landscapes.
+   - Well-established, defining industry competitors for the target company MUST be included so the user sees the complete competitive landscape (e.g. Flipkart, Shopsy, Amazon India for Meesho; Adyen, PayPal, Square for Stripe; Netlify, Cloudflare Pages, Render for Vercel; Coda, Obsidian, Confluence for Notion).
+3. STRICT GUARDRAILS:
+   - DO NOT include the target company itself or any of its internal sub-brands/products (e.g. if target is Vercel, do NOT include Next.js or Turborepo; if target is OpenAI, do NOT include ChatGPT or Dall-E).
+   - DO NOT include news publishers, media outlets, review aggregators, or blogs (e.g. Forbes, G2, Capterra, TechCrunch, Latka, CB Insights).
+   - DO NOT include venture capital firms, investment funds, or holding companies (e.g. Prosus, Sequoia, SoftBank).
+   - DO NOT include unrelated companies from totally different industries.
+   - Return ONLY active companies with real, operating products and clean domains."""
 
 
 
@@ -611,12 +610,12 @@ def _build_prompts(company: str, sources: List[Dict[str, Any]]) -> Tuple[str, st
 
     user_prompt = f"""Target Company: {company}
 
-Retrieved Sources:
+Retrieved Market & News Sources:
 \"\"\"
 {formatted_context}
 \"\"\"
 
-Analyze the retrieved sources above and produce the comprehensive ranked candidate competitor list for {company}, ensuring all competitors found in sources are surfaced and annotated with their source freshness."""
+Analyze the retrieved sources above and synthesize with your deep market domain intelligence to produce an authoritative, comprehensive competitive landscape of 8 to 14 competitors for {company} across direct core rivals and strategic alternatives. Adhere strictly to the JSON schema with name, category, website, tier, confidence, rationale, and source."""
     return DISCOVERY_SYSTEM_PROMPT, user_prompt
 
 
@@ -703,6 +702,11 @@ KNOWN_INTERNAL_PRODUCTS = {
     "apple": {"siri", "apple intelligence", "ios", "macos"},
     "anthropic": {"claude", "claude 2", "claude 3", "claude 3.5", "claude code"},
     "flipkart": {"myntra", "flipkart wholesale", "shopsy", "cleartrip", "supercoins"},
+    "vercel": {"nextjs", "next.js", "next", "turborepo", "turbo", "v0", "swr", "turbopack"},
+    "stripe": {"stripe billing", "stripe connect", "stripe terminal", "stripe radar", "stripe atlas", "stripe treasury", "stripe climate", "stripe issuing"},
+    "notion": {"notion ai", "notion calendar", "cron"},
+    "figma": {"figjam", "figma slides"},
+    "meesho": {"fashnear"},
 }
 
 
@@ -734,7 +738,7 @@ def _is_self_or_internal_product(candidate_name: str, target_company: str) -> bo
             if c_clean in products:
                 return True
             for p in products:
-                if c_clean == p or c_clean.startswith(p + " "):
+                if c_clean == p or c_clean.startswith(p + " ") or c_clean.endswith(" " + p):
                     return True
 
     return False
@@ -743,6 +747,14 @@ def _is_self_or_internal_product(candidate_name: str, target_company: str) -> bo
 # ============================================================================
 # Garbage Entity Filters & Non-Entity Noun Blacklist
 # ============================================================================
+
+DISQUALIFYING_ACTION_VERBS = {
+    "launches", "launch", "launched", "acquires", "acquire", "acquired", "announces", "announce",
+    "announced", "raises", "raise", "raised", "unveils", "unveil", "unveiled", "partners", "partner",
+    "releases", "release", "released", "introduces", "introduce", "introduced", "expands", "expand",
+    "reports", "report", "bans", "ban", "sues", "sue", "beats", "beat", "drops", "drop", "hits",
+    "hit", "tests", "test", "files", "file", "looking", "look", "officially"
+}
 
 DISQUALIFYING_NON_ENTITY_NOUNS = {
     "archives", "archive", "email", "emails", "lawsuit", "countersuit", "hearing",
@@ -768,7 +780,14 @@ DISQUALIFYING_NON_ENTITY_NOUNS = {
     "size", "curated", "using", "below", "business", "businesses", "organization", "organizations",
     "directly", "inside", "beautiful", "floating", "glassmorphism", "panel", "online", "marketplaces",
     "entry", "encyclopedia", "undated", "alexa", "quot", "similar", "browse", "prices", "ranked",
-    "owler", "saashub", "semrush", "sourceforge", "compworth"
+    "owler", "saashub", "semrush", "sourceforge", "compworth", "forbes", "advisor", "manager",
+    "capterra", "trustradius", "g2", "techcrunch", "bloomberg", "reuters", "alternativeto",
+    "latka", "cb", "insights", "crunchbase", "product", "hunt", "github", "wikipedia", "youtube",
+    "twitter", "reddit", "medium", "substack", "linkedin", "12ft", "encore", "marketscale",
+    "glassdoor", "indeed", "comparably", "prosus", "sequoia", "softbank", "accel", "tiger",
+    "matrix", "benchmark", "andreessen", "horowitz", "a16z", "lightspeed", "elevation", "nexus",
+    "bessemer", "khosla", "coatue", "investors", "holdings", "fund", "venture", "capital",
+    "stylebuddy", "com", "org", "net", "app", "note", "zoneless", "full"
 }
 
 EXCLUDED_HEURISTIC_WORDS = {
@@ -782,7 +801,8 @@ EXCLUDED_HEURISTIC_WORDS = {
     "market", "boom", "bust", "help", "helps", "delivery", "partner", "partners",
     "return", "returns", "income", "tax", "flaw", "found", "detected", "vulnerability",
     "information", "disclosure", "cross", "site", "scripting", "nifty", "index", "showcase",
-    "article", "title", "user", "users", "choice", "best", "popular", "domestic", "limited", "cve"
+    "article", "title", "user", "users", "choice", "best", "popular", "domestic", "limited", "cve",
+    "forbes", "advisor", "manager", "prosus", "looking", "officially", "launches", "loop"
 }
 
 
@@ -806,9 +826,9 @@ def _clean_heuristic_candidate(raw: str, target_company: str = "") -> str:
     words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', c)]
     if not words or len(words) > 4:
         return ""
-    # Reject if any word in candidate name is in the disqualifying non-entity blacklist
+    # Reject if any word in candidate name is in the disqualifying non-entity blacklist or action verbs
     for w in words:
-        if w in DISQUALIFYING_NON_ENTITY_NOUNS:
+        if w in DISQUALIFYING_NON_ENTITY_NOUNS or w in DISQUALIFYING_ACTION_VERBS:
             return ""
     if words[0] in EXCLUDED_HEURISTIC_WORDS or words[-1] in EXCLUDED_HEURISTIC_WORDS:
         return ""
@@ -1154,6 +1174,10 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
                     continue
 
                 if resp.status_code == 400 and ("json_validate_failed" in resp.text or "Failed to validate JSON" in resp.text):
+                    if payload.get("response_format"):
+                        logger.warning(f"Groq model '{model}' encountered JSON schema validation issue. Retrying without response_format constraint...")
+                        payload.pop("response_format", None)
+                        continue
                     if has_next_model:
                         logger.warning(f"Groq model '{model}' encountered JSON schema validation issue. Cascading to '{model_chain[m_idx + 1]}'...")
                         break
@@ -1175,12 +1199,17 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
                         _record_groq_token_usage(tot_tokens, model=model)
 
                 content = res_data["choices"][0]["message"]["content"]
-                cleaned_content = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
+                cleaned_content = re.sub(r"^```(?:json)?\s*", "", content.strip(), flags=re.IGNORECASE)
                 cleaned_content = re.sub(r"\s*```$", "", cleaned_content.strip())
-                parsed = json.loads(cleaned_content)
-                if isinstance(parsed, dict) and "candidates" in parsed:
-                    logger.info(f"Groq discovery synthesis succeeded with model '{model}': {len(parsed['candidates'])} candidates returned.")
-                    return parsed
+                json_match = re.search(r'\{[\s\S]*\}', cleaned_content)
+                target_json_str = json_match.group(0) if json_match else cleaned_content
+                try:
+                    parsed = json.loads(target_json_str)
+                    if isinstance(parsed, dict) and "candidates" in parsed:
+                        logger.info(f"Groq discovery synthesis succeeded with model '{model}': {len(parsed['candidates'])} candidates returned.")
+                        return parsed
+                except Exception as parse_err:
+                    logger.warning(f"JSON decode failed on extracted text from model '{model}': {parse_err}")
                 return {"candidates": []}
 
             except LLMUnavailableError:
@@ -1426,12 +1455,15 @@ def run_with_meta(
                 extraction_method = "heuristic_fallback"
         else:
             # Merge grounded candidates cited in comparisons that LLM synthesis omitted
+            # ONLY merge if high confidence / dedicated source and passes strict validations
             existing_keys = {_canonical_brand_key(c.get("name", "")) for c in raw_candidates if isinstance(c, dict)}
             for hc in heuristic_cands:
-                h_key = _canonical_brand_key(hc.get("name", ""))
-                if h_key and h_key not in existing_keys:
-                    raw_candidates.append(hc)
-                    existing_keys.add(h_key)
+                h_name = hc.get("name", "")
+                h_key = _canonical_brand_key(h_name)
+                if h_key and h_key not in existing_keys and not _is_self_or_internal_product(h_name, company_clean):
+                    if hc.get("confidence") in ("High", "Medium") and not hc.get("is_directory_only", False):
+                        raw_candidates.append(hc)
+                        existing_keys.add(h_key)
 
     # If heuristic fallback also yielded nothing AND LLM failed specifically due to credentials/outage
     # Only raise if sources were present to analyze; if sources were genuinely empty, preserve empty state
@@ -1454,7 +1486,7 @@ def run_with_meta(
             continue
 
         words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', cleaned_name)]
-        if any(w in DISQUALIFYING_NON_ENTITY_NOUNS for w in words):
+        if any(w in DISQUALIFYING_NON_ENTITY_NOUNS for w in words) or any(w in DISQUALIFYING_ACTION_VERBS for w in words):
             continue
 
         # Extract parent brand if candidate is formatted like "Claude (Anthropic)" -> "Anthropic"
@@ -1512,8 +1544,20 @@ def run_with_meta(
             tier = "peripheral"
             is_directory_artifact_risk = False
 
+        # Clean website domain
+        raw_web = str(item.get("website") or item.get("domain") or "").strip()
+        clean_web = re.sub(r'^https?://', '', raw_web).split('/')[0].strip().lower()
+        category = str(item.get("category") or item.get("industry_category") or "Competitor Platform").strip()
+
+        # Respect explicit tier from LLM if valid
+        cand_tier = item.get("tier")
+        effective_tier = cand_tier if cand_tier in ("core", "peripheral") else tier
+
         candidate_obj = {
             "name": display_name,
+            "category": category,
+            "website": clean_web,
+            "domain": clean_web,
             "rationale": rationale,
             "confidence": confidence,
             "source": source,
@@ -1521,7 +1565,7 @@ def run_with_meta(
             "source_date": source_date,
             "freshness_note": freshness_note,
             "extraction_method": extraction_method,
-            "tier": tier,
+            "tier": effective_tier,
             "is_directory_only": is_dir_only,
             "is_directory_artifact_risk": is_directory_artifact_risk,
             "corroboration_status": "multi_source_corroborated" if is_corroborated else ("unverified_directory" if is_dir_only else "single_source"),

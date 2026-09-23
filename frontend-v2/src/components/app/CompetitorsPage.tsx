@@ -153,13 +153,29 @@ export function CompetitorsPage() {
                     {targetSummary.company_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-xl font-extrabold text-[#17171b]">
                         {targetSummary.company_name}
                       </h2>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 text-[#6e57dc] border border-purple-200">
                         Target Organization
                       </span>
+                      {targetSummary.industry_category && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          {targetSummary.industry_category}
+                        </span>
+                      )}
+                      {targetSummary.primary_domain && (
+                        <a
+                          href={`https://${targetSummary.primary_domain}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-medium text-[#70717a] hover:text-[#6e57dc] inline-flex items-center gap-1 hover:underline"
+                        >
+                          <span>{targetSummary.primary_domain}</span>
+                          <ExternalLink className="w-3 h-3 text-[#9ca3af]" />
+                        </a>
+                      )}
                     </div>
                     <p className="text-xs text-[#70717a] mt-0.5">
                       Your primary competitive baseline entity.
@@ -235,15 +251,51 @@ export function CompetitorsPage() {
                   <PrismCard key={comp.company_name} className="flex flex-col justify-between p-5 sm:p-6">
                     <div>
                       {/* Card Header */}
-                      <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
                         <PrismCompanyBadge name={comp.company_name} size="md" />
                         <Link
                           href={`/app/compare?comp=${encodeURIComponent(comp.company_name)}`}
-                          className="text-[11px] font-bold text-[#6e57dc] hover:underline flex items-center gap-1 shrink-0"
+                          className="text-[11px] font-bold text-[#6e57dc] hover:underline flex items-center gap-1 shrink-0 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded-lg border border-purple-200/60"
                         >
                           <GitCompare className="w-3.5 h-3.5" /> Compare
                         </Link>
                       </div>
+
+                      {/* Metadata Row: Category, Domain, Tier */}
+                      <div className="flex items-center gap-1.5 flex-wrap my-2.5">
+                        {comp.industry_category && (
+                          <span className="px-2 py-0.5 rounded-md bg-zinc-100 text-[#4b5563] text-[10px] font-semibold border border-zinc-200/80">
+                            {comp.industry_category}
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                            (comp.tier || "core").toLowerCase() === "core"
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
+                              : "bg-blue-50 text-blue-700 border-blue-200"
+                          }`}
+                        >
+                          {(comp.tier || "core").toLowerCase() === "core" ? "Core Rival" : "Secondary"}
+                        </span>
+                        {comp.primary_domain && (
+                          <a
+                            href={`https://${comp.primary_domain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-[#70717a] hover:text-[#6e57dc] inline-flex items-center gap-1 font-medium hover:underline"
+                          >
+                            <span>{comp.primary_domain}</span>
+                            <ExternalLink className="w-3 h-3 text-[#9ca3af]" />
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Strategic Positioning Rationale */}
+                      {comp.rationale && (
+                        <p className="text-[11px] text-[#575861] leading-relaxed my-2.5 p-2 rounded-lg bg-zinc-50 border border-zinc-100 line-clamp-2">
+                          {comp.rationale}
+                        </p>
+                      )}
 
                       {/* Stats Grid */}
                       <div className="grid grid-cols-2 gap-2 my-3 p-3 rounded-xl bg-zinc-50 border border-zinc-100 text-xs">

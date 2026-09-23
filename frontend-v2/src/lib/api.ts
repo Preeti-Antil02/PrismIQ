@@ -30,6 +30,12 @@ export interface TrackedCompany {
   is_target: boolean;
   status: string;
   added_at?: string;
+  primary_domain?: string;
+  industry_category?: string;
+  tier?: "core" | "peripheral" | string;
+  confidence?: "High" | "Medium" | "Low" | string;
+  rationale?: string;
+  source?: string;
 }
 
 const API_BASE_URL = (
@@ -392,6 +398,12 @@ export async function fetchFindings(): Promise<FindingsApiResponse> {
 export interface CompetitorActivitySummary {
   company_name: string;
   is_target: boolean;
+  primary_domain?: string;
+  industry_category?: string;
+  tier?: string;
+  confidence?: string;
+  rationale?: string;
+  source?: string;
   total_signals: number;
   total_events: number;
   signals_by_source: Record<string, number>;
@@ -472,6 +484,12 @@ export function buildCompetitorSummaries(
     return {
       company_name: comp.company_name,
       is_target: comp.is_target,
+      primary_domain: comp.primary_domain,
+      industry_category: comp.industry_category,
+      tier: comp.tier,
+      confidence: comp.confidence,
+      rationale: comp.rationale,
+      source: comp.source,
       total_signals: compSignals.length,
       total_events: compEvents.length,
       signals_by_source,
@@ -549,6 +567,8 @@ export interface GroqTokenBudgetStatus {
 export interface DiscoveryCandidate {
   company_name?: string;
   name?: string;
+  category?: string;
+  industry_category?: string;
   confidence?: string | number;
   reasons?: string[];
   rationale?: string;
@@ -558,8 +578,10 @@ export interface DiscoveryCandidate {
   source_date?: string;
   freshness_note?: string;
   website?: string;
+  domain?: string;
+  primary_domain?: string;
   extraction_method?: "llm" | "heuristic_fallback" | string;
-  tier?: "core" | "peripheral";
+  tier?: "core" | "peripheral" | string;
   is_directory_only?: boolean;
   is_directory_artifact_risk?: boolean;
   corroboration_status?: "multi_source_corroborated" | "unverified_directory" | "single_source" | string;

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Building2,
   Plus,
@@ -13,6 +14,7 @@ import {
   ExternalLink,
   RefreshCw,
   X,
+  GitCompare,
 } from "lucide-react";
 import { useWorkspace } from "./AppShell";
 import {
@@ -193,13 +195,29 @@ export function WatchlistPage() {
                 {target.company_name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-xl font-extrabold text-[#17171b]">
                     {target.company_name}
                   </h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 text-[#6e57dc] border border-purple-200">
                     Target Company
                   </span>
+                  {target.industry_category && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      {target.industry_category}
+                    </span>
+                  )}
+                  {target.primary_domain && (
+                    <a
+                      href={`https://${target.primary_domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-medium text-[#70717a] hover:text-[#6e57dc] inline-flex items-center gap-1 hover:underline"
+                    >
+                      <span>{target.primary_domain}</span>
+                      <ExternalLink className="w-3 h-3 text-[#9ca3af]" />
+                    </a>
+                  )}
                 </div>
                 <div className="text-xs text-[#70717a] mt-0.5">
                   Primary subject entity for market benchmarking and signal correlation.
@@ -261,6 +279,8 @@ export function WatchlistPage() {
                   <thead>
                     <tr>
                       <th>Competitor</th>
+                      <th>Category & Domain</th>
+                      <th>Tier</th>
                       <th>Status</th>
                       <th>Coverage</th>
                       <th>Added Date</th>
@@ -268,33 +288,77 @@ export function WatchlistPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {trackedCompetitors.map((comp) => (
-                      <tr key={comp.company_name}>
-                        <td className="font-bold text-[#17171b] whitespace-nowrap">
-                          <PrismCompanyBadge name={comp.company_name} size="sm" />
-                        </td>
-                        <td className="whitespace-nowrap">
-                          <span className="app-pill bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                            Active
-                          </span>
-                        </td>
-                        <td className="text-xs text-[#70717a] whitespace-nowrap">
-                          News, Repos, Jobs, Pricing
-                        </td>
-                        <td className="text-xs text-[#9ca3af] whitespace-nowrap">
-                          {comp.added_at ? new Date(comp.added_at).toLocaleDateString() : "Active"}
-                        </td>
-                        <td className="text-right whitespace-nowrap">
-                          <button
-                            onClick={() => handleUntrack(comp.company_name)}
-                            className="p-1.5 text-[#9ca3af] hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                            title={`Untrack ${comp.company_name}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {trackedCompetitors.map((comp) => {
+                      const isCore = (comp.tier || "core").toLowerCase() === "core";
+                      return (
+                        <tr key={comp.company_name}>
+                          <td className="font-bold text-[#17171b] whitespace-nowrap">
+                            <PrismCompanyBadge name={comp.company_name} size="sm" />
+                          </td>
+                          <td className="whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-md bg-zinc-100 text-[#4b5563] text-[10px] font-semibold border border-zinc-200/80">
+                                {comp.industry_category || "Competitor Platform"}
+                              </span>
+                              {comp.primary_domain ? (
+                                <a
+                                  href={`https://${comp.primary_domain}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-[#70717a] hover:text-[#6e57dc] inline-flex items-center gap-1 font-medium hover:underline"
+                                >
+                                  <span>{comp.primary_domain}</span>
+                                  <ExternalLink className="w-3 h-3 text-[#9ca3af]" />
+                                </a>
+                              ) : (
+                                <span className="text-xs text-[#9ca3af]">—</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                isCore
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : "bg-blue-50 text-blue-700 border-blue-200"
+                              }`}
+                            >
+                              {isCore ? "Core Rival" : "Secondary"}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap">
+                            <span className="app-pill bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                              Active
+                            </span>
+                          </td>
+                          <td className="text-xs text-[#70717a] whitespace-nowrap">
+                            News, Repos, Jobs, Pricing
+                          </td>
+                          <td className="text-xs text-[#9ca3af] whitespace-nowrap">
+                            {comp.added_at ? new Date(comp.added_at).toLocaleDateString() : "Active"}
+                          </td>
+                          <td className="text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Link
+                                href={`/app/compare?comp=${encodeURIComponent(comp.company_name)}`}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-[#6e57dc] bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200/60"
+                                title={`Compare ${comp.company_name} with ${targetCompany}`}
+                              >
+                                <GitCompare className="w-3 h-3" />
+                                <span>Compare</span>
+                              </Link>
+                              <button
+                                onClick={() => handleUntrack(comp.company_name)}
+                                className="p-1.5 text-[#9ca3af] hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                                title={`Untrack ${comp.company_name}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -355,18 +419,39 @@ export function WatchlistPage() {
                   <span>
                     Discovered <strong>{candidates.length}</strong> candidates for {targetCompany}:
                   </span>
-                  <span className="text-[11px] font-bold text-[#6e57dc]">
-                    {selectedCandidates.length} selected
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const untrackedNames = candidates
+                          .map((c) => c.company_name || c.name || "")
+                          .filter((n) => !companies.some((comp) => comp.company_name.toLowerCase() === n.toLowerCase()));
+                        if (selectedCandidates.length === untrackedNames.length) {
+                          setSelectedCandidates([]);
+                        } else {
+                          setSelectedCandidates(untrackedNames);
+                        }
+                      }}
+                      className="text-[11px] font-bold text-[#6e57dc] hover:underline cursor-pointer"
+                    >
+                      {selectedCandidates.length > 0 ? "Deselect All" : "Select All"}
+                    </button>
+                    <span className="text-[11px] font-bold text-[#6e57dc] px-2 py-0.5 bg-purple-50 rounded-md border border-purple-200">
+                      {selectedCandidates.length} selected
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                   {candidates.map((cand, i) => {
                     const name = cand.company_name || cand.name || `Candidate ${i + 1}`;
                     const isSelected = selectedCandidates.includes(name);
                     const alreadyTracked = companies.some(
                       (c) => c.company_name.toLowerCase() === name.toLowerCase()
                     );
+                    const isCore = (cand.tier || "core").toLowerCase() === "core";
+                    const cat = cand.category || cand.industry_category;
+                    const web = cand.website || cand.primary_domain;
 
                     return (
                       <div
@@ -379,7 +464,7 @@ export function WatchlistPage() {
                             setSelectedCandidates([...selectedCandidates, name]);
                           }
                         }}
-                        className={`p-3.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
+                        className={`p-3.5 rounded-xl border transition-all flex items-start justify-between gap-3 cursor-pointer ${
                           alreadyTracked
                             ? "bg-zinc-50 border-zinc-200 opacity-60 cursor-not-allowed"
                             : isSelected
@@ -387,17 +472,44 @@ export function WatchlistPage() {
                             : "bg-white border-[rgba(20,20,30,0.08)] hover:bg-zinc-50"
                         }`}
                       >
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-xs text-[#17171b] flex items-center gap-2">
-                            <span>{name}</span>
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="font-bold text-xs text-[#17171b] flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-extrabold">{name}</span>
                             {alreadyTracked && (
-                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-zinc-200 text-zinc-600">
+                              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600">
                                 Already Tracked
                               </span>
                             )}
+                            {cat && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-700 border border-zinc-200/70">
+                                {cat}
+                              </span>
+                            )}
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                                isCore
+                                  ? "bg-purple-100 text-purple-800 border-purple-200"
+                                  : "bg-blue-100 text-blue-800 border-blue-200"
+                              }`}
+                            >
+                              {isCore ? "Core Rival" : "Secondary"}
+                            </span>
+                            {cand.confidence && (
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                {cand.confidence}
+                              </span>
+                            )}
                           </div>
+
+                          {web && (
+                            <div className="text-[11px] text-[#70717a] flex items-center gap-1 font-medium">
+                              <ExternalLink className="w-3 h-3 text-[#9ca3af]" />
+                              <span>{web}</span>
+                            </div>
+                          )}
+
                           {(cand.rationale || cand.source) && (
-                            <div className="text-[11px] text-[#70717a] line-clamp-1">
+                            <div className="text-[11px] text-[#575861] leading-relaxed">
                               {cand.rationale || cand.source}
                             </div>
                           )}
@@ -408,7 +520,7 @@ export function WatchlistPage() {
                           checked={isSelected}
                           disabled={alreadyTracked}
                           readOnly
-                          className="w-4 h-4 rounded text-[#6e57dc] focus:ring-[#6e57dc]"
+                          className="w-4 h-4 rounded text-[#6e57dc] focus:ring-[#6e57dc] mt-1 shrink-0"
                         />
                       </div>
                     );
