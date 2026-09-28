@@ -38,3 +38,4 @@ backend/published_briefs/*.md
 data/*.json
 # Scratch / Local Verification Artifacts
 scratch/
+docs/
