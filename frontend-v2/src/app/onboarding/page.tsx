@@ -103,6 +103,7 @@ interface ReviewCompetitorItem {
   id: string;
   name: string;
   category?: string;
+  matchedSegment?: string;
   rationale: string;
   confidence: "High" | "Medium" | "Low";
   source: string;
@@ -142,6 +143,8 @@ export default function OnboardingPage() {
   const [isDegradedMode, setIsDegradedMode] = React.useState<boolean>(false);
   const [discoveryMethod, setDiscoveryMethod] = React.useState<string>("llm");
   const [isConfirmingCompetitors, setIsConfirmingCompetitors] = React.useState<boolean>(false);
+  const [companyProfile, setCompanyProfile] = React.useState<any | null>(null);
+  const [isLowConfidenceProfile, setIsLowConfidenceProfile] = React.useState<boolean>(false);
 
   // Step 4 Intelligence Preferences State
   const [selectedTopics, setSelectedTopics] = React.useState<string[]>([
@@ -265,20 +268,20 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (!cleanWeb || !cleanWeb.includes(".")) {
-      setStep1Error("Please enter a valid website (e.g. acme.com or https://acme.com).");
+    if (cleanWeb && !cleanWeb.includes(".")) {
+      setStep1Error("Please enter a valid website (e.g. acme.com or https://acme.com), or leave blank.");
       return;
     }
 
     setStep1Error(null);
     setStep(2);
-    runDiscovery(cleanName);
+    runDiscovery(cleanName, cleanWeb, companyDescription.trim());
   };
 
   // --------------------------------------------------------------------------
   // STEP 2: Real Discovery Agent Ingestion
   // --------------------------------------------------------------------------
-  const runDiscovery = async (target: string) => {
+  const runDiscovery = async (target: string, website?: string, description?: string) => {
     setDiscoveryError(null);
     setDiscoveryStage(1);
 
@@ -288,13 +291,15 @@ export default function OnboardingPage() {
     const stageTimer3 = setTimeout(() => setDiscoveryStage(4), 4500);
 
     try {
-      const res = await discoverCompetitors(target);
+      const res = await discoverCompetitors(target, website, description);
       clearTimeout(stageTimer1);
       clearTimeout(stageTimer2);
       clearTimeout(stageTimer3);
 
       setIsDegradedMode(Boolean(res.degraded));
       setDiscoveryMethod(res.extraction_method || "llm");
+      setCompanyProfile(res.company_profile || null);
+      setIsLowConfidenceProfile(Boolean(res.is_low_confidence_profile));
 
       const rawCandidates: DiscoveryCandidate[] = res.candidates || [];
       const parsedItems: ReviewCompetitorItem[] = rawCandidates.map((c, idx) => {
@@ -319,21 +324,22 @@ export default function OnboardingPage() {
           (c.sources && c.sources.join(", ")) ||
           `Competitive index & domain crawl for ${target}`;
 
-        const isCore = c.tier === "core" || (!c.is_directory_only && confLevel === "High");
+        const isCore = c.tier === "core";
         const category = c.category || c.industry_category || "Competitor Platform";
 
         return {
           id: `disc-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
           name: cName,
           category,
+          matchedSegment: c.matched_segment,
           rationale,
           confidence: confLevel,
           source: sourceCitation,
           sourceAge: c.source_age,
           freshnessNote: c.freshness_note,
           website: c.website || c.domain || c.primary_domain,
-          selected: true, // Pre-select ALL authentic discovered candidates by default!
-          tier: (c.tier as "core" | "peripheral") || (isCore ? "core" : "peripheral"),
+          selected: isCore && !c.is_directory_only, // Pre-select ONLY core tier! Peripheral is opt-in!
+          tier: isCore ? "core" : "peripheral",
           isDirectoryOnly: Boolean(c.is_directory_only),
           isDirectoryArtifactRisk: Boolean(c.is_directory_artifact_risk),
           corroborationStatus: c.corroboration_status,
@@ -678,19 +684,18 @@ export default function OnboardingPage() {
 
               <div className="space-y-1.5">
                 <label htmlFor="company-website" className="block text-xs font-bold text-[#323338]">
-                  Company Website <span className="text-red-500">*</span>
+                  Company Website <span className="text-xs font-normal text-[#70717a]">(optional)</span>
                 </label>
                 <input
                   id="company-website"
                   type="text"
-                  required
                   value={companyWebsite}
                   onChange={(e) => setCompanyWebsite(e.target.value)}
-                  placeholder="e.g. posthog.com or https://posthog.com"
+                  placeholder="e.g. eveo.in or https://posthog.com"
                   className="w-full px-3.5 py-2.5 text-sm bg-white border border-[rgba(20,20,30,0.14)] rounded-xl text-[#17171b] placeholder:text-[#9ea0a8] focus:outline-none focus:border-[#7c3aed] focus:ring-3 focus:ring-[#7c3aed]/15 transition-all"
                 />
                 <p className="text-[11px] text-[#70717a]">
-                  Accepts standard formats like example.com or https://example.com
+                  Accepts standard formats like example.com or https://example.com, or leave blank for automatic lookup
                 </p>
               </div>
 
@@ -910,6 +915,52 @@ export default function OnboardingPage() {
               </div>
             )}
 
+            {isLowConfidenceProfile && (
+              <div
+                role="status"
+                className="flex items-start gap-3 p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-xl text-xs text-amber-900 shadow-sm animate-in fade-in duration-200"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-amber-950">Limited Public Web Footprint</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 text-amber-900">
+                      Low Confidence Profile
+                    </span>
+                  </div>
+                  <p className="text-amber-800 leading-relaxed">
+                    We found limited public web documentation for <strong>{companyName}</strong>. Competitors were discovered using broader market inference. Please verify the candidates below, or click back to provide a brief description of your core offering.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300/80 rounded-lg transition-colors cursor-pointer shrink-0"
+                >
+                  Edit Company Info
+                </button>
+              </div>
+            )}
+
+            {companyProfile && companyProfile.summary && (
+              <div className="p-3.5 bg-purple-50/40 border border-purple-200/60 rounded-xl text-xs space-y-2 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2 text-purple-900 font-bold">
+                  <Building2 className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Grounded Footprint: {companyProfile.domain || companyName}</span>
+                </div>
+                <p className="text-[#55565f] leading-relaxed">{companyProfile.summary}</p>
+                {companyProfile.segments && companyProfile.segments.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {companyProfile.segments.map((s: any, sIdx: number) => (
+                      <span key={sIdx} className="px-2 py-0.5 bg-white border border-purple-200/80 text-purple-800 rounded-md text-[11px] font-medium shadow-2xs">
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {step3Error && (
               <div
                 role="alert"
@@ -1028,6 +1079,11 @@ export default function OnboardingPage() {
                           </div>
 
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {comp.matchedSegment && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/70">
+                                {comp.matchedSegment}
+                              </span>
+                            )}
                             {comp.category && (
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 border border-zinc-200/70">
                                 {comp.category}

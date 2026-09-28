@@ -62,6 +62,8 @@ class LoginRequest(BaseModel):
 
 class OnboardDiscoverRequest(BaseModel):
     target_company: str = Field(..., min_length=1, description="Target company to run competitor discovery for")
+    website: Optional[str] = Field(None, description="Optional target company website URL/domain")
+    description: Optional[str] = Field(None, description="Optional target company product/market description")
 
 
 class OnboardConfirmRequest(BaseModel):
@@ -1275,14 +1277,19 @@ def onboard_discover_candidates(
         raise HTTPException(status_code=400, detail="Target company name cannot be empty")
 
     try:
-        candidates = discovery_agent.run(target, tenant_id=tenant_id)
-        extraction_method = getattr(candidates, "extraction_method", "llm")
-        degraded = getattr(candidates, "degraded", False)
-        llm_error = getattr(candidates, "llm_error", None)
-        if candidates and isinstance(candidates, list) and len(candidates) > 0 and isinstance(candidates[0], dict):
-            if not getattr(candidates, "extraction_method", None) and candidates[0].get("extraction_method"):
-                extraction_method = candidates[0].get("extraction_method")
-                degraded = (extraction_method == "heuristic_fallback")
+        meta = discovery_agent.run_with_meta(
+            target,
+            tenant_id=tenant_id,
+            website=req.website,
+            description=req.description,
+        )
+        candidates = meta.get("candidates", [])
+        company_profile = meta.get("company_profile")
+        is_low_confidence_profile = meta.get("is_low_confidence_profile", False)
+        extraction_method = meta.get("extraction_method", "llm")
+        degraded = meta.get("degraded", False)
+        llm_error = meta.get("llm_error")
+        token_budget = meta.get("token_budget") or discovery_agent.get_groq_token_budget_status()
     except discovery_agent.LLMUnavailableError as e:
         logger.error(f"Discovery agent LLM unavailable for '{target}': {e}")
         raise HTTPException(
@@ -1296,11 +1303,12 @@ def onboard_discover_candidates(
             detail=f"Competitor discovery couldn't be completed: {str(e)}"
         )
 
-    token_budget = getattr(candidates, "token_budget", None) or discovery_agent.get_groq_token_budget_status()
     return {
         "status": "proposed",
         "tenant_id": tenant_id,
         "target_company": target,
+        "company_profile": company_profile,
+        "is_low_confidence_profile": is_low_confidence_profile,
         "candidates_count": len(candidates),
         "candidates": candidates,
         "extraction_method": extraction_method,

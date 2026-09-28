@@ -564,11 +564,30 @@ export interface GroqTokenBudgetStatus {
   last_updated?: string;
 }
 
+export interface CompanyProfileSegment {
+  segment_id: string;
+  name: string;
+  target_customers: string;
+  what_it_does: string;
+  verbatim_quote: string;
+}
+
+export interface CompanyProfile {
+  company_name: string;
+  domain?: string;
+  summary: string;
+  confidence: string;
+  profile_source: string;
+  is_low_confidence: boolean;
+  segments: CompanyProfileSegment[];
+}
+
 export interface DiscoveryCandidate {
   company_name?: string;
   name?: string;
   category?: string;
   industry_category?: string;
+  matched_segment?: string;
   confidence?: string | number;
   reasons?: string[];
   rationale?: string;
@@ -584,6 +603,7 @@ export interface DiscoveryCandidate {
   tier?: "core" | "peripheral" | string;
   is_directory_only?: boolean;
   is_directory_artifact_risk?: boolean;
+  is_self_sourced?: boolean;
   corroboration_status?: "multi_source_corroborated" | "unverified_directory" | "single_source" | string;
   corroborated_source_types?: string[];
 }
@@ -594,6 +614,9 @@ export interface DiscoveryResponse {
   target_company?: string;
   candidates_count?: number;
   candidates: DiscoveryCandidate[];
+  company_profile?: CompanyProfile;
+  is_low_confidence_profile?: boolean;
+  low_confidence_message?: string;
   extraction_method?: "llm" | "heuristic_fallback" | string;
   degraded?: boolean;
   llm_error?: string | null;
@@ -690,13 +713,25 @@ export async function untrackCompany(companyName: string): Promise<boolean> {
   return true;
 }
 
-export async function discoverCompetitors(targetCompany: string): Promise<DiscoveryResponse> {
+export async function discoverCompetitors(
+  targetCompany: string,
+  website?: string,
+  description?: string
+): Promise<DiscoveryResponse> {
   const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/discover" : `${API_BASE_URL}/api/onboarding/discover`;
+  const payload: Record<string, any> = { target_company: targetCompany };
+  if (website && website.trim()) {
+    payload.website = website.trim();
+  }
+  if (description && description.trim()) {
+    payload.description = description.trim();
+  }
+
   const res = await fetch(baseUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ target_company: targetCompany }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const errText = await res.text();
