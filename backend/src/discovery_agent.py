@@ -1301,7 +1301,9 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
     with _TOKEN_USAGE_LOCK:
         daily_exceeded = _DAILY_TOKEN_USAGE.get("tokens_used", 0) >= GROQ_DAILY_TOKEN_LIMIT
     if daily_exceeded:
-        model_chain = [m for m in model_chain if m not in tpd_limited] + [m for m in model_chain if m in tpd_limited]
+        non_tpd = [m for m in model_chain if m not in tpd_limited]
+        if non_tpd:
+            model_chain = non_tpd
 
     last_error: Optional[Exception] = None
 

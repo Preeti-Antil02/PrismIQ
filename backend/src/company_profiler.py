@@ -225,7 +225,7 @@ Fetched Official Web Content:
 Analyze the official text above. Extract the company summary and all distinct product/capability segments with verbatim quotes and competitor search queries adhering strictly to the JSON schema."""
 
     try:
-        res = call_groq_fn(COMPANY_PROFILER_SYSTEM_PROMPT, user_prompt, max_retries=2)
+        res = call_groq_fn(COMPANY_PROFILER_SYSTEM_PROMPT, user_prompt, max_retries=4)
         if isinstance(res, dict) and ("segments" in res or "summary" in res):
             return res
         return None
