@@ -27,12 +27,17 @@ export function setStoredAuth(token: string, user: AuthUser): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("prismiq_tenant_token", token);
   localStorage.setItem("prismiq_user", JSON.stringify(user));
+  const tid = user.tenant_id || user.id;
+  if (tid) {
+    localStorage.setItem("prismiq_active_tenant_id", tid);
+  }
 }
 
 export function clearStoredAuth(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem("prismiq_tenant_token");
   localStorage.removeItem("prismiq_user");
+  localStorage.removeItem("prismiq_active_tenant_id");
   localStorage.removeItem("prismiq_onboarding_state");
 }
 
@@ -67,41 +72,10 @@ export function createTenantToken(tenantId: string, email?: string): string {
 }
 
 export function getClientAuthToken(tenantId?: string): string {
-  // 1. If explicit tenantId provided, always construct token for that specific tenant
-  if (tenantId) {
-    return createTenantToken(tenantId);
-  }
-
-  // 2. In browser environment, ensure stored token matches active tenant ID
+  // In browser environment, check stored token and active tenant
   if (typeof window !== "undefined") {
-    const activeTenantId = localStorage.getItem("prismiq_active_tenant_id");
+    const activeTenantId = tenantId || localStorage.getItem("prismiq_active_tenant_id");
     const stored = localStorage.getItem("prismiq_tenant_token");
-
-    if (activeTenantId && stored) {
-      try {
-        const parts = stored.split(".");
-        if (parts.length === 3) {
-          const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-          const payload = JSON.parse(payloadJson);
-          if (payload.sub === activeTenantId) {
-            return stored;
-          }
-        }
-      } catch {
-        // Corrupted or unparseable token, regenerate below
-      }
-
-      // Token and active tenant are out of sync: regenerate token for activeTenantId
-      const freshToken = createTenantToken(activeTenantId);
-      localStorage.setItem("prismiq_tenant_token", freshToken);
-      return freshToken;
-    }
-
-    if (activeTenantId) {
-      const freshToken = createTenantToken(activeTenantId);
-      localStorage.setItem("prismiq_tenant_token", freshToken);
-      return freshToken;
-    }
 
     if (stored) {
       try {
@@ -109,18 +83,29 @@ export function getClientAuthToken(tenantId?: string): string {
         if (parts.length === 3) {
           const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
           const payload = JSON.parse(payloadJson);
-          if (payload.sub) {
-            localStorage.setItem("prismiq_active_tenant_id", payload.sub);
+          // If active tenant matches or no active tenant override specified, use the genuine stored token
+          if (!activeTenantId || payload.sub === activeTenantId) {
+            if (payload.sub && !localStorage.getItem("prismiq_active_tenant_id")) {
+              localStorage.setItem("prismiq_active_tenant_id", payload.sub);
+            }
+            return stored;
           }
         }
       } catch {
-        // ignore
+        // Corrupted or unparseable token, regenerate below
       }
-      return stored;
+    }
+
+    if (activeTenantId) {
+      const freshToken = createTenantToken(activeTenantId);
+      localStorage.setItem("prismiq_tenant_token", freshToken);
+      localStorage.setItem("prismiq_active_tenant_id", activeTenantId);
+      return freshToken;
     }
   }
 
-  return createTenantToken(DEFAULT_TENANT_ID);
+  const tid = tenantId || DEFAULT_TENANT_ID;
+  return createTenantToken(tid);
 }
 
 

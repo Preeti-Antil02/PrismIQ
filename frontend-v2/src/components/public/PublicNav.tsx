@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useAuth } from "@/lib/AuthContext";
 
 export function PublicNav() {
+  const { user, onboardingComplete } = useAuth();
+  const targetHref = user ? (onboardingComplete ? "/app" : "/onboarding") : "/signup";
+  const ctaLabel = user ? (onboardingComplete ? "Go to Workspace →" : "Continue Setup →") : "Get started";
+
   return (
     <nav className="ps-nav">
       <Link className="ps-brand" href="#top">
@@ -34,12 +39,20 @@ export function PublicNav() {
         <a href="#research">Research</a>
       </div>
       <div className="ps-actions">
-        <a className="ps-btn ps-btn-light" href="#product">
-          See product
-        </a>
-        <Link className="ps-btn ps-btn-dark" href="/signup">
-          Get started
-        </Link>
+        {user ? (
+          <Link className="ps-btn ps-btn-dark" href={targetHref}>
+            {ctaLabel}
+          </Link>
+        ) : (
+          <>
+            <Link className="ps-btn ps-btn-light" href="/login">
+              Sign in
+            </Link>
+            <Link className="ps-btn ps-btn-dark" href="/signup">
+              Get started
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   );

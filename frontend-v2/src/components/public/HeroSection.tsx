@@ -1,6 +1,14 @@
+"use client";
+
+import Link from "next/link";
+import { useAuth } from "@/lib/AuthContext";
 import { HeroDashboard } from "./HeroDashboard";
 
 export function HeroSection() {
+  const { user, onboardingComplete } = useAuth();
+  const targetHref = user ? (onboardingComplete ? "/app" : "/onboarding") : "/signup";
+  const ctaLabel = user ? (onboardingComplete ? "Go to Workspace →" : "Continue Setup →") : "Get started free →";
+
   return (
     <section className="ps-hero">
       {/* Soft chromatic background ambient lighting */}
@@ -193,9 +201,9 @@ export function HeroSection() {
           </p>
 
           <div className="ps-heroActions">
-            <a className="ps-btn ps-btn-grad ps-hero-cta-btn" href="/signup">
-              Get started free →
-            </a>
+            <Link className="ps-btn ps-btn-grad ps-hero-cta-btn" href={targetHref}>
+              {ctaLabel}
+            </Link>
             <a className="ps-btn ps-btn-light ps-hero-demo-btn" href="#product">
               ◉ &nbsp;Watch demo
             </a>

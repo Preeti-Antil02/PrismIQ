@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
-import { createTenantToken } from "@/lib/auth";
+import { createTenantToken, getStoredUser } from "@/lib/auth";
 import {
   discoverCompetitors,
   confirmCompetitors,
@@ -166,16 +166,20 @@ export default function OnboardingPage() {
   const handleStartNewWorkspace = React.useCallback(() => {
     const newTid = crypto.randomUUID();
     if (typeof window !== "undefined") {
+      const currentUser = getStoredUser();
+      const userEmail = currentUser?.email || `${newTid.slice(0, 8)}@prismiq.ai`;
+      const userName = currentUser?.name || "New Workspace";
+      const userId = currentUser?.id || newTid;
       localStorage.setItem("prismiq_active_tenant_id", newTid);
-      const freshToken = createTenantToken(newTid);
+      const freshToken = createTenantToken(newTid, userEmail);
       localStorage.setItem("prismiq_tenant_token", freshToken);
       localStorage.removeItem("prismiq_onboarding_state");
       localStorage.setItem(
         "prismiq_user",
         JSON.stringify({
-          id: newTid,
-          email: `${newTid.slice(0, 8)}@prismiq.ai`,
-          name: "New Workspace",
+          id: userId,
+          email: userEmail,
+          name: userName,
           tenant_id: newTid,
         })
       );
@@ -345,6 +349,21 @@ export default function OnboardingPage() {
           corroborationStatus: c.corroboration_status,
         };
       });
+
+      // Ensure at least 1-2 competitors are pre-selected if available, so user is never blocked
+      const hasPreSelected = parsedItems.some((c) => c.selected);
+      if (!hasPreSelected && parsedItems.length > 0) {
+        let count = 0;
+        for (const item of parsedItems) {
+          if (!item.isDirectoryOnly && count < 3) {
+            item.selected = true;
+            count++;
+          }
+        }
+        if (count === 0 && parsedItems.length > 0) {
+          parsedItems[0].selected = true;
+        }
+      }
 
       setCompetitors(parsedItems);
       setStep(3);

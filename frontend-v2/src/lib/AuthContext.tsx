@@ -12,6 +12,7 @@ interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
+  onboardingComplete: boolean | null;
   signup: (email: string, password: string, fullName?: string) => Promise<{ onboarding_complete: boolean }>;
   login: (email: string, password: string) => Promise<{ onboarding_complete: boolean }>;
   logout: () => void;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<AuthUser | null>(null);
   const [token, setToken] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [onboardingComplete, setOnboardingComplete] = React.useState<boolean | null>(null);
 
   // Initialize from localStorage on mount
   React.useEffect(() => {
@@ -34,6 +36,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (storedToken && storedUser) {
         setUser(storedUser);
         setToken(storedToken);
+
+        // Fetch user profile and onboarding status in background
+        fetch("/api/auth/me", {
+          headers: { Authorization: `Bearer ${storedToken}` },
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data) {
+              setOnboardingComplete(Boolean(data.onboarding_complete));
+              if (data.user) {
+                setUser(data.user);
+                setStoredAuth(storedToken, data.user);
+              }
+            }
+          })
+          .catch(() => {});
       }
     } catch {
       // Storage access error
@@ -60,8 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setStoredAuth(data.token, data.user);
       setUser(data.user);
       setToken(data.token);
+      const isComplete = Boolean(data.onboarding_complete);
+      setOnboardingComplete(isComplete);
 
-      return { onboarding_complete: Boolean(data.onboarding_complete) };
+      return { onboarding_complete: isComplete };
     } finally {
       setIsLoading(false);
     }
@@ -85,8 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setStoredAuth(data.token, data.user);
       setUser(data.user);
       setToken(data.token);
+      const isComplete = Boolean(data.onboarding_complete);
+      setOnboardingComplete(isComplete);
 
-      return { onboarding_complete: Boolean(data.onboarding_complete) };
+      return { onboarding_complete: isComplete };
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearStoredAuth();
     setUser(null);
     setToken(null);
+    setOnboardingComplete(null);
     if (typeof window !== "undefined") {
       window.location.href = "/login";
     }
@@ -112,7 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
-        return Boolean(data.onboarding_complete);
+        const isComplete = Boolean(data.onboarding_complete);
+        setOnboardingComplete(isComplete);
+        return isComplete;
       }
       return false;
     } catch {
@@ -126,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isLoading,
+        onboardingComplete,
         signup,
         login,
         logout,

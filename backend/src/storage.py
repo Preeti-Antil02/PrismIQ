@@ -647,34 +647,48 @@ def save_brief(
     return timestamped_report
 
 
-def ensure_tenant_user_exists(cur, tenant_id: str, email: Optional[str] = None) -> None:
+def ensure_tenant_user_exists(cur=None, tenant_id: Optional[str] = None, email: Optional[str] = None) -> None:
     """
     Ensure the tenant UUID exists in auth.users so foreign key constraints on tenant tables never fail.
     Idempotent: inserts default authenticated user record if not present.
+    MUST execute with admin/superuser permissions (outside SET LOCAL ROLE authenticated)
+    so RLS doesn't block access or abort the caller's transaction.
     """
-    if not tenant_id:
+    tid_val = tenant_id if tenant_id is not None else (cur if isinstance(cur, (str, uuid.UUID)) else None)
+    if not tid_val:
+        return
+    tid = str(tid_val).strip()
+    if not tid:
+        return
+    if is_test_environment() and not get_db_url():
+        return
+    if not is_test_environment() and not is_live_write_permitted():
         return
     if isinstance(cur, MockCursor):
         return
-    tid = str(tenant_id).strip()
+
     user_email = email or f"{tid[:8]}@prismiq.ai"
     try:
-        cur.execute("""
-            INSERT INTO auth.users (
-                id, instance_id, aud, role, email, email_confirmed_at,
-                raw_app_meta_data, raw_user_meta_data, created_at, updated_at
-            )
-            VALUES (
-                %s, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-                %s, NOW(),
-                '{"provider":"email","providers":["email"]}'::jsonb,
-                '{"name":"Tenant User"}'::jsonb,
-                NOW(), NOW()
-            )
-            ON CONFLICT (id) DO NOTHING;
-        """, (tid, user_email))
+        with get_db_cursor() as admin_cur:
+            if isinstance(admin_cur, MockCursor):
+                return
+            admin_cur.execute("""
+                INSERT INTO auth.users (
+                    id, instance_id, aud, role, email, email_confirmed_at,
+                    raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+                )
+                VALUES (
+                    %s, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+                    %s, NOW(),
+                    '{"provider":"email","providers":["email"]}'::jsonb,
+                    '{"name":"Tenant User"}'::jsonb,
+                    NOW(), NOW()
+                )
+                ON CONFLICT (id) DO NOTHING;
+            """, (tid, user_email))
     except Exception as e:
         logger.warning(f"Could not ensure tenant user {tid} in auth.users: {e}")
+
 
 
 def save_discovery_proposal(
@@ -1781,8 +1795,8 @@ def save_tenant_delivery_config(
     now_dt = datetime.now(timezone.utc)
     if not is_test_environment() and is_live_write_permitted():
         try:
+            ensure_tenant_user_exists(None, tid)
             with get_tenant_db_cursor(tenant_id) as cur:
-                ensure_tenant_user_exists(cur, tid)
                 cur.execute("""
                     INSERT INTO tenant_delivery_configs (
                         tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
@@ -1910,8 +1924,8 @@ def save_tenant_research_topic(
 
     if not is_test_environment() and is_live_write_permitted():
         try:
+            ensure_tenant_user_exists(None, tenant_id)
             with get_tenant_db_cursor(tenant_id) as cur:
-                ensure_tenant_user_exists(cur, tenant_id)
                 cur.execute("""
                     INSERT INTO tenant_research_topics (
                         id, tenant_id, topic_label, keywords, source, is_active, created_at, updated_at

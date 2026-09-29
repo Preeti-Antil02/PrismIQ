@@ -240,30 +240,35 @@ def test_cors_restricted_origins():
 
 
 def test_onboarding_discover_and_confirm_endpoints(monkeypatch, auth_headers):
-    # Mock discovery agent run to return sample candidates
-    def mock_run(target, sources=None, tenant_id=None):
-        return [
-            {
-                "name": "Mixpanel",
-                "rationale": "Product analytics and user event tracking",
-                "confidence": "High",
-                "source": "https://mixpanel.com",
-                "source_age": "recent",
-                "source_date": "2026-08-01",
-                "freshness_note": "Recent source (2026-08-01)",
-            },
-            {
-                "name": "Amplitude",
-                "rationale": "Digital analytics platform with behavioural tracking",
-                "confidence": "High",
-                "source": "https://amplitude.com",
-                "source_age": "recent",
-                "source_date": "2026-08-01",
-                "freshness_note": "Recent source (2026-08-01)",
-            },
-        ]
+    # Mock discovery agent run_with_meta to return sample candidates
+    def mock_run_with_meta(target, tenant_id=None, website=None, description=None, sources=None):
+        return {
+            "candidates": [
+                {
+                    "name": "Mixpanel",
+                    "rationale": "Product analytics and user event tracking",
+                    "confidence": "High",
+                    "source": "https://mixpanel.com",
+                    "source_age": "recent",
+                    "source_date": "2026-08-01",
+                    "freshness_note": "Recent source (2026-08-01)",
+                },
+                {
+                    "name": "Amplitude",
+                    "rationale": "Digital analytics platform with behavioural tracking",
+                    "confidence": "High",
+                    "source": "https://amplitude.com",
+                    "source_age": "recent",
+                    "source_date": "2026-08-01",
+                    "freshness_note": "Recent source (2026-08-01)",
+                },
+            ],
+            "company_profile": {"name": target, "description": "Analytics platform"},
+            "extraction_method": "llm",
+            "degraded": False,
+        }
 
-    monkeypatch.setattr("src.discovery_agent.run", mock_run)
+    monkeypatch.setattr("src.discovery_agent.run_with_meta", mock_run_with_meta)
 
     # 1. Test POST /api/onboarding/discover
     disc_res = client.post(

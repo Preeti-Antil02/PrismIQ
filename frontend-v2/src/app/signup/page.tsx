@@ -9,7 +9,7 @@ import "@/app/public-website.css";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup, user } = useAuth();
+  const { signup, user, checkOnboardingStatus } = useAuth();
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -20,9 +20,15 @@ export default function SignupPage() {
   // If already authenticated, redirect
   React.useEffect(() => {
     if (user) {
-      router.push("/onboarding");
+      checkOnboardingStatus().then((isComplete) => {
+        if (isComplete) {
+          router.push("/app");
+        } else {
+          router.push("/onboarding");
+        }
+      });
     }
-  }, [user, router]);
+  }, [user, router, checkOnboardingStatus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +47,12 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      await signup(cleanEmail, password, fullName.trim() || undefined);
-      router.push("/onboarding");
+      const { onboarding_complete } = await signup(cleanEmail, password, fullName.trim() || undefined);
+      if (onboarding_complete) {
+        router.push("/app");
+      } else {
+        router.push("/onboarding");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to create account. Please try again.");
     } finally {
