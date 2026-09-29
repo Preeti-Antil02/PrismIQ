@@ -913,6 +913,8 @@ DISQUALIFYING_NON_ENTITY_NOUNS = {
     "privacy", "automation", "coding", "intelligence", "analysis", "customer", "customers", "team",
     "size", "curated", "using", "below", "business", "businesses", "organization", "organizations",
     "directly", "inside", "beautiful", "floating", "glassmorphism", "panel", "online", "marketplaces",
+    "replay", "flags", "workflows", "tested", "compared", "deeper", "depth", "observability", "coverage",
+    "readiness", "community", "workflows", "features", "agentic", "work", "solution", "solutions",
     "entry", "encyclopedia", "undated", "alexa", "quot", "similar", "browse", "prices", "ranked",
     "owler", "saashub", "semrush", "sourceforge", "compworth", "forbes", "advisor", "manager",
     "capterra", "trustradius", "g2", "techcrunch", "bloomberg", "reuters", "alternativeto",
@@ -956,6 +958,8 @@ def _clean_heuristic_candidate(raw: str, target_company: str = "") -> str:
     if c.lower() in {"india", "us", "usa", "uk", "california", "europe", "asia", "global", "san francisco"}:
         return ""
     if re.search(r'(?i)\bcve[-_\d]', c):
+        return ""
+    if re.search(r'(?i)\b(?:is not|tested by|features include|alternatives include|workflows|compared to|multi-agent|open-source)\b', c):
         return ""
     words = [w.lower() for w in re.findall(r'[A-Za-z0-9]+', c)]
     if not words or len(words) > 4:
@@ -1594,6 +1598,30 @@ def _is_directory_or_aggregator(
     return False
 
 
+ORTHOGONAL_INDUSTRY_DOMAINS = {
+    "medical_healthcare": {
+        "keywords": {"healthcare", "doctor", "hospital", "clinic", "pharmacy", "telemedicine", "patient", "practitioner", "physician", "dental", "medical", "appointment", "prescriptions", "booking doctors"},
+        "domain_labels": {"health", "medical", "hospital", "clinical"}
+    },
+    "real_estate": {
+        "keywords": {"realtor", "property listing", "apartment rental", "mortgage", "real estate", "homes for sale"},
+        "domain_labels": {"real estate", "property"}
+    },
+    "food_delivery": {
+        "keywords": {"food delivery", "restaurant ordering", "grocery delivery", "cloud kitchen", "takeout meal"},
+        "domain_labels": {"food", "restaurant"}
+    },
+    "ride_hailing": {
+        "keywords": {"cab booking", "taxi booking", "ride hailing", "rideshare driver"},
+        "domain_labels": {"ride hailing", "taxi"}
+    },
+    "crypto_exchange": {
+        "keywords": {"crypto exchange", "bitcoin trading", "crypto wallet", "token swap", "nft marketplace", "blockchain token"},
+        "domain_labels": {"cryptocurrency", "web3 exchange"}
+    },
+}
+
+
 def _check_segment_overlap(
     candidate_name: str,
     category: str,
@@ -1603,6 +1631,10 @@ def _check_segment_overlap(
 ) -> Tuple[bool, Optional[str]]:
     """
     Verify whether candidate functionally competes with at least one grounded segment of target company.
+    Guarantees that:
+    1. Candidates from completely orthogonal domains (e.g. healthcare/doctor booking for an AI coaching firm) are rejected.
+    2. Does NOT blindly pass candidates just because matched_segment is non-empty.
+    3. Requires functional capability overlap between candidate and at least one target segment.
     Returns (has_overlap: bool, canonical_segment_name: str | None).
     """
     if not target_profile or not target_profile.get("segments"):
@@ -1612,20 +1644,33 @@ def _check_segment_overlap(
     if not segments:
         return True, matched_segment or "Core Competitor"
 
-    # 1. Direct match on matched_segment
-    if matched_segment:
-        ms_clean = matched_segment.strip().lower()
-        for seg in segments:
-            s_name = seg.get("name", "").strip()
-            if ms_clean == s_name.lower() or ms_clean in s_name.lower() or s_name.lower() in ms_clean:
-                return True, s_name
-
-    # 2. Match candidate category, rationale, and name against segment capabilities
     combined_cand = f"{candidate_name} {category} {rationale}".lower()
     cand_tokens = set(re.findall(r'[a-z0-9]+', combined_cand))
 
+    # 1. Orthogonal industry domain guard
+    # If candidate text contains keywords from an orthogonal industry that the target does NOT operate in, disqualify
+    target_all_text = " ".join([
+        f"{s.get('name', '')} {s.get('what_it_does', '')}" for s in segments
+    ] + [target_profile.get("summary", ""), target_profile.get("company_name", "")]).lower()
+
+    for domain_key, domain_info in ORTHOGONAL_INDUSTRY_DOMAINS.items():
+        kws = domain_info["keywords"]
+        cand_matches = [k for k in kws if k in combined_cand]
+        if cand_matches:
+            target_matches = [k for k in kws if k in target_all_text]
+            if not target_matches:
+                logger.info(f"Disqualifying candidate '{candidate_name}' ({category}) - orthogonal domain '{domain_key}' matches {cand_matches} while target does not operate in this domain.")
+                return False, None
+
+    # 2. Check token and capability overlap with segments
     best_match_seg = None
     best_score = 0
+
+    stopwords = {
+        "with", "that", "this", "from", "your", "their", "into", "based", "platform",
+        "offering", "core", "solution", "solutions", "tool", "tools", "system", "systems",
+        "competitor", "alternative", "intelligence", "service", "services", "product", "features"
+    }
 
     for seg in segments:
         s_name = seg.get("name", "")
@@ -1633,27 +1678,29 @@ def _check_segment_overlap(
         s_text = f"{s_name} {s_what}".lower()
         s_tokens = [
             t for t in re.findall(r'[a-z0-9]+', s_text)
-            if len(t) > 3 and t not in {"with", "that", "this", "from", "your", "their", "into", "based", "platform"}
+            if len(t) > 3 and t not in stopwords
         ]
 
-        # Count token overlap
         overlap_count = sum(1 for t in s_tokens if t in cand_tokens)
-        if overlap_count > best_score and overlap_count >= 1:
+        if overlap_count > best_score:
             best_score = overlap_count
             best_match_seg = s_name
 
-    if best_match_seg:
+    # If direct match on matched_segment name was claimed by LLM, verify it has at least some overlap
+    if matched_segment:
+        ms_clean = matched_segment.strip().lower()
+        for seg in segments:
+            s_name = seg.get("name", "").strip()
+            if ms_clean == s_name.lower() or ms_clean in s_name.lower() or s_name.lower() in ms_clean:
+                # Require at least 1 overlapping token OR category match before trusting LLM's claim
+                if best_score >= 1 or any(t in combined_cand for t in re.findall(r'[a-z0-9]+', s_name.lower()) if len(t) > 3 and t not in stopwords):
+                    return True, s_name
+
+    if best_match_seg and best_score >= 1:
         return True, best_match_seg
 
-    # 3. Soft match: if candidate has common functional keywords matching segment context
-    if segments:
-        for seg in segments:
-            s_name = seg.get("name", "")
-            if any(k in combined_cand for k in ["commerce", "store", "shop", "market", "retail", "cloud", "api", "payment", "hosting", "analytics", "coaching", "interview", "simulation", "styling"]):
-                return True, s_name
-
     # If segments exist and candidate has no functional overlap with any
-    return False, matched_segment
+    return False, None
 
 
 def _analyze_candidate_corroboration(
@@ -1843,13 +1890,14 @@ def run_with_meta(
                 extraction_method = "heuristic_fallback"
         else:
             # Merge grounded candidates cited in comparisons that LLM synthesis omitted
-            # ONLY merge if high confidence / dedicated source and passes strict validations
+            # ONLY merge if dedicated direct profile (e.g. Wikipedia: X or AlternativeTo: X)
+            # and passes strict confidence validations. Never merge raw regex snippet matches into an LLM run!
             existing_keys = {_canonical_brand_key(c.get("name", "")) for c in raw_candidates if isinstance(c, dict)}
             for hc in heuristic_cands:
                 h_name = hc.get("name", "")
                 h_key = _canonical_brand_key(h_name)
                 if h_key and h_key not in existing_keys and not _is_self_or_internal_product(h_name, company_clean):
-                    if not hc.get("is_directory_only", False) and (hc.get("confidence") in ("High", "Medium") or len(raw_candidates) < 10):
+                    if not hc.get("is_directory_only", False) and hc.get("_is_direct", False) and hc.get("confidence") in ("High", "Medium"):
                         raw_candidates.append(hc)
                         existing_keys.add(h_key)
 
@@ -1914,6 +1962,11 @@ def run_with_meta(
         has_segment_overlap, matched_segment = _check_segment_overlap(
             display_name, category, rationale, item.get("matched_segment"), target_profile=profile
         )
+
+        # If target has grounded segments, candidate MUST functionally overlap with at least one segment
+        if profile and profile.get("segments") and not has_segment_overlap:
+            logger.info(f"Disqualifying candidate '{display_name}' ({category}) - zero functional overlap with target segments.")
+            continue
 
         # Freshness guardrail
         freshness_note = ""
