@@ -6,6 +6,7 @@ import {
   getStoredUser,
   setStoredAuth,
   clearStoredAuth,
+  isRealUser,
 } from "./auth";
 
 interface AuthContextType {
@@ -13,6 +14,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   onboardingComplete: boolean | null;
+  isRegistered: boolean;
   signup: (email: string, password: string, fullName?: string) => Promise<{ onboarding_complete: boolean }>;
   login: (email: string, password: string) => Promise<{ onboarding_complete: boolean }>;
   logout: () => void;
@@ -145,6 +147,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isRegistered = isRealUser(user);
+
   return (
     <AuthContext.Provider
       value={{
@@ -152,6 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isLoading,
         onboardingComplete,
+        isRegistered,
         signup,
         login,
         logout,

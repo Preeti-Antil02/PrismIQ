@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 
 export function PublicNav() {
-  const { user, onboardingComplete } = useAuth();
-  const targetHref = user ? (onboardingComplete ? "/app" : "/onboarding") : "/signup";
-  const ctaLabel = user ? (onboardingComplete ? "Go to Workspace →" : "Continue Setup →") : "Get started";
+  const { user, isRegistered, logout, onboardingComplete } = useAuth();
+  const targetHref = onboardingComplete ? "/app" : "/onboarding";
+  const ctaLabel = onboardingComplete ? "Go to Workspace →" : "Continue Setup →";
 
   return (
     <nav className="ps-nav">
@@ -39,19 +39,29 @@ export function PublicNav() {
         <a href="#research">Research</a>
       </div>
       <div className="ps-actions">
-        {user ? (
-          <Link className="ps-btn ps-btn-dark" href={targetHref}>
-            {ctaLabel}
-          </Link>
+        {isRegistered ? (
+          <div className="flex items-center gap-2.5">
+            <Link className="ps-btn ps-btn-dark" href={targetHref}>
+              {ctaLabel}
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="ps-btn ps-btn-light text-xs cursor-pointer"
+              title={`Signed in as ${user?.email}`}
+            >
+              Sign out
+            </button>
+          </div>
         ) : (
-          <>
+          <div className="flex items-center gap-2.5">
             <Link className="ps-btn ps-btn-light" href="/login">
               Sign in
             </Link>
             <Link className="ps-btn ps-btn-dark" href="/signup">
               Get started
             </Link>
-          </>
+          </div>
         )}
       </div>
     </nav>

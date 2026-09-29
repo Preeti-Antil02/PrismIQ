@@ -120,7 +120,7 @@ interface ReviewCompetitorItem {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, token, isLoading: authLoading, checkOnboardingStatus } = useAuth();
+  const { user, token, isRegistered, logout, isLoading: authLoading, checkOnboardingStatus } = useAuth();
 
   // Step state: 1 (Company), 2 (Discovering), 3 (Competitors), 4 (Preferences), 5 (Finalizing)
   const [step, setStep] = React.useState<number>(1);
@@ -161,6 +161,7 @@ export default function OnboardingPage() {
   // Already onboarded workspace detection & prompt
   const [showAlreadyOnboardedPrompt, setShowAlreadyOnboardedPrompt] = React.useState<boolean>(false);
   const [existingTarget, setExistingTarget] = React.useState<string>("");
+  const [draftInfo, setDraftInfo] = React.useState<{ target: string; competitors: string[] } | null>(null);
 
   // Start fresh company onboarding with a clean tenant ID
   const handleStartNewWorkspace = React.useCallback(() => {
@@ -189,8 +190,33 @@ export default function OnboardingPage() {
     setCompanyDescription("");
     setCompetitors([]);
     setShowAlreadyOnboardedPrompt(false);
+    setDraftInfo(null);
     setStep(1);
   }, []);
+
+  // Resume draft handler
+  const handleResumeDraft = React.useCallback(() => {
+    if (!draftInfo) return;
+    setCompanyName(draftInfo.target);
+    if (draftInfo.competitors && draftInfo.competitors.length > 0) {
+      const restoredItems: ReviewCompetitorItem[] = draftInfo.competitors.map((cName, idx) => ({
+        id: `persisted-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
+        name: cName,
+        rationale: `Confirmed competitor for tracking alongside ${draftInfo.target}.`,
+        confidence: "High",
+        source: "Workspace Configuration",
+        selected: true,
+      }));
+      setCompetitors(restoredItems);
+    }
+    setDraftInfo(null);
+    setStep(4);
+  }, [draftInfo]);
+
+  const handleDismissDraft = React.useCallback(() => {
+    setDraftInfo(null);
+    handleStartNewWorkspace();
+  }, [handleStartNewWorkspace]);
 
   // Guard: Redirect unauthenticated users and restore persisted workspace state from DB
   React.useEffect(() => {
@@ -221,27 +247,13 @@ export default function OnboardingPage() {
           return;
         }
 
-        // Restore target company from database
-        if (cfg.target_company) {
-          setCompanyName(cfg.target_company);
-        }
-
-        // Restore persisted competitors from database
-        if (cfg.competitors && cfg.competitors.length > 0) {
-          const restoredItems: ReviewCompetitorItem[] = cfg.competitors.map((cName, idx) => ({
-            id: `persisted-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
-            name: cName,
-            rationale: `Confirmed competitor for tracking alongside ${cfg.target_company || "your target company"}.`,
-            confidence: "High",
-            source: "Workspace Configuration",
-            selected: true,
-          }));
-          setCompetitors(restoredItems);
-        }
-
-        // If target and competitors already persisted, resume directly on Preferences (Step 4)
-        if (cfg.is_configured && !cfg.onboarding_complete) {
-          setStep(4);
+        // If target and competitors already persisted from a prior session, record draftInfo
+        // NEVER automatically jump to Step 4 or overwrite what the user is currently typing!
+        if (cfg.is_configured && !cfg.onboarding_complete && cfg.target_company) {
+          setDraftInfo({
+            target: cfg.target_company,
+            competitors: cfg.competitors || [],
+          });
         }
       } catch (err) {
         console.warn("Notice loading workspace config:", err);
@@ -276,6 +288,15 @@ export default function OnboardingPage() {
       setStep1Error("Please enter a valid website (e.g. acme.com or https://acme.com), or leave blank.");
       return;
     }
+
+    // If user submits a different company than previous draft, start with a fresh workspace
+    if (draftInfo && draftInfo.target.toLowerCase() !== cleanName.toLowerCase()) {
+      handleStartNewWorkspace();
+      setCompanyName(cleanName);
+      setCompanyWebsite(cleanWeb);
+      setCompanyDescription(companyDescription.trim());
+    }
+    setDraftInfo(null);
 
     setStep1Error(null);
     setStep(2);
@@ -603,13 +624,39 @@ export default function OnboardingPage() {
           <span className="font-extrabold text-lg tracking-tight text-[#17171b]">PrismIQ</span>
         </Link>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-[#70717a] hidden sm:inline">
-            Logged in as <span className="text-[#17171b]">{user?.email || "workspace"}</span>
-          </span>
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {isRegistered ? (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-xs font-semibold text-[#70717a] hidden md:inline">
+                Signed in as <strong className="text-[#17171b]">{user?.email}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={logout}
+                className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all cursor-pointer"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login?redirect=/onboarding"
+                className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup?redirect=/onboarding"
+                className="text-xs font-semibold text-white px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-all shadow-sm"
+              >
+                Sign up
+              </Link>
+            </div>
+          )}
           <Link
             href="/app"
-            className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all"
+            className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all hidden sm:inline-block"
           >
             Skip to App →
           </Link>
@@ -674,6 +721,31 @@ export default function OnboardingPage() {
                 product footprint, positioning, and market landscape.
               </p>
             </div>
+
+            {draftInfo && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-purple-50/90 border border-purple-200 rounded-xl text-xs text-purple-900 animate-in fade-in duration-150">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-purple-600 shrink-0" />
+                  <span>You have an in-progress draft for <strong>{draftInfo.target}</strong>.</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleResumeDraft}
+                    className="font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer"
+                  >
+                    Resume Step 4 →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDismissDraft}
+                    className="text-[#70717a] hover:text-[#17171b] text-xs cursor-pointer"
+                  >
+                    Start Fresh ✕
+                  </button>
+                </div>
+              </div>
+            )}
 
             {step1Error && (
               <div
@@ -742,6 +814,38 @@ export default function OnboardingPage() {
                 <span>Continue to Discovery</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
+
+              <div className="pt-2 text-center text-xs text-[#70717a] border-t border-[rgba(20,20,30,0.06)]">
+                {isRegistered ? (
+                  <span>
+                    Signed in as <strong className="text-[#17171b]">{user?.email}</strong> &bull;{" "}
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="text-purple-600 hover:text-purple-800 font-semibold underline cursor-pointer inline"
+                    >
+                      Sign out / Switch account
+                    </button>
+                  </span>
+                ) : (
+                  <span>
+                    Already have an account?{" "}
+                    <Link
+                      href="/login?redirect=/onboarding"
+                      className="text-purple-600 hover:text-purple-800 font-semibold underline"
+                    >
+                      Sign in
+                    </Link>
+                    {" "}or{" "}
+                    <Link
+                      href="/signup?redirect=/onboarding"
+                      className="text-purple-600 hover:text-purple-800 font-semibold underline"
+                    >
+                      Sign up
+                    </Link>
+                  </span>
+                )}
+              </div>
             </form>
           </div>
         )}

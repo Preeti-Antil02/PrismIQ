@@ -12,6 +12,15 @@ export interface AuthUser {
 export const DEFAULT_TENANT_ID =
   process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID || "8553449a-c998-4727-be01-9aeb724038cb";
 
+export function isRealUser(user: AuthUser | null): boolean {
+  if (!user || !user.email) return false;
+  // Temporary or auto-generated tenant user has an email like 8553449a@prismiq.ai or name "Tenant User" / "New Workspace"
+  if (user.email.endsWith("@prismiq.ai") && /^[0-9a-f]{8}@prismiq\.ai$/i.test(user.email)) {
+    return false;
+  }
+  return true;
+}
+
 export function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   try {
