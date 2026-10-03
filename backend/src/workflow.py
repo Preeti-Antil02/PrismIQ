@@ -241,7 +241,11 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
             storage.complete_pipeline_run(run_id, status="timed_out", error_message="Pipeline run exceeded 45-minute safety ceiling.")
             break
 
-        c_signals, c_health = monitoring_agent.fetch_company_signals(comp, active_sources=pass1_sources)
+        c_signals, c_health = monitoring_agent.fetch_company_signals(
+            comp,
+            active_sources=pass1_sources,
+            days=45 if is_first_run else 30,
+        )
         all_signals.extend(c_signals)
         all_health.update(c_health)
 
