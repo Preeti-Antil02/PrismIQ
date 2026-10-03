@@ -9,25 +9,19 @@ import "@/app/public-website.css";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, user, checkOnboardingStatus } = useAuth();
+  const { login, user } = useAuth();
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // If already logged in, redirect based on onboarding completion
+  // If already logged in, redirect
   React.useEffect(() => {
     if (user) {
-      checkOnboardingStatus().then((isComplete) => {
-        if (isComplete) {
-          router.push("/app");
-        } else {
-          router.push("/onboarding");
-        }
-      });
+      router.push("/app");
     }
-  }, [user, router, checkOnboardingStatus]);
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
