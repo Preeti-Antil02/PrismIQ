@@ -29,6 +29,7 @@ CAT_CI_DOC_FORMATTING = "ci_and_doc_formatting"
 CAT_ISOLATED_SOCIAL = "isolated_github_social_noise"
 CAT_PLACEHOLDER_JOB = "placeholder_job_postings"
 CAT_ENTITY_DISAMBIGUATION = "entity_disambiguation_false_positive"
+CAT_NAVIGATIONAL_PAGES = "generic_navigational_pages"
 
 NOISE_CATEGORIES = [
     CAT_BOT_DEPENDENCY,
@@ -36,6 +37,26 @@ NOISE_CATEGORIES = [
     CAT_ISOLATED_SOCIAL,
     CAT_PLACEHOLDER_JOB,
     CAT_ENTITY_DISAMBIGUATION,
+    CAT_NAVIGATIONAL_PAGES,
+]
+
+NAVIGATIONAL_PATTERNS = [
+    r"^\s*log\s*in\b",
+    r"^\s*sign\s*in\b",
+    r"\blogin\s*page\b",
+    r"\buser\s*portal\b",
+    r"\bportal\s*home\b",
+    r"\bdomain\s*holding\s*page\b",
+    r"\bparked\s*domain\b",
+    r"\bunder\s*construction\b",
+    r"\bcookie\s*policy\b",
+    r"\bprivacy\s*policy\b",
+    r"\bterms\s*(?:of\s*(?:service|use))\b",
+    r"^\s*contact\s*us\b",
+]
+
+NAVIGATIONAL_URL_INDICATORS = [
+    "/login", "/signin", "portal.mursion.com", "/portal", "/auth/login", "/auth/signin", "/wp-login"
 ]
 
 # 1. Whitelist / Anti-Trigger Patterns (NEVER Suppress)
@@ -188,7 +209,17 @@ def classify_signal(signal: Dict[str, Any]) -> Tuple[bool, Optional[str], str]:
     if is_fork and "docs" in title:
         return True, CAT_ISOLATED_SOCIAL, "Isolated documentation repository ForkEvent"
 
-    # Step 6: Default to Keep (Conservative Bias)
+    # Step 6: Generic Navigational Portals & Login Links
+    url_lower = signal.get("url", "").lower()
+    for pat in NAVIGATIONAL_PATTERNS:
+        if re.search(pat, title) or re.search(pat, excerpt):
+            return True, CAT_NAVIGATIONAL_PAGES, f"Generic navigational portal or placeholder matching '{pat}'"
+
+    for ind in NAVIGATIONAL_URL_INDICATORS:
+        if ind in url_lower:
+            return True, CAT_NAVIGATIONAL_PAGES, f"Navigational auth or portal URL matching '{ind}'"
+
+    # Step 7: Default to Keep (Conservative Bias)
     return False, None, "Substantive candidate signal (Preserved)"
 
 
