@@ -26,6 +26,9 @@ STRATEGIC_KEYWORDS: Set[str] = {
     "monetizing", "monetization", "price cut", "pricing", "charge", "partnership",
     "lawsuit", "antitrust", "acquisition", "standardized", "migrating", "migration",
     "browser engine", "agentic", "kitesurf", "pricing change", "series", "funding",
+    "raise", "raises", "raised", "acquired", "acquires", "settlement", "class-action",
+    "bipa", "gartner", "arr", "revenue", "enterprise", "platform", "soft skills",
+    "upskilling", "launch", "launches", "expansion", "workplaces", "headquarters",
 }
 
 # Domains / paths indicating routine self-reported changelog or press releases
