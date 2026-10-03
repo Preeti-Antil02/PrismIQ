@@ -1,13 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@/lib/AuthContext";
 
 export function PublicNav() {
-  const { user, isRegistered, logout, onboardingComplete } = useAuth();
-  const targetHref = onboardingComplete ? "/app" : "/onboarding";
-  const ctaLabel = onboardingComplete ? "Go to Workspace →" : "Continue Setup →";
-
   return (
     <nav className="ps-nav">
       <Link className="ps-brand" href="#top">
@@ -39,30 +34,12 @@ export function PublicNav() {
         <a href="#research">Research</a>
       </div>
       <div className="ps-actions">
-        {isRegistered ? (
-          <div className="flex items-center gap-2.5">
-            <Link className="ps-btn ps-btn-dark" href={targetHref}>
-              {ctaLabel}
-            </Link>
-            <button
-              type="button"
-              onClick={logout}
-              className="ps-btn ps-btn-light text-xs cursor-pointer"
-              title={`Signed in as ${user?.email}`}
-            >
-              Sign out
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5">
-            <Link className="ps-btn ps-btn-light" href="/login">
-              Sign in
-            </Link>
-            <Link className="ps-btn ps-btn-dark" href="/signup">
-              Get started
-            </Link>
-          </div>
-        )}
+        <a className="ps-btn ps-btn-light" href="#product">
+          See product
+        </a>
+        <Link className="ps-btn ps-btn-dark" href="/signup">
+          Get started
+        </Link>
       </div>
     </nav>
   );
