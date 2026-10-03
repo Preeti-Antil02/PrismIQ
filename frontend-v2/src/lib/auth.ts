@@ -12,15 +12,6 @@ export interface AuthUser {
 export const DEFAULT_TENANT_ID =
   process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID || "8553449a-c998-4727-be01-9aeb724038cb";
 
-export function isRealUser(user: AuthUser | null): boolean {
-  if (!user || !user.email) return false;
-  // Temporary or auto-generated tenant user has an email like 8553449a@prismiq.ai or name "Tenant User" / "New Workspace"
-  if (user.email.endsWith("@prismiq.ai") && /^[0-9a-f]{8}@prismiq\.ai$/i.test(user.email)) {
-    return false;
-  }
-  return true;
-}
-
 export function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   try {
@@ -36,23 +27,38 @@ export function setStoredAuth(token: string, user: AuthUser): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("prismiq_tenant_token", token);
   localStorage.setItem("prismiq_user", JSON.stringify(user));
-  const tid = user.tenant_id || user.id;
-  if (tid) {
-    localStorage.setItem("prismiq_active_tenant_id", tid);
-  }
 }
 
 export function clearStoredAuth(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem("prismiq_tenant_token");
   localStorage.removeItem("prismiq_user");
-  localStorage.removeItem("prismiq_active_tenant_id");
   localStorage.removeItem("prismiq_onboarding_state");
+}
+
+export function isTokenExpired(token?: string | null): boolean {
+  if (!token || typeof token !== "string") return true;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return true;
+    const payloadJson =
+      typeof window !== "undefined" && window.atob
+        ? window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+        : Buffer.from(parts[1], "base64url").toString("utf-8");
+    const payload = JSON.parse(payloadJson);
+    if (!payload.exp || typeof payload.exp !== "number") return false;
+    // Buffer with 60 seconds clock skew
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    return payload.exp <= nowSeconds + 60;
+  } catch {
+    return true;
+  }
 }
 
 export function isAuthenticated(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(localStorage.getItem("prismiq_tenant_token"));
+  const token = localStorage.getItem("prismiq_tenant_token");
+  return Boolean(token && !isTokenExpired(token));
 }
 
 export function createTenantToken(tenantId: string, email?: string): string {
@@ -81,40 +87,76 @@ export function createTenantToken(tenantId: string, email?: string): string {
 }
 
 export function getClientAuthToken(tenantId?: string): string {
-  // In browser environment, check stored token and active tenant
+  // 1. If explicit tenantId provided, always construct token for that specific tenant
+  if (tenantId) {
+    return createTenantToken(tenantId);
+  }
+
+  // 2. In browser environment, ensure stored token matches active tenant ID and is unexpired
   if (typeof window !== "undefined") {
-    const activeTenantId = tenantId || localStorage.getItem("prismiq_active_tenant_id");
+    const activeTenantId = localStorage.getItem("prismiq_active_tenant_id");
     const stored = localStorage.getItem("prismiq_tenant_token");
 
-    if (stored) {
-      try {
-        const parts = stored.split(".");
-        if (parts.length === 3) {
-          const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-          const payload = JSON.parse(payloadJson);
-          // If active tenant matches or no active tenant override specified, use the genuine stored token
-          if (!activeTenantId || payload.sub === activeTenantId) {
-            if (payload.sub && !localStorage.getItem("prismiq_active_tenant_id")) {
-              localStorage.setItem("prismiq_active_tenant_id", payload.sub);
+    if (activeTenantId && stored) {
+      if (!isTokenExpired(stored)) {
+        try {
+          const parts = stored.split(".");
+          if (parts.length === 3) {
+            const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+            const payload = JSON.parse(payloadJson);
+            if (payload.sub === activeTenantId) {
+              return stored;
             }
-            return stored;
           }
+        } catch {
+          // Corrupted or unparseable token, regenerate below
         }
-      } catch {
-        // Corrupted or unparseable token, regenerate below
       }
+
+      // Token and active tenant are out of sync or expired: regenerate token for activeTenantId
+      const freshToken = createTenantToken(activeTenantId);
+      localStorage.setItem("prismiq_tenant_token", freshToken);
+      return freshToken;
     }
 
     if (activeTenantId) {
       const freshToken = createTenantToken(activeTenantId);
       localStorage.setItem("prismiq_tenant_token", freshToken);
-      localStorage.setItem("prismiq_active_tenant_id", activeTenantId);
+      return freshToken;
+    }
+
+    if (stored) {
+      let subFromStored: string | undefined;
+      try {
+        const parts = stored.split(".");
+        if (parts.length === 3) {
+          const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+          const payload = JSON.parse(payloadJson);
+          subFromStored = payload.sub;
+        }
+      } catch {
+        // ignore
+      }
+
+      if (!isTokenExpired(stored) && subFromStored) {
+        localStorage.setItem("prismiq_active_tenant_id", subFromStored);
+        return stored;
+      }
+
+      const tenantToUse = subFromStored || DEFAULT_TENANT_ID;
+      const freshToken = createTenantToken(tenantToUse);
+      localStorage.setItem("prismiq_tenant_token", freshToken);
+      localStorage.setItem("prismiq_active_tenant_id", tenantToUse);
       return freshToken;
     }
   }
 
-  const tid = tenantId || DEFAULT_TENANT_ID;
-  return createTenantToken(tid);
+  const defaultFreshToken = createTenantToken(DEFAULT_TENANT_ID);
+  if (typeof window !== "undefined") {
+    localStorage.setItem("prismiq_tenant_token", defaultFreshToken);
+    localStorage.setItem("prismiq_active_tenant_id", DEFAULT_TENANT_ID);
+  }
+  return defaultFreshToken;
 }
 
 
