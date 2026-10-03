@@ -1,13 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { useAuth } from "@/lib/AuthContext";
-
 export function CtaSection() {
-  const { user, onboardingComplete } = useAuth();
-  const targetHref = user ? (onboardingComplete ? "/app" : "/onboarding") : "/signup";
-  const ctaLabel = user ? (onboardingComplete ? "Go to Workspace →" : "Continue Setup →") : "Create my workspace →";
-
   return (
     <section id="start" className="ps-cta">
       <div className="ps-wrap">
@@ -18,9 +9,9 @@ export function CtaSection() {
             Configure your first PrismIQ workspace and let the intelligence layer build around
             the market you care about.
           </p>
-          <Link className="ps-btn ps-btn-grad" href={targetHref}>
-            {ctaLabel}
-          </Link>
+          <a className="ps-btn ps-btn-grad" href="/signup">
+            Create my workspace →
+          </a>
         </div>
       </div>
     </section>
