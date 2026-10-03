@@ -120,7 +120,10 @@ interface ReviewCompetitorItem {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, token, isRegistered, logout, isLoading: authLoading, checkOnboardingStatus } = useAuth();
+  const { user, token, isLoading: authLoading, logout, checkOnboardingStatus } = useAuth();
+
+  // Loading gate to prevent Step 1 flashing before checking active workspace
+  const [isCheckingWorkspace, setIsCheckingWorkspace] = React.useState<boolean>(true);
 
   // Step state: 1 (Company), 2 (Discovering), 3 (Competitors), 4 (Preferences), 5 (Finalizing)
   const [step, setStep] = React.useState<number>(1);
@@ -161,26 +164,24 @@ export default function OnboardingPage() {
   // Already onboarded workspace detection & prompt
   const [showAlreadyOnboardedPrompt, setShowAlreadyOnboardedPrompt] = React.useState<boolean>(false);
   const [existingTarget, setExistingTarget] = React.useState<string>("");
-  const [draftInfo, setDraftInfo] = React.useState<{ target: string; competitors: string[] } | null>(null);
 
-  // Start fresh company onboarding with a clean tenant ID
+  // Start fresh company onboarding with a clean tenant ID while preserving user profile
   const handleStartNewWorkspace = React.useCallback(() => {
     const newTid = crypto.randomUUID();
     if (typeof window !== "undefined") {
-      const currentUser = getStoredUser();
-      const userEmail = currentUser?.email || `${newTid.slice(0, 8)}@prismiq.ai`;
-      const userName = currentUser?.name || "New Workspace";
-      const userId = currentUser?.id || newTid;
       localStorage.setItem("prismiq_active_tenant_id", newTid);
-      const freshToken = createTenantToken(newTid, userEmail);
+      const currentUser = getStoredUser();
+      const currentEmail = currentUser?.email || user?.email || "user@prismiq.ai";
+      const currentName = currentUser?.name || user?.name || "Workspace Admin";
+      const freshToken = createTenantToken(newTid, currentEmail);
       localStorage.setItem("prismiq_tenant_token", freshToken);
       localStorage.removeItem("prismiq_onboarding_state");
       localStorage.setItem(
         "prismiq_user",
         JSON.stringify({
-          id: userId,
-          email: userEmail,
-          name: userName,
+          id: newTid,
+          email: currentEmail,
+          name: currentName,
           tenant_id: newTid,
         })
       );
@@ -190,33 +191,9 @@ export default function OnboardingPage() {
     setCompanyDescription("");
     setCompetitors([]);
     setShowAlreadyOnboardedPrompt(false);
-    setDraftInfo(null);
+    setIsCheckingWorkspace(false);
     setStep(1);
-  }, []);
-
-  // Resume draft handler
-  const handleResumeDraft = React.useCallback(() => {
-    if (!draftInfo) return;
-    setCompanyName(draftInfo.target);
-    if (draftInfo.competitors && draftInfo.competitors.length > 0) {
-      const restoredItems: ReviewCompetitorItem[] = draftInfo.competitors.map((cName, idx) => ({
-        id: `persisted-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
-        name: cName,
-        rationale: `Confirmed competitor for tracking alongside ${draftInfo.target}.`,
-        confidence: "High",
-        source: "Workspace Configuration",
-        selected: true,
-      }));
-      setCompetitors(restoredItems);
-    }
-    setDraftInfo(null);
-    setStep(4);
-  }, [draftInfo]);
-
-  const handleDismissDraft = React.useCallback(() => {
-    setDraftInfo(null);
-    handleStartNewWorkspace();
-  }, [handleStartNewWorkspace]);
+  }, [user]);
 
   // Guard: Redirect unauthenticated users and restore persisted workspace state from DB
   React.useEffect(() => {
@@ -247,16 +224,32 @@ export default function OnboardingPage() {
           return;
         }
 
-        // If target and competitors already persisted from a prior session, record draftInfo
-        // NEVER automatically jump to Step 4 or overwrite what the user is currently typing!
-        if (cfg.is_configured && !cfg.onboarding_complete && cfg.target_company) {
-          setDraftInfo({
-            target: cfg.target_company,
-            competitors: cfg.competitors || [],
-          });
+        // Restore target company from database
+        if (cfg.target_company) {
+          setCompanyName(cfg.target_company);
+        }
+
+        // Restore persisted competitors from database
+        if (cfg.competitors && cfg.competitors.length > 0) {
+          const restoredItems: ReviewCompetitorItem[] = cfg.competitors.map((cName, idx) => ({
+            id: `persisted-${idx}-${cName.toLowerCase().replace(/\s+/g, "-")}`,
+            name: cName,
+            rationale: `Confirmed competitor for tracking alongside ${cfg.target_company || "your target company"}.`,
+            confidence: "High",
+            source: "Workspace Configuration",
+            selected: true,
+          }));
+          setCompetitors(restoredItems);
+        }
+
+        // If target and competitors already persisted, resume directly on Preferences (Step 4)
+        if (cfg.is_configured && !cfg.onboarding_complete) {
+          setStep(4);
         }
       } catch (err) {
         console.warn("Notice loading workspace config:", err);
+      } finally {
+        setIsCheckingWorkspace(false);
       }
     };
 
@@ -288,15 +281,6 @@ export default function OnboardingPage() {
       setStep1Error("Please enter a valid website (e.g. acme.com or https://acme.com), or leave blank.");
       return;
     }
-
-    // If user submits a different company than previous draft, start with a fresh workspace
-    if (draftInfo && draftInfo.target.toLowerCase() !== cleanName.toLowerCase()) {
-      handleStartNewWorkspace();
-      setCompanyName(cleanName);
-      setCompanyWebsite(cleanWeb);
-      setCompanyDescription(companyDescription.trim());
-    }
-    setDraftInfo(null);
 
     setStep1Error(null);
     setStep(2);
@@ -362,29 +346,13 @@ export default function OnboardingPage() {
           source: sourceCitation,
           sourceAge: c.source_age,
           freshnessNote: c.freshness_note,
-          website: c.website || c.domain || c.primary_domain,
-          selected: isCore && !c.is_directory_only, // Pre-select ONLY core tier! Peripheral is opt-in!
+          selected: !res.is_low_confidence_profile && isCore && !c.is_directory_only && confLevel === "High", // Never pre-select if low confidence profile!
           tier: isCore ? "core" : "peripheral",
           isDirectoryOnly: Boolean(c.is_directory_only),
           isDirectoryArtifactRisk: Boolean(c.is_directory_artifact_risk),
           corroborationStatus: c.corroboration_status,
         };
       });
-
-      // Ensure at least 1-2 competitors are pre-selected if available, so user is never blocked
-      const hasPreSelected = parsedItems.some((c) => c.selected);
-      if (!hasPreSelected && parsedItems.length > 0) {
-        let count = 0;
-        for (const item of parsedItems) {
-          if (!item.isDirectoryOnly && count < 3) {
-            item.selected = true;
-            count++;
-          }
-        }
-        if (count === 0 && parsedItems.length > 0) {
-          parsedItems[0].selected = true;
-        }
-      }
 
       setCompetitors(parsedItems);
       setStep(3);
@@ -624,39 +592,33 @@ export default function OnboardingPage() {
           <span className="font-extrabold text-lg tracking-tight text-[#17171b]">PrismIQ</span>
         </Link>
 
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          {isRegistered ? (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-xs font-semibold text-[#70717a] hidden md:inline">
-                Signed in as <strong className="text-[#17171b]">{user?.email}</strong>
+        <div className="flex items-center gap-3">
+          {user ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#70717a] hidden sm:inline">
+                Logged in as <span className="text-[#17171b]">{user.email}</span>
               </span>
               <button
                 type="button"
                 onClick={logout}
-                className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all cursor-pointer"
+                className="text-xs font-semibold text-red-600 hover:text-red-700 px-2.5 py-1.5 rounded-lg border border-red-200/80 bg-red-50/50 hover:bg-red-50 transition-all cursor-pointer"
+                title="Sign out of this session"
               >
-                Sign out
+                Sign Out
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login?redirect=/onboarding"
-                className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/signup?redirect=/onboarding"
-                className="text-xs font-semibold text-white px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-all shadow-sm"
-              >
-                Sign up
-              </Link>
-            </div>
+            <Link
+              href="/login?redirect=/onboarding"
+              className="text-xs font-semibold text-purple-700 hover:text-purple-800 px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50/70 hover:bg-purple-100 transition-all"
+            >
+              Sign In
+            </Link>
           )}
+
           <Link
             href="/app"
-            className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all hidden sm:inline-block"
+            className="text-xs font-semibold text-[#595a63] hover:text-[#17171b] px-3 py-1.5 rounded-lg border border-[rgba(20,20,30,0.1)] bg-white/70 hover:bg-white transition-all"
           >
             Skip to App →
           </Link>
@@ -665,7 +627,17 @@ export default function OnboardingPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-4 w-full max-w-5xl mx-auto">
-        {showAlreadyOnboardedPrompt ? (
+        {isCheckingWorkspace ? (
+          <div className="w-full max-w-xl bg-white/95 backdrop-blur-xl border border-[rgba(20,20,30,0.08)] shadow-[0_24px_60px_rgba(36,28,68,0.08)] rounded-2xl p-10 space-y-4 animate-in fade-in duration-150 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mx-auto">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-base font-bold text-[#17171b]">Checking workspace status...</h2>
+              <p className="text-xs text-[#70717a]">Verifying active company configuration</p>
+            </div>
+          </div>
+        ) : showAlreadyOnboardedPrompt ? (
           <div className="w-full max-w-xl bg-white/95 backdrop-blur-xl border border-[rgba(20,20,30,0.08)] shadow-[0_24px_60px_rgba(36,28,68,0.08)] rounded-2xl p-8 sm:p-10 space-y-7 animate-in fade-in zoom-in-95 duration-200 text-center">
             <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto">
               <Building2 className="w-6 h-6" />
@@ -698,6 +670,15 @@ export default function OnboardingPage() {
                 + Set Up Another Company
               </button>
             </div>
+            <div className="pt-2 text-center border-t border-[rgba(20,20,30,0.06)]">
+              <button
+                type="button"
+                onClick={logout}
+                className="text-xs font-semibold text-[#70717a] hover:text-red-600 transition-colors cursor-pointer"
+              >
+                Sign in with a different account →
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -721,31 +702,6 @@ export default function OnboardingPage() {
                 product footprint, positioning, and market landscape.
               </p>
             </div>
-
-            {draftInfo && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-purple-50/90 border border-purple-200 rounded-xl text-xs text-purple-900 animate-in fade-in duration-150">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-purple-600 shrink-0" />
-                  <span>You have an in-progress draft for <strong>{draftInfo.target}</strong>.</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleResumeDraft}
-                    className="font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer"
-                  >
-                    Resume Step 4 →
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDismissDraft}
-                    className="text-[#70717a] hover:text-[#17171b] text-xs cursor-pointer"
-                  >
-                    Start Fresh ✕
-                  </button>
-                </div>
-              </div>
-            )}
 
             {step1Error && (
               <div
@@ -814,38 +770,6 @@ export default function OnboardingPage() {
                 <span>Continue to Discovery</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
-
-              <div className="pt-2 text-center text-xs text-[#70717a] border-t border-[rgba(20,20,30,0.06)]">
-                {isRegistered ? (
-                  <span>
-                    Signed in as <strong className="text-[#17171b]">{user?.email}</strong> &bull;{" "}
-                    <button
-                      type="button"
-                      onClick={logout}
-                      className="text-purple-600 hover:text-purple-800 font-semibold underline cursor-pointer inline"
-                    >
-                      Sign out / Switch account
-                    </button>
-                  </span>
-                ) : (
-                  <span>
-                    Already have an account?{" "}
-                    <Link
-                      href="/login?redirect=/onboarding"
-                      className="text-purple-600 hover:text-purple-800 font-semibold underline"
-                    >
-                      Sign in
-                    </Link>
-                    {" "}or{" "}
-                    <Link
-                      href="/signup?redirect=/onboarding"
-                      className="text-purple-600 hover:text-purple-800 font-semibold underline"
-                    >
-                      Sign up
-                    </Link>
-                  </span>
-                )}
-              </div>
             </form>
           </div>
         )}
@@ -878,7 +802,7 @@ export default function OnboardingPage() {
                 <div className="flex items-center justify-center gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => runDiscovery(companyName)}
+                    onClick={() => runDiscovery(companyName, companyWebsite, companyDescription)}
                     className="px-4 py-2 bg-white border border-red-300 rounded-lg text-xs font-bold text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
                   >
                     Retry Discovery
