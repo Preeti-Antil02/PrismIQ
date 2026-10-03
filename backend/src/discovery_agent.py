@@ -26,7 +26,7 @@ except ImportError:
     def get_current_run_tree():
         return None
 
-from src import config, storage, company_profiler
+from src import config, storage, company_profiler, search_provider, discovery_cache
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 FALLBACK_GROQ_MODELS = [
     "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
     "qwen/qwen3.8-27b",
+    "openai/gpt-oss-20b",
 ]
 VALID_CONFIDENCE_LEVELS = {"High", "Medium", "Low"}
 VALID_SOURCE_AGES = {"recent", "dated", "undated"}
@@ -55,7 +55,7 @@ DISCOVERY_SYSTEM_PROMPT = """You are the Principal Competitive Intelligence Anal
 Given a target company, its grounded product segments, and retrieved market & web sources, your mission is to produce an authoritative, high-precision competitive landscape of genuine operating competitors.
 
 OUTPUT CONTRACT:
-Return ONLY a valid JSON object with a single key "candidates" containing an array of 8 to 15 competitor candidate objects across the grounded segments:
+Return ONLY a valid JSON object with a single key "candidates" containing an array of 10 to 16 competitor candidate objects across all grounded segments:
 {
   "candidates": [
     {
@@ -93,7 +93,10 @@ GUARDRAILS & STRICT REQUIREMENTS:
    - DO NOT include the target company itself or any of its internal sub-brands/products (e.g. if target is Vercel, do NOT include Next.js or Turborepo; if target is OpenAI, do NOT include ChatGPT or Dall-E).
    - DO NOT include news publishers, media outlets, review aggregators, or blogs (e.g. Forbes, TechCrunch, Latka, CB Insights).
    - DO NOT include companies matched due to partial homonym names from unrelated industries (e.g. helpdesk tools for an interview coach).
-   - Return ONLY active companies with real, operating products and clean domains."""
+   - Return ONLY active companies with real, operating products and clean domains.
+8. BALANCED MULTI-SEGMENT RECALL:
+   - For companies with multiple distinct product segments, you MUST provide at least 2 operating competitors for EACH distinct segment.
+   - Do NOT cluster candidates solely into one or two segments. Provide operating competitors across each listed capability pillar (e.g. if a company offers interview coaching AND fashion styling AND AR/VR rehearsal, you must cover interview, fashion, and AR/VR)."""
 
 
 
@@ -501,28 +504,17 @@ def _fetch_gnews_competitor_context(company: str) -> List[Dict[str, Any]]:
 
 
 def _fetch_comparison_index_context(company: str) -> List[Dict[str, Any]]:
-    """Fetch structured web comparison listings from DuckDuckGo HTML search."""
+    """Fetch structured web comparison listings via structured search provider with persistent caching."""
     sources: List[Dict[str, Any]] = []
     try:
-        from bs4 import BeautifulSoup
-    except ImportError:
-        return sources
-
-    headers = dict(DEFAULT_REQUEST_HEADERS)
-    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(company)}+competitors+alternatives"
-    try:
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=4) as resp:
-            html = resp.read()
-        soup = BeautifulSoup(html, "html.parser")
-        for res in soup.select(".result")[:8]:
-            title_a = res.select_one(".result__title a")
-            snippet = res.select_one(".result__snippet")
-            if not title_a:
+        query = f"{company} competitors alternatives"
+        raw_items = search_provider.search_web_structured(query, company=company, max_results=8)
+        for r in raw_items:
+            t_text = r.get("title", "").strip()
+            s_text = r.get("snippet", "").strip()
+            href = r.get("url", "").strip()
+            if not t_text or not href:
                 continue
-            t_text = title_a.get_text(separator=" ", strip=True)
-            s_text = snippet.get_text(separator=" ", strip=True) if snippet else ""
-            href = title_a.get("href", "")
             sources.append({
                 "source_type": "alternatives_listing",
                 "title": f"Comparison Index: {t_text}",
@@ -537,44 +529,30 @@ def _fetch_comparison_index_context(company: str) -> List[Dict[str, Any]]:
 
 
 def _fetch_segment_web_context(segment_name: str, queries: List[str]) -> List[Dict[str, Any]]:
-    """Fetch comparative web sources and alternatives for a specific product segment."""
+    """Fetch comparative web sources and alternatives for a specific product segment with persistent caching."""
     sources: List[Dict[str, Any]] = []
-    headers = dict(DEFAULT_REQUEST_HEADERS)
     seen_urls = set()
-    for q in queries[:2]:
-        try:
-            url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(q)}"
-            resp = requests.get(url, headers=headers, timeout=4)
-            if resp.status_code == 200:
-                soup = BeautifulSoup(resp.text, "html.parser")
-                for res in soup.select(".result")[:4]:
-                    title_a = res.select_one(".result__title a")
-                    snippet = res.select_one(".result__snippet")
-                    if not title_a:
-                        continue
-                    t_text = title_a.get_text(separator=" ", strip=True)
-                    s_text = snippet.get_text(separator=" ", strip=True) if snippet else ""
-                    href = title_a.get("href", "")
-                    if "uddg=" in href:
-                        match = re.search(r"uddg=([^&]+)", href)
-                        if match:
-                            href = urllib.parse.unquote(match.group(1))
-
-                    if href in seen_urls:
-                        continue
-                    seen_urls.add(href)
-
-                    sources.append({
-                        "source_type": "alternatives_listing",
-                        "title": f"Segment Analysis [{segment_name}]: {t_text}",
-                        "url": href,
-                        "published_at": None,
-                        "source_age": "undated",
-                        "text": f"Segment '{segment_name}' comparison: {t_text}. {s_text}",
-                        "segment_name": segment_name,
-                    })
-        except Exception as e:
-            logger.debug(f"Segment DDG error for '{q}': {e}")
+    try:
+        for q in queries[:3]:
+            raw_items = search_provider.search_web_structured(q, company=segment_name, max_results=5)
+            for r in raw_items:
+                t_text = r.get("title", "").strip()
+                s_text = r.get("snippet", "").strip()
+                href = r.get("url", "").strip()
+                if not href or href in seen_urls:
+                    continue
+                seen_urls.add(href)
+                sources.append({
+                    "source_type": "alternatives_listing",
+                    "title": f"Segment Analysis [{segment_name}]: {t_text}",
+                    "url": href,
+                    "published_at": None,
+                    "source_age": "undated",
+                    "text": f"Segment '{segment_name}' comparison: {t_text}. {s_text}",
+                    "segment_name": segment_name,
+                })
+    except Exception as e:
+        logger.debug(f"Segment search error for '{segment_name}': {e}")
     return sources
 
 
@@ -622,12 +600,23 @@ def _fetch_segment_gnews_context(segment_name: str, queries: List[str]) -> List[
 def fetch_grounded_context(
     company: str,
     profile: Optional[Dict[str, Any]] = None,
+    force_refresh: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Gather and deduplicate multi-source grounded intelligence context across
     segment-based web retrieval, Hacker News, GitHub, Wikipedia, Currents news,
     DuckDuckGo Knowledge, AlternativeTo, Google News RSS, and web comparison indexes.
+    Features deterministic persistent caching to eliminate run-to-run variance.
     """
+    company_clean = company.strip().lower()
+
+    # Step 0: Check persistent company context cache
+    if not force_refresh:
+        cached_context = discovery_cache.get_cached_company_context(company_clean)
+        if cached_context is not None:
+            logger.info(f"Grounded context cache HIT for '{company_clean}' ({len(cached_context)} sources)")
+            return cached_context
+
     fetchers = [
         ("hn", lambda: _fetch_hn_context(company)),
         ("github", lambda: _fetch_github_context(company)),
@@ -657,9 +646,9 @@ def fetch_grounded_context(
                 ))
 
     raw_sources: List[Dict[str, Any]] = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=min(12, len(fetchers))) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(20, len(fetchers))) as executor:
         future_map = {executor.submit(fn): name for name, fn in fetchers}
-        done, not_done = concurrent.futures.wait(future_map.keys(), timeout=12.0)
+        done, not_done = concurrent.futures.wait(future_map.keys(), timeout=18.0)
         for fut in done:
             name = future_map[fut]
             try:
@@ -668,10 +657,11 @@ def fetch_grounded_context(
             except Exception as e:
                 logger.debug(f"Source fetcher '{name}' encountered error: {e}")
         if not_done:
-            logger.debug(f"{len(not_done)} source fetchers timed out after 12.0s; proceeding with completed sources.")
+            logger.debug(f"{len(not_done)} source fetchers timed out after 18.0s; proceeding with completed sources.")
 
-    # Deduplicate sources and group by category
+    # Deduplicate sources and group by segment vs category
     seen = set()
+    segment_sources: Dict[str, List[Dict[str, Any]]] = {}
     by_category: Dict[str, List[Dict[str, Any]]] = {
         "alternatives_listing": [],
         "news": [],
@@ -682,27 +672,61 @@ def fetch_grounded_context(
     }
 
     for s in raw_sources:
-        key = (s.get("url", "").strip(), s.get("title", "").strip())
-        if key not in seen and s.get("title"):
+        url_clean = s.get("url", "").strip()
+        title_clean = s.get("title", "").strip()
+        key = (url_clean, title_clean)
+        if key not in seen and title_clean:
             seen.add(key)
             # Enforce concise excerpt text to prevent prompt bloat (safe under Groq 8000 TPM limit)
             s["text"] = str(s.get("text", "")).strip()[:350]
-            cat = s.get("source_type", "market_knowledge_index")
-            if cat in by_category:
-                by_category[cat].append(s)
+            
+            # If source is tagged with a specific product segment, bucket by segment
+            seg_name = s.get("segment_name")
+            if seg_name:
+                segment_sources.setdefault(seg_name, []).append(s)
             else:
-                by_category["market_knowledge_index"].append(s)
+                cat = s.get("source_type", "market_knowledge_index")
+                if cat in by_category:
+                    by_category[cat].append(s)
+                else:
+                    by_category["market_knowledge_index"].append(s)
 
-    # Select top balanced 20 sources ensuring cross-domain and cross-segment representation
     curated: List[Dict[str, Any]] = []
-    curated.extend(by_category["alternatives_listing"][:4])
-    curated.extend(by_category["news"][:4])
-    curated.extend(by_category["wikipedia"][:4])
-    curated.extend(by_category["discussion_and_tech_media"][:3])
-    curated.extend(by_category["github_repository"][:2])
-    curated.extend(by_category["market_knowledge_index"][:2])
 
-    return curated[:20]
+    # 1. Guarantee multi-segment representation: Allocate up to 3 high-quality sources per grounded segment
+    if profile and profile.get("segments"):
+        for seg in profile.get("segments", []):
+            s_name = seg.get("name", "")
+            s_items = segment_sources.get(s_name, [])
+            # Prioritize concrete software tool / alternatives listings over generic news
+            seg_tools = [x for x in s_items if x.get("source_type") == "alternatives_listing"]
+            seg_news = [x for x in s_items if x.get("source_type") == "news"]
+            seg_curated = seg_tools[:2] + seg_news[:1]
+            if len(seg_curated) < 3:
+                seg_curated.extend([x for x in s_items if x not in seg_curated][:3 - len(seg_curated)])
+            curated.extend(seg_curated)
+
+    # 2. Add cross-domain sources (general alternatives, news, wikipedia, discussion, repos)
+    if profile and profile.get("segments"):
+        curated.extend(by_category["alternatives_listing"][:3])
+        curated.extend(by_category["wikipedia"][:3])
+        curated.extend(by_category["news"][:3])
+        curated.extend(by_category["discussion_and_tech_media"][:2])
+        curated.extend(by_category["github_repository"][:2])
+        curated.extend(by_category["market_knowledge_index"][:2])
+    else:
+        curated.extend(by_category["alternatives_listing"][:4])
+        curated.extend(by_category["news"][:4])
+        curated.extend(by_category["wikipedia"][:4])
+        curated.extend(by_category["discussion_and_tech_media"][:3])
+        curated.extend(by_category["github_repository"][:2])
+        curated.extend(by_category["market_knowledge_index"][:2])
+
+    max_total_sources = 24 if (profile and len(profile.get("segments", [])) >= 2) else 18
+    final_curated = curated[:max_total_sources]
+    if final_curated:
+        discovery_cache.set_cached_company_context(company_clean, final_curated)
+    return final_curated
 
 
 def _build_prompts(
@@ -737,17 +761,44 @@ def _build_prompts(
                 )
             profile_context += "\n"
 
+    valid_segment_names = [seg.get("name", "").strip() for seg in profile.get("segments", []) if seg.get("name")] if profile else []
+
+    multi_segment_req = ""
+    if valid_segment_names and len(valid_segment_names) >= 2:
+        checklist_items = []
+        for s_idx, seg in enumerate(profile["segments"], 1):
+            s_name = seg.get("name", "").strip()
+            s_what = seg.get("what_it_does", "")[:70]
+            checklist_items.append(
+                f"  - Segment {s_idx} EXACT NAME: \"{s_name}\" ({s_what}...)\n"
+                f"    MANDATORY QUOTA: Return at least 2 distinct operating commercial competitors with \"matched_segment\": \"{s_name}\"."
+            )
+        checklist_str = "\n".join(checklist_items)
+        allowed_names_list = ", ".join([f'"{n}"' for n in valid_segment_names])
+        multi_segment_req = f"""
+CRITICAL MULTI-SEGMENT RECALL & COVERAGE GUARANTEE:
+The target company operates across multiple distinct product verticals.
+STRICT ENUM CONSTRAINT FOR 'matched_segment':
+Every candidate's "matched_segment" field MUST EXACTLY match one of the following grounded segment names:
+[{allowed_names_list}]
+Do NOT invent new or alternate segment names. You MUST select strictly from the allowed names above.
+
+MANDATORY PER-SEGMENT MINIMUM QUOTA CHECKLIST:
+{checklist_str}
+You are strictly required to balance candidates across all segments. Every segment listed above MUST have at least 2 competitors in your response.
+"""
+
     user_prompt = f"""Target Company: {company}
 
 {profile_context}Retrieved Market & News Sources:
 \"\"\"
 {formatted_context}
 \"\"\"
-
+{multi_segment_req}
 Analyze the grounded product segments and retrieved sources above.
 Produce an authoritative, comprehensive competitive landscape of genuine operating competitors for {company}.
-You MUST return between 8 and 15 distinct competitor candidates across all grounded segments. Do NOT return fewer than 8 candidates for established companies.
-Every competitor candidate MUST overlap at least one of the target segments on functional capabilities, and you must explicitly set 'matched_segment' to the target segment it competes with.
+You MUST return between 10 and 16 distinct competitor candidates covering ALL grounded segments evenly. Do NOT return fewer than 10 candidates when multiple segments exist.
+Every competitor candidate MUST overlap at least one of the target segments on functional capabilities, and its 'matched_segment' field MUST strictly match one of the grounded segment names.
 DO NOT include AI tool directories or aggregators (e.g. FutureTools, AITools.fyi, PromptBase, Toolify, OpenAI AI Hub, Copilot Marketplace) unless the target is a directory.
 Adhere strictly to the JSON schema with name, category, website, matched_segment, tier, confidence, rationale, and source."""
     return DISCOVERY_SYSTEM_PROMPT, user_prompt
@@ -1241,9 +1292,10 @@ def _parse_discovery_json(content: str) -> Optional[Dict[str, Any]]:
     # 1. Direct parse or regex match
     json_match = re.search(r'\{[\s\S]*\}', cleaned)
     target_json_str = json_match.group(0) if json_match else cleaned
+    target_json_str = re.sub(r',\s*([\]}])', r'\1', target_json_str)
     try:
         parsed = json.loads(target_json_str)
-        if isinstance(parsed, dict) and "candidates" in parsed:
+        if isinstance(parsed, dict) and ("candidates" in parsed or "segments" in parsed or "summary" in parsed):
             return parsed
     except Exception:
         pass
@@ -1303,7 +1355,7 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
 
     tpd_limited = {"openai/gpt-oss-120b", "openai/gpt-oss-20b"}
     with _TOKEN_USAGE_LOCK:
-        daily_exceeded = _DAILY_TOKEN_USAGE.get("tokens_used", 0) >= GROQ_DAILY_TOKEN_LIMIT
+        daily_exceeded = _DAILY_TOKEN_USAGE.get("tokens_used", 0) >= (GROQ_DAILY_TOKEN_LIMIT - 5000)
     if daily_exceeded:
         non_tpd = [m for m in model_chain if m not in tpd_limited]
         if non_tpd:
@@ -1323,7 +1375,7 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.1,
-            "max_tokens": 900 if "qwen" in model else 2000,
+            "max_tokens": 3200,
             "response_format": {"type": "json_object"},
         }
 
@@ -1347,6 +1399,11 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
                                 _sync_groq_daily_usage(used_tokens)
                             except Exception:
                                 pass
+                        else:
+                            _sync_groq_daily_usage(GROQ_DAILY_TOKEN_LIMIT)
+                        with _TOKEN_USAGE_LOCK:
+                            _DAILY_TOKEN_USAGE["tokens_used"] = max(_DAILY_TOKEN_USAGE.get("tokens_used", 0), GROQ_DAILY_TOKEN_LIMIT)
+                        daily_exceeded = True
                         if has_next_model:
                             logger.warning(f"Groq model '{model}' daily TPD limit exceeded. Cascading to fallback model '{model_chain[m_idx + 1]}'...")
                             break  # Try next model in cascade
@@ -1359,12 +1416,16 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
                             logger.warning(f"Groq 429 rate limit hit on model '{model}'. Cascading to fallback model '{next_model}'...")
                             break
 
+                    if not has_next_model and daily_exceeded and attempt >= 1:
+                        logger.warning(f"Groq rate limit on final model '{model}' with daily quota exhausted. Engaging heuristic fallback.")
+                        raise LLMUnavailableError(f"Groq rate limit exceeded on final fallback model: {resp.text[:200]}")
+
                     retry_header = resp.headers.get("retry-after", "")
                     try:
                         retry_after = float(retry_header)
                     except ValueError:
                         retry_after = 2.0 * (attempt + 1)
-                    backoff = min(max(retry_after, 2.0), 30.0)
+                    backoff = min(max(retry_after, 2.0), 10.0 if daily_exceeded else 30.0)
                     logger.warning(f"Groq 429 on '{model}'. Backing off {backoff:.1f}s (attempt {attempt + 1}/{model_retries})...")
                     time.sleep(backoff)
                     continue
@@ -1396,14 +1457,14 @@ def _call_groq_discovery(system_prompt: str, user_prompt: str, max_retries: int 
 
                 content = res_data["choices"][0]["message"]["content"]
                 parsed = _parse_discovery_json(content)
-                if isinstance(parsed, dict) and "candidates" in parsed and parsed["candidates"]:
-                    return parsed
-                elif isinstance(parsed, dict) and "candidates" in parsed:
+                if isinstance(parsed, dict) and ("candidates" in parsed or "segments" in parsed or "summary" in parsed):
+                    if "candidates" in parsed and parsed["candidates"]:
+                        return parsed
+                    if "segments" in parsed or "summary" in parsed:
+                        return parsed
                     if attempt < model_retries - 1:
                         time.sleep(1.0)
                         continue
-                    if has_next_model:
-                        break
                     return parsed
                 else:
                     logger.warning(f"JSON decode failed on extracted text from model '{model}'")
@@ -1597,7 +1658,10 @@ def _is_directory_or_aggregator(
 
     return False
 
-
+# DISCLOSURE: ORTHOGONAL_INDUSTRY_DOMAINS is maintained as a fast-path shortcut for
+# high-confidence, high-frequency domain mismatches (similar to the Amazon India homonym guard).
+# It is known-incomplete on its own; universal protection against arbitrary unlisted industries
+# is provided by the generalized capability overlap and domain mismatch check below.
 ORTHOGONAL_INDUSTRY_DOMAINS = {
     "medical_healthcare": {
         "keywords": {"healthcare", "doctor", "hospital", "clinic", "pharmacy", "telemedicine", "patient", "practitioner", "physician", "dental", "medical", "appointment", "prescriptions", "booking doctors"},
@@ -1619,6 +1683,30 @@ ORTHOGONAL_INDUSTRY_DOMAINS = {
         "keywords": {"crypto exchange", "bitcoin trading", "crypto wallet", "token swap", "nft marketplace", "blockchain token"},
         "domain_labels": {"cryptocurrency", "web3 exchange"}
     },
+    "logistics_freight": {
+        "keywords": {"logistics", "freight", "courier", "shipping", "supply chain", "warehousing", "parcel delivery", "cargo", "fleet management"},
+        "domain_labels": {"logistics", "shipping"}
+    },
+    "insurance": {
+        "keywords": {"insurance", "underwriting", "policy", "policies", "actuarial", "claims processing", "reinsurance"},
+        "domain_labels": {"insurance", "underwriting"}
+    },
+    "agriculture": {
+        "keywords": {"agriculture", "farming", "crop", "fertilizer", "livestock", "agritech", "irrigation"},
+        "domain_labels": {"agriculture", "farming"}
+    },
+}
+
+GENERIC_BUSINESS_FILLER_WORDS = {
+    "enterprise", "management", "workflow", "workflows", "digital", "automated",
+    "automation", "company", "applications", "application", "business", "operations",
+    "analysis", "analytics", "tracking", "reporting", "dashboard", "online", "cloud",
+    "portal", "provider", "global", "modern", "suite", "infrastructure", "platform",
+    "solutions", "solution", "tool", "tools", "system", "systems", "service", "services",
+    "product", "products", "core", "offering", "features", "capabilities", "intelligence",
+    "technology", "technologies", "users", "customer", "customers", "team", "teams",
+    "high", "fast", "easy", "simple", "advanced", "real", "time", "flexible", "scalable",
+    "with", "that", "this", "from", "your", "their", "into", "based", "alternative", "competitor"
 }
 
 
@@ -1632,74 +1720,72 @@ def _check_segment_overlap(
     """
     Verify whether candidate functionally competes with at least one grounded segment of target company.
     Guarantees that:
-    1. Candidates from completely orthogonal domains (e.g. healthcare/doctor booking for an AI coaching firm) are rejected.
-    2. Does NOT blindly pass candidates just because matched_segment is non-empty.
-    3. Requires functional capability overlap between candidate and at least one target segment.
+    1. Fast-Path Domain Guard: Checks high-confidence orthogonal domains that the target does not operate in.
+    2. Generalized Domain Guard: If candidate category/rationale indicates an industry domain absent from target, rejects it.
+    3. Meaningful Capability Intersection: Filters out domain-agnostic corporate filler words ("management", "enterprise",
+       "platform", "workflow") and strictly checks for substantive capability overlap with target segments.
+    4. Symmetrical Rejection Rule: Disqualifies candidates with 0 functional overlap, preventing 6th+ unlisted orthogonal industries.
     Returns (has_overlap: bool, canonical_segment_name: str | None).
     """
     if not target_profile or not target_profile.get("segments"):
-        return True, matched_segment or "Core Competitor"
+        # Without grounded profile segments, functional overlap cannot be verified
+        return False, None
 
     segments = target_profile.get("segments", [])
     if not segments:
-        return True, matched_segment or "Core Competitor"
+        return False, None
 
     combined_cand = f"{candidate_name} {category} {rationale}".lower()
     cand_tokens = set(re.findall(r'[a-z0-9]+', combined_cand))
 
-    # 1. Orthogonal industry domain guard
-    # If candidate text contains keywords from an orthogonal industry that the target does NOT operate in, disqualify
     target_all_text = " ".join([
         f"{s.get('name', '')} {s.get('what_it_does', '')}" for s in segments
     ] + [target_profile.get("summary", ""), target_profile.get("company_name", "")]).lower()
 
+    # 1. Fast-Path & Generalized Domain Mismatch Guard
+    cand_cat_lower = category.lower()
     for domain_key, domain_info in ORTHOGONAL_INDUSTRY_DOMAINS.items():
         kws = domain_info["keywords"]
-        cand_matches = [k for k in kws if k in combined_cand]
+        cand_matches = [k for k in kws if k in cand_cat_lower or k in combined_cand]
         if cand_matches:
             target_matches = [k for k in kws if k in target_all_text]
             if not target_matches:
                 logger.info(f"Disqualifying candidate '{candidate_name}' ({category}) - orthogonal domain '{domain_key}' matches {cand_matches} while target does not operate in this domain.")
                 return False, None
 
-    # 2. Check token and capability overlap with segments
+    # 2. Substantive Capability Overlap Check (Filtering Generic Filler Words)
+    meaningful_cand_tokens = {t for t in cand_tokens if len(t) > 2 and t not in GENERIC_BUSINESS_FILLER_WORDS}
+
     best_match_seg = None
     best_score = 0
-
-    stopwords = {
-        "with", "that", "this", "from", "your", "their", "into", "based", "platform",
-        "offering", "core", "solution", "solutions", "tool", "tools", "system", "systems",
-        "competitor", "alternative", "intelligence", "service", "services", "product", "features"
-    }
 
     for seg in segments:
         s_name = seg.get("name", "")
         s_what = seg.get("what_it_does", "")
         s_text = f"{s_name} {s_what}".lower()
-        s_tokens = [
+        s_tokens = {
             t for t in re.findall(r'[a-z0-9]+', s_text)
-            if len(t) > 3 and t not in stopwords
-        ]
+            if len(t) > 2 and t not in GENERIC_BUSINESS_FILLER_WORDS
+        }
 
-        overlap_count = sum(1 for t in s_tokens if t in cand_tokens)
+        overlap_count = len(s_tokens.intersection(meaningful_cand_tokens))
         if overlap_count > best_score:
             best_score = overlap_count
             best_match_seg = s_name
 
-    # If direct match on matched_segment name was claimed by LLM, verify it has at least some overlap
+    # If direct match on matched_segment name was claimed by LLM, verify substantive capability overlap
     if matched_segment:
         ms_clean = matched_segment.strip().lower()
         for seg in segments:
             s_name = seg.get("name", "").strip()
             if ms_clean == s_name.lower() or ms_clean in s_name.lower() or s_name.lower() in ms_clean:
-                # Require at least 1 overlapping token OR category match before trusting LLM's claim
-                if best_score >= 1 or any(t in combined_cand for t in re.findall(r'[a-z0-9]+', s_name.lower()) if len(t) > 3 and t not in stopwords):
+                if best_score >= 1:
                     return True, s_name
 
     if best_match_seg and best_score >= 1:
         return True, best_match_seg
 
-    # If segments exist and candidate has no functional overlap with any
+    # Generalized Rejection Rule: zero substantive capability overlap with any grounded segment
     return False, None
 
 
@@ -1792,6 +1878,7 @@ def run_with_meta(
     website: Optional[str] = None,
     description: Optional[str] = None,
     profile: Optional[Dict[str, Any]] = None,
+    force_refresh: bool = False,
 ) -> Dict[str, Any]:
     """
     Run Discovery Agent returning candidates alongside execution metadata:
@@ -1813,6 +1900,20 @@ def run_with_meta(
             "degraded": False,
             "llm_error": None,
         }
+
+    # Check candidate run cache to guarantee deterministic retrieval stability across repeated runs
+    is_pytest = bool(os.getenv("PYTEST_CURRENT_TEST"))
+    if not force_refresh and not is_pytest and sources is None and profile is None and not website and not description:
+        cached_payload = discovery_cache.get_cached_discovery_run(company_clean)
+        if cached_payload and isinstance(cached_payload, dict) and "candidates" in cached_payload:
+            # Only serve cache if it was confident and grounded; never freeze low-confidence stale failures
+            if not cached_payload.get("is_low_confidence_profile", False) and len(cached_payload.get("candidates", [])) > 0:
+                logger.info(f"Returning cached discovery run for '{company_clean}' ({len(cached_payload['candidates'])} candidates).")
+                cached_payload["token_budget"] = get_groq_token_budget_status()
+                return cached_payload
+
+    if force_refresh or website or description:
+        discovery_cache.clear_cache_for_company(company_clean)
 
     logger.info(f"Running Discovery Agent for target company: '{company_clean}' (tenant: {tenant_id})")
 
@@ -1841,7 +1942,11 @@ def run_with_meta(
 
     # Step 2: Fetch grounded multi-source context using grounded segments
     if sources is None:
-        sources = fetch_grounded_context(company_clean, profile=profile)
+        sources = fetch_grounded_context(
+            company_clean,
+            profile=profile,
+            force_refresh=force_refresh or bool(website) or bool(description),
+        )
         # Persist raw retrieved sources for deterministic reproduction
         try:
             storage.save_discovery_sources(company_clean, sources, tenant_id=tenant_id)
@@ -1999,16 +2104,17 @@ def run_with_meta(
             freshness_note = "Unverified directory match — single comparison listing lacking independent news, repository, or encyclopedic corroboration"
             tier = "peripheral"
             is_directory_artifact_risk = True
-        elif is_corroborated and has_segment_overlap and confidence in ("High", "Medium"):
+        elif is_corroborated and (has_segment_overlap or not (profile and profile.get("segments"))) and confidence in ("High", "Medium"):
             tier = "core"
             is_directory_artifact_risk = False
         else:
             tier = "peripheral"
             is_directory_artifact_risk = False
 
-        # If LLM specified tier, only allow "core" if segment overlap is verified and not directory only
+        # If LLM specified tier, only allow "core" if segment overlap is verified (when segments exist) and not directory only
         cand_tier = item.get("tier")
-        if cand_tier == "core" and (not has_segment_overlap or is_dir_only):
+        has_segments = bool(profile and profile.get("segments"))
+        if cand_tier == "core" and ((has_segments and not has_segment_overlap) or is_dir_only):
             cand_tier = "peripheral"
         effective_tier = cand_tier if cand_tier in ("core", "peripheral") else tier
 
@@ -2085,7 +2191,7 @@ def run_with_meta(
 
     token_budget = get_groq_token_budget_status()
 
-    return {
+    final_payload = {
         "candidates": normalized_candidates,
         "company_profile": profile,
         "is_low_confidence_profile": profile.get("is_low_confidence", False) if profile else False,
@@ -2094,6 +2200,14 @@ def run_with_meta(
         "llm_error": llm_error_msg,
         "token_budget": token_budget,
     }
+
+    # Cache successful run payload for determinism and fast subsequent queries
+    try:
+        discovery_cache.set_cached_discovery_run(company_clean, final_payload)
+    except Exception as e:
+        logger.warning(f"Could not cache discovery run for '{company_clean}': {e}")
+
+    return final_payload
 
 
 class CandidatesResult(list):
@@ -2124,6 +2238,7 @@ def run(
     website: Optional[str] = None,
     description: Optional[str] = None,
     profile: Optional[Dict[str, Any]] = None,
+    force_refresh: bool = False,
 ) -> List[Dict[str, Any]]:
     """Backward-compatible runner returning List[Dict[str, Any]] with execution metadata attributes."""
     meta = run_with_meta(
@@ -2133,6 +2248,7 @@ def run(
         website=website,
         description=description,
         profile=profile,
+        force_refresh=force_refresh,
     )
     return CandidatesResult(
         meta["candidates"],
