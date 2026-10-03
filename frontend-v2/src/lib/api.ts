@@ -718,7 +718,7 @@ export async function discoverCompetitors(
   website?: string,
   description?: string
 ): Promise<DiscoveryResponse> {
-  const token = getClientAuthToken();
+  let token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/discover" : `${API_BASE_URL}/api/onboarding/discover`;
   const payload: Record<string, any> = { target_company: targetCompany };
   if (website && website.trim()) {
@@ -728,11 +728,31 @@ export async function discoverCompetitors(
     payload.description = description.trim();
   }
 
-  const res = await fetch(baseUrl, {
+  let res = await fetch(baseUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+
+  // Auto-heal on expired token
+  if (res.status === 401) {
+    const errText = await res.text();
+    if (errText.includes("Token has expired") || errText.includes("expired")) {
+      const activeTenant = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
+      const freshToken = createTenantToken(activeTenant || DEFAULT_TENANT_ID);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("prismiq_tenant_token", freshToken);
+      }
+      res = await fetch(baseUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${freshToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      throw new Error(`Discovery failed (${res.status}): ${errText}`);
+    }
+  }
+
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`Discovery failed (${res.status}): ${errText}`);
@@ -741,13 +761,33 @@ export async function discoverCompetitors(
 }
 
 export async function confirmCompetitors(targetCompany: string, competitors: string[]): Promise<any> {
-  const token = getClientAuthToken();
+  let token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/confirm" : `${API_BASE_URL}/api/onboarding/confirm`;
-  const res = await fetch(baseUrl, {
+  let res = await fetch(baseUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ target_company: targetCompany, confirmed_competitors: competitors }),
   });
+
+  // Auto-heal on expired token
+  if (res.status === 401) {
+    const errText = await res.text();
+    if (errText.includes("Token has expired") || errText.includes("expired")) {
+      const activeTenant = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
+      const freshToken = createTenantToken(activeTenant || DEFAULT_TENANT_ID);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("prismiq_tenant_token", freshToken);
+      }
+      res = await fetch(baseUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${freshToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ target_company: targetCompany, confirmed_competitors: competitors }),
+      });
+    } else {
+      throw new Error(`Confirmation failed (${res.status}): ${errText}`);
+    }
+  }
+
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`Confirmation failed (${res.status}): ${errText}`);
