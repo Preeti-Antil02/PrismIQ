@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken, DEFAULT_TENANT_ID } from "@/lib/auth";
+import { getClientAuthToken, createTenantToken, isTokenExpired, DEFAULT_TENANT_ID } from "@/lib/auth";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -13,9 +13,21 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
   const incomingAuth = req.headers.get("authorization");
   let token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 
-  // If token is empty or missing, fallback to valid default tenant token
-  if (!token || token === "null" || token === "undefined") {
-    token = getClientAuthToken(DEFAULT_TENANT_ID);
+  // If token is missing, malformed, or expired, auto-renew for the tenant
+  if (!token || token === "null" || token === "undefined" || isTokenExpired(token)) {
+    let tenantId = DEFAULT_TENANT_ID;
+    if (token && token.includes(".")) {
+      try {
+        const payloadJson = Buffer.from(token.split(".")[1], "base64url").toString("utf-8");
+        const payload = JSON.parse(payloadJson);
+        if (payload.sub) {
+          tenantId = payload.sub;
+        }
+      } catch {
+        // use default tenant id
+      }
+    }
+    token = createTenantToken(tenantId);
   }
 
   // Route mapping from /api/workspace/... to FastAPI backend
@@ -62,8 +74,27 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
   }
 
   try {
-    const res = await fetch(url.toString(), init);
-    const text = await res.text();
+    let res = await fetch(url.toString(), init);
+    let text = await res.text();
+
+    // Auto-heal on 401 Token Expired: renew and retry once
+    if (res.status === 401 && (text.includes("Token has expired") || text.includes("expired"))) {
+      let tenantId = DEFAULT_TENANT_ID;
+      if (token && token.includes(".")) {
+        try {
+          const payloadJson = Buffer.from(token.split(".")[1], "base64url").toString("utf-8");
+          const payload = JSON.parse(payloadJson);
+          if (payload.sub) {
+            tenantId = payload.sub;
+          }
+        } catch {}
+      }
+      const freshToken = createTenantToken(tenantId);
+      headers.Authorization = `Bearer ${freshToken}`;
+      res = await fetch(url.toString(), init);
+      text = await res.text();
+    }
+
     try {
       const json = JSON.parse(text);
       return NextResponse.json(json, { status: res.status });
