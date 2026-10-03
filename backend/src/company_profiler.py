@@ -3,7 +3,10 @@ import json
 import logging
 import os
 import re
+import ssl
+import urllib.error
 import urllib.parse
+import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 from bs4 import BeautifulSoup
 import requests
@@ -59,45 +62,42 @@ def resolve_official_domain(company_name: str, hint_url: Optional[str] = None) -
 
     for q in search_queries:
         try:
-            url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(q)}"
-            req_headers = dict(DEFAULT_REQUEST_HEADERS)
-            resp = requests.get(url, headers=req_headers, timeout=4)
-            if resp.status_code == 200:
-                soup = BeautifulSoup(resp.text, "html.parser")
-                results = soup.select(".result__url") or soup.select(".result__title a")
-                for r in results:
-                    href = r.get("href", "") or r.get_text(strip=True)
-                    # DuckDuckGo redirect link extraction: /l/?uddg=http%3A%2F%2F...
-                    if "uddg=" in href:
-                        match = re.search(r"uddg=([^&]+)", href)
-                        if match:
-                            href = urllib.parse.unquote(match.group(1))
-                    
-                    domain = clean_domain(href)
-                    if not domain or "." not in domain:
-                        continue
-                    
-                    # Reject aggregator/social domains
-                    if any(domain == d or domain.endswith("." + d) for d in DISQUALIFYING_SEARCH_DOMAINS):
-                        continue
+            from . import search_provider
+            results = search_provider.search_web_structured(q, company=clean_name, max_results=4)
+            for r in results:
+                href = r.get("url", "")
+                domain = clean_domain(href)
+                if not domain or "." not in domain:
+                    continue
 
-                    return domain
+                # Reject aggregator/social domains
+                if any(domain == d or domain.endswith("." + d) for d in DISQUALIFYING_SEARCH_DOMAINS):
+                    continue
+
+                return domain
         except Exception as e:
             logger.debug(f"Domain search error for query '{q}': {e}")
 
-    # Fallback: check if company name has a direct .com / .ai / .io / .in match
+    # Fallback: check if company name or base root has a direct domain match (.com, .in, .ai, .io, .co)
     cand_slug = re.sub(r'[^a-z0-9]+', '', clean_name.lower())
     if cand_slug:
-        for tld in [".com", ".ai", ".in", ".io"]:
-            try:
-                test_domain = f"{cand_slug}{tld}"
-                test_url = f"https://{test_domain}"
-                test_resp = requests.head(test_url, headers=DEFAULT_REQUEST_HEADERS, timeout=2.5, allow_redirects=True)
-                if test_resp.status_code < 400:
-                    final_domain = clean_domain(test_resp.url)
-                    return final_domain
-            except Exception:
-                pass
+        slug_variants = [cand_slug]
+        # Strip common brand suffixes (e.g. "eveoai" -> "eveo", "posthoghq" -> "posthog")
+        base_slug = re.sub(r'(ai|tech|labs|hq|io|app|software|corp|inc)$', '', cand_slug)
+        if base_slug and base_slug != cand_slug and len(base_slug) >= 3:
+            slug_variants.append(base_slug)
+
+        for slug in slug_variants:
+            for tld in [".com", ".in", ".ai", ".io", ".co"]:
+                try:
+                    test_domain = f"{slug}{tld}"
+                    test_url = f"https://{test_domain}"
+                    test_resp = requests.head(test_url, headers=DEFAULT_REQUEST_HEADERS, timeout=2.5, allow_redirects=True)
+                    if test_resp.status_code < 400:
+                        final_domain = clean_domain(test_resp.url)
+                        return final_domain
+                except Exception:
+                    pass
 
     return None
 
@@ -116,12 +116,31 @@ def fetch_company_page_text(url_or_domain: str, max_chars: int = 4000) -> Tuple[
     text_chunks = []
 
     def _fetch_single_page(target_url: str) -> Tuple[str, List[str]]:
+        html_text = ""
         try:
-            resp = requests.get(target_url, headers=DEFAULT_REQUEST_HEADERS, timeout=4)
-            if resp.status_code != 200:
+            resp = requests.get(target_url, headers=DEFAULT_REQUEST_HEADERS, timeout=12)
+            if resp.status_code == 200 and resp.text:
+                html_text = resp.text
+        except Exception:
+            pass
+
+        if not html_text:
+            try:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                req = urllib.request.Request(target_url, headers=DEFAULT_REQUEST_HEADERS)
+                with urllib.request.urlopen(req, timeout=12, context=ctx) as response:
+                    html_text = response.read().decode("utf-8", errors="ignore")
+            except Exception as e:
+                logger.debug(f"Error fetching page {target_url}: {e}")
                 return "", []
-            
-            soup = BeautifulSoup(resp.text, "html.parser")
+
+        if not html_text:
+            return "", []
+
+        try:
+            soup = BeautifulSoup(html_text, "html.parser")
             
             # Extract internal subpage links before stripping tags
             internal_links = []
@@ -132,15 +151,15 @@ def fetch_company_page_text(url_or_domain: str, max_chars: int = 4000) -> Tuple[
                     if clean_domain(full_link) == clean_dom and full_link not in internal_links and full_link != target_url:
                         internal_links.append(full_link)
 
-            # Strip non-content elements
-            for tag in soup(["script", "style", "nav", "footer", "noscript", "svg", "header"]):
+            # Strip non-content elements (keep main, article, sections, and header content)
+            for tag in soup(["script", "style", "nav", "footer", "noscript", "svg"]):
                 tag.decompose()
 
             text = soup.get_text(separator=" ", strip=True)
             text = re.sub(r"\s+", " ", text).strip()
             return text, internal_links[:4]
         except Exception as e:
-            logger.debug(f"Error fetching page {target_url}: {e}")
+            logger.debug(f"Error parsing page {target_url}: {e}")
             return "", []
 
     # 1. Fetch homepage
@@ -150,6 +169,11 @@ def fetch_company_page_text(url_or_domain: str, max_chars: int = 4000) -> Tuple[
         home_text, subpage_links = _fetch_single_page(f"http://{clean_dom}")
         if home_text:
             base_url = f"http://{clean_dom}"
+    if not home_text and not clean_dom.startswith("www."):
+        # Retry with www.
+        home_text, subpage_links = _fetch_single_page(f"https://www.{clean_dom}")
+        if home_text:
+            base_url = f"https://www.{clean_dom}"
 
     if home_text:
         fetched_urls.append(base_url)
@@ -160,7 +184,7 @@ def fetch_company_page_text(url_or_domain: str, max_chars: int = 4000) -> Tuple[
         subpages_to_fetch = subpage_links[:2]
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             future_to_url = {pool.submit(_fetch_single_page, url): url for url in subpages_to_fetch}
-            for fut in concurrent.futures.as_completed(future_to_url):
+            for fut in concurrent.futures.as_completed(future_to_url, timeout=15):
                 sub_url = future_to_url[fut]
                 try:
                     sub_text, _ = fut.result()
@@ -189,8 +213,9 @@ Return ONLY a valid JSON object with the following schema:
       "what_it_does": "Plain words explanation of the specific capability and business function.",
       "verbatim_quote": "Exact 5 to 15 word quote taken directly from the fetched page text proving this offering exists.",
       "search_queries": [
-        "Concise competitor search query 1 for this capability (e.g. AI mock interview practice competitors)",
-        "Concise competitor search query 2 for this capability (e.g. AI interview coaching alternatives)"
+        "High-specificity competitor query 1 targeting software alternatives for this capability (e.g. AI fashion styling automated outfit generation alternatives)",
+        "High-specificity competitor query 2 targeting specialized commercial rivals (e.g. AI 3D body measurements fit virtual try on competitors)",
+        "High-specificity competitor query 3 targeting SaaS alternatives (e.g. AI personal styling recommendation software competitors)"
       ]
     }
   ]
@@ -226,8 +251,16 @@ Analyze the official text above. Extract the company summary and all distinct pr
 
     try:
         res = call_groq_fn(COMPANY_PROFILER_SYSTEM_PROMPT, user_prompt, max_retries=4)
-        if isinstance(res, dict) and ("segments" in res or "summary" in res):
-            return res
+        if isinstance(res, dict):
+            if "segments" in res and res["segments"]:
+                return res
+            if "candidates" in res and res["candidates"]:
+                return {
+                    "summary": res.get("summary", ""),
+                    "segments": res["candidates"],
+                }
+            if "summary" in res:
+                return res
         return None
     except Exception as e:
         logger.warning(f"Error calling LLM for company profile extraction: {e}")
