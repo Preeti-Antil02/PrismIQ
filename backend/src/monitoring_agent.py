@@ -181,6 +181,72 @@ def _fetch_news_from_google_rss(
     return signals
 
 
+def _fetch_signals_from_structured_search(company: str) -> List[Dict[str, Any]]:
+    """
+    Resilient fallback news/product collector using structured web search
+    for emerging startups or niche competitors that lack mainstream Google News publisher indexing.
+    Ensures verified signals are ingested for freshly onboarded specialized competitors.
+    """
+    from . import storage
+    from .search_provider import search_web_structured
+
+    anchor = storage.get_entity_anchor(company) or {}
+    primary_domain = anchor.get("primary_domain")
+    category = anchor.get("industry_category") or ""
+
+    queries = []
+    if primary_domain:
+        queries.append(f"site:{primary_domain}")
+    clean_cat = category.replace("Direct Competitor", "").replace("Indirect Competitor", "").strip()
+    query_str = f"{company} AI {clean_cat} platform product launch feature".strip()
+    queries.append(query_str)
+
+    signals: List[Dict[str, Any]] = []
+    seen_urls: Set[str] = set()
+
+    for q in queries:
+        try:
+            results = search_web_structured(q, max_results=3)
+            for r in results:
+                url = (r.get("url") or "").strip()
+                if not url or url in seen_urls:
+                    continue
+                seen_urls.add(url)
+
+                title = (r.get("title") or "").strip()
+                snippet = (r.get("snippet") or "").strip()
+                if not title or len(title) < 5:
+                    continue
+
+                raw_signal = {
+                    "source": "news",
+                    "company": company,
+                    "primary_domain": primary_domain,
+                    "industry_category": category,
+                    "title": title,
+                    "url": url,
+                    "source_url": url,
+                    "source_name": r.get("provider", "web_search"),
+                    "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00Z"),
+                    "raw_excerpt": snippet or title,
+                }
+                raw_signal = funding_classifier.classify_signal(raw_signal)
+                is_rel, rel_reason = relevance_verifier.verify_news_relevance(raw_signal, company)
+                raw_signal["relevance_verified"] = is_rel
+                raw_signal["relevance_reason"] = rel_reason
+
+                if is_rel:
+                    signals.append(raw_signal)
+                if len(signals) >= 3:
+                    break
+        except Exception as e:
+            logger.warning(f"Error fetching structured web search signals for '{company}': {e}")
+        if signals:
+            break
+
+    return signals
+
+
 def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any]]:
     """
     Fetch recent news articles related to the company from Currents API with Google News RSS fallback.
@@ -191,7 +257,12 @@ def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any
         # Currents API returns 100% false-positive noise for plain English dictionary words
         # (e.g. Instagram photo carousels for 'Carousel', idioms for 'Place') and does not index
         # company press release domains. Bypass directly to domain-anchored Google News RSS.
-        return _fetch_news_from_google_rss(company, days=days)
+        sigs = _fetch_news_from_google_rss(company, days=days)
+        if not sigs and days < 45:
+            sigs = _fetch_news_from_google_rss(company, days=45)
+        if not sigs:
+            sigs = _fetch_signals_from_structured_search(company)
+        return sigs
 
     api_key = os.getenv("CURRENTS_API_KEY")
     signals: List[Dict[str, Any]] = []
@@ -259,6 +330,14 @@ def _fetch_news_from_currents(company: str, days: int = 7) -> List[Dict[str, Any
         if not (storage.is_test_environment() and not os.getenv("ALLOW_TEST_NETWORK")):
             logger.info(f"Using Google News RSS fallback for '{company}'...")
             signals = _fetch_news_from_google_rss(company, days=days)
+            # If 7 days yielded 0 signals, try extending window to 45 days for emerging startups
+            if not signals and days < 45:
+                logger.info(f"Expanding Google News RSS window to 45 days for '{company}'...")
+                signals = _fetch_news_from_google_rss(company, days=45)
+            # If Google News RSS still yielded 0 signals, use structured web search fallback
+            if not signals:
+                logger.info(f"Using structured web search signal fallback for '{company}'...")
+                signals = _fetch_signals_from_structured_search(company)
 
     return signals
 
@@ -1402,6 +1481,7 @@ def fetch_company_signals(
     company: str,
     active_sources: Optional[List[str]] = None,
     seen_urls: Optional[Set[str]] = None,
+    days: int = 45,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]:
     """
     Fetch raw signals for a single company across active sources.
@@ -1417,7 +1497,7 @@ def fetch_company_signals(
     # 1. Concurrently fetch independent fast sources for this company
     def _fetch_one_fast(src: str) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
         if src == "news":
-            sigs, health = fetch_source_with_retry("news", lambda: _fetch_news_from_currents(company))
+            sigs, health = fetch_source_with_retry("news", lambda: _fetch_news_from_currents(company, days=days))
             return "news", sigs, health
         elif src == "github":
             sigs, health = fetch_source_with_retry("github", lambda: _fetch_github_events(company))
