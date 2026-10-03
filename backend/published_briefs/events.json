@@ -1,31 +1,39 @@
 [
   {
-    "event_id": "evt_e007cb3a7238e020",
-    "company": "Netlify",
-    "title": "Netlify SDK Release v3.0",
-    "event_summary": "Netlify SDK Release v3.0",
+    "event_id": "evt_90368ed847b72876",
+    "company": "Yoodli",
+    "title": "Tech Moves: Microsoft, Amazon and Kestra promotions; Gradial names CMO; Yoodli adds VP - geekwire.com",
+    "event_summary": "Tech Moves: Microsoft, Amazon and Kestra promotions; Gradial names CMO; Yoodli adds VP - geekwire.com",
     "corroboration_count": 1,
     "contributing_sources": [
-      "github"
+      "news"
     ],
-    "first_detected_at": "2026-08-22T11:00:00Z",
-    "latest_detected_at": "2026-08-22T11:00:00Z",
-    "published_at": "2026-08-22T11:00:00Z",
-    "url": "https://github.com/netlify/sdk",
+    "first_detected_at": "2026-09-14T07:00:00+00:00",
+    "latest_detected_at": "2026-09-14T07:00:00+00:00",
+    "published_at": "2026-09-14T07:00:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxONWpFNXYwaUwwY0RTS1RtczBvcGtDTjJseVd6WUxJdGZoVDJYalNyclFjR29PS1JLTmp2MTRVUEVfZEZsSUJ3YUQzWlBqaWozOXRSVUZRWUFKR2s3U0ZyQm94dU01QzRwT0FQeGtIa2ZZbVJ5TEJkSjNqRGk1Sm9wcDQ3WFNaak9NQVh2OUJJb0FFR2c4V21OSWg1STJnd051cVd0NkJzNHR2Y0xBMVlPc0ROZw?oc=5",
     "source_urls": [
-      "https://github.com/netlify/sdk"
+      "https://news.google.com/rss/articles/CBMiswFBVV95cUxONWpFNXYwaUwwY0RTS1RtczBvcGtDTjJseVd6WUxJdGZoVDJYalNyclFjR29PS1JLTmp2MTRVUEVfZEZsSUJ3YUQzWlBqaWozOXRSVUZRWUFKR2s3U0ZyQm94dU01QzRwT0FQeGtIa2ZZbVJ5TEJkSjNqRGk1Sm9wcDQ3WFNaak9NQVh2OUJJb0FFR2c4V21OSWg1STJnd051cVd0NkJzNHR2Y0xBMVlPc0ROZw?oc=5"
     ],
-    "raw_excerpt": "[GITHUB (2026-08-22T11:00:00Z)]: Netlify SDK Release v3.0 — Updated plugin ecosystem support for modern bundlers.",
-    "fact_confidence": "High",
+    "raw_excerpt": "[NEWS (2026-09-14T07:00:00+00:00)]: Tech Moves: Microsoft, Amazon and Kestra promotions; Gradial names CMO; Yoodli adds VP - geekwire.com — Tech Moves: Microsoft, Amazon and Kestra promotions; Gradial names CMO; Yoodli adds VP &nbsp;&nbsp; geekwire.com",
+    "fact_confidence": "Medium",
     "raw_signals": [
       {
-        "source": "github",
-        "company": "Netlify",
-        "title": "Netlify SDK Release v3.0",
-        "url": "https://github.com/netlify/sdk",
-        "published_at": "2026-08-22T11:00:00Z",
-        "raw_excerpt": "Updated plugin ecosystem support for modern bundlers.",
-        "id": "sig_e007cb3a7238e020",
+        "source": "news",
+        "company": "Yoodli",
+        "primary_domain": "yoodli.ai",
+        "industry_category": "AI Interview Coaching",
+        "title": "Tech Moves: Microsoft, Amazon and Kestra promotions; Gradial names CMO; Yoodli adds VP - geekwire.com",
+        "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxONWpFNXYwaUwwY0RTS1RtczBvcGtDTjJseVd6WUxJdGZoVDJYalNyclFjR29PS1JLTmp2MTRVUEVfZEZsSUJ3YUQzWlBqaWozOXRSVUZRWUFKR2s3U0ZyQm94dU01QzRwT0FQeGtIa2ZZbVJ5TEJkSjNqRGk1Sm9wcDQ3WFNaak9NQVh2OUJJb0FFR2c4V21OSWg1STJnd051cVd0NkJzNHR2Y0xBMVlPc0ROZw?oc=5",
+        "source_url": "https://www.geekwire.com",
+        "source_name": "geekwire.com",
+        "published_at": "2026-09-14T07:00:00+00:00",
+        "raw_excerpt": "Tech Moves: Microsoft, Amazon and Kestra promotions; Gradial names CMO; Yoodli adds VP &nbsp;&nbsp; geekwire.com",
+        "funding_related": false,
+        "source_subtype": "general",
+        "relevance_verified": true,
+        "relevance_reason": "Verified: Primary domain brand anchor match 'yoodli' from 'yoodli.ai'",
+        "id": "sig_90368ed847b72876",
         "is_noise": false,
         "noise_category": null,
         "noise_reason": "Substantive candidate signal (Preserved)"
@@ -33,32 +41,163 @@
     ]
   },
   {
-    "event_id": "evt_9555f9b431095481",
-    "company": "Vercel",
-    "title": "Vercel Launches Enterprise Microfrontends",
-    "event_summary": "Vercel Launches Enterprise Microfrontends",
+    "event_id": "evt_fb1e9fc3e37605b9",
+    "company": "Yoodli",
+    "title": "Yoodli Revenue 2023: $7.5M Est. ARR - getlatka.com",
+    "event_summary": "Yoodli Revenue 2023: $7.5M Est. ARR - getlatka.com",
     "corroboration_count": 1,
     "contributing_sources": [
       "news"
     ],
-    "first_detected_at": "2026-08-21T10:00:00Z",
-    "latest_detected_at": "2026-08-21T10:00:00Z",
-    "published_at": "2026-08-21T10:00:00Z",
-    "url": "https://news.example.com/vercel-microfrontends",
+    "first_detected_at": "2026-09-10T07:00:00+00:00",
+    "latest_detected_at": "2026-09-10T07:00:00+00:00",
+    "published_at": "2026-09-10T07:00:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9TUXNzY3RNSGRlTVBwOHpmWlYtTTV2SHlFUWphMU13ZnFEcE5aSU42ODE5ck9MdldyNHktQWpwWERHSEtsMTFRMkM4Q09Ibzdpbnc?oc=5",
     "source_urls": [
-      "https://news.example.com/vercel-microfrontends"
+      "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9TUXNzY3RNSGRlTVBwOHpmWlYtTTV2SHlFUWphMU13ZnFEcE5aSU42ODE5ck9MdldyNHktQWpwWERHSEtsMTFRMkM4Q09Ibzdpbnc?oc=5"
     ],
-    "raw_excerpt": "[NEWS (2026-08-21T10:00:00Z)]: Vercel Launches Enterprise Microfrontends — New microfrontends platform simplifies multi-team web app deployments.",
+    "raw_excerpt": "[NEWS (2026-09-10T07:00:00+00:00)]: Yoodli Revenue 2023: $7.5M Est. ARR - getlatka.com — Yoodli Revenue 2023: $7.5M Est. ARR &nbsp;&nbsp; getlatka.com",
     "fact_confidence": "Medium",
     "raw_signals": [
       {
         "source": "news",
-        "company": "Vercel",
-        "title": "Vercel Launches Enterprise Microfrontends",
-        "url": "https://news.example.com/vercel-microfrontends",
-        "published_at": "2026-08-21T10:00:00Z",
-        "raw_excerpt": "New microfrontends platform simplifies multi-team web app deployments.",
-        "id": "sig_9555f9b431095481",
+        "company": "Yoodli",
+        "primary_domain": "yoodli.ai",
+        "industry_category": "AI Interview Coaching",
+        "title": "Yoodli Revenue 2023: $7.5M Est. ARR - getlatka.com",
+        "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE9TUXNzY3RNSGRlTVBwOHpmWlYtTTV2SHlFUWphMU13ZnFEcE5aSU42ODE5ck9MdldyNHktQWpwWERHSEtsMTFRMkM4Q09Ibzdpbnc?oc=5",
+        "source_url": "https://getlatka.com",
+        "source_name": "getlatka.com",
+        "published_at": "2026-09-10T07:00:00+00:00",
+        "raw_excerpt": "Yoodli Revenue 2023: $7.5M Est. ARR &nbsp;&nbsp; getlatka.com",
+        "funding_related": false,
+        "source_subtype": "general",
+        "relevance_verified": true,
+        "relevance_reason": "Verified: Primary domain brand anchor match 'yoodli' from 'yoodli.ai'",
+        "id": "sig_fb1e9fc3e37605b9",
+        "is_noise": false,
+        "noise_category": null,
+        "noise_reason": "Substantive candidate signal (Preserved)"
+      }
+    ]
+  },
+  {
+    "event_id": "evt_d1bd8873f4100677",
+    "company": "Yoodli",
+    "title": "From Startup to Headquarters: How Yoodli Scaled Within Seattle’s Premier AI Ecosystem at Pier 70 - EIN Presswire",
+    "event_summary": "From Startup to Headquarters: How Yoodli Scaled Within Seattle’s Premier AI Ecosystem at Pier 70 - EIN Presswire",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-26T07:00:00+00:00",
+    "latest_detected_at": "2026-08-26T07:00:00+00:00",
+    "published_at": "2026-08-26T07:00:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi2gFBVV95cUxPYUIzb083V0xvXzZST1BIdlA0X1NyTk5YWm01U2pjejdMbTlTVGp5WnFtRV9ZajZha1Y5dGNtaHJNN19BWHZDUzloWjh1bS1kMi1PQTRERHIxeUZfSUFKZ2hMLTlHOFlXb1l2c25SR0JYMjlhaHN3YmxNM2ZORjFJSkZrVHZyNW5kWV8xcnlqbFNRUnU2Tm5BNVBKVU0wS2Vmc3NURERqRU1zMUVfMlZTbjVJQzVBYVJUQXlkTUpzWUhlMnRCaVR1eXVQVTJtamMxd3VjMUl2LWFNdw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMi2gFBVV95cUxPYUIzb083V0xvXzZST1BIdlA0X1NyTk5YWm01U2pjejdMbTlTVGp5WnFtRV9ZajZha1Y5dGNtaHJNN19BWHZDUzloWjh1bS1kMi1PQTRERHIxeUZfSUFKZ2hMLTlHOFlXb1l2c25SR0JYMjlhaHN3YmxNM2ZORjFJSkZrVHZyNW5kWV8xcnlqbFNRUnU2Tm5BNVBKVU0wS2Vmc3NURERqRU1zMUVfMlZTbjVJQzVBYVJUQXlkTUpzWUhlMnRCaVR1eXVQVTJtamMxd3VjMUl2LWFNdw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-08-26T07:00:00+00:00)]: From Startup to Headquarters: How Yoodli Scaled Within Seattle’s Premier AI Ecosystem at Pier 70 - EIN Presswire — From Startup to Headquarters: How Yoodli Scaled Within Seattle’s Premier AI Ecosystem at Pier 70 &nbsp;&nbsp; EIN Presswire",
+    "fact_confidence": "Medium",
+    "raw_signals": [
+      {
+        "source": "news",
+        "company": "Yoodli",
+        "primary_domain": "yoodli.ai",
+        "industry_category": "AI Interview Coaching",
+        "title": "From Startup to Headquarters: How Yoodli Scaled Within Seattle’s Premier AI Ecosystem at Pier 70 - EIN Presswire",
+        "url": "https://news.google.com/rss/articles/CBMi2gFBVV95cUxPYUIzb083V0xvXzZST1BIdlA0X1NyTk5YWm01U2pjejdMbTlTVGp5WnFtRV9ZajZha1Y5dGNtaHJNN19BWHZDUzloWjh1bS1kMi1PQTRERHIxeUZfSUFKZ2hMLTlHOFlXb1l2c25SR0JYMjlhaHN3YmxNM2ZORjFJSkZrVHZyNW5kWV8xcnlqbFNRUnU2Tm5BNVBKVU0wS2Vmc3NURERqRU1zMUVfMlZTbjVJQzVBYVJUQXlkTUpzWUhlMnRCaVR1eXVQVTJtamMxd3VjMUl2LWFNdw?oc=5",
+        "source_url": "https://www.einpresswire.com",
+        "source_name": "EIN Presswire",
+        "published_at": "2026-08-26T07:00:00+00:00",
+        "raw_excerpt": "From Startup to Headquarters: How Yoodli Scaled Within Seattle’s Premier AI Ecosystem at Pier 70 &nbsp;&nbsp; EIN Presswire",
+        "funding_related": false,
+        "source_subtype": "general",
+        "relevance_verified": true,
+        "relevance_reason": "Verified: Primary domain brand anchor match 'yoodli' from 'yoodli.ai'",
+        "id": "sig_d1bd8873f4100677",
+        "is_noise": false,
+        "noise_category": null,
+        "noise_reason": "Substantive candidate signal (Preserved)"
+      }
+    ]
+  },
+  {
+    "event_id": "evt_809b402034a5502a",
+    "company": "Yoodli",
+    "title": "Yoodli named in the 2026 Gartner® Market Overview for B2B Sales AI Role-Play Applications report - Yahoo Finance",
+    "event_summary": "Yoodli named in the 2026 Gartner® Market Overview for B2B Sales AI Role-Play Applications report - Yahoo Finance",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-25T07:00:00+00:00",
+    "latest_detected_at": "2026-08-25T07:00:00+00:00",
+    "published_at": "2026-08-25T07:00:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxPcmR6WERSNVpMSWZHcUlZRXM2cWkyTDU0SUJYTWJaZ0d4bk5LRzFSTklZM0twSVVjdkxmWnZ3OEpmcUdVM01pUDlfS2M0akFJc3R6RXpfZTh6N2NoejByVnhfUE1IcW9EWjJBLUdPWWFBOHlCVnQ0dGMxd2pCRTJBV05aXzBac0owNDZEYTltTnlYdHltXy1zMXpPX18?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMinAFBVV95cUxPcmR6WERSNVpMSWZHcUlZRXM2cWkyTDU0SUJYTWJaZ0d4bk5LRzFSTklZM0twSVVjdkxmWnZ3OEpmcUdVM01pUDlfS2M0akFJc3R6RXpfZTh6N2NoejByVnhfUE1IcW9EWjJBLUdPWWFBOHlCVnQ0dGMxd2pCRTJBV05aXzBac0owNDZEYTltTnlYdHltXy1zMXpPX18?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-08-25T07:00:00+00:00)]: Yoodli named in the 2026 Gartner® Market Overview for B2B Sales AI Role-Play Applications report - Yahoo Finance — Yoodli named in the 2026 Gartner® Market Overview for B2B Sales AI Role-Play Applications report &nbsp;&nbsp; Yahoo Finance",
+    "fact_confidence": "Medium",
+    "raw_signals": [
+      {
+        "source": "news",
+        "company": "Yoodli",
+        "primary_domain": "yoodli.ai",
+        "industry_category": "AI Interview Coaching",
+        "title": "Yoodli named in the 2026 Gartner® Market Overview for B2B Sales AI Role-Play Applications report - Yahoo Finance",
+        "url": "https://news.google.com/rss/articles/CBMinAFBVV95cUxPcmR6WERSNVpMSWZHcUlZRXM2cWkyTDU0SUJYTWJaZ0d4bk5LRzFSTklZM0twSVVjdkxmWnZ3OEpmcUdVM01pUDlfS2M0akFJc3R6RXpfZTh6N2NoejByVnhfUE1IcW9EWjJBLUdPWWFBOHlCVnQ0dGMxd2pCRTJBV05aXzBac0owNDZEYTltTnlYdHltXy1zMXpPX18?oc=5",
+        "source_url": "https://finance.yahoo.com",
+        "source_name": "Yahoo Finance",
+        "published_at": "2026-08-25T07:00:00+00:00",
+        "raw_excerpt": "Yoodli named in the 2026 Gartner® Market Overview for B2B Sales AI Role-Play Applications report &nbsp;&nbsp; Yahoo Finance",
+        "funding_related": false,
+        "source_subtype": "general",
+        "relevance_verified": true,
+        "relevance_reason": "Verified: Primary domain brand anchor match 'yoodli' from 'yoodli.ai'",
+        "id": "sig_809b402034a5502a",
+        "is_noise": false,
+        "noise_category": null,
+        "noise_reason": "Substantive candidate signal (Preserved)"
+      }
+    ]
+  },
+  {
+    "event_id": "evt_4a45c8a70fbf3ae6",
+    "company": "Yoodli",
+    "title": "Washington's Best Workplaces 2026: Yoodli - The Business Journals",
+    "event_summary": "Washington's Best Workplaces 2026: Yoodli - The Business Journals",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-21T11:37:56+00:00",
+    "latest_detected_at": "2026-08-21T11:37:56+00:00",
+    "published_at": "2026-08-21T11:37:56+00:00",
+    "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxOSnlMVEl3SVRsWVd2bzJZV3ZEVEx4Y05wNTg4QlpDR0pmTm9ZeUVsMEhqREpET0lKRVl4Q080c0h3NlQ5bUhmLXVvUjIyejZ5TFdfZXlfMWxfR3kyLVdxSG1nU2I5NGpZVDY3aHMyc1lCWDd1VlFneDlfa2JKRzFlU0NFRVI2S0hGcFp4MWdub1l5bmZBT3lsMmxBNDdrc1hHcGZydF9lUFJ4SUh3MHlVUHpDb1prRmhZUjZwaXZR?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMivgFBVV95cUxOSnlMVEl3SVRsWVd2bzJZV3ZEVEx4Y05wNTg4QlpDR0pmTm9ZeUVsMEhqREpET0lKRVl4Q080c0h3NlQ5bUhmLXVvUjIyejZ5TFdfZXlfMWxfR3kyLVdxSG1nU2I5NGpZVDY3aHMyc1lCWDd1VlFneDlfa2JKRzFlU0NFRVI2S0hGcFp4MWdub1l5bmZBT3lsMmxBNDdrc1hHcGZydF9lUFJ4SUh3MHlVUHpDb1prRmhZUjZwaXZR?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-08-21T11:37:56+00:00)]: Washington's Best Workplaces 2026: Yoodli - The Business Journals — Washington's Best Workplaces 2026: Yoodli &nbsp;&nbsp; The Business Journals",
+    "fact_confidence": "Medium",
+    "raw_signals": [
+      {
+        "source": "news",
+        "company": "Yoodli",
+        "primary_domain": "yoodli.ai",
+        "industry_category": "AI Interview Coaching",
+        "title": "Washington's Best Workplaces 2026: Yoodli - The Business Journals",
+        "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxOSnlMVEl3SVRsWVd2bzJZV3ZEVEx4Y05wNTg4QlpDR0pmTm9ZeUVsMEhqREpET0lKRVl4Q080c0h3NlQ5bUhmLXVvUjIyejZ5TFdfZXlfMWxfR3kyLVdxSG1nU2I5NGpZVDY3aHMyc1lCWDd1VlFneDlfa2JKRzFlU0NFRVI2S0hGcFp4MWdub1l5bmZBT3lsMmxBNDdrc1hHcGZydF9lUFJ4SUh3MHlVUHpDb1prRmhZUjZwaXZR?oc=5",
+        "source_url": "https://www.bizjournals.com",
+        "source_name": "The Business Journals",
+        "published_at": "2026-08-21T11:37:56+00:00",
+        "raw_excerpt": "Washington's Best Workplaces 2026: Yoodli &nbsp;&nbsp; The Business Journals",
+        "funding_related": false,
+        "source_subtype": "general",
+        "relevance_verified": true,
+        "relevance_reason": "Verified: Primary domain brand anchor match 'yoodli' from 'yoodli.ai'",
+        "id": "sig_4a45c8a70fbf3ae6",
         "is_noise": false,
         "noise_category": null,
         "noise_reason": "Substantive candidate signal (Preserved)"
