@@ -1277,11 +1277,14 @@ def onboard_discover_candidates(
         raise HTTPException(status_code=400, detail="Target company name cannot be empty")
 
     try:
+        from . import discovery_cache
+        discovery_cache.clear_cache_for_company(target)
         meta = discovery_agent.run_with_meta(
             target,
             tenant_id=tenant_id,
             website=req.website,
             description=req.description,
+            force_refresh=True,
         )
         candidates = meta.get("candidates", [])
         company_profile = meta.get("company_profile")
