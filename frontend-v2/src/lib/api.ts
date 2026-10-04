@@ -1,5 +1,5 @@
-import { getClientAuthToken } from "./auth";
-import type { ConfidenceLevel, TierLevel, SignalType } from "./tokens";
+import { getClientAuthToken, createTenantToken, DEFAULT_TENANT_ID } from "./auth";
+import type { ConfidenceLevel, TierLevel } from "./tokens";
 
 export interface SignalRecord {
   id: string;
@@ -718,7 +718,7 @@ export async function discoverCompetitors(
   website?: string,
   description?: string
 ): Promise<DiscoveryResponse> {
-  let token = getClientAuthToken();
+  const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/discover" : `${API_BASE_URL}/api/onboarding/discover`;
   const payload: Record<string, any> = { target_company: targetCompany };
   if (website && website.trim()) {
@@ -761,7 +761,7 @@ export async function discoverCompetitors(
 }
 
 export async function confirmCompetitors(targetCompany: string, competitors: string[]): Promise<any> {
-  let token = getClientAuthToken();
+  const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/confirm" : `${API_BASE_URL}/api/onboarding/confirm`;
   let res = await fetch(baseUrl, {
     method: "POST",
