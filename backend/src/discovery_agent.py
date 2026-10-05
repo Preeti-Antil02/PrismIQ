@@ -72,11 +72,14 @@ DISQUALIFIED_DOMAINS = {
     "aitools.fyi", "insidr.ai", "producthunt.com", "alternativeto.net",
     "crunchbase.com", "pitchbook.com", "wikipedia.org", "linkedin.com",
     "youtube.com", "reddit.com", "twitter.com", "x.com", "github.com",
+    "documentfoundation.org", "libreoffice.org", "apache.org", "fsf.org",
 }
 
 GARBAGE_PATTERNS = [
     r"musk email", r"countersuit", r"senate bill", r"fast tracked", r"cve-",
     r"options casino", r"income tax", r"podcast", r"article", r"lawsuit",
+    r"document foundation", r"libreoffice", r"free software foundation",
+    r"apache software foundation", r"canonical ltd", r"canonical inc",
 ]
 
 
@@ -524,6 +527,10 @@ GUARDRAILS & STRICT REQUIREMENTS:
    - For multi-product companies, represent competitors across EACH major product division or business pillar.
 8. COMPREHENSIVE RECALL (6-10 COMPETITORS):
    - Provide between 6 and 10 of the most direct, authentic operating competitors (never return just 1 or 2 candidates). For each identified product pillar or service line, provide the top 1-3 recognized market rivals.
+9. COMMERCIAL PEERS & DIRECT MARKET RIVALS ONLY:
+   - Identify direct commercial business competitors that rival the target in market share, revenue, or active commercial users.
+   - For enterprise tech giants, prioritize primary commercial rivals (e.g. for Microsoft: AWS, Google Cloud, Apple, Oracle, Sony PlayStation, Salesforce, Meta).
+   - DO NOT include non-profit open-source foundations (e.g. The Document Foundation / LibreOffice, Apache Foundation, Mozilla Foundation) or community Linux packaging companies (e.g. Canonical Ltd. / Ubuntu) as substitutes for enterprise commercial peers, unless the target company itself is specifically an open-source foundation or Linux distribution.
 
 OUTPUT CONTRACT:
 Return ONLY a valid JSON object with keys "profile" and "candidates":
