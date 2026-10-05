@@ -860,21 +860,29 @@ def fetch_grounded_context(
     collected = []
     seen_urls = set()
 
-    # 1. Specialized scrapers (capped for balance)
-    alts = _fetch_alternativeto_context(clean_name)[:4]
-    comps = _fetch_comparison_index_context(clean_name)[:4]
-    news = _fetch_gnews_competitor_context(clean_name)[:4]
-    wiki = _fetch_wikipedia_context(clean_name)[:4]
-    hn = _fetch_hn_context(clean_name)[:4]
-    gh = _fetch_github_context(clean_name)[:4]
-    cur = _fetch_currents_context(clean_name)[:4]
-    ddg = _fetch_duckduckgo_context(clean_name)[:4]
+    # 1. Specialized scrapers (run in parallel with ThreadPoolExecutor)
+    scraper_funcs = [
+        lambda: _fetch_alternativeto_context(clean_name)[:4],
+        lambda: _fetch_comparison_index_context(clean_name)[:4],
+        lambda: _fetch_gnews_competitor_context(clean_name)[:4],
+        lambda: _fetch_wikipedia_context(clean_name)[:4],
+        lambda: _fetch_hn_context(clean_name)[:4],
+        lambda: _fetch_github_context(clean_name)[:4],
+        lambda: _fetch_currents_context(clean_name)[:4],
+        lambda: _fetch_duckduckgo_context(clean_name)[:4],
+    ]
 
-    for item in alts + comps + news + wiki + hn + gh + cur + ddg:
-        u = item.get("url", "")
-        if u and u not in seen_urls:
-            seen_urls.add(u)
-            collected.append(item)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(scraper_funcs))) as pool:
+        future_list = [pool.submit(fn) for fn in scraper_funcs]
+        for fut in concurrent.futures.as_completed(future_list):
+            try:
+                for item in fut.result():
+                    u = item.get("url", "")
+                    if u and u not in seen_urls:
+                        seen_urls.add(u)
+                        collected.append(item)
+            except Exception as e:
+                logger.debug(f"Scraper retrieval notice: {e}")
 
     # 2. Segment-specific web search if structured profile segments exist
     if profile and profile.get("segments"):
