@@ -157,7 +157,11 @@ def fetch_company_page_text(url_or_domain: str, max_chars: int = 4000) -> Tuple[
 
             text = soup.get_text(separator=" ", strip=True)
             text = re.sub(r"\s+", " ", text).strip()
+            blocked_signals = ["your request has been blocked", "access denied", "attention required! | cloudflare", "robot or automated process"]
+            if any(sig in text.lower() for sig in blocked_signals):
+                return "", []
             return text, internal_links[:4]
+
         except Exception as e:
             logger.debug(f"Error parsing page {target_url}: {e}")
             return "", []
@@ -296,6 +300,18 @@ def resolve_company_profile(
 
     if domain:
         fetched_text, fetched_urls = fetch_company_page_text(domain)
+
+    # Fallback to search snippets if direct HTML fetch was blocked or thin
+    if not fetched_text or len(fetched_text) < 150:
+        try:
+            from src import search_provider
+            search_res = search_provider.search_web_structured(f"{clean_name} official products platforms overview", max_results=4)
+            snippets = [r.get("snippet", "") for r in search_res if r.get("snippet")]
+            if snippets:
+                fetched_text = "\n\n".join(snippets)[:4000]
+                fetched_urls.extend([r.get("url", "") for r in search_res if r.get("url")])
+        except Exception as e:
+            logger.debug(f"Search snippet fallback error for '{clean_name}': {e}")
 
     # If web text was successfully retrieved, extract profile grounded in fetched text
     raw_profile = None
