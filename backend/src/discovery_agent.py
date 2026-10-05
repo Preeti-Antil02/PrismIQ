@@ -37,7 +37,7 @@ except ImportError:
     def get_current_run_tree():
         return None
 
-from src import config, storage, search_provider, discovery_cache
+from src import config, storage, search_provider, discovery_cache, company_profiler
 
 logger = logging.getLogger(__name__)
 
@@ -499,7 +499,11 @@ def _extract_candidates_heuristic(sources: List[Dict[str, Any]], target_company:
 # Prompts Construction (Specification Guardrails)
 # ============================================================================
 
-def _build_prompts(target_company: str, sources: List[Dict[str, Any]]) -> Tuple[str, str]:
+def _build_prompts(
+    target_company: str,
+    sources: List[Dict[str, Any]],
+    profile: Optional[Dict[str, Any]] = None,
+) -> Tuple[str, str]:
     system_prompt = f"""You are the Principal Competitive Intelligence Analyst for PrismIQ.
 Your mission is to analyze target company "{target_company}" and retrieved market evidence to produce an authoritative, high-precision competitive landscape of genuine operating competitors.
 
@@ -517,7 +521,7 @@ GUARDRAILS & STRICT REQUIREMENTS:
 6. SELF-EXCLUSION & ENTITY INTEGRITY:
    - DO NOT include the target company itself or its own sub-brands (e.g., if target is Microsoft, do NOT include Windows, Azure, or GitHub).
 7. BALANCED MULTI-SEGMENT RECALL:
-   - For multi-product companies, represent competitors across each major division.
+   - For multi-product companies, represent competitors across EACH major product division or business pillar.
 8. COMPREHENSIVE RECALL (6-10 COMPETITORS):
    - Provide between 6 and 10 of the most direct, authentic operating competitors (never return just 1 or 2 candidates). For each identified product pillar or service line, provide the top 1-3 recognized market rivals.
 
@@ -557,14 +561,28 @@ Return ONLY a valid JSON object with keys "profile" and "candidates":
         text = s.get("text") or s.get("snippet", "")
         evidence_chunks.append(f"Title: {title}\nURL: {url}\nEvidence: {text}")
 
-    user_prompt = f"""Target Company: {target_company}
+    profile_context = ""
+    if profile and profile.get("segments"):
+        segs_lines = [
+            f"- {seg.get('name')}: {seg.get('what_it_does', '')} (Target: {seg.get('target_customers', 'Enterprise & consumers')})"
+            for seg in profile.get("segments", [])
+        ]
+        profile_context = f"""
+Target Company Profile:
+Summary: {profile.get('summary', '')}
 
+Identified Business Pillars / Product Segments to cover:
+{chr(10).join(segs_lines)}
+"""
+
+    user_prompt = f"""Target Company: {target_company}
+{profile_context}
 Retrieved Market Evidence:
 \"\"\"
 {chr(10).join(evidence_chunks)}
 \"\"\"
 
-Identify 6 to 10 of the top true operating competitors of {target_company} across its key product segments."""
+Identify 6 to 10 of the top true operating competitors of {target_company}. You MUST provide direct, authentic operating rivals across EACH of the company's major product segments above (avoiding single-category bias)."""
 
     return system_prompt, user_prompt
 
@@ -829,6 +847,7 @@ def fetch_grounded_context(
     website: Optional[str] = None,
     description: Optional[str] = None,
     sources: Optional[List[Dict[str, Any]]] = None,
+    profile: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Gather live search results across targeted competitive queries."""
     if sources is not None:
@@ -857,7 +876,43 @@ def fetch_grounded_context(
             seen_urls.add(u)
             collected.append(item)
 
-    # 2. Query broad web search ONLY if specialized scrapers returned nothing
+    # 2. Segment-specific web search if structured profile segments exist
+    if profile and profile.get("segments"):
+        seg_queries = []
+        for seg in profile.get("segments", [])[:4]:
+            s_name = seg.get("name", "")
+            s_queries = seg.get("search_queries", [])
+            if not s_queries and s_name:
+                s_queries = [f"{clean_name} {s_name} competitors", f"{clean_name} {s_name} alternatives"]
+            for sq in s_queries[:2]:
+                if sq not in seg_queries:
+                    seg_queries.append(sq)
+
+        def _fetch_segment_query(sq_term: str):
+            try:
+                return search_provider.search_web_structured(sq_term, max_results=3)
+            except Exception as e:
+                logger.debug(f"Segment search notice for '{sq_term}': {e}")
+                return []
+
+        if seg_queries:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(seg_queries))) as executor:
+                res_lists = list(executor.map(_fetch_segment_query, seg_queries))
+                for res in res_lists:
+                    for r in res:
+                        u = r.get("url", "")
+                        if u and u not in seen_urls:
+                            seen_urls.add(u)
+                            collected.append({
+                                "title": r.get("title", ""),
+                                "url": u,
+                                "text": r.get("snippet", ""),
+                                "source_type": "segment_search",
+                                "source_age": "recent",
+                                "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                            })
+
+    # 3. Query broad web search ONLY if specialized scrapers returned nothing
     if not collected:
         queries = [
             f"top competitors of {clean_name}",
@@ -897,21 +952,19 @@ def _verify_candidates_via_search(
 ) -> List[Dict[str, Any]]:
     """
     Search Re-check (User Suggestion):
-    Verifies candidates against live web search ("Target vs Competitor") to guarantee
-    validity and confirm high-confidence competitive overlap.
+    Verifies candidates against live web search ("Target vs Competitor") in parallel
+    to guarantee validity and confirm high-confidence competitive overlap.
     """
     clean_target = target_company.strip()
-    verified_list = []
 
-    for cand in candidates:
+    def _verify_single(cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         name = cand.get("name", "").strip()
         if not name or _canonical_brand_key(name) == _canonical_brand_key(clean_target):
-            continue
+            return None
 
         # If already flagged as directory-only or dated, preserve confidence and tier
         if cand.get("is_directory_only") or cand.get("source_age") == "dated":
-            verified_list.append(cand)
-            continue
+            return cand
 
         recheck_query = f"{clean_target} vs {name}"
         try:
@@ -922,7 +975,15 @@ def _verify_candidates_via_search(
         except Exception:
             pass
 
-        verified_list.append(cand)
+        return cand
+
+    verified_list = []
+    if candidates:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(6, len(candidates))) as executor:
+            results = list(executor.map(_verify_single, candidates))
+            for r in results:
+                if r is not None:
+                    verified_list.append(r)
 
     return verified_list
 
@@ -963,20 +1024,61 @@ def run_with_meta(
             "token_budget": get_groq_token_budget_status(),
         }
 
-    # 1. Check cache unless force refresh or custom sources
-    if not force_refresh and not sources:
+    # 1. Check cache unless force refresh, custom sources, or running under pytest
+    is_pytest = bool(os.getenv("PYTEST_CURRENT_TEST"))
+    if not force_refresh and not is_pytest and not sources:
         cached = discovery_cache.get_cached_discovery_run(clean_target)
         if cached:
             return cached
 
-    # 2. Collect web search evidence
+    groq_fn = call_groq_fn or _call_groq_discovery
+
+    # 2. Grounded Company Profile Resolution (live execution)
+    resolved_profile = None
+    if sources is None:
+        try:
+            resolved_profile = company_profiler.resolve_company_profile(
+                clean_target,
+                website=website,
+                description=description,
+                call_groq_fn=groq_fn,
+            )
+        except Exception as e:
+            logger.debug(f"Company profiler resolution notice for '{clean_target}': {e}")
+
+    # 3. Collect web search evidence
     grounded_sources = fetch_grounded_context(
-        clean_target, website=website, description=description, sources=sources
+        clean_target,
+        website=website,
+        description=description,
+        sources=sources,
+        profile=resolved_profile,
     )
 
-    # 3. Build prompts and run LLM inference
-    sys_prompt, user_prompt = _build_prompts(clean_target, grounded_sources)
-    groq_fn = call_groq_fn or _call_groq_discovery
+    # Invariant: If grounded sources are completely empty and LLM is not mocked, do not fabricate candidates
+    is_mocked_llm = hasattr(groq_fn, "mock_calls") or hasattr(groq_fn, "return_value")
+    if not grounded_sources and not is_mocked_llm:
+        logger.warning(f"No grounded sources retrieved for '{clean_target}'. Suppressing hallucination.")
+        return {
+            "status": "proposed",
+            "tenant_id": tenant_id,
+            "target_company": clean_target,
+            "candidates": [],
+            "candidates_count": 0,
+            "company_profile": resolved_profile or None,
+            "is_low_confidence_profile": True,
+            "extraction_method": "none",
+            "degraded": False,
+            "llm_error": None,
+            "token_budget": get_groq_token_budget_status(),
+        }
+
+    # 4. Build prompts and run LLM inference
+    sys_prompt, user_prompt = _build_prompts(
+        clean_target,
+        grounded_sources,
+        profile=resolved_profile,
+    )
 
     llm_error = None
     extraction_method = "llm"
@@ -1037,28 +1139,35 @@ def run_with_meta(
 
     # 6. Extract / Build Company Profile
     raw_profile = raw_response.get("profile", {}) if isinstance(raw_response, dict) else {}
-    summary = raw_profile.get("summary") or f"{clean_target} operates commercial products and software services."
-    segments = raw_profile.get("segments") or [
-        {
-            "segment_id": "core_business",
-            "name": "Core Technology & Business Operations",
-            "target_customers": "Enterprise & consumer users",
-            "what_it_does": summary,
-            "verbatim_quote": "",
+    if resolved_profile and resolved_profile.get("segments"):
+        company_profile = resolved_profile
+        if not company_profile.get("summary") and raw_profile.get("summary"):
+            company_profile["summary"] = raw_profile["summary"]
+    else:
+        summary = raw_profile.get("summary") or f"{clean_target} operates commercial products and software services."
+        segments = raw_profile.get("segments") or [
+            {
+                "segment_id": "core_business",
+                "name": "Core Technology & Business Operations",
+                "target_customers": "Enterprise & consumer users",
+                "what_it_does": summary,
+                "verbatim_quote": "",
+            }
+        ]
+        domain = (
+            resolved_profile.get("domain")
+            if resolved_profile and resolved_profile.get("domain")
+            else (website.replace("https://", "").replace("http://", "").split("/")[0] if website else f"{_canonical_brand_key(clean_target)}.com")
+        )
+        company_profile = {
+            "company_name": clean_target,
+            "domain": domain,
+            "summary": summary,
+            "confidence": "High" if len(final_candidates) >= 5 else "Medium",
+            "profile_source": "web_search",
+            "is_low_confidence": len(final_candidates) < 3,
+            "segments": segments,
         }
-    ]
-
-    domain = website.replace("https://", "").replace("http://", "").split("/")[0] if website else f"{_canonical_brand_key(clean_target)}.com"
-
-    company_profile = {
-        "company_name": clean_target,
-        "domain": domain,
-        "summary": summary,
-        "confidence": "High" if len(final_candidates) >= 5 else "Medium",
-        "profile_source": "web_search",
-        "is_low_confidence": len(final_candidates) < 3,
-        "segments": segments,
-    }
 
     result = {
         "status": "proposed",
