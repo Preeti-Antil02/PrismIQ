@@ -716,7 +716,8 @@ export async function untrackCompany(companyName: string): Promise<boolean> {
 export async function discoverCompetitors(
   targetCompany: string,
   website?: string,
-  description?: string
+  description?: string,
+  forceRefresh?: boolean
 ): Promise<DiscoveryResponse> {
   const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/discover" : `${API_BASE_URL}/api/onboarding/discover`;
@@ -726,6 +727,9 @@ export async function discoverCompetitors(
   }
   if (description && description.trim()) {
     payload.description = description.trim();
+  }
+  if (forceRefresh) {
+    payload.force_refresh = true;
   }
 
   let res = await fetch(baseUrl, {
