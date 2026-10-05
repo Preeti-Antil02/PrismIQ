@@ -118,7 +118,7 @@ def fetch_company_page_text(url_or_domain: str, max_chars: int = 4000) -> Tuple[
     def _fetch_single_page(target_url: str) -> Tuple[str, List[str]]:
         html_text = ""
         try:
-            resp = requests.get(target_url, headers=DEFAULT_REQUEST_HEADERS, timeout=12)
+            resp = requests.get(target_url, headers=DEFAULT_REQUEST_HEADERS, timeout=5)
             if resp.status_code == 200 and resp.text:
                 html_text = resp.text
         except Exception:
@@ -130,7 +130,7 @@ def fetch_company_page_text(url_or_domain: str, max_chars: int = 4000) -> Tuple[
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
                 req = urllib.request.Request(target_url, headers=DEFAULT_REQUEST_HEADERS)
-                with urllib.request.urlopen(req, timeout=12, context=ctx) as response:
+                with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
                     html_text = response.read().decode("utf-8", errors="ignore")
             except Exception as e:
                 logger.debug(f"Error fetching page {target_url}: {e}")
