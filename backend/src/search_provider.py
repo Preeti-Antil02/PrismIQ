@@ -119,13 +119,69 @@ def _execute_duckduckgo_api_search(query: str) -> List[Dict[str, Any]]:
     return items
 
 
+def _execute_gnews_rss_search(query: str, max_results: int = 6) -> List[Dict[str, Any]]:
+    """Execute search via Google News RSS for authoritative, fresh market and competitor articles."""
+    items = []
+    try:
+        import xml.etree.ElementTree as ET
+        from bs4 import BeautifulSoup
+        clean_q = query.strip()
+        url = f"https://news.google.com/rss/search?q={urllib.parse.quote(clean_q)}&hl=en-US&gl=US&ceid=US:en"
+        resp = requests.get(url, headers=dict(DEFAULT_REQUEST_HEADERS), timeout=4.5)
+        if resp.status_code == 200 and resp.content:
+            root = ET.fromstring(resp.content)
+            for it in root.findall(".//item")[:max_results]:
+                t = it.find("title").text if it.find("title") is not None else ""
+                link = it.find("link").text if it.find("link") is not None else ""
+                desc = it.find("description").text if it.find("description") is not None else ""
+                clean_desc = BeautifulSoup(desc, "html.parser").get_text(separator=" ", strip=True) if desc else t
+                if t:
+                    items.append({
+                        "title": t,
+                        "url": link,
+                        "snippet": clean_desc or t,
+                        "provider": "gnews_rss",
+                    })
+    except Exception as e:
+        logger.debug(f"Google News RSS search notice for '{query}': {e}")
+
+    return items
+
+
+def _execute_wikipedia_api_search(query: str, max_results: int = 6) -> List[Dict[str, Any]]:
+    """Query Wikipedia search API for high-authority entity and competitor definitions."""
+    items = []
+    try:
+        from bs4 import BeautifulSoup
+        clean_q = query.strip()
+        url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(clean_q)}&format=json"
+        resp = requests.get(url, headers={"User-Agent": "PrismIQ-Intelligence/1.0 (research@prismiq.ai)"}, timeout=4.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            for it in data.get("query", {}).get("search", [])[:max_results]:
+                t = it.get("title", "")
+                raw_snip = it.get("snippet", "")
+                clean_snip = BeautifulSoup(raw_snip, "html.parser").get_text(separator=" ", strip=True) if raw_snip else ""
+                if t:
+                    items.append({
+                        "title": f"Wikipedia: {t}",
+                        "url": f"https://en.wikipedia.org/wiki/{urllib.parse.quote(t)}",
+                        "snippet": clean_snip or f"Wikipedia reference for {t}.",
+                        "provider": "wikipedia_api",
+                    })
+    except Exception as e:
+        logger.debug(f"Wikipedia search API notice for '{query}': {e}")
+
+    return items
+
+
 def _execute_html_search_fallback(query: str, max_results: int = 6) -> List[Dict[str, Any]]:
     """Structured HTML parsing fallback when dedicated search API key is not present."""
     items = []
     try:
         from bs4 import BeautifulSoup
         url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
-        resp = requests.get(url, headers=dict(DEFAULT_REQUEST_HEADERS), timeout=5)
+        resp = requests.get(url, headers=dict(DEFAULT_REQUEST_HEADERS), timeout=4.0)
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, "html.parser")
             for res in soup.select(".result")[:max_results]:
@@ -164,7 +220,7 @@ def search_web_structured(
     
     1. Checks persistent SQLite cache for (company, query). If found and fresh, returns immediately.
     2. If Tavily API Key configured, queries Tavily structured AI search API.
-    3. Otherwise, executes structured API / fallback search.
+    3. Otherwise, executes resilient multi-source search (Google News RSS + Wikipedia Search + DDG API + HTML).
     4. Caches results persistently before returning.
     """
     comp_clean = company.strip().lower() if company else "global"
@@ -181,18 +237,22 @@ def search_web_structured(
     if tavily_key:
         results = _execute_tavily_search(query, max_results=max_results)
 
-    # Step 3: If no Tavily results, query DuckDuckGo API + HTML fallback
+    # Step 3: If no Tavily results, query resilient multi-engine fallback
     if not results:
+        gnews_results = _execute_gnews_rss_search(query, max_results=max_results)
+        wiki_results = _execute_wikipedia_api_search(query, max_results=max_results)
         api_results = _execute_duckduckgo_api_search(query)
         html_results = _execute_html_search_fallback(query, max_results=max_results)
         
-        # Merge results with URL deduplication
+        # Merge results with URL deduplication, prioritizing fresh articles and verified entities
         seen_urls = set()
-        for r in api_results + html_results:
+        for r in gnews_results + wiki_results + api_results + html_results:
             u = r.get("url", "")
             if u and u not in seen_urls:
                 seen_urls.add(u)
                 results.append(r)
+                if len(results) >= max_results * 2:
+                    break
 
     # Step 4: Persist in SQLite cache for deterministic reproduction
     if results:
@@ -210,5 +270,5 @@ def get_active_search_provider_info() -> Dict[str, Any]:
         "has_structured_api_key": has_tavily,
         "cache_enabled": True,
         "cache_ttl_seconds": discovery_cache.DEFAULT_CACHE_TTL_SECONDS,
-        "supported_providers": ["tavily", "duckduckgo_api", "html_fallback"],
+        "supported_providers": ["tavily", "gnews_rss", "wikipedia_api", "duckduckgo_api", "html_fallback"],
     }
