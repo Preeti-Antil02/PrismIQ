@@ -848,6 +848,22 @@ def save_confirmed_competitors(
     return target_file
 
 
+# Discovery proposal persistence wrapper for tenant RLS
+def save_tenant_discovery_proposal(
+    tenant_id: Optional[str],
+    target_company: str,
+    candidates: List[Dict[str, Any]],
+    filepath: Optional[Union[str, Path]] = None,
+) -> Path:
+    return save_discovery_proposal(
+        target_company=target_company,
+        candidates=candidates,
+        tenant_id=tenant_id,
+        filepath=filepath,
+    )
+
+
+
 def save_tenant_confirmed_companies(
     tenant_id: str,
     target_company: str,
