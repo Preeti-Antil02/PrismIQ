@@ -290,7 +290,7 @@ export default function OnboardingPage() {
   // --------------------------------------------------------------------------
   // STEP 2: Real Discovery Agent Ingestion
   // --------------------------------------------------------------------------
-  const runDiscovery = async (target: string, website?: string, description?: string) => {
+  const runDiscovery = async (target: string, website?: string, description?: string, forceRefresh?: boolean) => {
     setDiscoveryError(null);
     setDiscoveryStage(1);
 
@@ -300,7 +300,7 @@ export default function OnboardingPage() {
     const stageTimer3 = setTimeout(() => setDiscoveryStage(4), 4500);
 
     try {
-      const res = await discoverCompetitors(target, website, description);
+      const res = await discoverCompetitors(target, website, description, forceRefresh);
       clearTimeout(stageTimer1);
       clearTimeout(stageTimer2);
       clearTimeout(stageTimer3);
@@ -954,7 +954,7 @@ export default function OnboardingPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => runDiscovery(companyName)}
+                  onClick={() => runDiscovery(companyName, undefined, undefined, true)}
                   className="px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300/80 rounded-lg transition-colors cursor-pointer shrink-0"
                 >
                   Retry AI Discovery
