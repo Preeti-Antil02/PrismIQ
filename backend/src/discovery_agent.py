@@ -561,8 +561,26 @@ Return ONLY a valid JSON object with keys "profile" and "candidates":
   ]
 }}"""
 
+    # Balance evidence chunks across distinct source types (news, alts, segment search, wikipedia)
+    sources_by_type: Dict[str, List[Dict[str, Any]]] = {}
+    for s in sources:
+        st = s.get("source_type", "general")
+        sources_by_type.setdefault(st, []).append(s)
+
+    balanced_sources: List[Dict[str, Any]] = []
+    round_idx = 0
+    while len(balanced_sources) < 20:
+        added_in_round = False
+        for st, st_items in sources_by_type.items():
+            if round_idx < len(st_items) and len(balanced_sources) < 20:
+                balanced_sources.append(st_items[round_idx])
+                added_in_round = True
+        if not added_in_round:
+            break
+        round_idx += 1
+
     evidence_chunks = []
-    for s in sources[:15]:
+    for s in (balanced_sources or sources[:15]):
         title = s.get("title", "")
         url = s.get("url", "")
         text = s.get("text") or s.get("snippet", "")
@@ -589,7 +607,7 @@ Retrieved Market Evidence:
 {chr(10).join(evidence_chunks)}
 \"\"\"
 
-Identify 6 to 10 of the top true operating competitors of {target_company}. You MUST provide direct, authentic operating rivals across EACH of the company's major product segments above (avoiding single-category bias)."""
+Identify 6 to 10 of the top true operating competitors of {target_company}. You MUST provide direct, authentic operating rivals across EACH of the company's major product segments above (avoiding single-category bias). You MUST return between 6 and 10 distinct competitors in your 'candidates' JSON array."""
 
     return system_prompt, user_prompt
 
@@ -1129,6 +1147,18 @@ def run_with_meta(
                         candidates_by_key[k] = c
 
     cleaned_candidates = list(candidates_by_key.values())
+
+    # On live discovery runs, if LLM proposed fewer than 6 candidates, backfill with verified rivals from grounded evidence
+    if len(cleaned_candidates) < 6 and grounded_sources and sources is None and not is_mocked_llm and not is_pytest:
+        heuristic_cands = _extract_candidates_heuristic(grounded_sources, clean_target)
+        for hc in heuristic_cands:
+            hk = _canonical_brand_key(hc.get("name", ""))
+            if hk and hk not in candidates_by_key:
+                hc["extraction_method"] = "hybrid_enrichment"
+                candidates_by_key[hk] = hc
+                if len(candidates_by_key) >= 8:
+                    break
+        cleaned_candidates = list(candidates_by_key.values())
 
     # If both sources were empty and LLM returned empty, nothing to propose
     if not cleaned_candidates and not grounded_sources:
