@@ -23,7 +23,8 @@ DISQUALIFYING_SEARCH_DOMAINS = {
     "facebook.com", "instagram.com", "youtube.com", "crunchbase.com", "pitchbook.com",
     "g2.com", "capterra.com", "trustradius.com", "cbinsights.com", "bloomberg.com",
     "reuters.com", "techcrunch.com", "forbes.com", "reddit.com", "github.com",
-    "alternativeto.net", "owler.com", "zoominfo.com", "glassdoor.com", "indeed.com"
+    "alternativeto.net", "owler.com", "zoominfo.com", "glassdoor.com", "indeed.com",
+    "google.com", "news.google.com", "yahoo.com", "bing.com", "duckduckgo.com", "msn.com",
 }
 
 
@@ -53,7 +54,29 @@ def resolve_official_domain(company_name: str, hint_url: Optional[str] = None) -
     if not clean_name:
         return None
 
-    # Search queries prioritizing official presence
+    # 1. Fast-path: check direct brand root domain match (.com, .ai, .io, .co, .in)
+    cand_slug = re.sub(r'[^a-z0-9]+', '', clean_name.lower())
+    if cand_slug and len(cand_slug) >= 2:
+        slug_variants = [cand_slug]
+        # Strip common brand suffixes (e.g. "eveoai" -> "eveo", "posthoghq" -> "posthog")
+        base_slug = re.sub(r'(ai|tech|labs|hq|io|app|software|corp|inc)$', '', cand_slug)
+        if base_slug and base_slug != cand_slug and len(base_slug) >= 3:
+            slug_variants.append(base_slug)
+
+        for slug in slug_variants:
+            for tld in [".com", ".ai", ".io", ".co", ".in"]:
+                try:
+                    test_domain = f"{slug}{tld}"
+                    test_url = f"https://{test_domain}"
+                    test_resp = requests.head(test_url, headers=DEFAULT_REQUEST_HEADERS, timeout=1.8, allow_redirects=True)
+                    if test_resp.status_code < 400:
+                        final_domain = clean_domain(test_resp.url)
+                        if final_domain and not any(final_domain == d or final_domain.endswith("." + d) for d in DISQUALIFYING_SEARCH_DOMAINS):
+                            return final_domain
+                except Exception:
+                    pass
+
+    # 2. Targeted search queries prioritizing official presence
     search_queries = [
         f'"{clean_name}" official website',
         f'"{clean_name}" homepage',
@@ -77,27 +100,6 @@ def resolve_official_domain(company_name: str, hint_url: Optional[str] = None) -
                 return domain
         except Exception as e:
             logger.debug(f"Domain search error for query '{q}': {e}")
-
-    # Fallback: check if company name or base root has a direct domain match (.com, .in, .ai, .io, .co)
-    cand_slug = re.sub(r'[^a-z0-9]+', '', clean_name.lower())
-    if cand_slug:
-        slug_variants = [cand_slug]
-        # Strip common brand suffixes (e.g. "eveoai" -> "eveo", "posthoghq" -> "posthog")
-        base_slug = re.sub(r'(ai|tech|labs|hq|io|app|software|corp|inc)$', '', cand_slug)
-        if base_slug and base_slug != cand_slug and len(base_slug) >= 3:
-            slug_variants.append(base_slug)
-
-        for slug in slug_variants:
-            for tld in [".com", ".in", ".ai", ".io", ".co"]:
-                try:
-                    test_domain = f"{slug}{tld}"
-                    test_url = f"https://{test_domain}"
-                    test_resp = requests.head(test_url, headers=DEFAULT_REQUEST_HEADERS, timeout=2.5, allow_redirects=True)
-                    if test_resp.status_code < 400:
-                        final_domain = clean_domain(test_resp.url)
-                        return final_domain
-                except Exception:
-                    pass
 
     return None
 
@@ -301,7 +303,7 @@ def resolve_company_profile(
     if domain:
         fetched_text, fetched_urls = fetch_company_page_text(domain)
 
-    # Fallback to search snippets if direct HTML fetch was blocked or thin
+    # Fallback to search snippets & Wikipedia summary if direct HTML fetch was blocked or thin
     if not fetched_text or len(fetched_text) < 150:
         try:
             from src import search_provider
@@ -312,6 +314,22 @@ def resolve_company_profile(
                 fetched_urls.extend([r.get("url", "") for r in search_res if r.get("url")])
         except Exception as e:
             logger.debug(f"Search snippet fallback error for '{clean_name}': {e}")
+
+        # Also query Wikipedia REST summary for authoritative overview and multi-segment offerings
+        try:
+            w_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}"
+            w_resp = requests.get(w_url, headers={"User-Agent": "PrismIQ-Intelligence/1.0 (research@prismiq.ai)"}, timeout=3.5)
+            if w_resp.status_code == 200:
+                w_data = w_resp.json()
+                w_extract = w_data.get("extract", "")
+                if w_extract:
+                    if fetched_text:
+                        fetched_text = f"{w_extract}\n\n{fetched_text}"[:4000]
+                    else:
+                        fetched_text = w_extract
+                    fetched_urls.append(f"https://en.wikipedia.org/wiki/{urllib.parse.quote(clean_name)}")
+        except Exception as e:
+            logger.debug(f"Wikipedia summary profile fallback error for '{clean_name}': {e}")
 
     # If web text was successfully retrieved, extract profile grounded in fetched text
     raw_profile = None
