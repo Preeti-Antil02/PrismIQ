@@ -64,6 +64,7 @@ class OnboardDiscoverRequest(BaseModel):
     target_company: str = Field(..., min_length=1, description="Target company to run competitor discovery for")
     website: Optional[str] = Field(None, description="Optional target company website URL/domain")
     description: Optional[str] = Field(None, description="Optional target company product/market description")
+    force_refresh: Optional[bool] = Field(False, description="Whether to bypass cache and force a live refresh")
 
 
 class OnboardConfirmRequest(BaseModel):
@@ -1276,15 +1277,17 @@ def onboard_discover_candidates(
     if not target:
         raise HTTPException(status_code=400, detail="Target company name cannot be empty")
 
+    force_refresh = bool(req.force_refresh)
     try:
         from . import discovery_cache
-        discovery_cache.clear_cache_for_company(target)
+        if force_refresh:
+            discovery_cache.clear_cache_for_company(target)
         meta = discovery_agent.run_with_meta(
             target,
             tenant_id=tenant_id,
             website=req.website,
             description=req.description,
-            force_refresh=True,
+            force_refresh=force_refresh,
         )
         candidates = meta.get("candidates", [])
         company_profile = meta.get("company_profile")
