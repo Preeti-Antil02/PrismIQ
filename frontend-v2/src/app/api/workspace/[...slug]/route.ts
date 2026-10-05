@@ -59,7 +59,7 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
     method: req.method,
     headers,
     cache: "no-store",
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(120000),
   };
 
   if (["POST", "PATCH", "PUT"].includes(req.method)) {
