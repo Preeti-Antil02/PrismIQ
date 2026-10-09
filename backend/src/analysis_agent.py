@@ -218,8 +218,8 @@ def _synthesize_fallback_analysis(signal: Dict[str, Any], target_company: Option
     return {
         "why_it_matters": why,
         "fact_confidence": "High",
-        "inference_confidence": "Medium",
-        "confidence": "Medium",
+        "inference_confidence": "Low",
+        "confidence": "Low",
     }
 
 
