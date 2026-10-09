@@ -5,12 +5,13 @@ from unittest.mock import patch, MagicMock
 from src import monitoring_agent
 
 _RECENT_PUB_DATE = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%a, %d %b %Y %H:%M:%S +0000")
+_RECENT_ARXIV_DATE = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-MOCK_ARXIV_XML_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+MOCK_ARXIV_XML_RESPONSE = f"""<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
   <entry>
     <id>http://arxiv.org/abs/2608.12345v1</id>
-    <published>2026-08-25T12:00:00Z</published>
+    <published>{_RECENT_ARXIV_DATE}</published>
     <title>Post-Quantum Origin Authentication in Edge Architectures</title>
     <summary>We benchmark ML-DSA and post-quantum key exchange in edge proxies.</summary>
     <author>
