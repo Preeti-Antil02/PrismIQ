@@ -12,6 +12,12 @@ export interface AuthUser {
 export const DEFAULT_TENANT_ID =
   process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID || "8553449a-c998-4727-be01-9aeb724038cb";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(id?: string | null): boolean {
+  return Boolean(id && UUID_REGEX.test(id.trim()));
+}
+
 export function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   try {
@@ -62,7 +68,7 @@ export function isAuthenticated(): boolean {
 }
 
 export function createTenantToken(tenantId: string, email?: string): string {
-  const tid = tenantId || DEFAULT_TENANT_ID;
+  const tid = isValidUuid(tenantId) ? tenantId.trim() : DEFAULT_TENANT_ID;
   if (!tid) return "";
 
   const header = { alg: "HS256", typ: "JWT" };
@@ -89,12 +95,17 @@ export function createTenantToken(tenantId: string, email?: string): string {
 export function getClientAuthToken(tenantId?: string): string {
   // 1. If explicit tenantId provided, always construct token for that specific tenant
   if (tenantId) {
-    return createTenantToken(tenantId);
+    const tid = isValidUuid(tenantId) ? tenantId : DEFAULT_TENANT_ID;
+    return createTenantToken(tid);
   }
 
   // 2. In browser environment, ensure stored token matches active tenant ID and is unexpired
   if (typeof window !== "undefined") {
-    const activeTenantId = localStorage.getItem("prismiq_active_tenant_id");
+    let activeTenantId = localStorage.getItem("prismiq_active_tenant_id");
+    if (!isValidUuid(activeTenantId)) {
+      activeTenantId = DEFAULT_TENANT_ID;
+      localStorage.setItem("prismiq_active_tenant_id", DEFAULT_TENANT_ID);
+    }
     const stored = localStorage.getItem("prismiq_tenant_token");
 
     if (activeTenantId && stored) {
@@ -104,7 +115,7 @@ export function getClientAuthToken(tenantId?: string): string {
           if (parts.length === 3) {
             const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
             const payload = JSON.parse(payloadJson);
-            if (payload.sub === activeTenantId) {
+            if (payload.sub === activeTenantId && isValidUuid(payload.sub)) {
               return stored;
             }
           }
