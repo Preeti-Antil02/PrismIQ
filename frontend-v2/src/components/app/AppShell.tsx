@@ -28,7 +28,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
-import { createTenantToken } from "@/lib/auth";
+import { createTenantToken, isValidUuid, DEFAULT_TENANT_ID } from "@/lib/auth";
 import {
   fetchWorkspaceConfig,
   fetchPipelineStatus,
@@ -51,6 +51,12 @@ export const AVAILABLE_WORKSPACES = [
     name: "Meesho Competitive Intelligence",
     target: "Meesho",
     sector: "Social Commerce & Marketplace",
+  },
+  {
+    tenant_id: "c8f13b91-46ef-4682-9975-f85764d8a12e",
+    name: "Vercel Intelligence",
+    target: "Vercel",
+    sector: "Frontend Cloud & DX",
   },
   {
     tenant_id: "7b90477d-2524-4cf9-8e47-f389ec890ff7",
@@ -172,9 +178,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [activeTenantId, setActiveTenantId] = React.useState<string>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("prismiq_active_tenant_id");
-      if (stored) return stored;
+      if (stored && isValidUuid(stored)) return stored;
     }
-    return "8553449a-c998-4727-be01-9aeb724038cb"; // Default to Meesho
+    return DEFAULT_TENANT_ID;
   });
 
   const [customWorkspaces, setCustomWorkspaces] = React.useState<
@@ -253,21 +259,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [config, activeTenantId, customWorkspaces]);
 
   // Fetch pipeline status
+  const isCheckingRef = React.useRef(false);
   const checkPipeline = React.useCallback(async () => {
+    if (isCheckingRef.current) return;
+    isCheckingRef.current = true;
     try {
       const p = await fetchPipelineStatus();
       setPipeline(p);
     } catch {
       // Graceful fallback
+    } finally {
+      isCheckingRef.current = false;
     }
   }, []);
 
   React.useEffect(() => {
     refreshConfig();
     checkPipeline();
-    const interval = setInterval(checkPipeline, 10000);
+    const interval = setInterval(checkPipeline, 15000);
     return () => clearInterval(interval);
-  }, [refreshConfig, checkPipeline]);
+  }, [activeTenantId, refreshConfig, checkPipeline]);
 
   // Target company name
   const targetCompany = React.useMemo(() => {
