@@ -374,8 +374,10 @@ def noise_suppression_node(state: PipelineState) -> Dict[str, Any]:
     noise_result = noise_suppressor.run(raw_signals)
 
     kept_signals = noise_result["kept_signals"]
+    all_signals = noise_result.get("kept_signals", []) + noise_result.get("suppressed_signals", [])
     decisions = noise_result.get("decisions", [])
-    storage.save_noise_decisions(decisions)
+    # Pass all signals as lookup so FK-safety stub upsert has accurate metadata
+    storage.save_noise_decisions(decisions, raw_signals_lookup=all_signals if all_signals else raw_signals)
 
     logger.info(f"Noise Suppression: {len(kept_signals)}/{len(raw_signals)} signals kept.")
     return {
