@@ -257,6 +257,38 @@ def _should_merge_signals(sig1: Dict[str, Any], sig2: Dict[str, Any]) -> Tuple[b
     if init1 and init2 and init1 == init2:
         return True, f"Shared distinct initiative launch: {init1}"
 
+    # Rule 8: Corroborating Funding / Acquisition Round (same company, same round amount)
+    # Rationale: Multiple news outlets reporting the same funding/acquisition round must merge
+    # into one high-confidence event. Matching on specific dollar amount is a unique, verifiable anchor.
+    both_funding = (
+        sig1.get("funding_related") or sig1.get("source_subtype") == "funding"
+    ) and (
+        sig2.get("funding_related") or sig2.get("source_subtype") == "funding"
+    )
+    both_acquisition = any(k in t1_lower for k in ["acqui", "acquire", "merger"]) and \
+                       any(k in t2_lower for k in ["acqui", "acquire", "merger"])
+    if both_funding or both_acquisition:
+        # Extract monetary amount as specific anchor (e.g. "$250M", "$1.5B", "250 million")
+        amount_pattern = r"(\$[\d,.]+\s*(?:M|B|K|million|billion|thousand)?\b|\b\d+[\d,.]*\s*(?:million|billion|thousand)\b)"
+        amounts1 = set(re.findall(amount_pattern, f"{t1} {sig1.get('raw_excerpt', '')}", re.IGNORECASE))
+        amounts2 = set(re.findall(amount_pattern, f"{t2} {sig2.get('raw_excerpt', '')}", re.IGNORECASE))
+        # Normalize amounts for comparison (lowercase, strip spaces)
+        norm_amounts1 = {re.sub(r"\s+", "", a.lower().strip()) for a in amounts1}
+        norm_amounts2 = {re.sub(r"\s+", "", a.lower().strip()) for a in amounts2}
+        shared_amounts = norm_amounts1 & norm_amounts2
+        if shared_amounts:
+            amount_str = next(iter(shared_amounts))
+            return True, f"Corroborating funding round reports: same amount {amount_str}"
+        # If both clearly funding-related but no amount extracted, check for Series/Round matching
+        series_pattern = r"\b(seed|series\s+[a-z]|pre-ipo|ipo|round\s+[a-z]|growth\s+equity)\b"
+        series1 = set(re.findall(series_pattern, f"{t1} {sig1.get('raw_excerpt', '')}", re.IGNORECASE))
+        series2 = set(re.findall(series_pattern, f"{t2} {sig2.get('raw_excerpt', '')}", re.IGNORECASE))
+        norm_s1 = {s.lower().strip() for s in series1}
+        norm_s2 = {s.lower().strip() for s in series2}
+        shared_series = norm_s1 & norm_s2
+        if shared_series:
+            return True, f"Corroborating funding round reports: same series {next(iter(shared_series))}"
+
     return False, "No shared specific checkable anchor"
 
 
