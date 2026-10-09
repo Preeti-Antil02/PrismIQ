@@ -8,7 +8,7 @@ import uuid
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
@@ -938,15 +938,13 @@ def list_signals(
                 base_query += " AND (LOWER(f.confidence) = LOWER(%s) OR LOWER(ce.fact_confidence) = LOWER(%s))"
                 params.extend([conf_val, conf_val])
 
-            # Get total count before pagination
-            count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_sub;"
-            cur.execute(count_query, params)
-            count_row = cur.fetchone()
-            total_count = count_row[0] if count_row else 0
-
-            # Order and paginate
+            # Order and paginate with window count in single pass
             final_query = f"""
-                SELECT * FROM ({base_query}) sub
+                WITH filtered_signals AS (
+                    {base_query}
+                )
+                SELECT *, COUNT(*) OVER() AS total_count
+                FROM filtered_signals sub
                 ORDER BY sub.published_timestamp DESC NULLS LAST, sub.published_at DESC
                 LIMIT %s OFFSET %s;
             """
@@ -954,6 +952,7 @@ def list_signals(
 
             cur.execute(final_query, params)
             rows = cur.fetchall()
+            total_count = rows[0][-1] if rows else 0
 
             signals = []
             for r in rows:
@@ -1094,13 +1093,13 @@ def list_events(
                 base_query += " AND (LOWER(ce.fact_confidence) = LOWER(%s) OR LOWER(f.confidence) = LOWER(%s))"
                 params.extend([conf_val, conf_val])
 
-            count_query = f"SELECT COUNT(*) FROM ({base_query}) AS count_sub;"
-            cur.execute(count_query, params)
-            count_row = cur.fetchone()
-            total_count = count_row[0] if count_row else 0
-
+            # Order and paginate with window count in single pass
             final_query = f"""
-                SELECT * FROM ({base_query}) sub
+                WITH filtered_events AS (
+                    {base_query}
+                )
+                SELECT *, COUNT(*) OVER() AS total_count
+                FROM filtered_events sub
                 ORDER BY sub.published_timestamp DESC NULLS LAST, sub.published_at DESC
                 LIMIT %s OFFSET %s;
             """
@@ -1108,6 +1107,7 @@ def list_events(
 
             cur.execute(final_query, params)
             rows = cur.fetchall()
+            total_count = rows[0][-1] if rows else 0
 
             events = []
             for r in rows:
@@ -1390,6 +1390,9 @@ def _background_pipeline_worker(tenant_id: str, is_first_run: bool = False, sour
         logger.error(f"Background progressive pipeline error for tenant {tenant_id}: {e}", exc_info=True)
 
 
+_PIPELINE_STATUS_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+
+
 @app.get("/api/pipeline/status")
 def get_pipeline_status(
     tenant_id: str = Depends(get_current_tenant),
@@ -1397,10 +1400,16 @@ def get_pipeline_status(
     """
     Retrieve active or latest pipeline run progress telemetry under tenant isolation.
     Computes honest counts, elapsed seconds, timeout flag, and source health/errors.
+    Caches results for 5s to eliminate pooler latency and connection starvation.
     """
+    now = time.time()
+    cached = _PIPELINE_STATUS_CACHE.get(tenant_id)
+    if cached and (now - cached[0] < 5.0):
+        return cached[1]
+
     progress = storage.get_active_or_latest_run_progress(tenant_id)
     if not progress:
-        return {
+        res = {
             "status": "idle",
             "current_phase": "idle",
             "progress_message": "Continuous monitoring active",
@@ -1411,6 +1420,8 @@ def get_pipeline_status(
             "source_errors": {},
             "is_active": False,
         }
+        _PIPELINE_STATUS_CACHE[tenant_id] = (now, res)
+        return res
 
     is_active = progress.get("status") == "running"
 
@@ -1431,12 +1442,14 @@ def get_pipeline_status(
         and run_total < current_tracked_count
     )
 
-    return {
+    res = {
         **progress,
         "is_active": is_active,
         "current_tracked_count": current_tracked_count,
         "needs_resweep": needs_resweep,
     }
+    _PIPELINE_STATUS_CACHE[tenant_id] = (now, res)
+    return res
 
 
 @app.post("/api/pipeline/trigger")
@@ -1448,6 +1461,7 @@ def trigger_pipeline(
     Trigger a real-time monitoring run as a background task protected by distributed lock.
     Returns immediately with trigger status and begins progressive per-company persistence.
     """
+    _PIPELINE_STATUS_CACHE.pop(tenant_id, None)
     cfg = storage.get_tenant_workspace_config(tenant_id)
     if not cfg.get("is_configured"):
         is_mock_workflow = hasattr(workflow.run_progressive_pipeline, "__name__") and workflow.run_progressive_pipeline.__name__ == "<lambda>"
@@ -1581,19 +1595,20 @@ def get_latest_radar_endpoint(
     """
     Fetch the latest radar evaluation snapshot across active topics for the authenticated tenant.
     """
-    from src import research_radar
     topics = storage.get_tenant_research_topics(tenant_id)
     if not topics:
         return {"evaluations": [], "count": 0}
 
+    evals_map = storage.get_latest_radar_evaluations_for_tenant(tenant_id)
     evals = []
     for top in topics:
         lbl = top.get("topic_label", "")
-        prior = storage.get_prior_radar_evaluation(tenant_id, lbl)
+        prior = evals_map.get(lbl.lower())
         if prior:
-            prior["keywords"] = top.get("keywords") or []
-            prior["topic_id"] = str(top.get("id") or "")
-            evals.append(prior)
+            prior_copy = dict(prior)
+            prior_copy["keywords"] = top.get("keywords") or []
+            prior_copy["topic_id"] = str(top.get("id") or "")
+            evals.append(prior_copy)
         else:
             # No prior pipeline sweep has produced a real evaluation for this topic.
             # Return an honest "pending" state — do NOT fabricate a synthetic evaluation
