@@ -4,6 +4,8 @@ import logging
 import os
 import re
 import sys
+import threading
+import time
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -35,7 +37,7 @@ class MockCursor:
         self.queries.append((query, params))
 
     def fetchone(self):
-        return ("00000000-0000-0000-0000-000000000000", False, "active", None, None, datetime.now(timezone.utc), None, None, None, None)
+        return ("00000000-0000-0000-0000-000000000000", False, "active", None, None, "Workspace Watchlist", None, None, None, datetime.now(timezone.utc))
 
     def fetchall(self):
         return []
@@ -106,6 +108,48 @@ def get_db_url() -> Optional[str]:
     )
 
 
+_DB_POOL: Optional[Any] = None
+_DB_POOL_LOCK = threading.Lock()
+
+def _get_connection_pool(db_url: str):
+    global _DB_POOL
+    if _DB_POOL is None:
+        with _DB_POOL_LOCK:
+            if _DB_POOL is None:
+                import psycopg2.pool
+                _DB_POOL = psycopg2.pool.ThreadedConnectionPool(1, 10, db_url)
+    return _DB_POOL
+
+def _get_pooled_connection(db_url: str):
+    try:
+        pool = _get_connection_pool(db_url)
+        conn = pool.getconn()
+        if conn.closed != 0:
+            pool.putconn(conn, close=True)
+            conn = pool.getconn()
+        return conn, pool
+    except Exception as e:
+        logger.warning(f"Connection pool acquisition failed ({e}), falling back to direct connection")
+        import psycopg2
+        return psycopg2.connect(db_url), None
+
+def _release_pooled_connection(conn: Any, pool: Optional[Any]):
+    if pool is not None:
+        try:
+            conn.rollback()
+            pool.putconn(conn)
+        except Exception:
+            try:
+                pool.putconn(conn, close=True)
+            except Exception:
+                pass
+    else:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
 @contextmanager
 def get_db_cursor() -> Generator[Any, None, None]:
     """
@@ -145,19 +189,20 @@ def get_db_cursor() -> Generator[Any, None, None]:
                 "SUPABASE_DB_URL is not set. Primary PostgreSQL store cannot be accessed."
             )
 
-    import psycopg2
-
-    conn = psycopg2.connect(db_url)
+    conn, pool = _get_pooled_connection(db_url)
     try:
         with conn.cursor() as cur:
             yield cur
         conn.commit()
     except Exception as e:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         logger.error(f"PostgreSQL transaction failed: {e}", exc_info=True)
         raise
     finally:
-        conn.close()
+        _release_pooled_connection(conn, pool)
 
 
 @contextmanager
@@ -183,9 +228,7 @@ def get_tenant_db_cursor(tenant_id: str) -> Generator[Any, None, None]:
                 return
             raise ConnectionError("SUPABASE_DB_URL is not set.")
 
-    import psycopg2
-
-    conn = psycopg2.connect(db_url)
+    conn, pool = _get_pooled_connection(db_url)
     try:
         with conn.cursor() as cur:
             cur.execute(
@@ -195,11 +238,14 @@ def get_tenant_db_cursor(tenant_id: str) -> Generator[Any, None, None]:
             yield cur
         conn.commit()
     except Exception as e:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         logger.error(f"PostgreSQL tenant transaction failed (tenant {tenant_id}): {e}", exc_info=True)
         raise
     finally:
-        conn.close()
+        _release_pooled_connection(conn, pool)
 
 
 def _execute_batch(cur: Any, sql: str, params_list: List[Any], page_size: int = 100) -> None:
@@ -369,14 +415,72 @@ def load_signals(
         return []
 
 
-def save_noise_decisions(decisions: List[Dict[str, Any]]) -> None:
+def save_noise_decisions(decisions: List[Dict[str, Any]], raw_signals_lookup: Optional[List[Dict[str, Any]]] = None) -> None:
     """
     Dual-write noise suppression decisions:
     Primary write: PostgreSQL `noise_suppression_decisions` table.
+
+    FK-safety: noise_suppression_decisions has a FK on signal_id -> raw_signals(id).
+    We upsert any missing parent signal stubs into raw_signals before writing decisions so the
+    constraint is always satisfied regardless of invocation order (progressive mode or isolated tests).
+    raw_signals_lookup: optional list of signal dicts to use for stub data (keyed by id).
     """
     if not decisions:
         return
+
+    # Build lookup for additional signal data if provided
+    sig_lookup: Dict[str, Dict[str, Any]] = {}
+    if raw_signals_lookup:
+        for s in raw_signals_lookup:
+            sid = s.get("id")
+            if sid:
+                sig_lookup[sid] = s
+
     with get_db_cursor() as cur:
+        # FK-safety: upsert minimal signal stubs so parent rows exist before writing decisions.
+        # ON CONFLICT DO NOTHING ensures real rows written by save_signals() are never overwritten.
+        stub_params = []
+        company_stubs = set()
+        for d in decisions:
+            sid = d.get("signal_id")
+            if not sid:
+                continue
+            sig_data = sig_lookup.get(sid, {})
+            comp = sig_data.get("company") or d.get("company_name") or d.get("company") or "Unknown"
+            company_stubs.add(comp.strip())
+            stub_params.append((
+                sid,
+                comp.strip(),
+                sig_data.get("source") or d.get("source") or "unknown",
+                sig_data.get("title") or d.get("title") or "",
+                sig_data.get("url") or d.get("url") or "",
+                _parse_timestamp(sig_data.get("published_at")),
+                None,
+                sig_data.get("raw_excerpt") or d.get("raw_excerpt") or "",
+            ))
+
+        if stub_params:
+            # Ensure company records exist first
+            comp_sql = """
+                INSERT INTO companies (name, status, is_mock)
+                VALUES (%s, 'active', FALSE)
+                ON CONFLICT (name) DO NOTHING;
+            """
+            try:
+                _execute_batch(cur, comp_sql, [(c,) for c in company_stubs if c], page_size=100)
+            except Exception as e:
+                logger.debug(f"Company stub upsert warning (non-critical): {e}")
+
+            stub_sql = """
+                INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                ON CONFLICT (id) DO NOTHING;
+            """
+            try:
+                _execute_batch(cur, stub_sql, stub_params, page_size=200)
+            except Exception as e:
+                logger.warning(f"Signal stub upsert before noise decisions failed (non-critical): {e}")
+
         nd_sql = """
             INSERT INTO noise_suppression_decisions (signal_id, is_noise, noise_category, noise_reason, decided_at)
             VALUES (%s, %s, %s, %s, %s)
@@ -396,8 +500,11 @@ def save_noise_decisions(decisions: List[Dict[str, Any]]) -> None:
             for d in decisions
             if d.get("signal_id")
         ]
-        _execute_batch(cur, nd_sql, nd_params, page_size=200)
-        logger.info(f"Dual-write: persisted {len(nd_params)} noise_suppression_decisions to PostgreSQL.")
+        try:
+            _execute_batch(cur, nd_sql, nd_params, page_size=200)
+            logger.info(f"Dual-write: persisted {len(nd_params)} noise_suppression_decisions to PostgreSQL.")
+        except Exception as e:
+            logger.warning(f"Noise decision write failed (non-critical, pipeline continues): {e}")
 
 
 def save_events(
@@ -430,6 +537,7 @@ def save_events(
             """
             ev_params = []
             es_params = []
+            all_raw_signals: List[Dict[str, Any]] = []  # collected for FK-safety stub upsert
 
             for ev in events:
                 eid = ev["event_id"]
@@ -456,16 +564,62 @@ def save_events(
                     s_id = s.get("id") or _generate_signal_id(
                         s.get("company", comp), s.get("source", ""), s.get("url", ""), s.get("title", ""), str(s.get("published_at", ""))
                     )
+                    if not s.get("id"):
+                        s["id"] = s_id
                     es_params.append((eid, s_id))
+                    all_raw_signals.append(s)
 
             _execute_batch(cur, ev_sql, ev_params, page_size=200)
+
+            # FK-safety: upsert signal stubs into raw_signals before writing event_signals join rows.
+            # event_signals(signal_id) has FK -> raw_signals(id). If save_signals() hasn't been called
+            # yet (e.g. progressive mode or isolated node tests), this prevents constraint violation.
+            if es_params and all_raw_signals:
+                companies_needed = set(s.get("company", "Unknown").strip() for s in all_raw_signals if s.get("company"))
+                comp_sql = """
+                    INSERT INTO companies (name, status, is_mock)
+                    VALUES (%s, 'active', FALSE)
+                    ON CONFLICT (name) DO NOTHING;
+                """
+                try:
+                    _execute_batch(cur, comp_sql, [(c,) for c in companies_needed if c], page_size=100)
+                except Exception as e:
+                    logger.debug(f"Company stub upsert for event_signals (non-critical): {e}")
+
+                sig_stub_sql = """
+                    INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                    ON CONFLICT (id) DO NOTHING;
+                """
+                sig_stub_params = []
+                for s in all_raw_signals:
+                    s_id = s.get("id")
+                    if s_id:
+                        sig_stub_params.append((
+                            s_id,
+                            s.get("company", "Unknown").strip(),
+                            s.get("source", "unknown"),
+                            s.get("title", ""),
+                            s.get("url", ""),
+                            _parse_timestamp(s.get("published_at")),
+                            None,
+                            s.get("raw_excerpt", ""),
+                        ))
+                if sig_stub_params:
+                    try:
+                        _execute_batch(cur, sig_stub_sql, sig_stub_params, page_size=200)
+                    except Exception as e:
+                        logger.warning(f"Signal stub upsert before event_signals failed (non-critical): {e}")
 
             es_sql = """
                 INSERT INTO event_signals (event_id, signal_id)
                 VALUES (%s, %s)
                 ON CONFLICT (event_id, signal_id) DO NOTHING;
             """
-            _execute_batch(cur, es_sql, es_params, page_size=200)
+            try:
+                _execute_batch(cur, es_sql, es_params, page_size=200)
+            except Exception as e:
+                logger.warning(f"event_signals write failed (non-critical, pipeline continues): {e}")
             logger.info(f"Dual-write: persisted {len(events)} consolidated_events and {len(es_params)} event_signals to PostgreSQL.")
 
     # 2. Secondary Flat File Write
@@ -1089,7 +1243,7 @@ def track_tenant_company(
                 if dc_row[2]: tier = dc_row[2]
                 if dc_row[3]: conf = dc_row[3]
                 if dc_row[4]: rat = dc_row[4]
-                if dc_row[5]: src = dc_row[5]
+                if dc_row[5] and isinstance(dc_row[5], str): src = dc_row[5]
         except Exception:
             pass
 
@@ -1141,7 +1295,7 @@ def track_tenant_company(
         existing = [c for c in existing if c.get("company_name") != comp]
         existing.append(entry)
         with open(tenant_file, "w", encoding="utf-8") as tf:
-            json.dump(existing, tf, indent=2)
+            json.dump(existing, tf, indent=2, default=str)
     except Exception as e:
         logger.warning(f"Failed to update local tracked file for {tid}: {e}")
 
@@ -2477,6 +2631,57 @@ def get_prior_radar_evaluation(tenant_id: str, topic_label: str) -> Optional[Dic
     return None
 
 
+def get_latest_radar_evaluations_for_tenant(tenant_id: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Fetch the most recent radar evaluations for all topics for a tenant in a single batch query.
+    Returns mapping: topic_label.lower() -> evaluation_dict.
+    """
+    results: Dict[str, Dict[str, Any]] = {}
+    if not is_test_environment() and is_live_write_permitted():
+        try:
+            with get_tenant_db_cursor(tenant_id) as cur:
+                cur.execute("""
+                    SELECT DISTINCT ON (topic_label)
+                           id, topic_label, cycle_id, research_item_count, competitor_connections,
+                           why_it_matters, verified_sources, state_change_detected, created_at
+                    FROM research_radar_evaluations
+                    ORDER BY topic_label, created_at DESC;
+                """)
+                rows = cur.fetchall()
+                for row in rows:
+                    lbl = row[1]
+                    results[lbl.lower()] = {
+                        "id": str(row[0]),
+                        "topic_label": row[1],
+                        "cycle_id": row[2],
+                        "research_item_count": row[3],
+                        "competitor_connections": row[4] if isinstance(row[4], dict) else (json.loads(row[4]) if row[4] else {}),
+                        "why_it_matters": row[5],
+                        "verified_sources": row[6] if isinstance(row[6], list) else (json.loads(row[6]) if row[6] else []),
+                        "state_change_detected": row[7],
+                        "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8]),
+                    }
+                return results
+        except Exception as e:
+            logger.warning(f"Failed to query batch radar evaluations from Postgres: {e}")
+
+    # Fallback to flat file
+    data_dir = _get_data_dir()
+    eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
+    if eval_file.exists():
+        try:
+            with open(eval_file, "r", encoding="utf-8") as f:
+                history = json.load(f)
+                for h in sorted(history, key=lambda x: x.get("created_at", "")):
+                    lbl = h.get("topic_label", "")
+                    if lbl:
+                        results[lbl.lower()] = h
+        except Exception:
+            pass
+
+    return results
+
+
 def get_radar_history(
     tenant_id: str,
     topic_label: Optional[str] = None,
@@ -2822,26 +3027,33 @@ def _format_run_progress_row(row: Any) -> Dict[str, Any]:
     }
 
 
+_LAST_REAP_STALE_RUNS = 0.0
+
+
 def get_active_or_latest_run_progress(
     tenant_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Retrieve the currently running pipeline progress or the latest run for a tenant."""
+    global _LAST_REAP_STALE_RUNS
     # 1. Primary PostgreSQL query
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_db_cursor() as cur:
                 if not isinstance(cur, MockCursor):
-                    # Reap stale runs older than 30 minutes to prevent distributed deadlocks
-                    cur.execute("""
-                        UPDATE pipeline_run_progress
-                        SET status = 'timed_out',
-                            current_phase = 'timed_out',
-                            progress_message = 'Monitoring run timed out after 30 minutes',
-                            completed_at = NOW(),
-                            updated_at = NOW()
-                        WHERE status = 'running'
-                          AND started_at < NOW() - INTERVAL '30 minutes';
-                    """)
+                    # Reap stale runs older than 30 minutes at most once every 5 minutes
+                    now_ts = time.time()
+                    if now_ts - _LAST_REAP_STALE_RUNS > 300:
+                        _LAST_REAP_STALE_RUNS = now_ts
+                        cur.execute("""
+                            UPDATE pipeline_run_progress
+                            SET status = 'timed_out',
+                                current_phase = 'timed_out',
+                                progress_message = 'Monitoring run timed out after 30 minutes',
+                                completed_at = NOW(),
+                                updated_at = NOW()
+                            WHERE status = 'running'
+                              AND started_at < NOW() - INTERVAL '30 minutes';
+                        """)
 
                     base_select = """
                         SELECT run_id, tenant_id, status, current_phase, progress_message,
