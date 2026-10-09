@@ -46,7 +46,7 @@ import {
 } from "@/lib/api";
 
 export function OverviewPage() {
-  const { targetCompany, triggerSweep, isSweeping } = useWorkspace();
+  const { targetCompany, tenantId, triggerSweep, isSweeping } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -83,7 +83,7 @@ export function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadData();
