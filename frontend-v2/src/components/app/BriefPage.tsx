@@ -412,6 +412,8 @@ export function BriefPage() {
             ))}
           </div>
         </section>
+      )}
+
       {/* Fallback Analysis Display if brief does not contain numbered decisions */}
       {(!parsed || (parsed.topDecisions.length === 0 && parsed.mustKnow.length === 0 && parsed.shouldKnow.length === 0 && parsed.rollupRows.length === 0)) && selectedBrief?.content && (
         <section className="p-6 rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] shadow-xs space-y-4">
