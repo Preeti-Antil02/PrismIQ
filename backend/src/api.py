@@ -543,11 +543,108 @@ def _is_db_active() -> bool:
 # Authenticated Multi-Tenant Endpoints (Enforced by PostgreSQL RLS)
 # ============================================================================
 
+def _ensure_tenant_brief(tenant_id: str, cur) -> Optional[Dict[str, Any]]:
+    """
+    Ensure the authenticated tenant has a comprehensive executive brief.
+    If no brief exists or only minimal stubs (< 1000 characters) exist,
+    synthesizes a fresh markdown brief from the tenant's validated findings and events,
+    and persists it into the PostgreSQL briefs table.
+    """
+    try:
+        from src import report_agent
+
+        # Check if a substantial brief already exists for this tenant
+        cur.execute("""
+            SELECT id, title, published_at, content
+            FROM briefs
+            WHERE tenant_id = %s::uuid AND length(coalesce(content, '')) > 1000
+            ORDER BY published_at DESC NULLS LAST
+            LIMIT 1;
+        """, (tenant_id,))
+        existing = cur.fetchone()
+        if existing:
+            return {
+                "id": str(existing[0]),
+                "title": existing[1] or "PrismIQ Competitive Intelligence Brief",
+                "published_at": existing[2],
+                "content": existing[3],
+            }
+
+        # Query all findings joined with real-world events for this tenant
+        cur.execute("""
+            SELECT f.id, f.event_id, f.company_name, f.tier, f.confidence,
+                   f.inference_confidence, ce.fact_confidence, f.why_it_matters,
+                   ce.title, ce.url, ce.contributing_sources, ce.corroboration_count,
+                   ce.published_at, ce.published_timestamp
+            FROM findings f
+            JOIN consolidated_events ce ON f.event_id = ce.event_id
+            WHERE f.tenant_id = %s::uuid
+            ORDER BY f.created_at DESC;
+        """, (tenant_id,))
+        rows = cur.fetchall()
+        if not rows:
+            return None
+
+        findings_list = []
+        for r in rows:
+            contrib = r[10]
+            if isinstance(contrib, str):
+                try:
+                    contrib = json.loads(contrib)
+                except Exception:
+                    contrib = [contrib]
+            elif not isinstance(contrib, list):
+                contrib = []
+
+            findings_list.append({
+                "finding_id": str(r[0]),
+                "event_id": str(r[1]),
+                "company": r[2],
+                "company_name": r[2],
+                "tier": r[3],
+                "confidence": r[4] or "Medium",
+                "inference_confidence": r[5] or r[4] or "Medium",
+                "fact_confidence": r[6] or "Medium",
+                "why_it_matters": r[7] or "",
+                "title": r[8] or "Competitive Development",
+                "url": r[9] or "#",
+                "contributing_sources": contrib,
+                "corroboration_count": r[11] or 1,
+                "published_at": str(r[12] or ""),
+                "published_timestamp": str(r[13] or ""),
+            })
+
+        brief_md = report_agent.run(findings_list, tenant_id=tenant_id)
+        now = datetime.now(timezone.utc)
+        preview = _extract_preview(brief_md) or "Autonomous executive competitive intelligence brief compiled from validated signals."
+
+        cur.execute("""
+            INSERT INTO briefs (id, filename, title, headline_preview, content, published_at, created_at, tenant_id)
+            VALUES ('data_latest', 'brief_latest.md', 'PrismIQ Competitive Intelligence Brief',
+                    %s, %s, %s, %s, %s::uuid)
+            ON CONFLICT (tenant_id, id)
+            DO UPDATE SET content = EXCLUDED.content,
+                          published_at = EXCLUDED.published_at,
+                          headline_preview = EXCLUDED.headline_preview;
+        """, (preview, brief_md, now, now, tenant_id))
+
+        return {
+            "id": "data_latest",
+            "title": "PrismIQ Competitive Intelligence Brief",
+            "published_at": now,
+            "content": brief_md,
+            "preview": preview,
+        }
+    except Exception as e:
+        logger.warning(f"Could not auto-synthesize brief for tenant {tenant_id}: {e}")
+        return None
+
+
 @app.get("/briefs")
 def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[Dict[str, Any]]]:
     """
     List all available competitive briefs visible to the authenticated tenant.
-    Executes under PostgreSQL RLS context (SET LOCAL "request.jwt.claim.sub" = tenant_id).
+    Executes under PostgreSQL RLS context with strict tenant boundary.
     """
     if _is_db_active():
         try:
@@ -555,9 +652,23 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
                 cur.execute("""
                     SELECT id, title, published_at, headline_preview, content
                     FROM briefs
-                    ORDER BY published_at DESC NULLS LAST;
-                """)
+                    WHERE tenant_id = %s::uuid
+                    ORDER BY (length(coalesce(content, '')) > 1000) DESC, published_at DESC NULLS LAST;
+                """, (tenant_id,))
                 rows = cur.fetchall()
+
+                # If no briefs or only empty stubs exist, synthesize an executive brief from findings
+                if not rows or max((len(r[4] or "") for r in rows), default=0) < 1000:
+                    ensured = _ensure_tenant_brief(tenant_id, cur)
+                    if ensured:
+                        cur.execute("""
+                            SELECT id, title, published_at, headline_preview, content
+                            FROM briefs
+                            WHERE tenant_id = %s::uuid
+                            ORDER BY (length(coalesce(content, '')) > 1000) DESC, published_at DESC NULLS LAST;
+                        """, (tenant_id,))
+                        rows = cur.fetchall()
+
                 brief_entries = []
                 for r in rows:
                     bid = str(r[0])
@@ -627,6 +738,7 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
     """
     Get the most recent competitive intelligence brief for the authenticated tenant.
     Enforces PostgreSQL RLS so tenant only receives their own latest brief.
+    Prioritizes complete briefs (>1000 chars) over empty execution stubs.
     """
     if _is_db_active():
         row = None
@@ -635,10 +747,17 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
                 cur.execute("""
                     SELECT id, title, published_at, content
                     FROM briefs
-                    ORDER BY (id = 'data_latest') DESC, published_at DESC NULLS LAST
+                    WHERE tenant_id = %s::uuid
+                    ORDER BY (length(coalesce(content, '')) > 1000) DESC, (id = 'published_latest') DESC, (id = 'data_latest') DESC, published_at DESC NULLS LAST
                     LIMIT 1;
-                """)
+                """, (tenant_id,))
                 row = cur.fetchone()
+
+                # If no brief or only a minimal stub (<1000 chars) exists, synthesize from findings
+                if not row or len(row[3] or "") < 1000:
+                    ensured = _ensure_tenant_brief(tenant_id, cur)
+                    if ensured:
+                        row = (ensured["id"], ensured["title"], ensured["published_at"], ensured["content"])
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database query error: {e}")
 
@@ -689,7 +808,7 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
 def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
     """
     Get a specific brief by ID for the authenticated tenant.
-    PostgreSQL RLS blocks cross-tenant access and returns 404.
+    PostgreSQL RLS and tenant_id check blocks cross-tenant access and returns 404.
     """
     if brief_id == "latest":
         return get_latest_brief(tenant_id=tenant_id)
@@ -701,8 +820,8 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
                 cur.execute("""
                     SELECT id, title, published_at, content
                     FROM briefs
-                    WHERE id = %s;
-                """, (brief_id,))
+                    WHERE id = %s AND tenant_id = %s::uuid;
+                """, (brief_id, tenant_id))
                 row = cur.fetchone()
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Database query error: {e}")
@@ -719,6 +838,7 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
             }
         # RLS filtered row or row does not exist -> strictly return 404 Not Found
         raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
+
 
     # Fallback to local files ONLY in isolated offline test environment
     if not storage.is_test_environment():
@@ -863,7 +983,7 @@ def list_signals(
     source: Optional[str] = Query(None, description="Filter by signal source: news, github, jobs, pricing, research"),
     tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
     confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
@@ -884,10 +1004,10 @@ def list_signals(
                 SELECT COUNT(DISTINCT nsd.signal_id)
                 FROM noise_suppression_decisions nsd
                 JOIN raw_signals rs ON nsd.signal_id = rs.id
-                JOIN tenant_tracked_companies ttc ON rs.company_name = ttc.company_name
+                JOIN tenant_tracked_companies ttc ON (rs.company_name = ttc.company_name AND ttc.tenant_id = %s::uuid)
                 WHERE nsd.is_noise = TRUE
                   AND ttc.status = 'active';
-            """)
+            """, (tenant_id,))
             noise_row = cur.fetchone()
             noise_suppressed_count = noise_row[0] if noise_row else 0
 
@@ -910,7 +1030,7 @@ def list_signals(
                     ce.fact_confidence,
                     COALESCE(f.tier, 'Nice-to-Know') as tier
                 FROM raw_signals rs
-                JOIN tenant_tracked_companies ttc ON rs.company_name = ttc.company_name
+                JOIN tenant_tracked_companies ttc ON (rs.company_name = ttc.company_name AND ttc.tenant_id = %s::uuid)
                 LEFT JOIN event_signals es ON rs.id = es.signal_id
                 LEFT JOIN consolidated_events ce ON es.event_id = ce.event_id
                 LEFT JOIN findings f ON (ce.event_id = f.event_id AND f.tenant_id = %s::uuid)
@@ -923,7 +1043,8 @@ def list_signals(
             lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
             off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
 
-            params: List[Any] = [tenant_id]
+            params: List[Any] = [tenant_id, tenant_id]
+
 
             if company_val:
                 base_query += " AND rs.company_name = %s"
@@ -1002,7 +1123,7 @@ def list_events(
     tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
     confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
     include_all: bool = Query(False, description="Include all raw event records without event quality filtering"),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
@@ -1040,7 +1161,7 @@ def list_events(
                     f.inference_confidence,
                     COALESCE(f.tier, 'Nice-to-Know') as tier
                 FROM consolidated_events ce
-                JOIN tenant_tracked_companies ttc ON ce.company_name = ttc.company_name
+                JOIN tenant_tracked_companies ttc ON (ce.company_name = ttc.company_name AND ttc.tenant_id = %s::uuid)
                 LEFT JOIN findings f ON (ce.event_id = f.event_id AND f.tenant_id = %s::uuid)
                 WHERE ttc.status = 'active'
             """
@@ -1051,7 +1172,8 @@ def list_events(
             lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
             off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
 
-            params: List[Any] = [tenant_id]
+            params: List[Any] = [tenant_id, tenant_id]
+
 
             if not inc_all_val:
                 base_query += """
