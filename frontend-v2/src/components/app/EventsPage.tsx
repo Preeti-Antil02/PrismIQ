@@ -31,7 +31,7 @@ import {
 } from "@/lib/api";
 
 export function EventsPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -50,7 +50,7 @@ export function EventsPage() {
     setError(null);
     try {
       const [eventsRes, compsRes] = await Promise.all([
-        fetchEvents({ limit: 100 }),
+        fetchEvents({ limit: 200 }),
         fetchTrackedCompanies(),
       ]);
       setEvents(eventsRes.events || []);
@@ -60,11 +60,40 @@ export function EventsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // When a specific company filter is selected, ensure all events for that company are fetched and merged
+  React.useEffect(() => {
+    if (selectedCompany !== "ALL") {
+      fetchEvents({ company: selectedCompany, limit: 100 })
+        .then((res) => {
+          if (res.events && res.events.length > 0) {
+            setEvents((prev) => {
+              const existingIds = new Set(prev.map((e) => e.event_id));
+              const newItems = res.events.filter((e) => !existingIds.has(e.event_id));
+              return [...prev, ...newItems];
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selectedCompany]);
+
+  // Combined list of companies from tracked companies and events
+  const allCompanyNames = React.useMemo(() => {
+    const set = new Set<string>();
+    companies.forEach((c) => {
+      if (c.company_name) set.add(c.company_name);
+    });
+    events.forEach((e) => {
+      if (e.company_name) set.add(e.company_name);
+    });
+    return Array.from(set).sort();
+  }, [companies, events]);
 
   // Client-side filtering
   const filteredEvents = React.useMemo(() => {
@@ -73,6 +102,7 @@ export function EventsPage() {
       if (selectedCompany !== "ALL" && ev.company_name.toLowerCase() !== selectedCompany.toLowerCase()) {
         return false;
       }
+
       // Tier match
       if (selectedTier !== "ALL") {
         const evTier = (ev.tier || "").toLowerCase().replace(/_/g, "-");
@@ -164,25 +194,25 @@ export function EventsPage() {
           >
             All Companies ({events.length})
           </button>
-          {companies.map((comp) => {
+          {allCompanyNames.map((compName) => {
             const count = events.filter(
-              (e) => e.company_name.toLowerCase() === comp.company_name.toLowerCase()
+              (e) => e.company_name.toLowerCase() === compName.toLowerCase()
             ).length;
-            if (count === 0) return null;
             return (
               <button
-                key={comp.company_name}
-                onClick={() => setSelectedCompany(comp.company_name)}
+                key={compName}
+                onClick={() => setSelectedCompany(compName)}
                 className={`app-filter-btn ${
-                  selectedCompany.toLowerCase() === comp.company_name.toLowerCase()
+                  selectedCompany.toLowerCase() === compName.toLowerCase()
                     ? "app-filter-btn-active"
                     : ""
                 }`}
               >
-                {comp.company_name} ({count})
+                {compName} {count > 0 ? `(${count})` : ""}
               </button>
             );
           })}
+
         </div>
 
         {/* Tier & Confidence Filter Pills */}
