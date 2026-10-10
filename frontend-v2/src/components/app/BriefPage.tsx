@@ -37,7 +37,7 @@ import {
 import { parseBriefMarkdown, type ParsedBrief } from "@/lib/briefParser";
 
 export function BriefPage() {
-  const { targetCompany, triggerSweep } = useWorkspace();
+  const { targetCompany, tenantId, triggerSweep } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -74,11 +74,12 @@ export function BriefPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadBriefs();
   }, [loadBriefs]);
+
 
   // Handle switching to another historical brief
   const handleSelectBrief = async (briefId: string) => {
@@ -411,9 +412,21 @@ export function BriefPage() {
             ))}
           </div>
         </section>
+      {/* Fallback Analysis Display if brief does not contain numbered decisions */}
+      {(!parsed || (parsed.topDecisions.length === 0 && parsed.mustKnow.length === 0 && parsed.shouldKnow.length === 0 && parsed.rollupRows.length === 0)) && selectedBrief?.content && (
+        <section className="p-6 rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] shadow-xs space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#6e57dc]" />
+            <h2 className="app-title-md">Executive Intelligence Analysis</h2>
+          </div>
+          <div className="text-xs sm:text-sm text-[#374151] leading-relaxed whitespace-pre-wrap font-sans bg-zinc-50 p-5 rounded-xl border border-zinc-100 max-h-[600px] overflow-y-auto">
+            {selectedBrief.content}
+          </div>
+        </section>
       )}
 
       {/* Evidence & Methodology Integrity Footer */}
+
       <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 text-xs text-[#595a63] space-y-2">
         <div className="font-bold text-[#17171b] flex items-center gap-1.5 text-xs">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
