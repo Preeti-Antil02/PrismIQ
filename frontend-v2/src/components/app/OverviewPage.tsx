@@ -65,7 +65,7 @@ export function OverviewPage() {
       const [compsRes, eventsRes, signalsRes, findingsRes, radarRes, topicsRes] =
         await Promise.allSettled([
           fetchTrackedCompanies(),
-          fetchEvents({ limit: 50 }),
+          fetchEvents({ limit: 100 }),
           fetchSignals({ limit: 200 }),
           fetchFindings(),
           fetchLatestRadar(),
@@ -95,24 +95,65 @@ export function OverviewPage() {
     return buildCompetitorSummaries(trackedCompanies, signals, events, findings, radarEvals);
   }, [trackedCompanies, signals, events, findings, radarEvals]);
 
-  // High priority "Attention" items: Events marked Must-Know or Should-Know or with findings
+  // High priority "Attention" items: Top 5 distinct companies' most impactful development
   const attentionItems = React.useMemo(() => {
-    // Sort events by tier severity (Must-Know > Should-Know > Nice-to-Know) and recency
-    const items = [...events].sort((a, b) => {
-      const tierRank = (t?: string) => {
-        const lower = (t || "").toLowerCase();
-        if (lower.includes("must")) return 3;
-        if (lower.includes("should")) return 2;
-        return 1;
-      };
+    const tierRank = (t?: string) => {
+      const lower = (t || "").toLowerCase();
+      if (lower.includes("must")) return 3;
+      if (lower.includes("should")) return 2;
+      return 1;
+    };
+
+    // Sort all events by impact: tier severity > corroboration count > recency
+    const sorted = [...events].sort((a, b) => {
       const rA = tierRank(a.tier);
       const rB = tierRank(b.tier);
       if (rB !== rA) return rB - rA;
+
+      const cA = a.corroboration_count || 1;
+      const cB = b.corroboration_count || 1;
+      if (cB !== cA) return cB - cA;
+
       const tA = a.published_timestamp || a.published_at || "";
       const tB = b.published_timestamp || b.published_at || "";
       return tB.localeCompare(tA);
     });
-    return items.slice(0, 5);
+
+    // Group events by company (case-insensitive key)
+    const companyEventMap = new Map<string, ConsolidatedEventRecord[]>();
+    for (const ev of sorted) {
+      const key = (ev.company_name || "").trim().toLowerCase();
+      if (!companyEventMap.has(key)) {
+        companyEventMap.set(key, []);
+      }
+      companyEventMap.get(key)!.push(ev);
+    }
+
+    // Pick top 1 event from top 5 distinct companies
+    const distinctPicks: ConsolidatedEventRecord[] = [];
+    const usedIds = new Set<string>();
+
+    for (const [, compEvents] of companyEventMap.entries()) {
+      if (distinctPicks.length >= 5) break;
+      const topCompEvent = compEvents[0];
+      if (topCompEvent) {
+        distinctPicks.push(topCompEvent);
+        usedIds.add(topCompEvent.event_id);
+      }
+    }
+
+    // If fewer than 5 distinct companies have events, backfill with remaining highest-impact events
+    if (distinctPicks.length < 5) {
+      for (const ev of sorted) {
+        if (!usedIds.has(ev.event_id)) {
+          distinctPicks.push(ev);
+          usedIds.add(ev.event_id);
+          if (distinctPicks.length >= 5) break;
+        }
+      }
+    }
+
+    return distinctPicks;
   }, [events]);
 
   const recentEvents = React.useMemo(() => {
