@@ -218,20 +218,30 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Dark Custom Scrollbar */
+/* High-Visibility Elegant Custom Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(90, 80, 140, 0.38) rgba(20, 20, 30, 0.05);
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #08090C;
-}
-::-webkit-scrollbar-thumb {
-  background: #1F2430;
+  background: rgba(20, 20, 30, 0.04);
   border-radius: 9999px;
 }
+::-webkit-scrollbar-thumb {
+  background: rgba(90, 80, 140, 0.35);
+  border-radius: 9999px;
+  border: 2px solid rgba(251, 250, 248, 0.85);
+  background-clip: padding-box;
+}
 ::-webkit-scrollbar-thumb:hover {
-  background: #2D3445;
+  background: rgba(110, 87, 220, 0.75);
+  border: 2px solid rgba(251, 250, 248, 0.85);
+  background-clip: padding-box;
 }
 
 /* Subtle staggered entrance animation keyframes */
