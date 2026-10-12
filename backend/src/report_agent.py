@@ -517,6 +517,16 @@ def run(
         lines.append("## Executive Summary & Theme Synthesis Rollup\n")
         total_f = exec_summary.get("total_findings", len(findings))
         pat_count = exec_summary.get("patterns_detected_count", 0)
+
+        # High-impact qualitative strategic narrative for company leadership
+        if top_decisions:
+            comp_names = list(dict.fromkeys([d.get("company", "") for d in top_decisions if d.get("company")]))
+            lines.append(
+                f"**Strategic Takeaway**: High-priority competitive movements were identified across {', '.join(comp_names[:3])}. "
+                f"Key developments center on operational realignment, platform capability expansions, and market positioning. "
+                f"Leadership must prioritize counter-measures outlined in the decision vectors below.\n"
+            )
+
         lines.append(
             f"- **Monitoring Scope**: {total_f} consolidated events synthesized across {len(themes)} strategic themes."
         )
