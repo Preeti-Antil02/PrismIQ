@@ -406,3 +406,35 @@
   border-color: var(--app-indigo);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
+
+/* ============================================================
+   HIGH-VISIBILITY CUSTOM SCROLLBAR
+   ============================================================ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(90, 80, 140, 0.38) rgba(20, 20, 30, 0.05);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(20, 20, 30, 0.04);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(90, 80, 140, 0.35);
+  border-radius: 9999px;
+  border: 2px solid rgba(251, 250, 248, 0.85);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(110, 87, 220, 0.75);
+  border: 2px solid rgba(251, 250, 248, 0.85);
+  background-clip: padding-box;
+}
+
