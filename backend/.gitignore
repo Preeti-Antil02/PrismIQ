@@ -1,6 +1,8 @@
 # Secrets & Environment Variables
 .env
 *.env
+.env*
+.env.readonly
 !.env.example
 .env.*.local
 
