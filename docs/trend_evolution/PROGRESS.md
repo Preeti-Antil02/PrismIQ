@@ -10,8 +10,8 @@
 
 | Milestone | Description | Status | Evidence Pointer / SHA256 |
 | :--- | :--- | :--- | :--- |
-| **T0** | Preflight & State Verification | **IN PROGRESS** | Blocked on local read-only connection file saving |
-| **T1** | Pure Core Logic (Rules, Momentum, Dates) | NOT STARTED | Pending T0 completion |
+| **T0** | Preflight & State Verification | **DONE** | `scratch/evidence/manifest.json` (7 artifacts registered) |
+| **T1** | Pure Core Logic (Rules, Momentum, Dates) | **NEXT** | Offline unit/property tests |
 | **T2** | Clustering Prototype & Owner Grading | NOT STARTED | Pending T1 completion |
 | **T3** | Schema Migration 008 (Draft & RLS Tests) | NOT STARTED | Pending T2 grade selection |
 | **T4** | Build Pipeline & LLM Labelling | NOT STARTED | Pending T3 migration execution |
