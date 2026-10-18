@@ -143,7 +143,7 @@ def normalize_postgres_url(raw_url: Optional[str], reference_url: Optional[str] 
     if match:
         url = match.group(1)
 
-    m = re.match(r'^(postgres(?:ql)?://)([^:]+):([^@]+)@([^:/]+)(?::(\d+))?(/.*)$', url)
+    m = re.match(r'^(postgres(?:ql)?://)([^:]+):(.*)@([^:/@]+)(?::(\d+))?(/.*)?$', url)
     if m:
         scheme, user, password, host, port, rest = m.groups()
         # If connecting to Supabase pooler
@@ -156,7 +156,8 @@ def normalize_postgres_url(raw_url: Optional[str], reference_url: Optional[str] 
         if "%" not in password:
             password = urllib.parse.quote(urllib.parse.unquote(password), safe="")
         port_str = f":{port}" if port else ""
-        return f"{scheme}{user}:{password}@{host}{port_str}{rest}"
+        rest_str = rest if rest else "/postgres"
+        return f"{scheme}{user}:{password}@{host}{port_str}{rest_str}"
 
     return url.strip().strip("'").strip('"').strip()
 

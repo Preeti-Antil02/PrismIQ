@@ -62,8 +62,7 @@ def pipeline_concurrency_lock(
         return
 
     ref = os.getenv("SUPABASE_READONLY_DB_URL") or os.getenv("READONLY_DATABASE_URL")
-    raw_url = ref if storage.is_dry_run() else (os.getenv("SUPABASE_DB_URL") or storage.get_db_url())
-    db_url = storage.normalize_postgres_url(raw_url, reference_url=ref)
+    db_url = storage.normalize_postgres_url(ref) if storage.is_dry_run() else storage.get_db_url()
 
     if not db_url:
         logger.warning("No database URL available for advisory locking. Running with local lock.")
