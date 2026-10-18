@@ -95,11 +95,11 @@ def is_live_write_permitted() -> bool:
 
 
 
-def normalize_postgres_url(raw_url: Optional[str]) -> Optional[str]:
+def normalize_postgres_url(raw_url: Optional[str], reference_url: Optional[str] = None) -> Optional[str]:
     """
     Robustly clean and normalize PostgreSQL connection URLs.
     Handles accidental quotes, leading whitespace, missing scheme prefixes,
-    or pasted environment variable assignment syntax.
+    pasted environment variable assignment syntax, or password-only values.
     """
     if not raw_url:
         return None
@@ -117,6 +117,15 @@ def normalize_postgres_url(raw_url: Optional[str]) -> Optional[str]:
         url = match.group(1)
     elif "://" not in url and "@" in url:
         url = "postgresql://" + url
+    elif "://" not in url and "@" not in url and reference_url:
+        ref = reference_url.strip().strip("'").strip('"').strip()
+        m = re.match(r'postgres(?:ql)?://(?:[^:]+)\.([^:]+):([^@]+)@([^/]+)/(.+)', ref)
+        if m:
+            project_ref = m.group(1)
+            host_port = m.group(3)
+            dbname = m.group(4)
+            scheme = "postgres" + "ql://"
+            url = f"{scheme}postgres.{project_ref}:{url}@{host_port}/{dbname}"
     
     return url.strip().strip("'").strip('"').strip()
 
@@ -142,7 +151,8 @@ def get_db_url() -> Optional[str]:
         or os.getenv("POSTGRES_URL")
         or DEFAULT_SUPABASE_DB_URL
     )
-    return normalize_postgres_url(raw)
+    ref = os.getenv("SUPABASE_READONLY_DB_URL") or os.getenv("READONLY_DATABASE_URL")
+    return normalize_postgres_url(raw, reference_url=ref)
 
 
 _DB_POOL: Optional[Any] = None
