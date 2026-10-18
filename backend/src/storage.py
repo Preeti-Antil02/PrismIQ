@@ -110,12 +110,15 @@ def get_db_url() -> Optional[str]:
             return test_url
         return None
 
-    return (
+    raw = (
         os.getenv("SUPABASE_DB_URL")
         or os.getenv("DATABASE_URL")
         or os.getenv("POSTGRES_URL")
         or DEFAULT_SUPABASE_DB_URL
     )
+    if raw:
+        raw = raw.strip().strip("'").strip('"').strip()
+    return raw
 
 
 _DB_POOL: Optional[Any] = None
@@ -144,6 +147,8 @@ def get_db_connection(db_url: Optional[str] = None, readonly: bool = False) -> T
     is_platform = (os.getenv("GITHUB_ACTIONS") == "true" or os.getenv("RENDER") == "true")
     is_dry = os.getenv("DRY_RUN", "").lower() == "true"
     ro_url = os.getenv("SUPABASE_READONLY_DB_URL") or os.getenv("READONLY_DATABASE_URL")
+    if ro_url:
+        ro_url = ro_url.strip().strip("'").strip('"').strip()
     write_url = get_db_url()
 
     if not db_url:
