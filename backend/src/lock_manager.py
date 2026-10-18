@@ -62,14 +62,25 @@ def pipeline_concurrency_lock(
         return
 
     # Live PostgreSQL Distributed Advisory Lock (Transaction-Scoped for PgBouncer compatibility)
-    db_url = os.getenv("SUPABASE_DB_URL") or storage.get_db_url()
+    if storage.is_dry_run():
+        db_url = os.getenv("SUPABASE_READONLY_DB_URL")
+    else:
+        db_url = os.getenv("SUPABASE_DB_URL") or storage.get_db_url()
+
     if not db_url:
         logger.warning("No database URL available for advisory locking. Running with local lock.")
         yield True
         return
 
-    conn = psycopg2.connect(db_url)
-    cur = conn.cursor()
+    try:
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+    except Exception as conn_err:
+        if storage.is_dry_run():
+            logger.warning(f"Advisory lock connection failed in dry-run mode ({conn_err}). Proceeding with local lock.")
+            yield True
+            return
+        raise
 
     try:
         cur.execute("BEGIN;")
