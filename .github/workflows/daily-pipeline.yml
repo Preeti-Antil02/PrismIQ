@@ -79,6 +79,7 @@ jobs:
           INPUT_SCOPE: ${{ github.event.inputs.scope }}
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_READONLY_DB_URL: ${{ secrets.SUPABASE_READONLY_DB_URL }}
           ALLOW_LIVE_WRITE: "true"
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
