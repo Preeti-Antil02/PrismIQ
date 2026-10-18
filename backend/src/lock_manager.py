@@ -61,27 +61,24 @@ def pipeline_concurrency_lock(
             logger.info(f"Released in-memory test lock {key}.")
         return
 
-    if storage.is_dry_run():
-        db_url = os.getenv("SUPABASE_READONLY_DB_URL")
-    else:
-        db_url = os.getenv("SUPABASE_DB_URL") or storage.get_db_url()
+    raw_url = os.getenv("SUPABASE_READONLY_DB_URL") if storage.is_dry_run() else (os.getenv("SUPABASE_DB_URL") or storage.get_db_url())
+    db_url = storage.normalize_postgres_url(raw_url)
 
     if not db_url:
         logger.warning("No database URL available for advisory locking. Running with local lock.")
         yield True
         return
 
-    db_url = db_url.strip().strip("'").strip('"').strip()
-
     try:
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
     except Exception as conn_err:
-        if storage.is_dry_run():
-            logger.warning(f"Advisory lock connection failed in dry-run mode ({conn_err}). Proceeding with local lock.")
-            yield True
-            return
-        raise
+        logger.warning(
+            f"Advisory lock connection to PostgreSQL could not be established ({conn_err}). "
+            "Proceeding with in-memory lock to avoid blocking scheduled pipeline run."
+        )
+        yield True
+        return
 
     try:
         cur.execute("BEGIN;")
