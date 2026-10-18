@@ -6,6 +6,20 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
     # Allows manual trigger for validation and operational testing
+    inputs:
+      scope:
+        description: "Pipeline execution scope"
+        required: true
+        default: "owner"
+        type: choice
+        options:
+          - owner
+          - scheduled
+      dry_run:
+        description: "Execute in dry-run mode (read-only, no database writes, no Slack delivery)"
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   run-pipeline:
@@ -29,17 +43,49 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Run LangGraph Pipeline via Cron Runner
+      - name: Run LangGraph Pipeline (Dry-Run Simulation)
+        if: github.event_name == 'workflow_dispatch' && (github.event.inputs.dry_run == 'true' || github.event.inputs.dry_run == true)
         env:
           PYTHONPATH: backend
-          ALLOW_LIVE_WRITE: "true"
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          INPUT_SCOPE: ${{ github.event.inputs.scope }}
+          INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
+          SUPABASE_READONLY_DB_URL: ${{ secrets.SUPABASE_READONLY_DB_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL || 'openai/gpt-oss-120b' }}
+          CURRENTS_API_KEY: ${{ secrets.CURRENTS_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          OWNER_TENANT_ID: ${{ secrets.OWNER_TENANT_ID || 'c8f13b91-46ef-4682-9975-f85764d8a12e' }}
+          SOURCES: "news,github,jobs,pricing,research"
+          PIPELINE_TRIGGER_MODE: "manual"
+          PIPELINE_CADENCE_NAME: "daily"
+          PIPELINE_CRON_SCHEDULE: "0 0 * * *"
+          LANGCHAIN_TRACING_V2: ${{ secrets.LANGCHAIN_TRACING_DRY_RUN || 'false' }}
+          LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+          LANGCHAIN_PROJECT: "prismiq-dry-run"
+          LANGCHAIN_ENDPOINT: "https://api.smith.langchain.com"
+        run: |
+          if [ -z "$SUPABASE_READONLY_DB_URL" ]; then
+            echo "ERROR: SUPABASE_READONLY_DB_URL secret is empty or not configured. Dry-run aborted." >&2
+            exit 1
+          fi
+          python backend/src/cron_runner.py
+
+      - name: Run LangGraph Pipeline (Live Production Mode)
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true' && github.event.inputs.dry_run != true)
+        env:
+          PYTHONPATH: backend
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          INPUT_SCOPE: ${{ github.event.inputs.scope }}
+          INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          ALLOW_LIVE_WRITE: "true"
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: ${{ secrets.GROQ_MODEL || 'openai/gpt-oss-120b' }}
           CURRENTS_API_KEY: ${{ secrets.CURRENTS_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT_TOKEN || secrets.GITHUB_TOKEN }}
-          OWNER_TENANT_ID: ${{ secrets.OWNER_TENANT_ID }}
+          OWNER_TENANT_ID: ${{ secrets.OWNER_TENANT_ID || 'c8f13b91-46ef-4682-9975-f85764d8a12e' }}
           SOURCES: "news,github,jobs,pricing,research"
           PIPELINE_TRIGGER_MODE: ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }}
           PIPELINE_CADENCE_NAME: "daily"
@@ -49,4 +95,8 @@ jobs:
           LANGCHAIN_PROJECT: "prismiq-production"
           LANGCHAIN_ENDPOINT: "https://api.smith.langchain.com"
         run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "ERROR: SUPABASE_DB_URL secret is missing for live pipeline execution." >&2
+            exit 1
+          fi
           python backend/src/cron_runner.py
