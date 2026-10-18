@@ -29,7 +29,10 @@ PHASE 2 - PER-TENANT INTELLIGENCE (executed per active tenant):
 
 import logging
 import os
+import re
 import time
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
 from langgraph.graph import StateGraph, START, END
 
@@ -86,6 +89,56 @@ class PipelineState(TypedDict, total=False):
     run_id: Optional[str]
     is_first_run: Optional[bool]
     progressive_findings: Dict[str, List[Dict[str, Any]]]
+    pipeline_start_monotonic: Optional[float]
+    phase1_budget_seconds: Optional[float]
+    global_deadline_seconds: Optional[float]
+    pipeline_errors: Optional[List[str]]
+    is_owner_fatal: Optional[bool]
+
+
+def normalize_company_key(name: str) -> str:
+    """Normalize company name for robust alias and canonical-key matching."""
+    if not name:
+        return ""
+    clean = name.strip().lower()
+    # Remove common corporate suffixes
+    clean = re.sub(r"\b(inc\.?|llc\.?|corp\.?|corporation|technologies|ltd\.?)\b", "", clean)
+    clean = re.sub(r"[^\w\s]", " ", clean)
+    clean = re.sub(r"\s+", " ", clean).strip()
+    return clean
+
+
+def is_event_tracked_by_tenant(event_company: str, tracked_companies: List[str]) -> bool:
+    """
+    Fail-closed matching: returns True ONLY if event_company matches one of
+    the tenant's tracked companies under exact or normalized canonical-key equality.
+    Does NOT do substring matching to prevent distinct entity leakage (e.g. Amazon India vs Amazon).
+    """
+    if not event_company or not tracked_companies:
+        return False
+    norm_event = normalize_company_key(event_company)
+    norm_tracked = {normalize_company_key(c) for c in tracked_companies if c}
+
+    return event_company in tracked_companies or norm_event in norm_tracked
+
+
+DEFAULT_OWNER_TENANT_ID = "c8f13b91-46ef-4682-9975-f85764d8a12e"
+
+
+def resolve_owner_tenant_id() -> str:
+    """
+    Resolve and validate OWNER_TENANT_ID from environment.
+    Falls back to canonical DEFAULT_OWNER_TENANT_ID if unset or empty string.
+    Fails startup with ValueError if resolved value is empty or not a valid UUID.
+    """
+    import uuid
+    raw = (os.getenv("OWNER_TENANT_ID") or "").strip()
+    owner_id = raw if raw else DEFAULT_OWNER_TENANT_ID
+    try:
+        val = uuid.UUID(owner_id)
+        return str(val)
+    except (ValueError, TypeError, AttributeError):
+        raise ValueError(f"FATAL: Resolved OWNER_TENANT_ID '{owner_id}' is empty or not a valid UUID.")
 
 
 def _resolve_tenants(state: PipelineState) -> List[Dict[str, Any]]:
@@ -94,7 +147,7 @@ def _resolve_tenants(state: PipelineState) -> List[Dict[str, Any]]:
     if not tenants:
         tenants = storage.get_active_tenants()
 
-    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+    owner_id = resolve_owner_tenant_id()
 
     # If state explicitly provided target_company/competitors override (e.g. test fixtures)
     if not tenants:
@@ -118,6 +171,13 @@ def _resolve_tenants(state: PipelineState) -> List[Dict[str, Any]]:
         tenants[0]["competitors"] = comps
         tenants[0]["tracked_companies"] = [target] + comps
 
+    # Restrict to owner if PIPELINE_SCOPE == "owner"
+    scope = os.getenv("PIPELINE_SCOPE", "all").strip().lower()
+    if scope == "owner" and tenants:
+        tenants = [t for t in tenants if str(t.get("tenant_id")) == str(owner_id)]
+
+    # Guarantee owner is always sorted first
+    tenants = sorted(tenants, key=lambda t: 0 if str(t.get("tenant_id")) == str(owner_id) else 1)
     return tenants
 
 
@@ -128,15 +188,42 @@ def _resolve_tenants(state: PipelineState) -> List[Dict[str, Any]]:
 def supervisor_node(state: PipelineState) -> Dict[str, Any]:
     """
     Evaluates per-cycle run conditions and skip policies across distinct tracked companies.
+    - Fails loudly if process start timestamp is missing.
+    - Preloads entity anchors in-memory.
+    - Restricts scope to owner companies if PIPELINE_SCOPE == "owner".
     - Pricing: Checks whether snapshots for all tracked companies are fresh (< 24.0h old).
-      If fresh, skips pricing scrape to avoid unnecessary headless browser overhead.
-      If stale or missing, schedules pricing scrape.
     """
+    start_m = state.get("pipeline_start_monotonic")
+    if start_m is None and not storage.is_test_environment():
+        raise RuntimeError("CRITICAL RUNTIME ERROR: pipeline_start_monotonic timestamp is missing at entry!")
+
     logger.info("LangGraph Node 1/8 (Phase 1): Supervisor evaluating cycle run policies across tracked companies...")
+
+    # Preload entity anchors in bulk once per run
+    try:
+        from . import relevance_verifier
+        relevance_verifier.preload_entity_anchors()
+    except Exception as e:
+        logger.debug(f"Entity anchor preloading skipped: {e}")
+
     phase_timing = dict(state.get("phase_timing") or {})
     phase_timing["phase1_start"] = time.time()
     companies = state.get("companies") or storage.get_all_tracked_companies()
     configured_sources = state.get("configured_sources") or list(config.SOURCES)
+
+    scope = os.getenv("PIPELINE_SCOPE", "all").strip().lower()
+    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+    tenants = _resolve_tenants(state)
+
+    if scope == "owner":
+        owner_tracked = []
+        for t in tenants:
+            if str(t.get("tenant_id")) == str(owner_id):
+                owner_tracked = t.get("tracked_companies") or []
+                break
+        if owner_tracked:
+            companies = [c for c in companies if c in owner_tracked]
+            logger.info(f"PIPELINE_SCOPE='owner': Restricting Phase 1 companies to owner's tracked: {companies}")
 
     supervisor_decisions: Dict[str, Any] = {}
 
@@ -165,6 +252,7 @@ def supervisor_node(state: PipelineState) -> Dict[str, Any]:
         "configured_sources": configured_sources,
         "phase_timing": phase_timing,
     }
+
 
 
 PIPELINE_SAFETY_CEILING_SECONDS = 2700.0  # 45 minutes safety ceiling
@@ -199,23 +287,45 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
         if supervisor_decisions.get(s, {}).get("action") != "skip"
     ]
 
+    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+    owner_tracked: Set[str] = set()
+    for t in tenants:
+        if str(t.get("tenant_id")) == str(owner_id):
+            owner_tracked.update(t.get("tracked_companies") or [])
+
+    # Order companies: owner's tracked companies processed first
+    ordered_companies = [c for c in companies if c in owner_tracked] + [c for c in companies if c not in owner_tracked]
+    phase1_budget_seconds = state.get("phase1_budget_seconds", 900.0)
+    phase1_start_m = time.monotonic()
+    per_company_timeout_seconds = 30.0
+
     # Non-progressive legacy/test execution fallback (when no run_id is provided)
     if not run_id:
         signals, source_health = monitoring_agent.run(
-            companies=companies,
+            companies=ordered_companies,
             active_sources=active_sources,
             supervisor_decisions=supervisor_decisions,
             return_health=True,
         )
-        storage.save_signals(signals, filepath=state.get("signals_storage_path"))
-        logger.info(f"Monitoring completed: {len(signals)} raw signals collected for {len(companies)} companies.")
+        if not storage.is_dry_run():
+            storage.save_signals(signals, filepath=state.get("signals_storage_path"))
+        logger.info(f"Monitoring completed: {len(signals)} raw signals collected for {len(ordered_companies)} companies.")
         try:
-            topic_research_items = monitoring_agent.fetch_topic_research_items(days=14)
+            scope = os.getenv("PIPELINE_SCOPE", "all").strip().lower()
+            if scope == "owner":
+                owner_topics = storage.get_tenant_research_topics(owner_id)
+                active_topics = [t["topic_label"] for t in owner_topics] if owner_topics else []
+            else:
+                active_topics = None
+            topic_research_items = monitoring_agent.fetch_topic_research_items(
+                topics=active_topics,
+                days=14,
+            )
             if topic_research_items:
-                logger.info(f"Phase 1: Ingested {len(topic_research_items)} global domain research items across active topics.")
+                logger.info(f"Phase 1: Ingested {len(topic_research_items)} domain research items across active topics.")
         except Exception as e:
             logger.warning(f"Failed to fetch global topic research items: {e}")
-        return {"raw_signals": signals, "source_health": source_health, "companies": companies}
+        return {"raw_signals": signals, "source_health": source_health, "companies": ordered_companies}
 
     # Progressive execution with per-company incremental persistence
     all_signals: List[Dict[str, Any]] = []
@@ -228,109 +338,173 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
     # For first-ever run: prioritize fast sources first (News, GitHub, Jobs)
     pass1_sources = [s for s in active_sources if s in monitoring_agent.FAST_SOURCES] if is_first_run else active_sources
 
-    storage.update_pipeline_progress(
-        run_id,
-        phase="fetching_signals",
-        message=f"Fetching signals: 0 of {len(companies)} competitors complete",
-    )
+    if not storage.is_dry_run():
+        storage.update_pipeline_progress(
+            run_id,
+            phase="fetching_signals",
+            message=f"Fetching signals: 0 of {len(ordered_companies)} competitors complete",
+        )
 
-    for comp in companies:
-        # Check hard 45-minute timeout ceiling
-        if (time.time() - start_time) > PIPELINE_SAFETY_CEILING_SECONDS:
-            logger.warning(f"Pipeline exceeded {PIPELINE_SAFETY_CEILING_SECONDS}s ceiling. Marking run timed_out.")
-            storage.complete_pipeline_run(run_id, status="timed_out", error_message="Pipeline run exceeded 45-minute safety ceiling.")
+    phase_metrics = {
+        "collection_seconds": 0.0,
+        "noise_suppression_seconds": 0.0,
+        "consolidation_seconds": 0.0,
+        "candidate_signals_verified": 0,
+        "db_lookups": 0,
+        "cache_hits": 0,
+    }
+
+    for comp in ordered_companies:
+        # Enforce Phase 1 budget, 38 min cutoff, and 41 min hard stop
+        phase1_elapsed = time.monotonic() - phase1_start_m
+        if phase1_elapsed > phase1_budget_seconds and comp not in owner_tracked:
+            logger.warning(
+                f"Phase 1 budget ({phase1_budget_seconds:.1f}s) exceeded ({phase1_elapsed:.1f}s elapsed). "
+                f"Skipping company '{comp}' [skipped_budget]."
+            )
+            continue
+
+        elapsed_overall = time.monotonic() - (state.get("pipeline_start_monotonic") or phase1_start_m)
+        if elapsed_overall > 2280.0 and comp not in owner_tracked:
+            logger.warning(f"Pipeline elapsed ({elapsed_overall:.1f}s) exceeded 38 min cutoff. Skipping company '{comp}'.")
+            continue
+        if elapsed_overall > 2460.0:
+            logger.error(f"Pipeline elapsed ({elapsed_overall:.1f}s) reached 41 min hard stop. Halting company sweep.")
             break
 
+        comp_fetch_start = time.monotonic()
         c_signals, c_health = monitoring_agent.fetch_company_signals(
             comp,
             active_sources=pass1_sources,
             days=45 if is_first_run else 30,
         )
+        comp_fetch_dur = time.monotonic() - comp_fetch_start
+        phase_metrics["collection_seconds"] += comp_fetch_dur
+        if comp_fetch_dur > per_company_timeout_seconds:
+            logger.warning(f"Per-company timeout ({per_company_timeout_seconds}s) exceeded for '{comp}' ({comp_fetch_dur:.2f}s).")
+
         all_signals.extend(c_signals)
         all_health.update(c_health)
 
         # 1. Immediately persist raw signals for this company
         if c_signals:
-            storage.save_signals(c_signals, filepath=state.get("signals_storage_path"))
+            if not storage.is_dry_run():
+                storage.save_signals(c_signals, filepath=state.get("signals_storage_path"))
 
             # 2. Immediately run noise suppression for this company
+            t_ns0 = time.monotonic()
             noise_res = noise_suppressor.run(c_signals)
+            phase_metrics["noise_suppression_seconds"] += (time.monotonic() - t_ns0)
+            phase_metrics["candidate_signals_verified"] += len(c_signals)
+            
+            try:
+                from src.relevance_verifier import get_relevance_verifier_metrics
+                rv_m = get_relevance_verifier_metrics()
+                phase_metrics["db_lookups"] += rv_m.get("db_lookups", 0)
+                phase_metrics["cache_hits"] += rv_m.get("cache_hits", 0)
+            except Exception:
+                pass
+
             c_kept = noise_res["kept_signals"]
             all_kept_signals.extend(c_kept)
-            storage.save_noise_decisions(noise_res.get("decisions", []))
+            if not storage.is_dry_run():
+                storage.save_noise_decisions(noise_res.get("decisions", []))
 
             # 3. Immediately consolidate events for this company & persist
             if c_kept:
+                t_ec0 = time.monotonic()
                 c_events = event_consolidator.run(c_kept)
+                phase_metrics["consolidation_seconds"] += (time.monotonic() - t_ec0)
                 all_events.extend(c_events)
-                storage.save_events(c_events, filepath=state.get("events_storage_path"))
+                if not storage.is_dry_run():
+                    storage.save_events(c_events, filepath=state.get("events_storage_path"))
 
                 # 4. Immediately run tenant analysis for any tenant tracking this company
                 for t in tenants:
                     tid = t["tenant_id"]
                     tracked = t.get("tracked_companies") or ([t.get("target_company")] + t.get("competitors", []))
-                    if comp in tracked or not tracked:
+                    if is_event_tracked_by_tenant(comp, tracked):
                         t_target = t.get("target_company", comp)
                         t_comps = t.get("competitors", [])
                         c_findings = analysis_agent.run(c_events, target_company=t_target, competitors=t_comps)
-                        storage.save_findings(c_findings, tenant_id=tid)
+                        if not storage.is_dry_run():
+                            storage.save_findings(c_findings, tenant_id=tid)
                         progressive_findings.setdefault(tid, []).extend(c_findings)
 
                 # Record first visible data timestamp on the first company with queryable rows
-                storage.record_first_visible_data(run_id)
+                if not storage.is_dry_run():
+                    storage.record_first_visible_data(run_id)
 
         completed_names.append(comp)
-        msg = f"Fetching signals: {len(completed_names)} of {len(companies)} competitors complete"
-        storage.update_pipeline_progress(
-            run_id,
-            phase="fetching_signals",
-            completed_companies=len(completed_names),
-            completed_company_names=completed_names,
-            current_company=comp,
-            message=msg,
-            source_health=all_health,
-        )
+        msg = f"Fetching signals: {len(completed_names)} of {len(ordered_companies)} competitors complete"
+        if not storage.is_dry_run():
+            storage.update_pipeline_progress(
+                run_id,
+                phase="fetching_signals",
+                completed_companies=len(completed_names),
+                completed_company_names=completed_names,
+                current_company=comp,
+                message=msg,
+                source_health=all_health,
+            )
+
+    logger.info(
+        f"[TIMING METRICS] Collection: {phase_metrics['collection_seconds']:.2f}s | "
+        f"Noise Suppression: {phase_metrics['noise_suppression_seconds']:.2f}s (Verified: {phase_metrics['candidate_signals_verified']} signals, "
+        f"DB lookups: {phase_metrics['db_lookups']}, Cache hits: {phase_metrics['cache_hits']}) | "
+        f"Consolidation: {phase_metrics['consolidation_seconds']:.2f}s"
+    )
 
     # Pass 2: If first-ever run, execute deferred slower sources (pricing, research radar) in background
     if is_first_run:
         deferred_sources = [s for s in active_sources if s in monitoring_agent.SLOW_SOURCES]
         if deferred_sources:
-            storage.update_pipeline_progress(
-                run_id,
-                phase="background_research",
-                message="Gathering pricing and research radar sweeps in background...",
-            )
-            for comp in companies:
+            if not storage.is_dry_run():
+                storage.update_pipeline_progress(
+                    run_id,
+                    phase="background_research",
+                    message="Gathering pricing and research radar sweeps in background...",
+                )
+            for comp in ordered_companies:
                 if (time.time() - start_time) > PIPELINE_SAFETY_CEILING_SECONDS:
                     break
                 def_sigs, def_health = monitoring_agent.fetch_company_signals(comp, active_sources=deferred_sources)
                 all_health.update(def_health)
                 if def_sigs:
                     all_signals.extend(def_sigs)
-                    storage.save_signals(def_sigs)
+                    if not storage.is_dry_run():
+                        storage.save_signals(def_sigs)
                     n_res = noise_suppressor.run(def_sigs)
-                    storage.save_noise_decisions(n_res.get("decisions", []))
+                    if not storage.is_dry_run():
+                        storage.save_noise_decisions(n_res.get("decisions", []))
                     if n_res["kept_signals"]:
                         def_events = event_consolidator.run(n_res["kept_signals"])
                         all_events.extend(def_events)
-                        storage.save_events(def_events)
+                        if not storage.is_dry_run():
+                            storage.save_events(def_events)
                         for t in tenants:
                             tid = t["tenant_id"]
                             tracked = t.get("tracked_companies") or ([t.get("target_company")] + t.get("competitors", []))
-                            if comp in tracked or not tracked:
+                            if is_event_tracked_by_tenant(comp, tracked):
                                 t_target = t.get("target_company", comp)
                                 t_comps = t.get("competitors", [])
                                 def_findings = analysis_agent.run(def_events, target_company=t_target, competitors=t_comps)
-                                storage.save_findings(def_findings, tenant_id=tid)
+                                if not storage.is_dry_run():
+                                    storage.save_findings(def_findings, tenant_id=tid)
                                 progressive_findings.setdefault(tid, []).extend(def_findings)
 
-    # Phase 1: Ingest shared domain research items across all active tenant topics
+    # Phase 1: Ingest shared domain research items across active tenant topics
     try:
-        active_topics = []
-        for t in tenants:
-            for top in t.get("topics", []):
-                if top not in active_topics:
-                    active_topics.append(top)
+        scope = os.getenv("PIPELINE_SCOPE", "all").strip().lower()
+        if scope == "owner":
+            owner_topics = storage.get_tenant_research_topics(owner_id)
+            active_topics = [t["topic_label"] for t in owner_topics] if owner_topics else []
+        else:
+            active_topics = []
+            for t in tenants:
+                for top in t.get("topics", []):
+                    if top not in active_topics:
+                        active_topics.append(top)
         topic_research_items = monitoring_agent.fetch_topic_research_items(
             topics=active_topics if active_topics else None,
             days=14,
@@ -345,9 +519,10 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
         "kept_signals": all_kept_signals,
         "consolidated_events": all_events,
         "source_health": all_health,
-        "companies": companies,
+        "companies": ordered_companies,
         "progressive_findings": progressive_findings,
     }
+
 
 
 # ---------------------------------------------------------------------------
@@ -359,11 +534,12 @@ def noise_suppression_node(state: PipelineState) -> Dict[str, Any]:
     logger.info("LangGraph Node 3/8 (Phase 1): Noise Suppression - Filtering low-value raw noise...")
     run_id = state.get("run_id")
     if run_id:
-        storage.update_pipeline_progress(
-            run_id,
-            phase="filtering_noise",
-            message="Filtering low-value raw noise...",
-        )
+        if not storage.is_dry_run():
+            storage.update_pipeline_progress(
+                run_id,
+                phase="filtering_noise",
+                message="Filtering low-value raw noise...",
+            )
     if state.get("kept_signals") is not None:
         return {
             "kept_signals": state.get("kept_signals", []),
@@ -377,7 +553,8 @@ def noise_suppression_node(state: PipelineState) -> Dict[str, Any]:
     all_signals = noise_result.get("kept_signals", []) + noise_result.get("suppressed_signals", [])
     decisions = noise_result.get("decisions", [])
     # Pass all signals as lookup so FK-safety stub upsert has accurate metadata
-    storage.save_noise_decisions(decisions, raw_signals_lookup=all_signals if all_signals else raw_signals)
+    if not storage.is_dry_run():
+        storage.save_noise_decisions(decisions, raw_signals_lookup=all_signals if all_signals else raw_signals)
 
     logger.info(f"Noise Suppression: {len(kept_signals)}/{len(raw_signals)} signals kept.")
     return {
@@ -398,11 +575,12 @@ def event_consolidation_node(state: PipelineState) -> Dict[str, Any]:
     logger.info("LangGraph Node 4/8 (Phase 1): Event Consolidation - Clustering signals into canonical events...")
     run_id = state.get("run_id")
     if run_id:
-        storage.update_pipeline_progress(
-            run_id,
-            phase="consolidating_events",
-            message="Clustering signals into canonical events...",
-        )
+        if not storage.is_dry_run():
+            storage.update_pipeline_progress(
+                run_id,
+                phase="consolidating_events",
+                message="Clustering signals into canonical events...",
+            )
     phase_timing = dict(state.get("phase_timing") or {})
     phase_timing["phase1_end"] = time.time()
     phase1_dur = phase_timing["phase1_end"] - phase_timing.get("phase1_start", phase_timing["phase1_end"])
@@ -413,7 +591,8 @@ def event_consolidation_node(state: PipelineState) -> Dict[str, Any]:
     kept_signals = state.get("kept_signals", [])
     events = event_consolidator.run(kept_signals)
 
-    storage.save_events(events, filepath=state.get("events_storage_path"))
+    if not storage.is_dry_run():
+        storage.save_events(events, filepath=state.get("events_storage_path"))
     logger.info(f"Event Consolidation: {len(kept_signals)} signals consolidated into {len(events)} events.")
     logger.info(f"Phase 1 (Global Shared Fact-Gathering) completed in {phase1_dur:.1f}s.")
     return {"consolidated_events": events, "phase_timing": phase_timing}
@@ -436,12 +615,22 @@ def analysis_node(state: PipelineState) -> Dict[str, Any]:
     phase_timing["phase2_start"] = time.time()
     events = state.get("consolidated_events", [])
     tenants = _resolve_tenants(state)
-    owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+    owner_id = resolve_owner_tenant_id()
     run_id = state.get("run_id")
     progressive_findings = state.get("progressive_findings") or {}
 
     tenant_results = dict(state.get("tenant_results") or {})
     primary_findings: List[Dict[str, Any]] = []
+
+    start_m = state.get("pipeline_start_monotonic") or time.monotonic()
+    global_deadline = start_m + state.get("global_deadline_seconds", 2460.0)
+    sec_per_finding = analysis_agent.get_measured_seconds_per_finding()
+
+    # Startup availability probe for Groq cascade
+    pipeline_errors = list(state.get("pipeline_errors") or [])
+    if os.getenv("GROQ_API_KEY"):
+        # Probe each cascade model once per run; drops unavailable models, raises RuntimeError to FAIL RED if none available
+        analysis_agent.verify_groq_cascade_availability()
 
     for tenant in tenants:
         t0 = time.time()
@@ -451,40 +640,84 @@ def analysis_node(state: PipelineState) -> Dict[str, Any]:
         tracked = tenant.get("tracked_companies") or ([target] + comps)
         is_owner = (tid == owner_id or len(tenants) == 1)
 
+        elapsed_overall = time.monotonic() - start_m
+        if not is_owner and elapsed_overall > 2280.0:  # 38 min cutoff: no new tenant after 38 min
+            logger.warning(f"Pipeline elapsed ({elapsed_overall:.1f}s) exceeded 38 min cutoff. Skipping non-owner tenant: {tid}")
+            continue
+
+        if elapsed_overall > 2460.0:  # 41 min hard stop
+            logger.error(f"Pipeline elapsed ({elapsed_overall:.1f}s) reached 41 min hard stop. Halting Phase 2 processing.")
+            break
+
+        # Fail-closed event filtering using canonical normalization
+        tenant_events = [
+            e for e in events
+            if is_event_tracked_by_tenant(e.get("company", ""), tracked)
+        ]
+
+        # Phase 2 backlog retry: fetch pending unanalyzed events for this tenant's tracked companies
+        pending_count = 0
+        try:
+            pending_events = storage.get_pending_tenant_events(tid, tracked, days=7, limit=40)
+            if pending_events:
+                pending_count = len(pending_events)
+                logger.info(f"Retrieved {pending_count} pending backlog events for tenant {tid}.")
+                tenant_events = pending_events + tenant_events
+        except Exception as e:
+            logger.debug(f"Backlog event query skipped/failed for tenant {tid}: {e}")
+
+        # Per-tenant start decision based on measured seconds/finding
+        est_duration = len(tenant_events) * sec_per_finding
+        remaining = global_deadline - time.monotonic()
+        if not is_owner and remaining < est_duration:
+            logger.warning(
+                f"Skipping analysis for secondary tenant {tid}: estimated duration {est_duration:.1f}s "
+                f"({len(tenant_events)} events @ {sec_per_finding:.2f}s/finding) exceeds remaining budget {remaining:.1f}s."
+            )
+            continue
+
         # If findings were already computed progressively for this tenant, reuse them
         if tid in progressive_findings and progressive_findings[tid]:
             tenant_findings = progressive_findings[tid]
         else:
-            tenant_events = [
-                e for e in events
-                if e.get("company") in tracked or not tracked
-            ]
             tenant_findings = analysis_agent.run(
                 tenant_events,
                 target_company=target,
                 competitors=comps,
             )
-            storage.save_findings(tenant_findings, tenant_id=tid)
+            if not storage.is_dry_run():
+                storage.save_findings(tenant_findings, tenant_id=tid)
 
         if tid not in tenant_results:
-            tenant_results[tid] = {"tenant_id": tid, "target_company": target, "competitors": comps, "tracked_companies": tracked}
+            tenant_results[tid] = {
+                "tenant_id": tid,
+                "target_company": target,
+                "competitors": comps,
+                "tracked_companies": tracked,
+                "pending_events_count": pending_count,
+            }
         tenant_results[tid]["findings"] = tenant_findings
+        tenant_results[tid]["pending_events_count"] = pending_count
 
         if is_owner or not primary_findings:
             primary_findings = tenant_findings
 
         phase_timing.setdefault("tenant_timing", {}).setdefault(tid, 0.0)
-        phase_timing["tenant_timing"][tid] += (time.time() - t0)
+        dur = time.time() - t0
+        phase_timing["tenant_timing"][tid] += dur
+        logger.info(f"[TIMING] Phase 2 Analysis [Tenant {tid}]: {dur:.2f}s ({len(tenant_findings)} findings)")
 
     if run_id:
-        storage.update_pipeline_progress(
-            run_id,
-            phase="analyzing",
-            message=f"Strategic impact analysis complete across {len(tenants)} active tenant contexts",
-        )
+        if not storage.is_dry_run():
+            storage.update_pipeline_progress(
+                run_id,
+                phase="analyzing",
+                message=f"Strategic impact analysis complete across {len(tenants)} active tenant contexts",
+            )
 
     logger.info(f"Analysis completed across {len(tenants)} active tenants.")
     return {"findings": primary_findings, "tenant_results": tenant_results, "tenants": tenants, "phase_timing": phase_timing}
+
 
 
 # ---------------------------------------------------------------------------
@@ -497,11 +730,12 @@ def synthesis_node(state: PipelineState) -> Dict[str, Any]:
     run_id = state.get("run_id")
     tenant_results = dict(state.get("tenant_results") or {})
     if run_id:
-        storage.update_pipeline_progress(
-            run_id,
-            phase="synthesizing",
-            message=f"Cross-competitor theme rollups and pattern detection for {len(tenant_results)} tenants...",
-        )
+        if not storage.is_dry_run():
+            storage.update_pipeline_progress(
+                run_id,
+                phase="synthesizing",
+                message=f"Cross-competitor theme rollups and pattern detection for {len(tenant_results)} tenants...",
+            )
     phase_timing = dict(state.get("phase_timing") or {})
     owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
     primary_synthesis: Dict[str, Any] = {}
@@ -520,8 +754,10 @@ def synthesis_node(state: PipelineState) -> Dict[str, Any]:
         is_owner = (tid == owner_id or len(tenant_results) == 1)
         if is_owner or not primary_synthesis:
             primary_synthesis = t_synthesis
+        dur = time.time() - t0
         phase_timing.setdefault("tenant_timing", {}).setdefault(tid, 0.0)
-        phase_timing["tenant_timing"][tid] += (time.time() - t0)
+        phase_timing["tenant_timing"][tid] += dur
+        logger.info(f"[TIMING] Phase 2 Synthesis [Tenant {tid}]: {dur:.2f}s")
 
     logger.info(f"Synthesis completed across {len(tenant_results)} active tenants.")
     return {"synthesis": primary_synthesis, "tenant_results": tenant_results, "phase_timing": phase_timing}
@@ -537,11 +773,12 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
     run_id = state.get("run_id")
     tenant_results = dict(state.get("tenant_results") or {})
     if run_id:
-        storage.update_pipeline_progress(
-            run_id,
-            phase="generating_brief",
-            message=f"Generating executive brief and research radar for {len(tenant_results)} tenants...",
-        )
+        if not storage.is_dry_run():
+            storage.update_pipeline_progress(
+                run_id,
+                phase="generating_brief",
+                message=f"Generating executive brief and research radar for {len(tenant_results)} tenants...",
+            )
     phase_timing = dict(state.get("phase_timing") or {})
     supervisor_decisions = state.get("supervisor_decisions", {})
     source_health = state.get("source_health", {})
@@ -559,7 +796,10 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
             trigger_mode=trigger_mode,
             cadence_name=cadence_name,
         )
-        saved_path = storage.save_brief(report_content, filepath=state.get("output_report_path"))
+        if not storage.is_dry_run():
+            saved_path = storage.save_brief(report_content, filepath=state.get("output_report_path"))
+        else:
+            saved_path = Path(state.get("output_report_path") or "data/brief.md")
         return {"report_content": report_content, "saved_brief_path": str(saved_path)}
 
     primary_report = ""
@@ -570,6 +810,7 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
         t_synthesis = tdata.get("synthesis", {})
         tracked = tdata.get("tracked_companies")
         is_owner = (tid == owner_id or len(tenant_results) == 1)
+        pending_count = tdata.get("pending_events_count", 0)
 
         # Phase 2: Per-tenant Field Research Radar evaluation
         radar_evals = []
@@ -590,15 +831,24 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
                         tenant_id=tid,
                     )
                     radar_evals.append(ev)
-                storage.save_radar_evaluations(radar_evals, tenant_id=tid)
+                if not storage.is_dry_run():
+                    storage.save_radar_evaluations(radar_evals, tenant_id=tid)
                 tdata["radar_evaluations"] = radar_evals
         except Exception as e:
             logger.warning(f"Error evaluating research radar for tenant {tid}: {e}")
 
+        # Disclose pending analysis events if any remain in backlog
+        status_health_override = dict(source_health)
+        if pending_count > 0:
+            status_health_override["backlog"] = {
+                "status": "pending",
+                "message": f"{pending_count} events pending analysis",
+            }
+
         t_report = report_agent.run(
             t_synthesis,
             supervisor_decisions=supervisor_decisions,
-            source_health=source_health,
+            source_health=status_health_override,
             trigger_mode=trigger_mode,
             cadence_name=cadence_name,
             tenant_id=tid,
@@ -607,11 +857,14 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
         )
 
         custom_path = state.get("output_report_path") if is_owner else None
-        saved_path = storage.save_brief(
-            t_report,
-            filepath=custom_path,
-            tenant_id=tid,
-        )
+        if not storage.is_dry_run():
+            saved_path = storage.save_brief(
+                t_report,
+                filepath=custom_path,
+                tenant_id=tid,
+            )
+        else:
+            saved_path = Path(custom_path) if custom_path else (storage._get_data_dir() / f"brief_{tid}.md")
 
         tdata["report_content"] = t_report
         tdata["saved_brief_path"] = str(saved_path)
@@ -620,8 +873,11 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
             primary_report = t_report
             primary_saved_path = str(saved_path)
 
+        dur = time.time() - t0
         phase_timing.setdefault("tenant_timing", {}).setdefault(tid, 0.0)
-        phase_timing["tenant_timing"][tid] += (time.time() - t0)
+        phase_timing["tenant_timing"][tid] += dur
+        logger.info(f"[TIMING] Phase 2 Report [Tenant {tid}]: {dur:.2f}s")
+
 
     logger.info(f"Report generation completed across {len(tenant_results)} active tenants.")
     return {
@@ -635,6 +891,38 @@ def report_node(state: PipelineState) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Phase 2 - Node 8: Delivery Node (Per-Tenant Scoped)
 # ---------------------------------------------------------------------------
+
+def resolve_tenant_webhook_url(
+    tenant_id: str,
+    tenant_cfg: Optional[Dict[str, Any]] = None,
+    state: Optional[Dict[str, Any]] = None,
+    owner_id: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Resolve Slack webhook URL for a specific tenant with strict isolation:
+    - Non-owner tenants MUST use their own configured webhook URL from tenant_cfg.
+    - Non-owner tenants NEVER fall back to global/owner config or state.
+    - Owner tenant can fall back to state['slack_webhook_url'] or config.SLACK_WEBHOOK_URL.
+    """
+    if owner_id is None:
+        owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+
+    cfg = tenant_cfg or {}
+    tenant_url = (cfg.get("slack_webhook_url") or "").strip()
+    if tenant_url:
+        return tenant_url
+
+    if str(tenant_id) == str(owner_id):
+        state_dict = state or {}
+        state_url = (state_dict.get("slack_webhook_url") or "").strip()
+        if state_url:
+            return state_url
+        global_url = (getattr(config, "SLACK_WEBHOOK_URL", "") or "").strip()
+        if global_url:
+            return global_url
+
+    return None
+
 
 def delivery_node(state: PipelineState) -> Dict[str, Any]:
     """
@@ -654,7 +942,12 @@ def delivery_node(state: PipelineState) -> Dict[str, Any]:
     if not tenant_results:
         # Fallback for standalone node call
         synthesis = state.get("synthesis", {})
-        webhook_url = state.get("slack_webhook_url") or config.SLACK_WEBHOOK_URL
+        webhook_url = resolve_tenant_webhook_url(
+            tenant_id=owner_id,
+            tenant_cfg=tenant_cfg_map.get(owner_id),
+            state=state,
+            owner_id=owner_id,
+        )
         delivery_result = delivery_agent.run(
             synthesis_or_findings=synthesis,
             supervisor_decisions=supervisor_decisions,
@@ -676,7 +969,12 @@ def delivery_node(state: PipelineState) -> Dict[str, Any]:
         t0 = time.time()
         t_synthesis = tdata.get("synthesis", {})
         cfg = tenant_cfg_map.get(tid, {})
-        webhook_url = cfg.get("slack_webhook_url") if cfg else (state.get("slack_webhook_url") if tid == owner_id else None)
+        webhook_url = resolve_tenant_webhook_url(
+            tenant_id=tid,
+            tenant_cfg=cfg,
+            state=state,
+            owner_id=owner_id,
+        )
         is_owner = (tid == owner_id or len(tenant_results) == 1)
 
         t_delivery = delivery_agent.run(
@@ -692,14 +990,21 @@ def delivery_node(state: PipelineState) -> Dict[str, Any]:
         tdata["delivery_status"] = t_delivery.get("delivery_status", {})
 
         status = t_delivery.get("delivery_status", {}).get("status", "unknown")
-        logger.info(f"Delivery [Tenant {tid}]: Slack digest status: {status}")
+        dur = time.time() - t0
+        logger.info(f"[TIMING] Phase 2 Delivery [Tenant {tid}]: {dur:.2f}s (status: {status})")
 
-        if is_owner or not primary_digest:
+        if is_owner:
+            primary_digest = t_delivery.get("digest_text", "")
+            primary_delivery_status = t_delivery.get("delivery_status", {})
+            if status == "failed":
+                err_msg = t_delivery.get("delivery_status", {}).get("error", "Unknown delivery error")
+                state.setdefault("pipeline_errors", []).append(f"Owner delivery failed: {err_msg}")
+        elif not primary_digest:
             primary_digest = t_delivery.get("digest_text", "")
             primary_delivery_status = t_delivery.get("delivery_status", {})
 
         phase_timing.setdefault("tenant_timing", {}).setdefault(tid, 0.0)
-        phase_timing["tenant_timing"][tid] += (time.time() - t0)
+        phase_timing["tenant_timing"][tid] += dur
 
     phase_timing["phase2_end"] = time.time()
     phase2_dur = phase_timing["phase2_end"] - phase_timing.get("phase2_start", phase_timing["phase2_end"])
@@ -709,7 +1014,8 @@ def delivery_node(state: PipelineState) -> Dict[str, Any]:
 
     run_id = state.get("run_id")
     if run_id:
-        storage.complete_pipeline_run(run_id, status="completed")
+        if not storage.is_dry_run():
+            storage.complete_pipeline_run(run_id, status="completed")
 
     return {
         "slack_digest": primary_digest,
@@ -717,6 +1023,7 @@ def delivery_node(state: PipelineState) -> Dict[str, Any]:
         "tenant_results": tenant_results,
         "phase_timing": phase_timing,
     }
+
 
 
 # ---------------------------------------------------------------------------
@@ -795,40 +1102,38 @@ def run_progressive_pipeline(
             t for t in active_tenants
             if t.get("target_company") and t.get("competitors")
         ]
+        if not active_tenants:
+            err_msg = "FATAL: No scheduled or active tenants found for pipeline execution. scheduled_tenants table may be missing or unseeded. Failing run loudly to prevent silent no-op."
+            logger.error(err_msg)
+            raise RuntimeError(err_msg)
+
         if companies:
             tracked_comps = companies
             target_c = companies[0]
             comps_l = companies[1:]
-            if not active_tenants:
-                active_tenants = [{
-                    "tenant_id": owner_id,
-                    "target_company": target_c,
-                    "competitors": comps_l,
-                    "tracked_companies": tracked_comps,
-                }]
         else:
             tracked_comps = storage.get_all_tracked_companies()
-            if not active_tenants:
-                logger.warning("No configured active tenants found for pipeline execution.")
-                return {
-                    "status": "no_configured_tenants",
-                    "message": "No tenants have completed workspace configuration.",
-                }
 
     target_comp = active_tenants[0].get("target_company") if active_tenants else (tracked_comps[0] if tracked_comps else "")
     competitors_list = active_tenants[0].get("competitors") if active_tenants else (tracked_comps[1:] if len(tracked_comps) > 1 else [])
 
-    run_id = storage.create_pipeline_run(
-        tenant_id=tenant_id,
-        total_companies=len(tracked_comps),
-        companies=tracked_comps,
-        sources=sources,
-        is_first_run=is_first_run,
-    )
+    if not storage.is_dry_run():
+        run_id = storage.create_pipeline_run(
+            tenant_id=tenant_id,
+            total_companies=len(tracked_comps),
+            companies=tracked_comps,
+            sources=sources,
+            is_first_run=is_first_run,
+        )
+    else:
+        run_id = f"dry_run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
     app = create_pipeline_graph()
 
     initial_state: PipelineState = {
+        "pipeline_start_monotonic": time.monotonic(),
+        "phase1_budget_seconds": 900.0,
+        "global_deadline_seconds": 2460.0,
         "run_id": run_id,
         "is_first_run": is_first_run,
         "target_company": target_comp,
@@ -843,9 +1148,127 @@ def run_progressive_pipeline(
 
     try:
         final_state = app.invoke(initial_state)
-        storage.complete_pipeline_run(run_id, status="completed")
+        if not storage.is_dry_run():
+            storage.complete_pipeline_run(run_id, status="completed")
         return dict(final_state)
     except Exception as e:
         logger.error(f"Progressive pipeline run {run_id} failed: {e}", exc_info=True)
-        storage.complete_pipeline_run(run_id, status="failed", error_message=str(e))
+        if not storage.is_dry_run():
+            storage.complete_pipeline_run(run_id, status="failed", error_message=str(e))
         raise
+
+
+def run_pipeline_with_status(
+    output_report_path: Optional[Any] = None,
+    signals_storage_path: Optional[Any] = None,
+    events_storage_path: Optional[Any] = None,
+    companies: Optional[List[str]] = None,
+    sources: Optional[List[str]] = None,
+    tenants: Optional[List[Dict[str, Any]]] = None,
+    process_start_monotonic: Optional[float] = None,
+    phase1_budget_seconds: float = 900.0,
+    global_deadline_seconds: float = 2460.0,
+) -> Dict[str, Any]:
+    """
+    Execute full multi-tenant pipeline with comprehensive runtime control:
+    - Records process start at entry (fails loudly if missing).
+    - Phase 1 budget enforcement with owner's companies processed first and skipped_budget logging.
+    - Global deadline from process start.
+    - Per-tenant start decision from that tenant's own event count x measured seconds/finding.
+    - Owner end-to-end first (analysis -> synthesis -> report -> delivery).
+    - Failures recorded and run failed at the end, not raised mid-loop.
+    - Preserves per-node LangSmith spans.
+    """
+    if process_start_monotonic is None:
+        process_start_monotonic = time.monotonic()
+
+    owner_id = resolve_owner_tenant_id()
+    tracked_companies = companies or storage.get_all_tracked_companies()
+    active_tenants = tenants or storage.get_active_tenants()
+
+    # Scope filtering (PIPELINE_SCOPE)
+    scope = os.getenv("PIPELINE_SCOPE", "all").strip().lower()
+    if scope == "owner":
+        active_tenants = [t for t in active_tenants if str(t.get("tenant_id")) == str(owner_id)]
+        if active_tenants:
+            owner_comps = active_tenants[0].get("tracked_companies") or []
+            if owner_comps:
+                tracked_companies = [c for c in tracked_companies if c in owner_comps]
+
+    # Guarantee owner is ordered first
+    active_tenants = sorted(active_tenants, key=lambda t: 0 if str(t.get("tenant_id")) == str(owner_id) else 1)
+
+    if not active_tenants:
+        err_msg = "FATAL: No scheduled or active tenants found for pipeline execution. scheduled_tenants table may be missing or unseeded. Failing run loudly to prevent silent no-op."
+        logger.error(err_msg)
+        raise RuntimeError(err_msg)
+
+    app = create_pipeline_graph()
+    initial_state: PipelineState = {
+        "pipeline_start_monotonic": process_start_monotonic,
+        "phase1_budget_seconds": phase1_budget_seconds,
+        "global_deadline_seconds": global_deadline_seconds,
+        "target_company": config.TARGET_COMPANY,
+        "competitors": list(config.COMPETITORS),
+        "configured_sources": sources or list(config.SOURCES),
+        "companies": tracked_companies,
+        "tenants": active_tenants,
+        "output_report_path": output_report_path,
+        "signals_storage_path": signals_storage_path,
+        "events_storage_path": events_storage_path,
+        "pipeline_errors": [],
+    }
+
+    errors: List[str] = []
+    is_owner_fatal = False
+
+    try:
+        final_state = app.invoke(initial_state)
+    except Exception as e:
+        logger.critical(f"Pipeline StateGraph execution encountered fatal exception: {e}", exc_info=True)
+        errors.append(str(e))
+        is_owner_fatal = True
+        return {
+            "status": "failed",
+            "errors": errors,
+            "is_owner_fatal": True,
+            "report_content": "",
+            "state": None,
+        }
+
+    # Inspect pipeline errors collected across nodes
+    collected_errors = final_state.get("pipeline_errors") or []
+    if collected_errors:
+        errors.extend(collected_errors)
+
+    tenant_results = final_state.get("tenant_results") or {}
+    owner_result = tenant_results.get(owner_id)
+    if owner_result:
+        deliv = owner_result.get("delivery_status") or {}
+        if deliv.get("status") == "failed":
+            errors.append(f"Owner delivery failed: {deliv.get('error')}")
+            is_owner_fatal = True
+        if not owner_result.get("report_content"):
+            errors.append("Owner report generation failed or produced empty brief")
+            is_owner_fatal = True
+    elif not final_state.get("report_content"):
+        errors.append("Primary brief is empty or ungenerated")
+        is_owner_fatal = True
+
+    status = "failed" if (errors and is_owner_fatal) else "completed"
+    if status == "failed":
+        logger.critical(f"Pipeline finished with failure status at the end. Errors: {errors}")
+
+    return {
+        "status": status,
+        "errors": errors,
+        "is_owner_fatal": is_owner_fatal,
+        "report_content": final_state.get("report_content", ""),
+        "saved_brief_path": final_state.get("saved_brief_path", ""),
+        "slack_digest": final_state.get("slack_digest", ""),
+        "delivery_status": final_state.get("delivery_status", {}),
+        "tenant_results": tenant_results,
+        "phase_timing": final_state.get("phase_timing", {}),
+        "state": dict(final_state),
+    }
+
