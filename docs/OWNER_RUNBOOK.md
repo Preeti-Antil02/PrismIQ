@@ -1,6 +1,6 @@
 # PrismIQ Pipeline Stabilization — Owner Runbook
 
-**Target Branch**: `fix/scheduler-reliability`  
+**Target Branch**: `preeti-prismiq-improvements`  
 **Public Repository**: `Preeti-Antil02/PrismIQ`  
 **Security Classification**: PUBLIC REPO SAFE (No secrets, no raw database URLs, no webhook tokens).
 
@@ -15,9 +15,9 @@ Execution Order:
 3. Gate G1c: Provision `prismiq_readonly` role in Supabase (Migration 007); verify using local read-only diagnostic script.
 4. Gate G1d: Execute Migration 006 (provenance columns & safe historical backfill count).
 5. Pre-Push Checklist: Verify no scratch files or credentials exist in git tree.
-6. Gate G2: Push branch `fix/scheduler-reliability` and dispatch dry-run simulation **FROM THE BRANCH**.
+6. Gate G2: Push branch `preeti-prismiq-improvements` and dispatch dry-run simulation **FROM THE BRANCH**.
 7. Gate G3: Dispatch live owner run **FROM THE BRANCH** (repairs owner brief and validates live delivery).
-8. Merge: Merge PR `fix/scheduler-reliability` into `main` only after G2 and G3 pass.
+8. Merge: Merge PR `preeti-prismiq-improvements` into `main` only after G2 and G3 pass.
 9. Gate G4: Monitor 3 consecutive nightly scheduled runs (`0 0 * * *`).
 
 ---
@@ -357,7 +357,7 @@ ALTER TABLE public.findings
 
 ## PRE-PUSH REPOSITORY AUDIT CHECKLIST
 
-Before pushing `fix/scheduler-reliability` to GitHub, run the following verification checks:
+Before pushing `preeti-prismiq-improvements` to GitHub, run the following verification checks:
 ```bash
 # 1. Confirm zero scratch or evidence files are tracked in git
 git ls-files scratch | head
@@ -382,13 +382,13 @@ Because `workflow_dispatch` is already present on `main`, you can test changes d
 Note on API Quotas: The dry-run simulation invokes live Groq LLM and Currents News APIs to verify model cascade connectivity and real extraction; it uses live API quota while executing zero database mutations and zero Slack posts.
 
 ### Step-by-Step Instructions
-1. Push branch `fix/scheduler-reliability` to origin (the branch contains zero secrets and passes all CI security checks):
+1. Push branch `preeti-prismiq-improvements` to origin (the branch contains zero secrets and passes all CI security checks):
    ```bash
-   git push origin fix/scheduler-reliability
+   git push origin preeti-prismiq-improvements
    ```
 2. Go to GitHub -> **Actions** -> **Daily Pipeline**.
 3. Click **Run workflow**:
-   - In **Use workflow from**, select: **`fix/scheduler-reliability`**
+   - In **Use workflow from**, select: **`preeti-prismiq-improvements`**
    - `scope`: `owner`
    - `dry_run`: `true`
 4. Wait for the workflow run to complete.
@@ -410,7 +410,7 @@ Note on API Quotas: The dry-run simulation invokes live Groq LLM and Currents Ne
 
 ## RENDER PRE-MERGE CHECKLIST & API IMPACT AUDIT
 
-Before merging branch `fix/scheduler-reliability` into `main`, verify the following Render deployment configuration:
+Before merging branch `preeti-prismiq-improvements` into `main`, verify the following Render deployment configuration:
 
 ### 1. Environment Variable Audit (Names Only)
 Verify in **Render Dashboard** -> **Environment**:
@@ -472,7 +472,7 @@ This processes the owner end-to-end, writes genuine LLM findings with model meta
 ### Step-by-Step Instructions
 1. Go to GitHub -> **Actions** -> **Daily Pipeline**.
 2. Click **Run workflow**:
-   - `Use workflow from`: **`fix/scheduler-reliability`**
+   - `Use workflow from`: **`preeti-prismiq-improvements`**
    - `scope`: `owner`
    - `dry_run`: `false`
 3. Wait for the run to complete.
