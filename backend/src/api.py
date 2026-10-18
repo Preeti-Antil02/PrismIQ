@@ -503,7 +503,7 @@ def auth_me(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
 
     if _is_db_active():
         try:
-            with storage.get_db_cursor() as cur:
+            with storage.get_db_cursor(readonly=True) as cur:
                 cur.execute("SELECT email, raw_user_meta_data FROM auth.users WHERE id = %s;", (tenant_id,))
                 row = cur.fetchone()
                 if row:
@@ -1814,7 +1814,7 @@ def get_workspace_settings_endpoint(
     total_signals_evaluated = 0
     noise_suppressed_count = 0
     try:
-        with storage.get_db_cursor() as cur:
+        with storage.get_db_cursor(readonly=True) as cur:
             cur.execute("SELECT COUNT(*), COUNT(*) FILTER (WHERE is_noise = true) FROM noise_suppression_decisions;")
             row = cur.fetchone()
             if row:
