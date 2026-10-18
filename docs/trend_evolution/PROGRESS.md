@@ -11,8 +11,8 @@
 | Milestone | Description | Status | Evidence Pointer / SHA256 |
 | :--- | :--- | :--- | :--- |
 | **T0** | Preflight & State Verification | **DONE** | `scratch/evidence/manifest.json` (7 artifacts registered) |
-| **T1** | Pure Core Logic (Rules, Momentum, Dates) | **NEXT** | Offline unit/property tests |
-| **T2** | Clustering Prototype & Owner Grading | NOT STARTED | Pending T1 completion |
+| **T1** | Pure Core Logic (Rules, Momentum, Dates) | **DONE** | `backend/tests/test_trends_core.py` (32 tests pass, 0.14s) |
+| **T2** | Clustering Prototype & Owner Grading | **NEXT** | Prototype clustering on real data via read-only role |
 | **T3** | Schema Migration 008 (Draft & RLS Tests) | NOT STARTED | Pending T2 grade selection |
 | **T4** | Build Pipeline & LLM Labelling | NOT STARTED | Pending T3 migration execution |
 | **T5** | Tenant-Isolated APIs (`/trends`) | NOT STARTED | Pending T4 pipeline |
@@ -66,9 +66,10 @@
 ## 5. Open Owner Inquiries
 
 1. **Local Read-Only Credentials**:
-   - `backend/.env.readonly` currently contains the `postgres` superuser string instead of the isolated `prismiq_readonly` role.
-   - Owner needs to replace `postgres` with `prismiq_readonly.hmjcqdthzgzsmhpivrdb` and the read-only password created in Migration 007.
+   - VERIFIED: `backend/.env.readonly` configured with `prismiq_readonly.hmjcqdthzgzsmhpivrdb` on port 6543.
+   - All 8 isolation and permission checks passed (`python backend/scripts/test_readonly_role.py`).
 2. **Slack Delivery Receipts**:
-   - Owner to check Slack app/channel to verify receipt of the intelligence digest from Run #53.
+   - VERIFIED: Owner confirmed receipt in Slack `#all-prismiq-digest` (Run #53 digest received with Cloudflare Pages/Workers deep-dives, intern hiring analysis, and research papers).
 3. **Tenant Rollout Scope**:
    - Confirmed: Scoped strictly to scheduled tenants (`scheduled_tenants` allow-list).
+
