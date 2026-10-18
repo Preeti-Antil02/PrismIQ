@@ -95,6 +95,32 @@ def is_live_write_permitted() -> bool:
 
 
 
+def normalize_postgres_url(raw_url: Optional[str]) -> Optional[str]:
+    """
+    Robustly clean and normalize PostgreSQL connection URLs.
+    Handles accidental quotes, leading whitespace, missing scheme prefixes,
+    or pasted environment variable assignment syntax.
+    """
+    if not raw_url:
+        return None
+    url = raw_url.strip().strip("'").strip('"').strip()
+    if "=" in url and not url.startswith("postgresql://") and not url.startswith("postgres://"):
+        parts = url.split("=", 1)
+        if len(parts) == 2 and ("://" in parts[1] or "@" in parts[1]):
+            url = parts[1].strip().strip("'").strip('"').strip()
+    if url.startswith("psql "):
+        url = url[5:].strip().strip("'").strip('"').strip()
+    
+    import re
+    match = re.search(r'(postgres(?:ql)?://[^\s\'"]+)', url)
+    if match:
+        url = match.group(1)
+    elif "://" not in url and "@" in url:
+        url = "postgresql://" + url
+    
+    return url.strip().strip("'").strip('"').strip()
+
+
 def get_db_url() -> Optional[str]:
     """Retrieve PostgreSQL connection URL from environment with test isolation guard."""
     if is_test_environment():
@@ -116,9 +142,7 @@ def get_db_url() -> Optional[str]:
         or os.getenv("POSTGRES_URL")
         or DEFAULT_SUPABASE_DB_URL
     )
-    if raw:
-        raw = raw.strip().strip("'").strip('"').strip()
-    return raw
+    return normalize_postgres_url(raw)
 
 
 _DB_POOL: Optional[Any] = None
@@ -146,9 +170,7 @@ def get_db_connection(db_url: Optional[str] = None, readonly: bool = False) -> T
 
     is_platform = (os.getenv("GITHUB_ACTIONS") == "true" or os.getenv("RENDER") == "true")
     is_dry = os.getenv("DRY_RUN", "").lower() == "true"
-    ro_url = os.getenv("SUPABASE_READONLY_DB_URL") or os.getenv("READONLY_DATABASE_URL")
-    if ro_url:
-        ro_url = ro_url.strip().strip("'").strip('"').strip()
+    ro_url = normalize_postgres_url(os.getenv("SUPABASE_READONLY_DB_URL") or os.getenv("READONLY_DATABASE_URL"))
     write_url = get_db_url()
 
     if not db_url:
