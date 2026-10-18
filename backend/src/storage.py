@@ -99,7 +99,9 @@ def normalize_postgres_url(raw_url: Optional[str], reference_url: Optional[str] 
     """
     Robustly clean and normalize PostgreSQL connection URLs.
     Handles accidental quotes, leading whitespace, missing scheme prefixes,
-    pasted environment variable assignment syntax, or password-only values.
+    pasted environment variable assignment syntax, password-only values,
+    unquoted special characters in passwords, and auto-corrects Supabase
+    pooler user formats and ports.
     """
     if not raw_url:
         return None
@@ -110,23 +112,52 @@ def normalize_postgres_url(raw_url: Optional[str], reference_url: Optional[str] 
             url = parts[1].strip().strip("'").strip('"').strip()
     if url.startswith("psql "):
         url = url[5:].strip().strip("'").strip('"').strip()
-    
+
     import re
+    import urllib.parse
+
+    default_project_ref = "hmjcqdthzgzsmhpivrdb"
+    default_host_port = "aws-0-ap-south-1.pooler.supabase.com:6543"
+    default_dbname = "postgres"
+
+    if reference_url:
+        ref_clean = reference_url.strip().strip("'").strip('"').strip()
+        m_ref = re.search(r'postgres(?:ql)?://(?:[^:]+)\.([^:]+):([^@]+)@([^/]+)/([^?]+)', ref_clean)
+        if m_ref:
+            default_project_ref = m_ref.group(1)
+            default_host_port = m_ref.group(3)
+            default_dbname = m_ref.group(4)
+
+    # Case 1: Plain password passed without URL scheme or @
+    if "://" not in url and "@" not in url:
+        pwd = urllib.parse.quote(urllib.parse.unquote(url), safe="") if "%" not in url else url
+        scheme_prefix = "postgresql://"
+        return f"{scheme_prefix}postgres.{default_project_ref}:{pwd}@{default_host_port}/{default_dbname}"
+
+    # Case 2: Missing scheme prefix (e.g. user:pass@host/db)
+    if "://" not in url and "@" in url:
+        url = "postgresql://" + url
+
+    # Extract URL components
     match = re.search(r'(postgres(?:ql)?://[^\s\'"]+)', url)
     if match:
         url = match.group(1)
-    elif "://" not in url and "@" in url:
-        url = "postgresql://" + url
-    elif "://" not in url and "@" not in url and reference_url:
-        ref = reference_url.strip().strip("'").strip('"').strip()
-        m = re.match(r'postgres(?:ql)?://(?:[^:]+)\.([^:]+):([^@]+)@([^/]+)/(.+)', ref)
-        if m:
-            project_ref = m.group(1)
-            host_port = m.group(3)
-            dbname = m.group(4)
-            scheme = "postgres" + "ql://"
-            url = f"{scheme}postgres.{project_ref}:{url}@{host_port}/{dbname}"
-    
+
+    m = re.match(r'^(postgres(?:ql)?://)([^:]+):([^@]+)@([^:/]+)(?::(\d+))?(/.*)$', url)
+    if m:
+        scheme, user, password, host, port, rest = m.groups()
+        # If connecting to Supabase pooler
+        if "pooler.supabase.com" in host:
+            if "." not in user:
+                user = f"{user}.{default_project_ref}"
+            if port == "5432" or not port:
+                port = "6543"
+        # URL encode password if not already encoded
+        if "%" not in password:
+            password = urllib.parse.quote(urllib.parse.unquote(password), safe="")
+        port_str = f":{port}" if port else ""
+        return f"{scheme}{user}:{password}@{host}{port_str}{rest}"
+
     return url.strip().strip("'").strip('"').strip()
 
 

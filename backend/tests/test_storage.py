@@ -459,4 +459,26 @@ def test_get_active_tenants_dry_run_webhook_omission(monkeypatch):
     assert "d.slack_webhook_url" not in active_query
 
 
+def test_normalize_postgres_url_pooler_auto_heal():
+    """Verify normalize_postgres_url adds project ref and corrects port 5432 on pooler."""
+    raw = "postgresql://postgres:mock_pass#123@aws-0-ap-south-1.pooler.supabase.com:5432/postgres"
+    normalized = storage.normalize_postgres_url(raw)
+    assert "postgres.hmjcqdthzgzsmhpivrdb" in normalized
+    assert ":6543/postgres" in normalized
+    assert "mock_pass%23123" in normalized
+
+
+def test_normalize_postgres_url_password_only():
+    """Verify normalize_postgres_url reconstructs full pooler URL when given raw password."""
+    normalized = storage.normalize_postgres_url("mock_secret#99")
+    assert normalized.startswith("postgresql://postgres.hmjcqdthzgzsmhpivrdb:mock_secret%2399@aws-0-ap-south-1.pooler.supabase.com:6543/postgres")
+
+
+def test_normalize_postgres_url_direct_preserved():
+    """Verify direct non-pooler connections preserve their host and port."""
+    raw = "postgresql://postgres:mock_pass@db.hmjcqdthzgzsmhpivrdb.supabase.co:5432/postgres"
+    normalized = storage.normalize_postgres_url(raw)
+    assert normalized == raw
+
+
 
