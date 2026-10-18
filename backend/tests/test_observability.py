@@ -86,6 +86,6 @@ def test_groq_api_call_extracts_usage():
         assert res["confidence"] == "High"
         mock_attach.assert_called_once_with(
             {"prompt_tokens": 500, "completion_tokens": 100, "total_tokens": 600},
-            model="openai/gpt-oss-120b",
+            model=analysis_agent.GROQ_MODELS[0],
         )
 
