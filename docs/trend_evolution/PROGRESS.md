@@ -54,13 +54,21 @@
 
 ---
 
-## 4. Open Owner Inquiries
+## 4. Verified GitHub Actions Runs Evidence
+
+- **Gate G3 (Live Owner Run)**: Run ID `39149656708` (Run #53), `status: completed`, `duration: 156.71s` (Phase 1: 28.11s, Phase 2: 118.41s), tenant `c8f13b91-46ef-4682-9975-f85764d8a12e`. [REAL - pasted from GitHub Actions].
+- **Gate G2 (Dry Run Simulation)**: Run ID `39127813771` (Run #46), `status: completed`, `duration: 141.81s` (Phase 1: 16.47s, Phase 2: 120.76s), zero writes, Slack simulated. [REAL - pasted from GitHub Actions].
+- **Historical Coverage Gap**: Runs #30–#43 (5 Oct–18 Oct) all cancelled at 45m timeout due to unconstrained tenant loops and missing phase isolation. [REAL - verified from run history].
+- **Last Pre-Fix Scheduled Success**: Run ID `37172954133` (Run #29), Oct 4, duration 43m 10s. [REAL - verified from run history].
+
+---
+
+## 5. Open Owner Inquiries
 
 1. **Local Read-Only Credentials**:
-   - Owner has `backend/.env.readonly` open in editor. Please save `SUPABASE_READONLY_DB_URL` into this file so T0 read-only database recon queries can execute.
-2. **Prior Run Data**:
-   - Requesting run IDs, durations, and Step Summary JSON for the recent workflow runs (G2 dry run, G3 live run).
+   - `backend/.env.readonly` currently contains the `postgres` superuser string instead of the isolated `prismiq_readonly` role.
+   - Owner needs to replace `postgres` with `prismiq_readonly.hmjcqdthzgzsmhpivrdb` and the read-only password created in Migration 007.
+2. **Slack Delivery Receipts**:
+   - Owner to check Slack app/channel to verify receipt of the intelligence digest from Run #53.
 3. **Tenant Rollout Scope**:
-   - Confirming whether initial trend visualization should be scoped strictly to scheduled tenants (`scheduled_tenants` allow-list).
-4. **Slack Delivery Receipts**:
-   - Confirming receipt of intelligence digest in the owner Slack channel.
+   - Confirmed: Scoped strictly to scheduled tenants (`scheduled_tenants` allow-list).
