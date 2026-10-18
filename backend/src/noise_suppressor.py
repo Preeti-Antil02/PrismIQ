@@ -12,6 +12,7 @@ When uncertain, signals are preserved.
 
 import logging
 import re
+import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -258,7 +259,19 @@ def run(signals: List[Dict[str, Any]]) -> Dict[str, Any]:
     Returns:
         Structured dictionary with kept_signals, suppressed_signals, and metrics.
     """
+    try:
+        from src.relevance_verifier import get_relevance_verifier_metrics, reset_relevance_verifier_metrics
+    except ImportError:
+        try:
+            from relevance_verifier import get_relevance_verifier_metrics, reset_relevance_verifier_metrics
+        except ImportError:
+            get_relevance_verifier_metrics = lambda: {"db_lookups": 0, "db_lookup_duration_s": 0.0, "cache_hits": 0}
+            reset_relevance_verifier_metrics = lambda: None
+
+    reset_relevance_verifier_metrics()
+    t0 = time.monotonic()
     kept, suppressed = filter_signals(signals)
+
 
     by_category: Dict[str, List[Dict[str, Any]]] = {cat: [] for cat in NOISE_CATEGORIES}
     for s in suppressed:
@@ -295,6 +308,15 @@ def run(signals: List[Dict[str, Any]]) -> Dict[str, Any]:
                 "noise_reason": s.get("noise_reason", ""),
             })
 
+    dur = time.monotonic() - t0
+    rv_metrics = get_relevance_verifier_metrics()
+    logger.info(
+        f"[TIMING] noise_suppressor.run: {dur:.3f}s for {len(signals)} raw signals "
+        f"({kept_count} kept, {suppressed_count} suppressed). "
+        f"Relevance DB lookups: {rv_metrics['db_lookups']} ({rv_metrics['db_lookup_duration_s']:.3f}s), "
+        f"cache hits: {rv_metrics['cache_hits']}."
+    )
+
     return {
         "kept_signals": kept,
         "suppressed_signals": suppressed,
@@ -302,3 +324,4 @@ def run(signals: List[Dict[str, Any]]) -> Dict[str, Any]:
         "metrics": metrics,
         "decisions": all_decisions,
     }
+
