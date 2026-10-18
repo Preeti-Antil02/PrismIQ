@@ -12,7 +12,7 @@
 | :--- | :--- | :--- | :--- |
 | **T0** | Preflight & State Verification | **DONE** | `scratch/evidence/manifest.json` (7 artifacts registered) |
 | **T1** | Pure Core Logic (Rules, Momentum, Dates) | **DONE** | `backend/tests/test_trends_core.py` (32 tests pass, 0.14s) |
-| **T2** | Clustering Prototype & Owner Grading | **NEXT** | Prototype clustering on real data via read-only role |
+| **T2** | Clustering Prototype & Owner Grading | **AWAITING OWNER GRADES** | `scratch/owner_grading_template.md` (30 real clusters ready) |
 | **T3** | Schema Migration 008 (Draft & RLS Tests) | NOT STARTED | Pending T2 grade selection |
 | **T4** | Build Pipeline & LLM Labelling | NOT STARTED | Pending T3 migration execution |
 | **T5** | Tenant-Isolated APIs (`/trends`) | NOT STARTED | Pending T4 pipeline |
