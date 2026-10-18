@@ -17,11 +17,8 @@ from . import config
 
 logger = logging.getLogger(__name__)
 
-# Ensure backend root is known and .env is loaded
+# Working directory / backend root
 _backend_root = Path(__file__).resolve().parent.parent
-_env_path = _backend_root / ".env"
-if _env_path.exists():
-    load_dotenv(_env_path)
 
 
 class MockCursor:
@@ -60,7 +57,12 @@ def is_test_environment() -> bool:
     )
 
 
-DEFAULT_SUPABASE_DB_URL = "postgresql://postgres.hmjcqdthzgzsmhpivrdb:ZmdM#9is&TWY$JF@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+DEFAULT_SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
+
+
+def is_dry_run() -> bool:
+    """Return True if pipeline is executing in read-only simulation mode."""
+    return os.getenv("DRY_RUN", "").lower() in ("true", "1", "yes")
 
 
 def is_live_write_permitted() -> bool:
@@ -68,19 +70,27 @@ def is_live_write_permitted() -> bool:
     Fail-closed authorization check for live PostgreSQL database connections/writes.
     1. In test environment (pytest, PRISMIQ_ENV='test'), strictly fails closed (returns False)
        to guarantee zero test data pollution in production.
-    2. If ALLOW_LIVE_WRITE or ALLOW_PROD_WRITE is explicitly configured, honors boolean flag.
-    3. In production container / web service runtime (Render sets RENDER=true and PORT),
-       defaults to True when database URL is present so production API can read/write data.
-    4. Ad hoc CLI scripts without explicit flags fail closed to prevent accidental data pollution.
+    2. In DRY_RUN mode, strictly returns False.
+    3. Platform isolation defense-in-depth: Live database connections/writes are strictly refused
+       unless running under platform environments:
+       - GitHub Actions (GITHUB_ACTIONS='true')
+       - Render web service / worker (RENDER='true' or RENDER env var set)
+       Local processes cannot open a read-write connection even if ALLOW_LIVE_WRITE is present.
+    4. If running in CI/Render, ALLOW_LIVE_WRITE must be explicitly true (or Render web container).
     """
-    if is_test_environment():
+    if is_test_environment() or is_dry_run():
         return False
+
+    is_platform_allowed = (
+        os.getenv("GITHUB_ACTIONS") == "true"
+        or os.getenv("RENDER") == "true"
+    )
+    if not is_platform_allowed:
+        return False
+
     env_val = os.getenv("ALLOW_LIVE_WRITE") or os.getenv("ALLOW_PROD_WRITE") or os.getenv("FORCE_LIVE_DB")
     if env_val is not None:
         return env_val.lower() in ("true", "1", "yes")
-    # In production web service container (Render automatically injects RENDER=true and PORT)
-    if (os.getenv("RENDER") or os.getenv("PORT")) and bool(get_db_url()):
-        return True
     return False
 
 
@@ -120,7 +130,58 @@ def _get_connection_pool(db_url: str):
                 _DB_POOL = psycopg2.pool.ThreadedConnectionPool(1, 10, db_url)
     return _DB_POOL
 
-def _get_pooled_connection(db_url: str):
+def get_db_connection(db_url: Optional[str] = None, readonly: bool = False) -> Tuple[Any, Optional[Any]]:
+    """
+    Acquire a PostgreSQL database connection (pooled or direct).
+    Enforces platform guards and read-only session isolation.
+    """
+    if is_test_environment() and not os.getenv("FORCE_LIVE_TEST_DB"):
+        test_url = get_db_url()
+        if not test_url:
+            return None, None
+        db_url = test_url
+
+    is_platform = (os.getenv("GITHUB_ACTIONS") == "true" or os.getenv("RENDER") == "true")
+    is_dry = os.getenv("DRY_RUN", "").lower() == "true"
+    ro_url = os.getenv("SUPABASE_READONLY_DB_URL") or os.getenv("READONLY_DATABASE_URL")
+    write_url = get_db_url()
+
+    if not db_url:
+        if readonly:
+            if is_dry:
+                # Under DRY_RUN, strictly require read-only URL; NEVER fall back to write URL
+                if not ro_url:
+                    raise ValueError(
+                        "CRITICAL SECURITY GUARD: DRY_RUN=true is active, "
+                        "but SUPABASE_READONLY_DB_URL is not set. Refusing to connect using production write URL."
+                    )
+                db_url = ro_url
+            elif not is_platform and not is_test_environment():
+                # Local non-platform environment: reads permitted ONLY via read-only URL, never write URL
+                if not ro_url:
+                    raise PermissionError(
+                        "CRITICAL SECURITY GUARD: Local environment detected without platform credentials. "
+                        "Refusing to use production write URL for reads. Set SUPABASE_READONLY_DB_URL to read locally."
+                    )
+                db_url = ro_url
+            else:
+                # Platform environment (live GITHUB_ACTIONS or RENDER):
+                # Reads may use SUPABASE_READONLY_DB_URL if set, or fall back to SUPABASE_DB_URL in a read-only session
+                db_url = ro_url or write_url
+                if not db_url:
+                    raise ConnectionError("Neither SUPABASE_READONLY_DB_URL nor SUPABASE_DB_URL is set.")
+        else:
+            # Write connection: requires platform environment
+            if not is_test_environment() and not is_platform:
+                raise PermissionError(
+                    "CRITICAL SECURITY GUARD: Refusing to open read-write connection to database outside platform environments. "
+                    "Process must execute under GitHub Actions (GITHUB_ACTIONS='true') or Render (RENDER='true'). "
+                    "Local database write access is strictly prohibited."
+                )
+            db_url = write_url
+            if not db_url:
+                raise ConnectionError("SUPABASE_DB_URL is not set. Primary PostgreSQL store cannot be accessed.")
+
     try:
         pool = _get_connection_pool(db_url)
         conn = pool.getconn()
@@ -131,12 +192,24 @@ def _get_pooled_connection(db_url: str):
     except Exception as e:
         logger.warning(f"Connection pool acquisition failed ({e}), falling back to direct connection")
         import psycopg2
-        return psycopg2.connect(db_url), None
+        try:
+            return psycopg2.connect(db_url), None
+        except Exception as conn_err:
+            logger.error(f"Failed to connect directly to PostgreSQL: {conn_err}")
+            raise ConnectionError(f"Failed to connect to PostgreSQL database: {conn_err}") from conn_err
 
-def _release_pooled_connection(conn: Any, pool: Optional[Any]):
+
+def return_db_connection(conn: Any, pool: Optional[Any] = None) -> None:
+    """Release a PostgreSQL database connection back to its pool or close direct connection."""
+    if conn is None:
+        return
     if pool is not None:
         try:
             conn.rollback()
+            try:
+                conn.set_session(readonly=False)
+            except Exception:
+                pass
             pool.putconn(conn)
         except Exception:
             try:
@@ -145,55 +218,64 @@ def _release_pooled_connection(conn: Any, pool: Optional[Any]):
                 pass
     else:
         try:
+            try:
+                conn.set_session(readonly=False)
+            except Exception:
+                pass
             conn.close()
         except Exception:
             pass
 
 
 @contextmanager
-def get_db_cursor() -> Generator[Any, None, None]:
+def get_db_cursor(readonly: bool = False) -> Generator[Any, None, None]:
     """
     Context manager yielding a PostgreSQL cursor within an ACID transaction.
-    Commits on success, rolls back and raises on failure.
+    Commits on success (for writes), rolls back on exit (for reads), and raises on failure.
     
     FAIL-CLOSED PRODUCTION SECURITY SAFEGUARDS:
-    1. Test mode (pytest or PRISMIQ_ENV='test'):
-       - If TEST_DATABASE_URL is set and matches SUPABASE_DB_URL -> raises PermissionError.
+    1. Test mode (is_test_environment()):
        - If TEST_DATABASE_URL is set -> connects to test database.
        - Otherwise -> yields isolated in-memory MockCursor.
-    2. Ad hoc / CLI / Non-test invocations without explicit authorization:
-       - Fails CLOSED by default unless ALLOW_LIVE_WRITE=true (or FORCE_LIVE_DB=1).
-       - Yields MockCursor to guarantee zero production database pollution.
-    3. Production-authorized mode:
-       - Connects directly to SUPABASE_DB_URL.
+    2. Write mode (readonly=False):
+       - Requires is_live_write_permitted() (platform + ALLOW_LIVE_WRITE=true).
+       - Outside test mode, if write permission is not granted -> raises PermissionError.
+       - Connects via SUPABASE_DB_URL.
+    3. Read mode (readonly=True):
+       - Does NOT require ALLOW_LIVE_WRITE=true (reads on Render/Actions never return mock data).
+       - In DRY_RUN=true, strictly requires SUPABASE_READONLY_DB_URL (never falls back to write URL).
+       - In live Actions and Render, falls back to SUPABASE_DB_URL within a read-only session.
+       - Enforces read-only session (conn.set_session(readonly=True) and SET TRANSACTION READ ONLY).
+       - Resets session to readonly=False upon completion to prevent pool pollution.
+       - Never yields MockCursor outside test mode: missing URL or connection failure RAISES.
     """
-    if is_test_environment():
-        test_url = get_db_url()
+    if is_test_environment() and not os.getenv("FORCE_LIVE_TEST_DB"):
+        test_url = os.getenv("TEST_DATABASE_URL")
         if not test_url:
-            # Yield isolated in-memory mock cursor for unit/integration tests
             yield MockCursor()
             return
-        db_url = test_url
+        conn, pool = get_db_connection(test_url, readonly=readonly)
     else:
-        if not is_live_write_permitted():
-            logger.info(
-                "Live PostgreSQL access not authorized (ALLOW_LIVE_WRITE=true not set). "
-                "Failing CLOSED to isolated MockCursor to prevent production data pollution."
+        if not readonly and not is_live_write_permitted():
+            raise PermissionError(
+                "Live PostgreSQL write access not authorized (must run under GITHUB_ACTIONS or RENDER with ALLOW_LIVE_WRITE=true). "
+                "Write operation refused to prevent production data corruption."
             )
-            yield MockCursor()
-            return
+        conn, pool = get_db_connection(readonly=readonly)
 
-        db_url = get_db_url()
-        if not db_url:
-            raise ConnectionError(
-                "SUPABASE_DB_URL is not set. Primary PostgreSQL store cannot be accessed."
-            )
-
-    conn, pool = _get_pooled_connection(db_url)
     try:
+        if readonly:
+            conn.set_session(readonly=True)
+        else:
+            conn.set_session(readonly=False)
         with conn.cursor() as cur:
+            if readonly:
+                cur.execute("SET TRANSACTION READ ONLY;")
             yield cur
-        conn.commit()
+        if not readonly:
+            conn.commit()
+        else:
+            conn.rollback()
     except Exception as e:
         try:
             conn.rollback()
@@ -202,11 +284,28 @@ def get_db_cursor() -> Generator[Any, None, None]:
         logger.error(f"PostgreSQL transaction failed: {e}", exc_info=True)
         raise
     finally:
-        _release_pooled_connection(conn, pool)
+        try:
+            if readonly:
+                conn.set_session(readonly=False)
+        except Exception:
+            pass
+        return_db_connection(conn, pool)
 
 
 @contextmanager
-def get_tenant_db_cursor(tenant_id: str) -> Generator[Any, None, None]:
+def get_readonly_cursor() -> Generator[Any, None, None]:
+    """
+    Context manager yielding a read-only PostgreSQL cursor.
+    Enables reads in dry-run mode via SUPABASE_READONLY_DB_URL,
+    without requiring ALLOW_LIVE_WRITE=true.
+    Never falls back to SUPABASE_DB_URL when DRY_RUN is active.
+    """
+    with get_db_cursor(readonly=True) as cur:
+        yield cur
+
+
+@contextmanager
+def get_tenant_db_cursor(tenant_id: str, readonly: bool = False) -> Generator[Any, None, None]:
     """
     Context manager yielding a PostgreSQL cursor scoped to the authenticated tenant's RLS context.
     Executes:
@@ -214,29 +313,37 @@ def get_tenant_db_cursor(tenant_id: str) -> Generator[Any, None, None]:
         SET LOCAL ROLE authenticated;
     Guarantees PostgreSQL Row Level Security (RLS) enforcement at the query level.
     """
-    if is_test_environment():
-        test_url = get_db_url()
+    if is_test_environment() and not os.getenv("FORCE_LIVE_TEST_DB"):
+        test_url = os.getenv("TEST_DATABASE_URL")
         if not test_url:
             yield MockCursor()
             return
-        db_url = test_url
+        conn, pool = get_db_connection(test_url, readonly=readonly)
     else:
-        db_url = get_db_url()
-        if not db_url:
-            if not is_live_write_permitted():
-                yield MockCursor()
-                return
-            raise ConnectionError("SUPABASE_DB_URL is not set.")
+        if not readonly and not is_live_write_permitted():
+            raise PermissionError(
+                "Live PostgreSQL tenant write access not authorized (must run under GITHUB_ACTIONS or RENDER with ALLOW_LIVE_WRITE=true). "
+                "Write operation refused to prevent production data corruption."
+            )
+        conn, pool = get_db_connection(readonly=readonly)
 
-    conn, pool = _get_pooled_connection(db_url)
     try:
+        if readonly:
+            conn.set_session(readonly=True)
+        else:
+            conn.set_session(readonly=False)
         with conn.cursor() as cur:
+            if readonly:
+                cur.execute("SET TRANSACTION READ ONLY;")
             cur.execute(
                 'SET LOCAL "request.jwt.claim.sub" = %s; SET LOCAL ROLE authenticated;',
                 (str(tenant_id),)
             )
             yield cur
-        conn.commit()
+        if not readonly:
+            conn.commit()
+        else:
+            conn.rollback()
     except Exception as e:
         try:
             conn.rollback()
@@ -245,7 +352,12 @@ def get_tenant_db_cursor(tenant_id: str) -> Generator[Any, None, None]:
         logger.error(f"PostgreSQL tenant transaction failed (tenant {tenant_id}): {e}", exc_info=True)
         raise
     finally:
-        _release_pooled_connection(conn, pool)
+        try:
+            if readonly:
+                conn.set_session(readonly=False)
+        except Exception:
+            pass
+        return_db_connection(conn, pool)
 
 
 def _execute_batch(cur: Any, sql: str, params_list: List[Any], page_size: int = 100) -> None:
@@ -324,7 +436,7 @@ def save_signals(
     2. Secondary write: Flat JSON files (signals_YYYYMMDD_HHMMSS.json and signals.json).
     """
     # 1. Primary PostgreSQL Write
-    if signals:
+    if signals and not is_dry_run():
         with get_db_cursor() as cur:
             # Ensure company records exist in canonical companies registry
             companies = set(s.get("company", "").strip() for s in signals if s.get("company"))
@@ -425,7 +537,7 @@ def save_noise_decisions(decisions: List[Dict[str, Any]], raw_signals_lookup: Op
     constraint is always satisfied regardless of invocation order (progressive mode or isolated tests).
     raw_signals_lookup: optional list of signal dicts to use for stub data (keyed by id).
     """
-    if not decisions:
+    if not decisions or is_dry_run():
         return
 
     # Build lookup for additional signal data if provided
@@ -517,7 +629,7 @@ def save_events(
     2. Secondary write: Flat JSON files (events_YYYYMMDD_HHMMSS.json and events.json).
     """
     # 1. Primary PostgreSQL Write
-    if events:
+    if events and not is_dry_run():
         with get_db_cursor() as cur:
             ev_sql = """
                 INSERT INTO consolidated_events (
@@ -687,22 +799,25 @@ def save_findings(
     Dual-write analyzed findings:
     Primary write: PostgreSQL `findings` table (is_mock = FALSE) scoped by tenant_id.
     """
-    if not findings:
+    if not findings or is_dry_run():
         return
     
     tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
 
     with get_db_cursor() as cur:
         f_sql = """
-            INSERT INTO findings (tenant_id, event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock, inference_confidence)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, %s)
+            INSERT INTO findings (tenant_id, event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock, inference_confidence, analysis_model, is_fallback, analysis_source)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s)
             ON CONFLICT (tenant_id, event_id) DO UPDATE
             SET company_name = EXCLUDED.company_name,
                 why_it_matters = EXCLUDED.why_it_matters,
                 confidence = EXCLUDED.confidence,
                 decision_score = EXCLUDED.decision_score,
                 tier = EXCLUDED.tier,
-                inference_confidence = COALESCE(EXCLUDED.inference_confidence, findings.inference_confidence);
+                inference_confidence = COALESCE(EXCLUDED.inference_confidence, findings.inference_confidence),
+                analysis_model = COALESCE(EXCLUDED.analysis_model, findings.analysis_model),
+                is_fallback = COALESCE(EXCLUDED.is_fallback, findings.is_fallback),
+                analysis_source = COALESCE(EXCLUDED.analysis_source, findings.analysis_source);
         """
         f_params = []
         for f in findings:
@@ -715,7 +830,10 @@ def save_findings(
             score = f.get("decision_score", 1.0)
             tier = f.get("tier", "should_know")
             infer_conf = f.get("inference_confidence")
-            f_params.append((tid, eid, comp, why, conf, score, tier, infer_conf))
+            analysis_model = f.get("analysis_model")
+            is_fallback = bool(f.get("is_fallback", False))
+            analysis_source = f.get("analysis_source")
+            f_params.append((tid, eid, comp, why, conf, score, tier, infer_conf, analysis_model, is_fallback, analysis_source))
 
         _execute_batch(cur, f_sql, f_params, page_size=200)
         logger.info(f"Dual-write: persisted {len(f_params)} findings for tenant {tid} to PostgreSQL.")
@@ -748,21 +866,22 @@ def save_brief(
             headline_preview = content[:300]
 
     # 1. Primary PostgreSQL Write
-    with get_db_cursor() as cur:
-        b_sql = """
-            INSERT INTO briefs (id, tenant_id, filename, source_path, content_hash, title, headline_preview, content, published_at)
-            VALUES ('data_latest', %s, 'data/brief.md', 'data/brief.md', %s, %s, %s, %s, %s)
-            ON CONFLICT (tenant_id, id) DO UPDATE
-            SET filename = EXCLUDED.filename,
-                source_path = EXCLUDED.source_path,
-                content_hash = EXCLUDED.content_hash,
-                title = EXCLUDED.title,
-                headline_preview = EXCLUDED.headline_preview,
-                content = EXCLUDED.content,
-                published_at = EXCLUDED.published_at;
-        """
-        cur.execute(b_sql, (tid, c_hash, b_title, headline_preview, content, pub_dt))
-        logger.info(f"Dual-write: persisted data_latest brief for tenant {tid} (hash: {c_hash[:16]}...) to PostgreSQL.")
+    if not is_dry_run():
+        with get_db_cursor() as cur:
+            b_sql = """
+                INSERT INTO briefs (id, tenant_id, filename, source_path, content_hash, title, headline_preview, content, published_at)
+                VALUES ('data_latest', %s, 'data/brief.md', 'data/brief.md', %s, %s, %s, %s, %s)
+                ON CONFLICT (tenant_id, id) DO UPDATE
+                SET filename = EXCLUDED.filename,
+                    source_path = EXCLUDED.source_path,
+                    content_hash = EXCLUDED.content_hash,
+                    title = EXCLUDED.title,
+                    headline_preview = EXCLUDED.headline_preview,
+                    content = EXCLUDED.content,
+                    published_at = EXCLUDED.published_at;
+            """
+            cur.execute(b_sql, (tid, c_hash, b_title, headline_preview, content, pub_dt))
+            logger.info(f"Dual-write: persisted data_latest brief for tenant {tid} (hash: {c_hash[:16]}...) to PostgreSQL.")
 
     # 2. Secondary Flat File Write
     data_dir = _get_data_dir()
@@ -807,6 +926,8 @@ def ensure_tenant_user_exists(cur, tenant_id: str, email: Optional[str] = None) 
     Idempotent: inserts default authenticated user record if not present.
     Uses SAVEPOINT so permission issues on auth.users do not abort the active transaction block.
     """
+    if is_dry_run():
+        return
     if not tenant_id:
         return
     if isinstance(cur, MockCursor):
@@ -851,6 +972,9 @@ def save_discovery_proposal(
     """
     data_dir = _get_data_dir()
     clean_name = _sanitize_filename(target_company)
+    target_file = Path(filepath) if filepath else (data_dir / f"discovery_proposal_{clean_name}.json")
+    if is_dry_run():
+        return target_file
     rel_filename = f"data/discovery_proposal_{clean_name}.json"
     now_dt = datetime.now(timezone.utc)
     tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
@@ -973,6 +1097,11 @@ def save_confirmed_competitors(
     1. Primary write: PostgreSQL `companies` table.
     2. Secondary write: Flat JSON file (confirmed_competitors_{clean_company}.json).
     """
+    data_dir = _get_data_dir()
+    clean_name = _sanitize_filename(target_company)
+    target_file = Path(filepath) if filepath else (data_dir / f"confirmed_competitors_{clean_name}.json")
+    if is_dry_run():
+        return target_file
     # 1. Primary PostgreSQL Write
     if confirmed_competitors:
         with get_db_cursor() as cur:
@@ -1009,6 +1138,10 @@ def save_tenant_discovery_proposal(
     candidates: List[Dict[str, Any]],
     filepath: Optional[Union[str, Path]] = None,
 ) -> Path:
+    if is_dry_run():
+        data_dir = _get_data_dir()
+        clean_name = _sanitize_filename(target_company)
+        return Path(filepath) if filepath else (data_dir / f"discovery_proposal_{clean_name}.json")
     return save_discovery_proposal(
         target_company=target_company,
         candidates=candidates,
@@ -1024,6 +1157,8 @@ def save_tenant_confirmed_companies(
     confirmed_competitors: List[str],
     competitor_metadata: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
+    if is_dry_run():
+        return []
     """
     Write confirmed onboarding company selection directly into tenant_tracked_companies.
     1. Inserts target company as is_target = TRUE, status = 'active' with domain/category.
@@ -1180,6 +1315,8 @@ def untrack_tenant_company(tenant_id: str, company_name: str) -> bool:
     Mark a tracked company as 'untracked' for the tenant.
     Preserves signal and event history while removing from active competitor views.
     """
+    if is_dry_run():
+        return False
     tid = str(tenant_id).strip()
     comp = str(company_name).strip()
     with get_db_cursor() as cur:
@@ -1215,6 +1352,8 @@ def track_tenant_company(
     """
     Add or reactivate a tracked company for a tenant under RLS, with optional domain anchor.
     """
+    if is_dry_run():
+        return {}
     tid = str(tenant_id).strip()
     comp = str(company_name).strip()
     dom = str(primary_domain).strip().lower() if primary_domain else None
@@ -1341,16 +1480,24 @@ CANONICAL_COMPANY_METADATA = {
 }
 
 
+_ANCHOR_CALL_COUNT = 0
+_ANCHOR_TOTAL_TIME = 0.0
+
+
 def get_entity_anchor(company_name: str) -> Optional[Dict[str, Optional[str]]]:
     """
     Look up primary_domain and industry_category for a tracked company.
     Queries tenant_tracked_companies from PostgreSQL under active status,
     falling back to CANONICAL_COMPANY_METADATA.
+    Tracks invocation count and duration with monotonic timing logs.
     """
+    global _ANCHOR_CALL_COUNT, _ANCHOR_TOTAL_TIME
+    t0 = time.monotonic()
     comp = str(company_name).strip()
-    if not is_test_environment() and is_live_write_permitted():
+    result = None
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_db_cursor() as cur:
+            with get_readonly_cursor() as cur:
                 cur.execute("""
                     SELECT primary_domain, industry_category
                     FROM tenant_tracked_companies
@@ -1360,21 +1507,30 @@ def get_entity_anchor(company_name: str) -> Optional[Dict[str, Optional[str]]]:
                 """, (comp,))
                 row = cur.fetchone()
                 if row and (row[0] or row[1]):
-                    return {
+                    result = {
                         "primary_domain": row[0],
                         "industry_category": row[1],
                     }
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query entity anchor for '{comp}' from Postgres: {e}")
 
     # Fallback to canonical metadata
-    meta = CANONICAL_COMPANY_METADATA.get(comp) or CANONICAL_COMPANY_METADATA.get(comp.lower())
-    if meta:
-        return {
-            "primary_domain": meta.get("domain"),
-            "industry_category": meta.get("category"),
-        }
-    return None
+    if not result:
+        meta = CANONICAL_COMPANY_METADATA.get(comp) or CANONICAL_COMPANY_METADATA.get(comp.lower())
+        if meta:
+            result = {
+                "primary_domain": meta.get("domain"),
+                "industry_category": meta.get("category"),
+            }
+
+    dur = time.monotonic() - t0
+    _ANCHOR_CALL_COUNT += 1
+    _ANCHOR_TOTAL_TIME += dur
+    logger.info(f"[TIMING] get_entity_anchor('{comp}'): {dur*1000:.2f}ms (call #{_ANCHOR_CALL_COUNT}, total: {_ANCHOR_TOTAL_TIME*1000:.2f}ms)")
+    return result
+
 
 
 def get_entity_anchors() -> Dict[str, Dict[str, Optional[str]]]:
@@ -1383,9 +1539,9 @@ def get_entity_anchors() -> Dict[str, Dict[str, Optional[str]]]:
     Returns mapping: {company_name: {"primary_domain": ..., "industry_category": ...}}
     """
     anchors: Dict[str, Dict[str, Optional[str]]] = {}
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_db_cursor() as cur:
+            with get_readonly_cursor() as cur:
                 cur.execute("""
                     SELECT DISTINCT company_name, primary_domain, industry_category
                     FROM tenant_tracked_companies
@@ -1399,6 +1555,8 @@ def get_entity_anchors() -> Dict[str, Dict[str, Optional[str]]]:
                             "industry_category": r[2],
                         }
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query distinct entity anchors from Postgres: {e}")
 
     # Merge canonical fallback metadata for missing
@@ -1418,9 +1576,9 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
     industry_category, tier, confidence, rationale, source.
     """
     tid = str(tenant_id).strip()
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_tenant_db_cursor(tid) as cur:
+            with get_tenant_db_cursor(tid, readonly=True) as cur:
                 cur.execute("""
                     SELECT company_name, is_target, status, added_at,
                            primary_domain, industry_category, tier, confidence, rationale, source
@@ -1569,6 +1727,9 @@ def save_discovery_sources(
     """
     data_dir = _get_data_dir()
     clean_name = _sanitize_filename(target_company)
+    target_file = Path(filepath) if filepath else (data_dir / f"discovery_sources_{clean_name}.json")
+    if is_dry_run():
+        return target_file
     rel_filename = f"data/discovery_sources_{clean_name}.json"
     now_iso = datetime.now(timezone.utc).isoformat()
     tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
@@ -1697,6 +1858,12 @@ def save_pricing_snapshot(
     """
     if data_dir is None:
         data_dir = _get_data_dir()
+    slug = _sanitize_filename(company)
+    if timestamp is None:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    target_file = data_dir / f"pricing_snapshot_{slug}_{timestamp}.json"
+    if is_dry_run():
+        return target_file
     data_dir.mkdir(parents=True, exist_ok=True)
 
     if timestamp is None:
@@ -1739,15 +1906,59 @@ def save_pricing_snapshot(
     return history_file
 
 
-def get_all_tracked_companies() -> List[str]:
+def get_all_entity_anchors() -> Dict[str, Dict[str, Any]]:
+    """
+    Bulk pre-load all entity anchors from tenant_tracked_companies into an in-memory dictionary.
+    Keys are lowercased company names.
+    Avoids per-signal synchronous database roundtrips during collection and noise suppression.
+    """
+    if is_test_environment() and not os.getenv("ALLOW_TEST_NETWORK"):
+        return {}
+
+    anchors: Dict[str, Dict[str, Any]] = {}
+    try:
+        with get_readonly_cursor() as cur:
+            cur.execute("""
+                SELECT LOWER(TRIM(company_name)), primary_domain, industry_category
+                FROM tenant_tracked_companies
+                WHERE primary_domain IS NOT NULL OR industry_category IS NOT NULL;
+            """)
+            for row in cur.fetchall():
+                comp = row[0]
+                if comp and comp not in anchors:
+                    anchors[comp] = {
+                        "primary_domain": row[1] or "",
+                        "industry_category": row[2] or "",
+                    }
+    except Exception as e:
+        logger.warning(f"Failed to preload entity anchors from Postgres: {e}")
+    return anchors
+
+
+def get_all_tracked_companies(scheduled_only: bool = False) -> List[str]:
     """
     Query DISTINCT company_name across all tenant_tracked_companies rows.
-    Union across every tenant, deduplicated.
-    Replaces hardcoded TARGET_COMPANY / COMPETITORS as source of what gets monitored in Phase 1.
+    Union across tenants, deduplicated.
+    When scheduled_only=True, restricts strictly to tenants with is_scheduled=TRUE in scheduled_tenants.
     """
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_db_cursor() as cur:
+            with get_readonly_cursor() as cur:
+                if scheduled_only:
+                    try:
+                        cur.execute("""
+                            SELECT DISTINCT t.company_name
+                            FROM tenant_tracked_companies t
+                            JOIN scheduled_tenants s ON t.tenant_id = s.tenant_id
+                            WHERE t.status = 'active' AND s.is_scheduled = TRUE
+                            ORDER BY t.company_name;
+                        """)
+                        rows = cur.fetchall()
+                        if rows:
+                            return [r[0] for r in rows if r and r[0]]
+                    except Exception as e_sched:
+                        logger.debug(f"scheduled_tenants table join skipped or missing: {e_sched}")
+
                 cur.execute("""
                     SELECT DISTINCT company_name
                     FROM tenant_tracked_companies
@@ -1760,6 +1971,8 @@ def get_all_tracked_companies() -> List[str]:
                     if comps:
                         return comps
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query distinct tracked companies from Postgres: {e}")
 
     # Fallback to configured target and competitors
@@ -1774,67 +1987,151 @@ def get_all_tracked_companies() -> List[str]:
     return res
 
 
-def get_active_tenants() -> List[Dict[str, Any]]:
+def get_active_tenants(scope: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Query all active tenants from tenant_tracked_companies and join with tenant_delivery_configs.
-    Returns structured list of tenant configuration contexts for Phase 2 processing.
-    """
-    if not is_test_environment() and is_live_write_permitted():
-        try:
-            with get_db_cursor() as cur:
-                sql = """
-                    SELECT 
-                        t.tenant_id,
-                        MAX(CASE WHEN t.is_target THEN t.company_name END) AS target_company,
-                        ARRAY_AGG(CASE WHEN NOT t.is_target THEN t.company_name END) FILTER (WHERE NOT t.is_target) AS competitors,
-                        ARRAY_AGG(t.company_name) AS all_tracked_companies,
-                        d.slack_webhook_url,
-                        d.delivery_cadence,
-                        d.is_enabled
-                    FROM tenant_tracked_companies t
-                    LEFT JOIN tenant_delivery_configs d ON t.tenant_id = d.tenant_id
-                    WHERE t.status = 'active'
-                    GROUP BY t.tenant_id, d.slack_webhook_url, d.delivery_cadence, d.is_enabled
-                    ORDER BY t.tenant_id;
-                """
-                cur.execute(sql)
-                rows = cur.fetchall()
-                if rows:
-                    tenants = []
-                    for r in rows:
-                        tid = str(r[0])
-                        target = r[1] or "Unknown"
-                        raw_comps = r[2] or []
-                        competitors = [c for c in raw_comps if c]
-                        tracked = [c for c in (r[3] or []) if c]
-                        webhook_url = r[4]
-                        cadence = r[5] or "daily"
-                        is_enabled = r[6] if r[6] is not None else True
-                        tenants.append({
-                            "tenant_id": tid,
-                            "target_company": target,
-                            "competitors": competitors,
-                            "tracked_companies": tracked,
-                            "slack_webhook_url": webhook_url,
-                            "delivery_cadence": cadence,
-                            "is_delivery_enabled": is_enabled,
-                        })
-                    return tenants
-        except Exception as e:
-            logger.warning(f"Failed to query active tenants from Postgres: {e}")
+    Query active tenants from tenant_tracked_companies and join with tenant_delivery_configs.
+    Guarantees owner tenant is returned FIRST in the list.
 
-    # Fallback to single owner tenant context
-    from . import config
+    Scope handling:
+    - scope="scheduled": Restricts strictly to tenants marked is_scheduled=TRUE in scheduled_tenants.
+      If scheduled_tenants table does NOT exist, raises RuntimeError immediately.
+      If scheduled_tenants is empty or no tenant is active, returns [] (which triggers fatal startup check).
+    - scope="owner": Restricts strictly to OWNER_TENANT_ID. Returns [] if not found.
+    - scope="all" or None: Returns all active tenants.
+
+    Note: The legacy single-owner fallback dictionary has been removed so that missing tables
+    or empty configurations fail loudly instead of generating unconfigured silent runs.
+    """
+    scope = (scope or os.getenv("PIPELINE_SCOPE") or "all").strip().lower()
     owner_id = os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
-    return [{
-        "tenant_id": owner_id,
-        "target_company": config.TARGET_COMPANY,
-        "competitors": list(config.COMPETITORS),
-        "tracked_companies": [config.TARGET_COMPANY] + list(config.COMPETITORS),
-        "slack_webhook_url": config.SLACK_WEBHOOK_URL or None,
-        "delivery_cadence": config.SCHEDULE_CADENCE_NAME,
-        "is_delivery_enabled": True,
-    }]
+
+    if is_test_environment() and not os.getenv("FORCE_LIVE_TEST_DB"):
+        if scope in ("owner", "all", "scheduled"):
+            from . import config
+            return [{
+                "tenant_id": owner_id,
+                "target_company": config.TARGET_COMPANY,
+                "competitors": list(config.COMPETITORS),
+                "tracked_companies": [config.TARGET_COMPANY] + list(config.COMPETITORS),
+                "slack_webhook_url": config.SLACK_WEBHOOK_URL or None,
+                "delivery_cadence": config.SCHEDULE_CADENCE_NAME,
+                "is_delivery_enabled": True,
+            }]
+
+    with get_readonly_cursor() as cur:
+        join_clause = ""
+        where_extra = ""
+
+        if scope == "scheduled":
+            cur.execute("""
+                SELECT 1 FROM information_schema.tables 
+                WHERE table_name = 'scheduled_tenants' AND table_schema = 'public';
+            """)
+            if not cur.fetchone():
+                raise RuntimeError("FATAL: Table 'scheduled_tenants' does not exist in schema public.")
+            join_clause = "JOIN public.scheduled_tenants s ON t.tenant_id = s.tenant_id"
+            where_extra = "AND s.is_scheduled = TRUE"
+
+        elif scope == "owner":
+            where_extra = "AND t.tenant_id = %s"
+
+        webhook_select = "NULL::text AS slack_webhook_url" if is_dry_run() else "d.slack_webhook_url"
+        webhook_group = "" if is_dry_run() else ", d.slack_webhook_url"
+        sql = f"""
+            SELECT 
+                t.tenant_id,
+                MAX(CASE WHEN t.is_target THEN t.company_name END) AS target_company,
+                ARRAY_AGG(CASE WHEN NOT t.is_target THEN t.company_name END) FILTER (WHERE NOT t.is_target) AS competitors,
+                ARRAY_AGG(t.company_name) AS all_tracked_companies,
+                {webhook_select},
+                d.delivery_cadence,
+                d.is_enabled
+            FROM tenant_tracked_companies t
+            LEFT JOIN tenant_delivery_configs d ON t.tenant_id = d.tenant_id
+            {join_clause}
+            WHERE t.status = 'active' {where_extra}
+            GROUP BY t.tenant_id, d.delivery_cadence, d.is_enabled{webhook_group}
+            ORDER BY CASE WHEN t.tenant_id::text = %s THEN 0 ELSE 1 END, t.tenant_id;
+        """
+        params = (owner_id, owner_id) if scope == "owner" else (owner_id,)
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+
+        tenants = []
+        for r in rows:
+            tid = str(r[0])
+            target = r[1] or "Unknown"
+            raw_comps = r[2] or []
+            competitors = [c for c in raw_comps if c]
+            tracked = [c for c in (r[3] or []) if c]
+            webhook_url = r[4]
+            cadence = r[5] or "daily"
+            is_enabled = r[6] if r[6] is not None else True
+            tenants.append({
+                "tenant_id": tid,
+                "target_company": target,
+                "competitors": competitors,
+                "tracked_companies": tracked,
+                "slack_webhook_url": webhook_url,
+                "delivery_cadence": cadence,
+                "is_delivery_enabled": is_enabled,
+            })
+        return tenants
+
+
+def get_pending_tenant_events(tenant_id: str, days: int = 7, limit: int = 50) -> List[Dict[str, Any]]:
+    """
+    Retrieve backlog of consolidated events for this tenant's tracked companies
+    within the last `days` days that currently have NO row in the findings table.
+    Enables auto-retry of events skipped due to upstream rate limits.
+    """
+    if is_test_environment() and not (os.getenv("ALLOW_TEST_NETWORK") or os.getenv("FORCE_LIVE_TEST_DB")):
+        return []
+
+    try:
+        with get_readonly_cursor() as cur:
+            sql = """
+                SELECT 
+                    ce.event_id,
+                    ce.company_name,
+                    ce.title,
+                    ce.event_summary,
+                    ce.url,
+                    ce.fact_confidence,
+                    ce.published_at,
+                    ce.created_at
+                FROM consolidated_events ce
+                JOIN tenant_tracked_companies tc 
+                    ON LOWER(TRIM(ce.company_name)) = LOWER(TRIM(tc.company_name))
+                    AND tc.tenant_id = %s AND tc.status = 'active'
+                LEFT JOIN findings f 
+                    ON f.event_id = ce.event_id AND f.tenant_id = %s
+                WHERE f.id IS NULL
+                  AND ce.created_at >= NOW() - (%s || ' days')::interval
+                ORDER BY ce.created_at DESC
+                LIMIT %s;
+            """
+            cur.execute(sql, (tenant_id, tenant_id, str(days), limit))
+            rows = cur.fetchall()
+            return [
+                {
+                    "event_id": r[0],
+                    "company": r[1],
+                    "title": r[2],
+                    "summary": r[3],
+                    "url": r[4],
+                    "fact_confidence": r[5] or "Medium",
+                    "published_at": r[6],
+                    "created_at": r[7].isoformat() if r[7] else None,
+                    "is_backlog": True,
+                }
+                for r in rows
+            ]
+    except Exception as e:
+        if is_dry_run():
+            raise
+        logger.warning(f"Failed to query pending backlog events for tenant {tenant_id}: {e}")
+        return []
 
 
 def get_prior_research_activity(
@@ -1850,9 +2147,9 @@ def get_prior_research_activity(
     Returns:
         Dict with keys {"title", "company", "published_at", "url"} or None if no prior research activity.
     """
-    if not is_test_environment():
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_db_cursor() as cur:
+            with get_readonly_cursor() as cur:
                 conditions = ["source = 'research'"]
                 params: List[Any] = []
 
@@ -1920,26 +2217,46 @@ def get_tenant_delivery_config(tenant_id: str) -> Dict[str, Any]:
         "email_status": "coming_soon",
         "updated_at": None,
     }
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
-                cur.execute("""
-                    SELECT slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
-                    FROM tenant_delivery_configs
-                    WHERE tenant_id = %s;
-                """, (tid,))
-                row = cur.fetchone()
-                if row:
-                    return {
-                        "tenant_id": tid,
-                        "slack_webhook_url": row[0] or "",
-                        "channel_name": row[1] or "#competitive-intelligence",
-                        "is_active": bool(row[2]) if row[2] is not None else True,
-                        "delivery_cadence": row[3] or "daily",
-                        "email_status": "coming_soon",
-                        "updated_at": row[4].isoformat() if row[4] else None,
-                    }
+            with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
+                if is_dry_run():
+                    cur.execute("""
+                        SELECT slack_channel, is_enabled, delivery_cadence, updated_at
+                        FROM tenant_delivery_configs
+                        WHERE tenant_id = %s;
+                    """, (tid,))
+                    row = cur.fetchone()
+                    if row:
+                        return {
+                            "tenant_id": tid,
+                            "slack_webhook_url": "",
+                            "channel_name": row[0] or "#competitive-intelligence",
+                            "is_active": bool(row[1]) if row[1] is not None else True,
+                            "delivery_cadence": row[2] or "daily",
+                            "email_status": "coming_soon",
+                            "updated_at": row[3].isoformat() if row[3] else None,
+                        }
+                else:
+                    cur.execute("""
+                        SELECT slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
+                        FROM tenant_delivery_configs
+                        WHERE tenant_id = %s;
+                    """, (tid,))
+                    row = cur.fetchone()
+                    if row:
+                        return {
+                            "tenant_id": tid,
+                            "slack_webhook_url": row[0] or "",
+                            "channel_name": row[1] or "#competitive-intelligence",
+                            "is_active": bool(row[2]) if row[2] is not None else True,
+                            "delivery_cadence": row[3] or "daily",
+                            "email_status": "coming_soon",
+                            "updated_at": row[4].isoformat() if row[4] else None,
+                        }
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query delivery config from Postgres: {e}")
     return default_cfg
 
@@ -1956,6 +2273,16 @@ def save_tenant_delivery_config(
     url = str(slack_webhook_url).strip()
     chan = str(channel_name).strip() or "#competitive-intelligence"
     now_dt = datetime.now(timezone.utc)
+    if is_dry_run():
+        return {
+            "tenant_id": tid,
+            "slack_webhook_url": url,
+            "channel_name": chan,
+            "is_active": is_active,
+            "delivery_cadence": delivery_cadence,
+            "email_status": "coming_soon",
+            "updated_at": now_dt.isoformat(),
+        }
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id) as cur:
@@ -2013,9 +2340,9 @@ def get_tenant_research_topics(tenant_id: str, include_paused: bool = False) -> 
     Enforces RLS in PostgreSQL or falls back to tenant-scoped JSON file.
     When include_paused=True, returns both active and paused topics for management UI.
     """
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
                 filter_clause = "WHERE TRUE" if include_paused else "WHERE is_active = TRUE"
                 cur.execute(f"""
                     SELECT id, topic_label, keywords, source, is_active, created_at, updated_at
@@ -2038,6 +2365,8 @@ def get_tenant_research_topics(tenant_id: str, include_paused: bool = False) -> 
                     })
                 return topics
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query tenant research topics from Postgres: {e}")
 
     # Fallback to local flat file
@@ -2084,6 +2413,9 @@ def save_tenant_research_topic(
         "created_at": now_iso,
         "updated_at": now_iso,
     }
+
+    if is_dry_run():
+        return record
 
     if not is_test_environment() and is_live_write_permitted():
         try:
@@ -2152,6 +2484,8 @@ def save_tenant_research_topic(
 
 def delete_tenant_research_topic(tenant_id: str, topic_id_or_label: str) -> bool:
     """Delete or deactivate a tenant research topic across both Postgres and local cache."""
+    if is_dry_run():
+        return False
     target = topic_id_or_label.strip()
     deleted_pg = False
     if not is_test_environment() and is_live_write_permitted():
@@ -2191,6 +2525,8 @@ def update_tenant_research_topic_status(tenant_id: str, topic_id_or_label: str, 
     Pause or resume a tenant research topic without deleting evaluation history.
     Enforces RLS under tenant_id in Postgres and synchronizes local flat file.
     """
+    if is_dry_run():
+        return False
     target = topic_id_or_label.strip()
     updated_pg = False
     if not is_test_environment() and is_live_write_permitted():
@@ -2228,21 +2564,35 @@ def update_tenant_research_topic_status(tenant_id: str, topic_id_or_label: str, 
     return updated_pg or updated_file
 
 
-def get_all_active_research_topics() -> List[Dict[str, Any]]:
+def get_all_active_research_topics(scheduled_only: bool = False) -> List[Dict[str, Any]]:
     """
     Retrieve union of distinct active research topics across all tenants for Phase 1 global ingestion.
+    When scheduled_only=True, restricts strictly to tenants in scheduled_tenants with is_scheduled=TRUE.
     """
     topics_by_label: Dict[str, Dict[str, Any]] = {}
 
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_db_cursor() as cur:
-                cur.execute("""
-                    SELECT topic_label, jsonb_agg(DISTINCT kw) AS all_keywords
-                    FROM tenant_research_topics, jsonb_array_elements_text(keywords) kw
-                    WHERE is_active = TRUE
-                    GROUP BY topic_label;
-                """)
+            with get_readonly_cursor() as cur:
+                join_clause = ""
+                where_extra = ""
+                if scheduled_only:
+                    try:
+                        cur.execute("SELECT 1 FROM information_schema.tables WHERE table_name = 'scheduled_tenants';")
+                        if cur.fetchone():
+                            join_clause = "JOIN scheduled_tenants s ON t.tenant_id = s.tenant_id"
+                            where_extra = "AND s.is_scheduled = TRUE"
+                    except Exception:
+                        pass
+
+                sql = f"""
+                    SELECT t.topic_label, jsonb_agg(DISTINCT kw) AS all_keywords
+                    FROM tenant_research_topics t, jsonb_array_elements_text(t.keywords) kw
+                    {join_clause}
+                    WHERE t.is_active = TRUE {where_extra}
+                    GROUP BY t.topic_label;
+                """
+                cur.execute(sql)
                 rows = cur.fetchall()
                 for r in rows:
                     label = r[0]
@@ -2287,7 +2637,7 @@ def save_research_items(items: List[Dict[str, Any]]) -> int:
     Persist global research items (arXiv papers, technical deep dives).
     Deduplicates by canonical URL once globally.
     """
-    if not items:
+    if is_dry_run() or not items:
         return 0
 
     inserted_count = 0
@@ -2386,9 +2736,9 @@ def get_research_items_for_topics(
     labels_set = set(l.lower() for l in topic_labels if l)
     results = []
 
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
-            with get_db_cursor() as cur:
+            with get_readonly_cursor() as cur:
                 cur.execute("""
                     SELECT id, title, url, canonical_url, published_at, raw_excerpt,
                            source, authors, matched_topics, research_details, created_at
@@ -2413,6 +2763,8 @@ def get_research_items_for_topics(
                     })
                 return results
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query research_items from Postgres: {e}")
 
     # Fallback to local flat file
@@ -2436,7 +2788,7 @@ def save_radar_evaluations(evaluations: List[Dict[str, Any]], tenant_id: str) ->
     """
     Persist per-tenant radar evaluations and competitor connection matrices.
     """
-    if not evaluations:
+    if is_dry_run() or not evaluations:
         return
 
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -2529,9 +2881,9 @@ def get_latest_radar_evaluations(tenant_id: str) -> List[Dict[str, Any]]:
     """
     Retrieve radar evaluations from the latest cycle for the authenticated tenant.
     """
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
                 cur.execute("""
                     SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
                            why_it_matters, verified_sources, state_change_detected, previous_status, created_at
@@ -2560,6 +2912,8 @@ def get_latest_radar_evaluations(tenant_id: str) -> List[Dict[str, Any]]:
                     })
                 return evals
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query latest radar evaluations from Postgres: {e}")
 
     # Fallback to local flat file
@@ -2584,9 +2938,9 @@ def get_prior_radar_evaluation(tenant_id: str, topic_label: str) -> Optional[Dic
     Get the most recent prior radar evaluation for a tenant and topic.
     Used for change detection and per-tenant continuity across cycles.
     """
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
                 cur.execute("""
                     SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
                            why_it_matters, verified_sources, state_change_detected, created_at
@@ -2609,6 +2963,8 @@ def get_prior_radar_evaluation(tenant_id: str, topic_label: str) -> Optional[Dic
                         "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8]),
                     }
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query prior radar evaluation from Postgres: {e}")
 
     # Fallback to flat file
@@ -2637,9 +2993,9 @@ def get_latest_radar_evaluations_for_tenant(tenant_id: str) -> Dict[str, Dict[st
     Returns mapping: topic_label.lower() -> evaluation_dict.
     """
     results: Dict[str, Dict[str, Any]] = {}
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
                 cur.execute("""
                     SELECT DISTINCT ON (topic_label)
                            id, topic_label, cycle_id, research_item_count, competitor_connections,
@@ -2663,6 +3019,8 @@ def get_latest_radar_evaluations_for_tenant(tenant_id: str) -> Dict[str, Dict[st
                     }
                 return results
         except Exception as e:
+            if is_dry_run():
+                raise
             logger.warning(f"Failed to query batch radar evaluations from Postgres: {e}")
 
     # Fallback to flat file
@@ -2693,9 +3051,9 @@ def get_radar_history(
     """
     records: List[Dict[str, Any]] = []
 
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
                 query = """
                     SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
                            why_it_matters, verified_sources, state_change_detected, previous_status, created_at
@@ -2758,7 +3116,7 @@ _IN_MEMORY_RUN_PROGRESS: Dict[str, Dict[str, Any]] = {}
 
 def ensure_pipeline_run_tables() -> None:
     """Ensure pipeline_run_progress table exists in live PostgreSQL."""
-    if is_test_environment() or not is_live_write_permitted():
+    if is_dry_run() or is_test_environment() or not is_live_write_permitted():
         return
     try:
         with get_db_cursor() as cur:
@@ -2803,6 +3161,8 @@ def create_pipeline_run(
     is_first_run: bool = False,
 ) -> str:
     """Initialize an active pipeline run and return its unique run_id."""
+    if is_dry_run():
+        return f"dry_run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
     run_id = f"run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
     now_iso = datetime.now(timezone.utc).isoformat()
     msg = f"Fetching signals: 0 of {total_companies} competitors complete" if total_companies > 0 else "Initializing intelligence sweep..."
@@ -2869,6 +3229,8 @@ def update_pipeline_progress(
     source_errors: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Update progress telemetry for an active run."""
+    if is_dry_run():
+        return
     now_dt = datetime.now(timezone.utc)
     now_iso = now_dt.isoformat()
 
@@ -2923,6 +3285,8 @@ def update_pipeline_progress(
 
 def record_first_visible_data(run_id: str) -> Optional[float]:
     """Record the timestamp when the first queryable row was committed to the DB."""
+    if is_dry_run():
+        return None
     now_dt = datetime.now(timezone.utc)
     now_iso = now_dt.isoformat()
     time_to_first: Optional[float] = None
@@ -2960,6 +3324,8 @@ def complete_pipeline_run(
     error_message: Optional[str] = None,
 ) -> None:
     """Mark a pipeline run as completed, failed, or timed_out."""
+    if is_dry_run():
+        return
     now_dt = datetime.now(timezone.utc)
     now_iso = now_dt.isoformat()
 
@@ -3030,31 +3396,52 @@ def _format_run_progress_row(row: Any) -> Dict[str, Any]:
 _LAST_REAP_STALE_RUNS = 0.0
 
 
+def reap_stale_pipeline_runs(timeout_minutes: int = 30) -> int:
+    """
+    Housekeeping utility: reap stale runs older than timeout_minutes.
+    Executes an UPDATE on pipeline_run_progress.
+    Guarded by is_dry_run() and is_live_write_permitted().
+    """
+    if is_dry_run() or not is_live_write_permitted() or is_test_environment():
+        return 0
+    try:
+        with get_db_cursor(readonly=False) as cur:
+            if not isinstance(cur, MockCursor):
+                cur.execute(f"""
+                    UPDATE pipeline_run_progress
+                    SET status = 'timed_out',
+                        current_phase = 'timed_out',
+                        progress_message = 'Monitoring run timed out after {timeout_minutes} minutes',
+                        completed_at = NOW(),
+                        updated_at = NOW()
+                    WHERE status = 'running'
+                      AND started_at < NOW() - INTERVAL '{timeout_minutes} minutes';
+                """)
+                return cur.rowcount
+    except Exception as e:
+        logger.warning(f"Failed to reap stale pipeline runs in Postgres: {e}")
+    return 0
+
+
 def get_active_or_latest_run_progress(
     tenant_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Retrieve the currently running pipeline progress or the latest run for a tenant."""
     global _LAST_REAP_STALE_RUNS
     # 1. Primary PostgreSQL query
-    if not is_test_environment() and is_live_write_permitted():
+    if not is_test_environment():
         try:
-            with get_db_cursor() as cur:
-                if not isinstance(cur, MockCursor):
-                    # Reap stale runs older than 30 minutes at most once every 5 minutes
-                    now_ts = time.time()
-                    if now_ts - _LAST_REAP_STALE_RUNS > 300:
-                        _LAST_REAP_STALE_RUNS = now_ts
-                        cur.execute("""
-                            UPDATE pipeline_run_progress
-                            SET status = 'timed_out',
-                                current_phase = 'timed_out',
-                                progress_message = 'Monitoring run timed out after 30 minutes',
-                                completed_at = NOW(),
-                                updated_at = NOW()
-                            WHERE status = 'running'
-                              AND started_at < NOW() - INTERVAL '30 minutes';
-                        """)
+            # Housekeeping: reap stale runs at most once every 5 minutes if live write is permitted
+            now_ts = time.time()
+            if is_live_write_permitted() and not is_dry_run() and now_ts - _LAST_REAP_STALE_RUNS > 300:
+                _LAST_REAP_STALE_RUNS = now_ts
+                try:
+                    reap_stale_pipeline_runs(timeout_minutes=30)
+                except Exception:
+                    pass
 
+            with get_db_cursor(readonly=True) as cur:
+                if not isinstance(cur, MockCursor):
                     base_select = """
                         SELECT run_id, tenant_id, status, current_phase, progress_message,
                                total_companies, completed_companies, completed_company_names,
