@@ -202,6 +202,15 @@ def post_slack_digest(
     """
     target_url = (webhook_url if webhook_url is not None else config.SLACK_WEBHOOK_URL).strip()
 
+    if storage.is_dry_run():
+        logger.info("[DRY_RUN] Slack digest delivery simulated; no HTTP request sent.")
+        return {
+            "status": "dry_run_simulated",
+            "simulated": True,
+            "target_configured": bool(target_url),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
     if not target_url:
         logger.info("SLACK_WEBHOOK_URL is not configured. Skipping Slack delivery.")
         return {
