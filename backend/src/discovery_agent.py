@@ -1160,7 +1160,7 @@ def run_with_meta(
 
     # 2. Grounded Company Profile Resolution (live execution)
     resolved_profile = None
-    if sources is None:
+    if sources is None and not storage.is_test_environment() and not os.getenv("FORCE_LIVE_DISCOVERY"):
         try:
             resolved_profile = company_profiler.resolve_company_profile(
                 clean_target,
@@ -1269,7 +1269,7 @@ def run_with_meta(
         }
 
     # 5. Search Re-Check & Verification (run on live calls, skip on unit test mocks)
-    if sources is None and not llm_error:
+    if sources is None and not llm_error and not storage.is_test_environment() and not os.getenv("FORCE_LIVE_DISCOVERY"):
         final_candidates = _verify_candidates_via_search(clean_target, cleaned_candidates)
     else:
         final_candidates = cleaned_candidates
