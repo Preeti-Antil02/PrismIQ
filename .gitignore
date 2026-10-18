@@ -45,3 +45,5 @@ scratch/evidence/
 *.diff
 docs/*
 !docs/OWNER_RUNBOOK.md
+!docs/trend_evolution/
+!docs/trend_evolution/**
