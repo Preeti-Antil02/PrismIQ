@@ -335,10 +335,12 @@ def get_tenant_db_cursor(tenant_id: str, readonly: bool = False) -> Generator[An
         with conn.cursor() as cur:
             if readonly:
                 cur.execute("SET TRANSACTION READ ONLY;")
-            cur.execute(
-                'SET LOCAL "request.jwt.claim.sub" = %s; SET LOCAL ROLE authenticated;',
-                (str(tenant_id),)
-            )
+                cur.execute('SET LOCAL "request.jwt.claim.sub" = %s;', (str(tenant_id),))
+            else:
+                cur.execute(
+                    'SET LOCAL "request.jwt.claim.sub" = %s; SET LOCAL ROLE authenticated;',
+                    (str(tenant_id),)
+                )
             yield cur
         if not readonly:
             conn.commit()
