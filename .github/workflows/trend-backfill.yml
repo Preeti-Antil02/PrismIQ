@@ -1,0 +1,91 @@
+name: Trend Evolution Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution mode (dry_run | dry_run_then_live)'
+        required: true
+        default: 'dry_run'
+        type: choice
+        options:
+          - dry_run
+          - dry_run_then_live
+
+jobs:
+  trend-backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install psycopg2-binary numpy scikit-learn fastembed groq
+
+      - name: Execute Trend Backfill
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL || secrets.DATABASE_URL }}
+          SUPABASE_READONLY_DB_URL: ${{ secrets.SUPABASE_READONLY_DB_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          BACKFILL_MODE: ${{ github.event.inputs.mode }}
+        run: |
+          python - << 'EOF'
+          import os
+          import sys
+
+          mode = os.environ.get("BACKFILL_MODE", "dry_run")
+          print(f"Starting Trend Evolution backfill job in mode: {mode}")
+
+          # Dry run uses read-only DB connection
+          ro_url = os.environ.get("SUPABASE_READONLY_DB_URL") or os.environ.get("DATABASE_URL")
+          if not ro_url:
+              print("Error: Missing database connection secret.")
+              sys.exit(1)
+
+          from backend.src.trend_build import run_trend_build
+
+          dry_run_passed, summary = run_trend_build(
+              db_url=ro_url,
+              dry_run=True,
+              groq_api_key=os.environ.get("GROQ_API_KEY")
+          )
+
+          print("Dry-run execution summary:")
+          print(f"  Stories Processed: {summary.get('stories_count')}")
+          print(f"  Clusters Formed: {summary.get('clusters_count')}")
+          print(f"  Cross-Company Trends: {summary.get('cross_trends_count')}")
+          print(f"  Single-Company Storylines: {summary.get('storylines_count')}")
+          print(f"  Owner Tracked Clusters: {summary.get('owner_clusters_count')}")
+
+          if not dry_run_passed:
+              print("Error: Dry-run validation gates failed. Aborting.")
+              sys.exit(1)
+
+          if mode == "dry_run_then_live":
+              print("Dry-run gates passed. Proceeding to LIVE database write...")
+              live_url = os.environ.get("DATABASE_URL")
+              if not live_url:
+                  print("Error: DATABASE_URL write secret is required for live mode.")
+                  sys.exit(1)
+
+              live_passed, live_summary = run_trend_build(
+                  db_url=live_url,
+                  dry_run=False,
+                  groq_api_key=os.environ.get("GROQ_API_KEY")
+              )
+
+              if not live_passed:
+                  print("Error: Live trend build failed.")
+                  sys.exit(1)
+
+              print("Live trend build successfully written to database.")
+          else:
+              print("Dry-run complete. Live writes were not requested.")
+          EOF
