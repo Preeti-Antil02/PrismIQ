@@ -8,8 +8,10 @@ from .aliases import (
     resolve_canonical_company,
     is_quarantined_entity,
     normalize_entity_name,
+    get_parent_corporate_group,
     DEFAULT_COMPANY_ALIASES,
     DEFAULT_QUARANTINED_ENTITIES,
+    PARENT_CORPORATE_GROUPS,
 )
 from .distinct_story import (
     compute_distinct_story_key,
@@ -17,6 +19,9 @@ from .distinct_story import (
     extract_github_repo,
     normalize_title,
     normalize_story_url,
+    clean_job_title,
+    clean_github_title,
+    is_github_noise_event,
 )
 from .dates import (
     classify_event_date,
@@ -27,6 +32,8 @@ from .dates import (
 )
 from .momentum import (
     calculate_momentum,
+    calculate_momentum_anchored,
+    get_anchor_completed_weeks,
     ALLOWED_MOMENTUM_LABELS,
 )
 from .evidence import (
@@ -61,6 +68,8 @@ __all__ = [
     "parse_iso_datetime",
     "is_date_only_midnight",
     "calculate_momentum",
+    "calculate_momentum_anchored",
+    "get_anchor_completed_weeks",
     "ALLOWED_MOMENTUM_LABELS",
     "validate_trend_evidence",
     "build_audited_absences",
