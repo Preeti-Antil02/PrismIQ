@@ -98,10 +98,6 @@ jobs:
 
           ro_ref = os.environ.get("SUPABASE_READONLY_DB_URL")
           db_url = normalize_postgres_url(raw_db_url, reference_url=ro_ref)
-          raw_mask = "".join(c if c in ":/@.=-_ " else "X" for c in raw_db_url)
-          norm_mask = "".join(c if c in ":/@.=-_ " else "X" for c in db_url) if db_url else "None"
-          print(f"Masked structure raw:  {raw_mask}")
-          print(f"Masked structure norm: {norm_mask}")
 
           if not db_url:
               print("Error: Failed to normalize DATABASE_URL.")
