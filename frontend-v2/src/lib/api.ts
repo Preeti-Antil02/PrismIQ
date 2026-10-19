@@ -957,3 +957,94 @@ export async function triggerPipelineRun(
   return res.json();
 }
 
+// ============================================================================
+// Trend Evolution & Cross-Company Intelligence API (Milestone S5)
+// ============================================================================
+
+export interface TrendRecord {
+  cluster_id: string;
+  trend_name: string;
+  representative_title: string;
+  cluster_type: "single_company_storyline" | "cross_company_trend" | string;
+  primary_category: string;
+  momentum: {
+    label: "surging" | "building" | "fading" | "stable" | "transient" | string;
+    vector: [number, number, number];
+  };
+  distinct_story_count: number;
+  raw_event_count: number;
+  companies_involved: string[];
+  signal_breakdown?: Record<string, number>;
+  first_detected_at?: string;
+  latest_detected_at?: string;
+  relevance_score: number;
+  matched_tracked_companies?: string[];
+}
+
+export interface TimelineNode {
+  event_id?: string;
+  member_id?: string;
+  company: string;
+  title: string;
+  source_url: string;
+  signal_type: string;
+  node_class: "first_party" | "third_party" | string;
+  published_at: string;
+  date_precision?: string;
+  is_sequence_eligible?: boolean;
+}
+
+export interface AuditedAbsence {
+  company: string;
+  status: "absent" | string;
+  audit_note: string;
+}
+
+export interface TrendDetailRecord extends TrendRecord {
+  timeline: TimelineNode[];
+  audited_absences: AuditedAbsence[];
+  lineage: Array<{ parent_id: string; reason: string; merged_at?: string }>;
+}
+
+export async function fetchTrends(params?: {
+  limit?: number;
+  cursor?: string;
+  company?: string;
+  momentum?: string;
+  trend_type?: string;
+}): Promise<{ trends: TrendRecord[]; total_count: number; has_more: boolean; next_cursor?: string }> {
+  const token = getClientAuthToken();
+  const q = new URLSearchParams();
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.cursor) q.set("cursor", params.cursor);
+  if (params?.company) q.set("company", params.company);
+  if (params?.momentum) q.set("momentum", params.momentum);
+  if (params?.trend_type) q.set("trend_type", params.trend_type);
+
+  const qs = q.toString() ? `?${q.toString()}` : "";
+  const baseUrl = typeof window !== "undefined" ? `/api/trends${qs}` : `${API_BASE_URL}/trends${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch trends: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchTrendDetail(trendId: string): Promise<TrendDetailRecord> {
+  const token = getClientAuthToken();
+  const baseUrl = typeof window !== "undefined" ? `/api/trends/${trendId}` : `${API_BASE_URL}/trends/${trendId}`;
+
+  const res = await fetch(baseUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch trend detail: ${res.statusText}`);
+  }
+  return res.json();
+}
+
