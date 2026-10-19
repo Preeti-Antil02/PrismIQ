@@ -1,0 +1,155 @@
+name: Apply Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_file:
+        description: 'Migration file name to apply (e.g. 008_trend_evolution_schema.sql)'
+        required: true
+        type: string
+      expected_sha256:
+        description: 'Expected SHA256 checksum of the migration file'
+        required: true
+        type: string
+
+jobs:
+  apply-migration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install psycopg2-binary
+
+      - name: Validate Migration File and Checksum
+        id: validate
+        run: |
+          python - << 'EOF'
+          import os
+          import sys
+          import re
+          import hashlib
+
+          filename = "${{ github.event.inputs.migration_file }}".strip()
+          expected_hash = "${{ github.event.inputs.expected_sha256 }}".strip().lower()
+
+          if not re.match(r"^0[0-9]{2}_[a-zA-Z0-9_\-]+\.sql$", filename):
+              print(f"Error: Invalid migration file name '{filename}'. Must match '0NN_*.sql'.")
+              sys.exit(1)
+
+          filepath = os.path.join("backend", "migrations", filename)
+          if not os.path.exists(filepath):
+              print(f"Error: Migration file not found at '{filepath}'.")
+              sys.exit(1)
+
+          with open(filepath, "rb") as f:
+              content = f.read()
+
+          actual_hash = hashlib.sha256(content).hexdigest().lower()
+          if actual_hash != expected_hash:
+              print(f"Error: SHA256 mismatch!")
+              print(f"Expected: {expected_hash}")
+              print(f"Actual:   {actual_hash}")
+              sys.exit(1)
+
+          # Verify safety: Refuse uncommented DROP/TRUNCATE outside rollback block
+          sql_text = content.decode("utf-8")
+          lines = sql_text.splitlines()
+          in_rollback = False
+          for line in lines:
+              stripped = line.strip()
+              if "ROLLBACK SCRIPT" in stripped or "ROLLBACK BLOCK" in stripped:
+                  in_rollback = True
+              if not in_rollback:
+                  if not stripped.startswith("--"):
+                      upper = stripped.upper()
+                      if upper.startswith("DROP TABLE") or upper.startswith("TRUNCATE"):
+                          print(f"Error: Destructive statement detected outside rollback block: {stripped}")
+                          sys.exit(1)
+
+          print("Migration file and checksum validated successfully.")
+          EOF
+
+      - name: Execute Migration & Rolled-Back RLS Self-Test
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL || secrets.DATABASE_URL }}
+        run: |
+          python - << 'EOF'
+          import os
+          import sys
+          import psycopg2
+
+          db_url = os.environ.get("DATABASE_URL")
+          if not db_url:
+              print("Error: DATABASE_URL write secret is not set in repository secrets.")
+              sys.exit(1)
+
+          filename = "${{ github.event.inputs.migration_file }}".strip()
+          filepath = os.path.join("backend", "migrations", filename)
+
+          with open(filepath, "r", encoding="utf-8") as f:
+              sql_script = f.read()
+
+          conn = psycopg2.connect(db_url)
+          conn.autocommit = False
+          cur = conn.cursor()
+
+          try:
+              # 1. Apply Migration in Single Transaction
+              print("Executing migration statements...")
+              cur.execute(sql_script)
+              conn.commit()
+              print(f"Migration '{filename}' applied and committed successfully.")
+
+              # 2. Run Rolled-Back RLS Self-Test
+              print("Running rolled-back RLS self-test...")
+              cur.execute("SELECT id FROM public.tenants LIMIT 2;")
+              tenants = cur.fetchall()
+              if len(tenants) >= 2:
+                  tenant_a, tenant_b = str(tenants[0][0]), str(tenants[1][0])
+                  
+                  # Set session claims to tenant_a
+                  cur.execute(f"SET LOCAL request.jwt.claims = '{{\"tenant_id\": \"{tenant_a}\"}}';")
+                  cur.execute("SET LOCAL ROLE authenticated;")
+                  
+                  # Query tenant_trend_views
+                  cur.execute("SELECT COUNT(*) FROM public.tenant_trend_views WHERE tenant_id = %s;", (tenant_b,))
+                  cross_tenant_count = cur.fetchone()[0]
+                  assert cross_tenant_count == 0, f"RLS Failure: Tenant A saw {cross_tenant_count} rows belonging to Tenant B"
+                  
+                  # Test insert cross-tenant rejected
+                  try:
+                      cur.execute("""
+                          INSERT INTO public.tenant_trend_views (tenant_id, cluster_id, tenant_momentum_label)
+                          VALUES (%s, 'test_cluster', 'steady');
+                      """, (tenant_b,))
+                      raise AssertionError("RLS Failure: Tenant A was able to write rows for Tenant B")
+                  except psycopg2.Error:
+                      # Expected failure
+                      pass
+
+                  print("RLS isolation self-test passed: zero cross-tenant visibility and writes rejected.")
+              else:
+                  print("Notice: Fewer than 2 tenants found; skipped multi-tenant comparison.")
+
+              # Always rollback the self-test transaction
+              conn.rollback()
+
+          except Exception as e:
+              conn.rollback()
+              print(f"Migration failed with error: {e}")
+              sys.exit(1)
+          finally:
+              cur.close()
+              conn.close()
+
+          print("Migration workflow execution complete.")
+          EOF
