@@ -42,12 +42,51 @@ DEFAULT_COMPANY_ALIASES: Dict[str, str] = {
     "meta platforms": "Meta",
     "facebook": "Meta",
     "flipkart": "Flipkart",
+    "myntra": "Myntra",
+    "shopsy": "Shopsy",
     "meesho": "Meesho",
     "nvidia": "NVIDIA",
     "oracle": "Oracle",
     "stripe": "Stripe",
     "apple": "Apple",
 }
+
+# Top-level corporate group mappings for cross-competitor evidence counting
+PARENT_CORPORATE_GROUPS: Dict[str, str] = {
+    "Flipkart": "Flipkart Group",
+    "Myntra": "Flipkart Group",
+    "Shopsy": "Flipkart Group",
+    "Google": "Alphabet",
+    "Alphabet": "Alphabet",
+    "Amazon": "Amazon",
+    "Meta": "Meta",
+    "Microsoft": "Microsoft",
+    "OpenAI": "OpenAI",
+    "Anthropic": "Anthropic",
+    "Cloudflare": "Cloudflare",
+    "Vercel": "Vercel",
+    "Netlify": "Netlify",
+    "Stripe": "Stripe",
+    "NVIDIA": "NVIDIA",
+    "Apple": "Apple",
+    "xAI": "xAI / Musk",
+    "SpaceXAI": "xAI / Musk",
+    "SpaceX": "xAI / Musk",
+    "Snapdeal": "Snapdeal / AceVector",
+    "AceVector": "Snapdeal / AceVector",
+    "Temu": "PDD Holdings",
+    "PDD Holdings": "PDD Holdings",
+    "Ajio": "Reliance Retail",
+    "Reliance Retail": "Reliance Retail",
+}
+
+
+def get_parent_corporate_group(company: Optional[str]) -> str:
+    """Return top-level corporate group to prevent subsidiaries from counting as cross-competitors."""
+    if not company:
+        return ""
+    return PARENT_CORPORATE_GROUPS.get(company, company)
+
 
 
 def normalize_entity_name(name: Optional[str]) -> str:
