@@ -1840,3 +1840,52 @@ def get_workspace_settings_endpoint(
         "api_status": "Online",
     }
 
+
+# ============================================================================
+# Trend Evolution & Cross-Company Intelligence Endpoints (Milestone S4)
+# ============================================================================
+
+from src.trends import service as trends_service
+
+@app.get("/trends")
+def get_trends_endpoint(
+    limit: int = Query(20, ge=1, le=50, description="Page size limit"),
+    cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    company: Optional[str] = Query(None, description="Filter by company name"),
+    momentum: Optional[str] = Query(None, description="Filter by momentum label"),
+    trend_type: Optional[str] = Query(None, description="Filter by cluster_type"),
+    min_confidence: Optional[float] = Query(None, description="Filter by minimum relevance/confidence"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve tenant-scoped trend clusters with momentum vectors, pagination, and signal breakdowns.
+    Enforces tenant authentication and RLS isolation.
+    """
+    return trends_service.get_tenant_trends(
+        tenant_id=tenant_id,
+        limit=limit,
+        cursor=cursor,
+        company=company,
+        momentum=momentum,
+        trend_type=trend_type,
+        min_confidence=min_confidence,
+    )
+
+
+@app.get("/trends/{trend_id}")
+def get_trend_detail_endpoint(
+    trend_id: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve full timeline details, audited absences, and lineage for a specific trend cluster.
+    Returns HTTP 404 if trend does not exist or tenant lacks permission to view it.
+    """
+    detail = trends_service.get_trend_detail(tenant_id=tenant_id, trend_id=trend_id)
+    if not detail:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Trend cluster '{trend_id}' not found or access denied",
+        )
+    return detail
+
