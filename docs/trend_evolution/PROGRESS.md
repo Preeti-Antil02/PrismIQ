@@ -12,7 +12,7 @@
 | :--- | :--- | :--- | :--- |
 | **T0** | Preflight & State Verification | **DONE** | `scratch/evidence/manifest.json` (7 artifacts registered) |
 | **T1** | Pure Core Logic (Rules, Momentum, Dates) | **DONE** | `backend/tests/test_trends_core.py` (32 tests pass, 0.14s) |
-| **T2** | Clustering Prototype & Owner Grading | **AWAITING OWNER GRADES** | `scratch/owner_grading_template.md` (30 real clusters ready) |
+| **T2** | Clustering Prototype & Owner Grading | **AWAITING OWNER GRADES** | `scratch/owner_grading_template.md` (25 stratified clusters, zero pre-grades) |
 | **T3** | Schema Migration 008 (Draft & RLS Tests) | NOT STARTED | Pending T2 grade selection |
 | **T4** | Build Pipeline & LLM Labelling | NOT STARTED | Pending T3 migration execution |
 | **T5** | Tenant-Isolated APIs (`/trends`) | NOT STARTED | Pending T4 pipeline |
@@ -42,13 +42,24 @@
    - Cross-tenant API requests fail closed with HTTP 404 (not 403).
 
 5. **Resource & Quota Guardrails**:
-   - Local embeddings generated via lightweight 384-dim model on GitHub runner (never Render).
+   - Local embeddings generated via lightweight 384-dim model on GitHub runner (fastembed BAAI/bge-small-en-v1.5, ~15MB wheel, 125-700 texts/sec CPU).
    - Nightly trend execution capped at <= 6 minutes; daily LLM calls capped at <= 15.
+
+6. **Owner Grading Independence & Prohibition of Pre-Grading**:
+   - Automated pre-grading and "accept suggested grades" shortcuts are strictly forbidden.
+   - The repository owner independently grades candidate clusters using a 4-part rubric (topic coherence, development over time, competitive value, under-clustering check).
+   - Clustering threshold selection (0.16 vs 0.20 vs 0.24) is governed by empirical owner precision rates.
+
+7. **Two-Stage Clustering & Corporate Parent Aliasing**:
+   - Stage 1: Collapses syndicated reprints, multi-outlet coverage, and multi-tagged company events (<0.10 embedding distance within 3 days) into unified distinct stories (1.69x compression: 8,431 events -> 5,002 stories).
+   - Stage 2: Clusters distinct stories across weeks into evolving trends.
+   - Corporate parent aliasing (`Flipkart`/`Myntra`/`Shopsy` -> `Flipkart Group`, `Google`/`Google Cloud` -> `Alphabet`) prevents corporate subsidiaries from falsely satisfying the cross-competitor evidence gate.
 
 ---
 
 ## 3. Retractions & Corrections Log
 
+- **19 Oct 2026**: Prohibited automated pre-grading from T2 protocol and removed "suggested pre-grade" column per owner directive.
 - **18 Oct 2026**: Corrected definition of "everything is done". Gates G1–G3 are complete, but Gate G4 (3-night scheduled proof) is active and running across the next 3 nights.
 - **18 Oct 2026**: Verified that `backend/tests/test_storage.py` mock password was purely synthetic and renamed it explicitly to `mock_synthetic_pass` to avoid future ambiguity.
 
