@@ -4,375 +4,490 @@ import * as React from "react";
 import {
   TrendingUp,
   BarChart3,
-  PieChart,
-  ShieldCheck,
   RefreshCw,
   Clock,
   Sparkles,
   GitBranch,
   Newspaper,
   Briefcase,
-  DollarSign,
-  ChevronRight,
   ExternalLink,
+  ShieldCheck,
+  ChevronRight,
+  Filter,
+  CheckCircle2,
+  AlertCircle,
+  Building2,
+  Calendar,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
-import { useWorkspace, useAppEvidence } from "./AppShell";
+import { useWorkspace } from "./AppShell";
 import {
   PrismCard,
-  PrismTierBadge,
-  PrismConfidenceBadge,
   PrismButton,
   PrismEmptyState,
   PrismLoadingSkeleton,
-  PrismCompanyBadge,
   PrismSectionHeader,
 } from "./PrismPrimitives";
 import {
-  fetchEvents,
-  fetchSignals,
+  fetchTrends,
+  fetchTrendDetail,
   fetchTrackedCompanies,
-  type ConsolidatedEventRecord,
-  type SignalRecord,
+  type TrendRecord,
+  type TrendDetailRecord,
+  type TimelineNode,
   type TrackedCompany,
 } from "@/lib/api";
 
 export function TrendsPage() {
   const { targetCompany } = useWorkspace();
-  const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
-  const [events, setEvents] = React.useState<ConsolidatedEventRecord[]>([]);
-  const [signals, setSignals] = React.useState<SignalRecord[]>([]);
+  const [loadingDetail, setLoadingDetail] = React.useState(false);
+  const [trends, setTrends] = React.useState<TrendRecord[]>([]);
+  const [selectedTrendId, setSelectedTrendId] = React.useState<string | null>(null);
+  const [trendDetail, setTrendDetail] = React.useState<TrendDetailRecord | null>(null);
   const [companies, setCompanies] = React.useState<TrackedCompany[]>([]);
   const [error, setError] = React.useState<string | null>(null);
 
-  const loadData = React.useCallback(async () => {
+  // Filters
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string>("all");
+  const [selectedMomentumFilter, setSelectedMomentumFilter] = React.useState<string>("all");
+  const [selectedTypeFilter, setSelectedTypeFilter] = React.useState<string>("all");
+
+  const loadTrends = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [eventsRes, signalsRes, compsRes] = await Promise.all([
-        fetchEvents({ limit: 150 }),
-        fetchSignals({ limit: 300 }),
+      const [trendsRes, compsRes] = await Promise.all([
+        fetchTrends({ limit: 50 }),
         fetchTrackedCompanies(),
       ]);
-      setEvents(eventsRes.events || []);
-      setSignals(signalsRes.signals || []);
+      const list = trendsRes.trends || [];
+      setTrends(list);
       setCompanies(compsRes || []);
+
+      if (list.length > 0 && !selectedTrendId) {
+        setSelectedTrendId(list[0].cluster_id);
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to load trend data");
+      setError(err.message || "Failed to load trend dynamics");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedTrendId]);
 
   React.useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadTrends();
+  }, [loadTrends]);
 
-  // Derived Trend Metrics from Real Data
-  const sourceBreakdown = React.useMemo(() => {
-    const counts: Record<string, number> = {
-      news: 0,
-      github: 0,
-      jobs: 0,
-      pricing: 0,
-      research: 0,
+  // Load trend detail on selection
+  React.useEffect(() => {
+    if (!selectedTrendId) {
+      setTrendDetail(null);
+      return;
+    }
+    let isCancelled = false;
+    setLoadingDetail(true);
+
+    fetchTrendDetail(selectedTrendId)
+      .then((detail) => {
+        if (!isCancelled) {
+          setTrendDetail(detail);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load trend detail:", err);
+      })
+      .finally(() => {
+        if (!isCancelled) setLoadingDetail(false);
+      });
+
+    return () => {
+      isCancelled = true;
     };
-    signals.forEach((s) => {
-      const src = (s.source || "news").toLowerCase();
-      if (src.includes("github")) counts.github = (counts.github || 0) + 1;
-      else if (src.includes("job") || src.includes("career")) counts.jobs = (counts.jobs || 0) + 1;
-      else if (src.includes("pricing")) counts.pricing = (counts.pricing || 0) + 1;
-      else if (src.includes("research")) counts.research = (counts.research || 0) + 1;
-      else counts.news = (counts.news || 0) + 1;
-    });
-    const total = signals.length || 1;
-    return Object.entries(counts).map(([name, count]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      count,
-      pct: Math.round((count / total) * 100),
-    }));
-  }, [signals]);
+  }, [selectedTrendId]);
 
-  const tierBreakdown = React.useMemo(() => {
-    const counts = { must: 0, should: 0, nice: 0 };
-    events.forEach((e) => {
-      const t = (e.tier || "").toLowerCase();
-      if (t.includes("must")) counts.must++;
-      else if (t.includes("should")) counts.should++;
-      else counts.nice++;
+  // Filter trends list
+  const filteredTrends = React.useMemo(() => {
+    return trends.filter((t) => {
+      if (selectedCompanyFilter !== "all") {
+        const matchesComp = t.companies_involved.some((c) =>
+          c.toLowerCase().includes(selectedCompanyFilter.toLowerCase())
+        );
+        if (!matchesComp) return false;
+      }
+      if (selectedMomentumFilter !== "all") {
+        if (t.momentum.label !== selectedMomentumFilter) return false;
+      }
+      if (selectedTypeFilter !== "all") {
+        if (t.cluster_type !== selectedTypeFilter) return false;
+      }
+      return true;
     });
-    const total = events.length || 1;
-    return {
-      must: { count: counts.must, pct: Math.round((counts.must / total) * 100) },
-      should: { count: counts.should, pct: Math.round((counts.should / total) * 100) },
-      nice: { count: counts.nice, pct: Math.round((counts.nice / total) * 100) },
-    };
-  }, [events]);
+  }, [trends, selectedCompanyFilter, selectedMomentumFilter, selectedTypeFilter]);
 
-  const companyActivityShare = React.useMemo(() => {
-    const map: Record<string, { events: number; signals: number }> = {};
-    companies.forEach((c) => {
-      map[c.company_name] = { events: 0, signals: 0 };
+  // Momentum badge helper
+  const getMomentumBadge = (momentum: { label: string; vector: [number, number, number] }) => {
+    const { label, vector } = momentum;
+    let colorCls = "bg-zinc-100 text-zinc-700 border-zinc-200";
+    if (label === "surging") colorCls = "bg-emerald-50 text-emerald-700 border-emerald-200";
+    else if (label === "building") colorCls = "bg-blue-50 text-blue-700 border-blue-200";
+    else if (label === "fading") colorCls = "bg-amber-50 text-amber-700 border-amber-200";
+    else if (label === "transient") colorCls = "bg-purple-50 text-purple-700 border-purple-200";
+
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${colorCls}`}>
+        <span className="capitalize">{label}</span>
+        <span className="text-[10px] opacity-75 font-mono">[{vector.join(",")}]</span>
+      </span>
+    );
+  };
+
+  // Signal badge helper
+  const getSignalBadge = (signalType: string) => {
+    const st = signalType.toLowerCase();
+    if (st.includes("github")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-200">
+          <GitBranch className="w-3 h-3" /> GitHub
+        </span>
+      );
+    }
+    if (st.includes("research")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-50 text-purple-700 text-[11px] font-medium border border-purple-200">
+          <Sparkles className="w-3 h-3" /> Research
+        </span>
+      );
+    }
+    if (st.includes("hiring") || st.includes("job")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-[11px] font-medium border border-amber-200">
+          <Briefcase className="w-3 h-3" /> Hiring
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-50 text-sky-700 text-[11px] font-medium border border-sky-200">
+        <Newspaper className="w-3 h-3" /> News
+      </span>
+    );
+  };
+
+  // Swimlanes grouped by company
+  const swimlanes = React.useMemo(() => {
+    if (!trendDetail) return [];
+    const map: Record<string, TimelineNode[]> = {};
+    trendDetail.companies_involved.forEach((comp) => {
+      map[comp] = [];
     });
-    events.forEach((e) => {
-      if (map[e.company_name]) map[e.company_name].events++;
-      else map[e.company_name] = { events: 1, signals: 0 };
+    trendDetail.timeline.forEach((node) => {
+      const comp = node.company || "Other";
+      if (!map[comp]) map[comp] = [];
+      map[comp].push(node);
     });
-    signals.forEach((s) => {
-      if (map[s.company_name]) map[s.company_name].signals++;
-      else map[s.company_name] = { events: 0, signals: 1 };
-    });
-    const maxSignals = Math.max(...Object.values(map).map((v) => v.signals), 1);
-    return Object.entries(map).map(([name, val]) => ({
-      name,
-      events: val.events,
-      signals: val.signals,
-      relativePct: Math.round((val.signals / maxSignals) * 100),
+    return Object.entries(map).map(([comp, nodes]) => ({
+      company: comp,
+      nodes: nodes.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime()),
     }));
-  }, [companies, events, signals]);
+  }, [trendDetail]);
 
   return (
-    <div className="space-y-10 pb-16">
-      {/* Header */}
+    <div className="space-y-8 pb-16">
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[rgba(20,20,30,0.07)]">
         <div>
           <div className="app-eyebrow mb-2">
             <span className="app-dot" />
-            Competitive Trend Dynamics
+            Cross-Company Trend Evolution
           </div>
           <h1 className="app-title-lg">
-            Market & Signal Trends for <span className="app-gradient-text">{targetCompany}</span>
+            Market Signals & Storylines for <span className="app-gradient-text">{targetCompany}</span>
           </h1>
           <p className="app-caption mt-1 max-w-2xl">
-            Derived trends calculated strictly from persisted signal velocities, multi-source channel distributions, and tier impact severities.
+            Autonomous multi-week storylines derived strictly from validated signals across news, GitHub, research, and hiring surges.
           </p>
         </div>
 
-        <PrismButton variant="light" size="sm" onClick={loadData}>
+        <PrismButton variant="light" size="sm" onClick={loadTrends}>
           <RefreshCw className="w-3.5 h-3.5 text-[#70717a]" />
           <span>Refresh Trends</span>
         </PrismButton>
       </div>
 
       {loading ? (
-        <PrismLoadingSkeleton count={4} />
+        <PrismLoadingSkeleton count={3} />
       ) : error ? (
         <PrismEmptyState
           title="Could Not Compute Trends"
           description={error}
           actionText="Retry"
-          onAction={loadData}
+          onAction={loadTrends}
         />
-      ) : events.length === 0 && signals.length === 0 ? (
+      ) : trends.length === 0 ? (
         <PrismEmptyState
           icon={<TrendingUp className="w-6 h-6" />}
-          title="No Trend Data Yet"
-          description={`PrismIQ needs validated events and signals to derive trends for ${targetCompany}. Run an intelligence sweep to populate your trend baseline.`}
-          actionText="Trigger Sweep"
+          title="No Active Trend Storylines"
+          description={`PrismIQ has not yet detected multi-event storylines for ${targetCompany}. Nightly intelligence runs will automatically cluster and evolve trends.`}
+          actionText="Trigger Intelligence Sweep"
           actionHref="/app"
         />
       ) : (
-        <div className="space-y-10">
-          {/* 1. Macro Breakdown Grids */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Source Footprint Chart */}
-            <PrismCard className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="app-title-sm">Monitored Source Distribution</h3>
-                  <p className="text-xs text-[#70717a] mt-0.5">
-                    Signal share by channel across {signals.length} validated items
-                  </p>
-                </div>
-                <PieChart className="w-4 h-4 text-[#6e57dc]" />
-              </div>
+        <div className="space-y-8">
+          {/* Controls & Filter Bar */}
+          <div className="flex flex-wrap items-center gap-3 p-3 bg-white border border-[rgba(20,20,30,0.07)] rounded-xl shadow-xs">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 pr-2 border-r border-zinc-200">
+              <Filter className="w-3.5 h-3.5" />
+              <span>Filters:</span>
+            </div>
 
-              <div className="space-y-3 pt-2">
-                {sourceBreakdown.map((src) => (
-                  <div key={src.name} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-[#17171b]">{src.name}</span>
-                      <span className="text-[#70717a] font-bold">
-                        {src.count} ({src.pct}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-zinc-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#6e57dc] to-[#72d7e8] transition-all duration-500"
-                        style={{ width: `${Math.max(src.pct, 3)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </PrismCard>
+            {/* Company Filter */}
+            <select
+              value={selectedCompanyFilter}
+              onChange={(e) => setSelectedCompanyFilter(e.target.value)}
+              className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="all">All Companies</option>
+              {companies.map((c) => (
+                <option key={c.company_name} value={c.company_name}>
+                  {c.company_name}
+                </option>
+              ))}
+            </select>
 
-            {/* Impact Tier Distribution */}
-            <PrismCard className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="app-title-sm">Event Impact Breakdown</h3>
-                  <p className="text-xs text-[#70717a] mt-0.5">
-                    Distribution of {events.length} validated events by tier urgency
-                  </p>
-                </div>
-                <BarChart3 className="w-4 h-4 text-[#6e57dc]" />
-              </div>
+            {/* Momentum Filter */}
+            <select
+              value={selectedMomentumFilter}
+              onChange={(e) => setSelectedMomentumFilter(e.target.value)}
+              className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="all">All Momentum</option>
+              <option value="surging">Surging [Week 3 Peak]</option>
+              <option value="building">Building [Week 2 &gt; 1]</option>
+              <option value="fading">Fading [Inactive W3]</option>
+              <option value="stable">Stable [Continuous]</option>
+              <option value="transient">Transient [Single Event]</option>
+            </select>
 
-              <div className="space-y-4 pt-2">
-                <div className="p-4 rounded-xl bg-rose-50/60 border border-rose-100 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-rose-700 flex items-center gap-1.5">
-                      <PrismTierBadge tier="Must-Know" size="sm" />
-                      Critical Decisions
-                    </span>
-                    <span className="font-extrabold text-rose-700">
-                      {tierBreakdown.must.count} ({tierBreakdown.must.pct}%)
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-rose-200/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-rose-600 transition-all duration-500"
-                      style={{ width: `${tierBreakdown.must.pct}%` }}
-                    />
-                  </div>
-                </div>
+            {/* Type Filter */}
+            <select
+              value={selectedTypeFilter}
+              onChange={(e) => setSelectedTypeFilter(e.target.value)}
+              className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="all">All Storyline Types</option>
+              <option value="cross_company_trend">Cross-Company Trends</option>
+              <option value="single_company_storyline">Single-Company Storylines</option>
+            </select>
 
-                <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-blue-700 flex items-center gap-1.5">
-                      <PrismTierBadge tier="Should-Know" size="sm" />
-                      Strategic Shifts
-                    </span>
-                    <span className="font-extrabold text-blue-700">
-                      {tierBreakdown.should.count} ({tierBreakdown.should.pct}%)
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-blue-200/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-blue-600 transition-all duration-500"
-                      style={{ width: `${tierBreakdown.should.pct}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/70 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-zinc-700 flex items-center gap-1.5">
-                      <PrismTierBadge tier="Nice-to-Know" size="sm" />
-                      Background Signals
-                    </span>
-                    <span className="font-extrabold text-zinc-700">
-                      {tierBreakdown.nice.count} ({tierBreakdown.nice.pct}%)
-                    </span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-zinc-200 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-zinc-500 transition-all duration-500"
-                      style={{ width: `${tierBreakdown.nice.pct}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </PrismCard>
-          </div>
-
-          {/* 2. Company Relative Activity Velocity */}
-          <div>
-            <PrismSectionHeader
-              title="Competitor Activity Share"
-              subtitle="Relative signal momentum across your tracked competitive universe."
-              eyebrow="Market Velocity"
-            />
-
-            <div className="app-card p-6">
-              <div className="space-y-4">
-                {companyActivityShare.map((comp) => (
-                  <div key={comp.name} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <PrismCompanyBadge
-                        name={comp.name}
-                        isTarget={comp.name.toLowerCase() === targetCompany.toLowerCase()}
-                        size="sm"
-                      />
-                      <div className="flex items-center gap-3 text-[#70717a] font-medium text-xs">
-                        <span>{comp.events} events</span>
-                        <span>•</span>
-                        <span>
-                          <strong>{comp.signals}</strong> signals
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-zinc-100 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#6e57dc] via-[#a36de8] to-[#35a9c2] transition-all duration-500"
-                        style={{ width: `${Math.max(comp.relativePct, 4)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="ml-auto text-xs text-zinc-500 font-medium">
+              Showing {filteredTrends.length} of {trends.length} Storylines
             </div>
           </div>
 
-          {/* 3. High-Velocity Events Behind the Trends */}
-          <div>
-            <PrismSectionHeader
-              title="Underlying Events Driving Trends"
-              subtitle="The specific corroborated developments contributing to current momentum."
-              eyebrow="Trend Drivers"
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {events.slice(0, 4).map((ev) => (
-                <PrismCard
-                  key={ev.event_id}
-                  interactive
-                  onClick={() =>
-                    openEvidence({
-                      id: ev.event_id,
-                      title: ev.title,
-                      company_name: ev.company_name,
-                      why_it_matters: ev.why_it_matters,
-                      confidence: ev.confidence || ev.fact_confidence,
-                      tier: ev.tier,
-                      raw_excerpt: ev.raw_excerpt || ev.event_summary,
-                      url: ev.url,
-                      source: ev.contributing_sources?.[0] || "Verified Source",
-                      published_timestamp: ev.published_timestamp || ev.published_at,
-                      corroboration_count: ev.corroboration_count,
-                    })
-                  }
-                  className="p-5 flex flex-col justify-between"
-                >
-                  <div>
+          {/* Main Grid: Left Trend Cards, Right Swimlane Timeline */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left: Trend Cards Column */}
+            <div className="lg:col-span-4 space-y-3 max-h-[820px] overflow-y-auto pr-1">
+              {filteredTrends.map((t) => {
+                const isSelected = t.cluster_id === selectedTrendId;
+                return (
+                  <div
+                    key={t.cluster_id}
+                    onClick={() => setSelectedTrendId(t.cluster_id)}
+                    className={`cursor-pointer p-4 rounded-xl border transition-all text-left ${
+                      isSelected
+                        ? "bg-white border-[#6e57dc] shadow-md ring-1 ring-[#6e57dc]"
+                        : "bg-white/80 border-[rgba(20,20,30,0.07)] hover:border-zinc-300 hover:bg-white"
+                    }`}
+                  >
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <PrismCompanyBadge
-                        name={ev.company_name}
-                        isTarget={ev.company_name.toLowerCase() === targetCompany.toLowerCase()}
-                        size="sm"
-                      />
-                      <PrismTierBadge tier={ev.tier} />
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider font-mono">
+                        {t.cluster_id}
+                      </span>
+                      {getMomentumBadge(t.momentum)}
                     </div>
-                    <h3 className="font-bold text-sm text-[#17171b] line-clamp-2 mb-1.5">
-                      {ev.title}
+
+                    <h3 className="font-semibold text-sm text-zinc-900 line-clamp-2 mb-2">
+                      {t.representative_title}
                     </h3>
-                    {ev.why_it_matters && (
-                      <p className="text-xs text-[#70717a] line-clamp-2 leading-relaxed">
-                        {ev.why_it_matters}
-                      </p>
-                    )}
+
+                    <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                      {t.companies_involved.map((comp) => (
+                        <span
+                          key={comp}
+                          className="px-2 py-0.5 rounded bg-zinc-100 text-zinc-700 text-[11px] font-semibold"
+                        >
+                          {comp}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs text-zinc-500 font-medium">
+                      <span>{t.distinct_story_count} Distinct Stories</span>
+                      <span className="capitalize text-zinc-400">
+                        {t.cluster_type.replace(/_/g, " ")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="pt-3 mt-3 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between text-[11px] text-[#9ca3af]">
-                    <span>{ev.published_timestamp || ev.published_at || "Recent"}</span>
-                    <span className="font-semibold text-[#6e57dc] flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      {ev.corroboration_count || 1} sources
-                    </span>
-                  </div>
+                );
+              })}
+            </div>
+
+            {/* Right: Swimlane Timeline & Details */}
+            <div className="lg:col-span-8 space-y-6">
+              {loadingDetail ? (
+                <PrismLoadingSkeleton count={2} />
+              ) : !trendDetail ? (
+                <PrismCard className="p-8 text-center text-zinc-400">
+                  Select a trend storyline to inspect chronological swimlanes.
                 </PrismCard>
-              ))}
+              ) : (
+                <div className="space-y-6">
+                  {/* Trend Detail Header Card */}
+                  <PrismCard className="p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-semibold border border-indigo-100">
+                            {trendDetail.cluster_type === "cross_company_trend"
+                              ? "Cross-Company Trend"
+                              : "Single-Company Storyline"}
+                          </span>
+                          {getMomentumBadge(trendDetail.momentum)}
+                        </div>
+                        <h2 className="text-xl font-bold text-zinc-900 leading-snug">
+                          {trendDetail.representative_title}
+                        </h2>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs">
+                      <div>
+                        <span className="text-zinc-400 block font-medium">Distinct Stories</span>
+                        <span className="font-bold text-zinc-800 text-sm">
+                          {trendDetail.distinct_story_count}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-400 block font-medium">Raw Signals</span>
+                        <span className="font-bold text-zinc-800 text-sm">
+                          {trendDetail.raw_event_count}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-400 block font-medium">Relevance Score</span>
+                        <span className="font-bold text-zinc-800 text-sm">
+                          {Math.round(trendDetail.relevance_score * 100)}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-400 block font-medium">Primary Focus</span>
+                        <span className="font-bold text-zinc-800 text-sm">
+                          {trendDetail.primary_category || "Technology"}
+                        </span>
+                      </div>
+                    </div>
+                  </PrismCard>
+
+                  {/* Horizontal Swimlane Timeline Card */}
+                  <PrismCard className="p-6 overflow-hidden">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="app-title-sm">Storyline Chronology (Swimlanes)</h3>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          Chronological sequence grouped by corporate group with node classification badges.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
+                        <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> News
+                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block ml-2" /> Research
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block ml-2" /> GitHub
+                      </div>
+                    </div>
+
+                    {/* Swimlanes Container */}
+                    <div className="space-y-6">
+                      {swimlanes.map((lane) => (
+                        <div key={lane.company} className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-zinc-800 px-2 py-0.5 bg-zinc-100 rounded">
+                              {lane.company}
+                            </span>
+                            <span className="text-[11px] text-zinc-400 font-medium">
+                              ({lane.nodes.length} events)
+                            </span>
+                          </div>
+
+                          {/* Node Row */}
+                          <div className="flex items-stretch gap-3 overflow-x-auto pb-2 pt-1">
+                            {lane.nodes.map((node, idx) => (
+                              <div
+                                key={node.event_id || idx}
+                                className="min-w-[280px] max-w-[320px] bg-zinc-50/80 hover:bg-white border border-zinc-200/80 hover:border-indigo-300 rounded-xl p-3.5 transition-all shadow-2xs hover:shadow-sm flex flex-col justify-between"
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between gap-1 mb-2">
+                                    {getSignalBadge(node.signal_type)}
+                                    <span className="text-[10px] font-semibold text-zinc-400 font-mono">
+                                      {node.node_class === "first_party" ? "1st Party" : "3rd Party"}
+                                    </span>
+                                  </div>
+
+                                  <h4 className="text-xs font-semibold text-zinc-900 line-clamp-3 leading-snug mb-2">
+                                    {node.title}
+                                  </h4>
+                                </div>
+
+                                <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
+                                  <span>{node.published_at ? node.published_at.slice(0, 10) : "Undated"}</span>
+                                  {node.source_url && (
+                                    <a
+                                      href={node.source_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-0.5 text-indigo-600 hover:text-indigo-800 font-medium"
+                                    >
+                                      <span>Source</span>
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </PrismCard>
+
+                  {/* Audited Absences Section */}
+                  {trendDetail.audited_absences && trendDetail.audited_absences.length > 0 && (
+                    <PrismCard className="p-6 border-dashed">
+                      <div className="flex items-center gap-2 mb-3">
+                        <ShieldCheck className="w-4 h-4 text-zinc-500" />
+                        <h3 className="app-title-sm text-zinc-700">Audited Absence Log</h3>
+                      </div>
+                      <p className="text-xs text-zinc-500 mb-4">
+                        Explicit verification of tracked competitors with zero activity in this storyline window.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {trendDetail.audited_absences.map((abs) => (
+                          <div
+                            key={abs.company}
+                            className="flex items-center justify-between p-3 rounded-lg bg-zinc-50 border border-zinc-200 text-xs"
+                          >
+                            <span className="font-semibold text-zinc-700">{abs.company}</span>
+                            <span className="text-zinc-500 text-[11px] font-mono">{abs.audit_note}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </PrismCard>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
