@@ -188,28 +188,40 @@ def test_news_syndication_and_url_normalization():
 # -------------------------------------------------------------------------
 
 def test_date_provenance_exact_event_timestamp():
-    dt, source, eligible = classify_event_date(
+    dt, source, precision, eligible = classify_event_date(
         source_event_ts="2026-10-18T14:32:00Z"
     )
     assert source == "source_event_timestamp"
+    assert precision == "second"
     assert eligible is True
     assert dt.hour == 14
     assert dt.minute == 32
 
 
-def test_date_provenance_midnight_date_only_tagged_undated():
-    dt, source, eligible = classify_event_date(
+def test_date_provenance_midnight_date_only_tagged_day_precision():
+    dt, source, precision, eligible = classify_event_date(
         source_event_ts="2026-10-18T00:00:00Z"
     )
-    assert source == "undated_order"
-    assert eligible is False
+    assert source == "source_publication_date"
+    assert precision == "day"
+    assert eligible is True
 
 
-def test_date_provenance_fallback_tagged_undated():
-    dt, source, eligible = classify_event_date(
-        published_at_str="2026-10-18 10:15:00"
+def test_date_provenance_string_iso_with_time():
+    dt, source, precision, eligible = classify_event_date(
+        published_at_str="2026-10-18T14:32:00+00:00"
+    )
+    assert source == "source_publication_timestamp"
+    assert precision == "second"
+    assert eligible is True
+
+
+def test_date_provenance_fallback_created_at_tagged_undated():
+    dt, source, precision, eligible = classify_event_date(
+        created_at_fallback="2026-10-18 10:15:00"
     )
     assert source == "undated_order"
+    assert precision == "unknown"
     assert eligible is False
 
 
@@ -217,9 +229,13 @@ def test_lag_computation_strictness():
     dt1 = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc)
     dt2 = datetime(2026, 10, 11, 18, 0, tzinfo=timezone.utc)
 
-    # When both are sequence eligible, computes exact lag in hours
-    lag = compute_lag_hours(dt1, dt2, is_first_eligible=True, is_follower_eligible=True)
+    # When both are sequence eligible with second precision, computes exact lag in hours
+    lag = compute_lag_hours(dt1, dt2, is_first_eligible=True, is_follower_eligible=True, first_precision="second", follower_precision="second")
     assert lag == 30.0
+
+    # If day precision, rounds to whole days (e.g. 24.0 hours)
+    lag_day = compute_lag_hours(dt1, dt2, is_first_eligible=True, is_follower_eligible=True, first_precision="day", follower_precision="second")
+    assert lag_day == 24.0
 
     # If either timestamp is undated_order / not eligible, returns None
     assert compute_lag_hours(dt1, dt2, is_first_eligible=False, is_follower_eligible=True) is None
@@ -227,7 +243,7 @@ def test_lag_computation_strictness():
 
 
 # -------------------------------------------------------------------------
-# 4. Momentum Evaluation (14 Required Vectors + Exhaustive Property Test)
+# 4. Momentum Evaluation (14 Required Vectors + Anchored Calculation)
 # -------------------------------------------------------------------------
 
 REQUIRED_MOMENTUM_VECTORS = [
@@ -254,9 +270,29 @@ def test_momentum_required_vectors(vector, expected):
     assert res == expected, f"Vector {vector} evaluated to {res}, expected {expected}"
 
 
-def test_momentum_low_coverage_flag():
-    assert calculate_momentum([1, 2, 4], low_coverage=True) == "low_coverage"
-    assert calculate_momentum([5, 5, 1], low_coverage=True) == "low_coverage"
+def test_momentum_declining_vectors():
+    # Sustained decline from high baseline
+    assert calculate_momentum([3, 1, 1]) == "fading"
+    assert calculate_momentum([16, 3, 6]) == "fading"
+    assert calculate_momentum([8, 4, 4]) == "fading"
+
+
+def test_momentum_anchored_as_of():
+    from src.trends.momentum import get_anchor_completed_weeks, calculate_momentum_anchored
+    from datetime import date
+
+    # As of Monday 19 Oct 2026 (W43):
+    # Last 3 completed weeks are W40, W41, W42
+    as_of = date(2026, 10, 19)
+    weeks = get_anchor_completed_weeks(as_of)
+    assert weeks == ["2026-W40", "2026-W41", "2026-W42"]
+
+    # A cluster whose last event was on 22 Sep (2026-W39) has [0, 0, 0] in W40, W41, W42
+    past_weeks = ["2026-W38", "2026-W39", "2026-W39", "2026-W39"]
+    vec, mom = calculate_momentum_anchored(past_weeks, as_of=as_of, historical_distinct_stories=4)
+    assert vec == [0, 0, 0]
+    # Ceased activity relative to today -> strictly fading
+    assert mom == "fading"
 
 
 def test_momentum_exhaustive_729_combinations_property_test():
