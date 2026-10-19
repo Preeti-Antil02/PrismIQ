@@ -81,6 +81,7 @@ jobs:
       - name: Execute Migration & Rolled-Back RLS Self-Test
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL || secrets.DATABASE_URL }}
+          SUPABASE_READONLY_DB_URL: ${{ secrets.SUPABASE_READONLY_DB_URL }}
         run: |
           python - << 'EOF'
           import os
@@ -95,7 +96,13 @@ jobs:
               print("Error: DATABASE_URL write secret is not set in repository secrets.")
               sys.exit(1)
 
-          db_url = normalize_postgres_url(raw_db_url)
+          ro_ref = os.environ.get("SUPABASE_READONLY_DB_URL")
+          db_url = normalize_postgres_url(raw_db_url, reference_url=ro_ref)
+          raw_mask = "".join(c if c in ":/@.=-_ " else "X" for c in raw_db_url)
+          norm_mask = "".join(c if c in ":/@.=-_ " else "X" for c in db_url) if db_url else "None"
+          print(f"Masked structure raw:  {raw_mask}")
+          print(f"Masked structure norm: {norm_mask}")
+
           if not db_url:
               print("Error: Failed to normalize DATABASE_URL.")
               sys.exit(1)
@@ -106,7 +113,11 @@ jobs:
           with open(filepath, "r", encoding="utf-8") as f:
               sql_script = f.read()
 
-          conn = psycopg2.connect(db_url)
+          try:
+              conn = psycopg2.connect(db_url)
+          except Exception as conn_err:
+              print(f"Connection failed: {type(conn_err).__name__}: {conn_err}")
+              sys.exit(1)
           conn.autocommit = False
           cur = conn.cursor()
 
