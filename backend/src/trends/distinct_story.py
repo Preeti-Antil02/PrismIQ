@@ -72,6 +72,41 @@ def classify_job_role_family(title: Optional[str]) -> str:
     return "general_operations"
 
 
+def clean_job_title(raw_title: Optional[str]) -> str:
+    """Strip generic 'Job Posting:' template prefixes to embed actual role text."""
+    if not raw_title:
+        return ""
+    clean = re.sub(r"^job\s+posting:\s*", "", raw_title.strip(), flags=re.IGNORECASE)
+    return clean.strip()
+
+
+def clean_github_title(raw_title: Optional[str]) -> str:
+    """Strip generic GitHub event template boilerplate before embedding."""
+    if not raw_title:
+        return ""
+    clean = re.sub(r"^github\s+", "", raw_title.strip(), flags=re.IGNORECASE)
+    clean = re.sub(r"^(pullrequestevent\s+opened\s+in|push\s+to|created\s+branch)\s+", "", clean, flags=re.IGNORECASE)
+    return clean.strip()
+
+
+GITHUB_NOISE_EVENT_PATTERNS = [
+    r"\bwatch\s*event\b",
+    r"\bfork\s*event\b",
+    r"\bstar\s*event\b",
+    r"\bdelete\s*event\b",
+    r"\bissue\s*comment\s*event\b",
+    r"\bpull\s*request\s*review\b",
+]
+
+
+def is_github_noise_event(title: Optional[str]) -> bool:
+    """Filter out non-code noise events (Watch/Fork/Star/Delete/Comment) from trend clustering."""
+    if not title:
+        return False
+    t_lower = title.lower()
+    return any(re.search(pat, t_lower) for pat in GITHUB_NOISE_EVENT_PATTERNS)
+
+
 def extract_github_repo(url: Optional[str], raw_title: Optional[str]) -> str:
     """Extract owner/repo identifier from GitHub URL or signal title."""
     candidate = url or raw_title or ""
