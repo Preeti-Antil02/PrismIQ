@@ -169,8 +169,11 @@ jobs:
 
               # 2. Run Rolled-Back RLS Self-Test
               print("Running rolled-back RLS self-test...")
-              cur.execute("SELECT id FROM public.tenants LIMIT 2;")
+              cur.execute("SELECT DISTINCT tenant_id FROM public.tenant_tracked_companies LIMIT 2;")
               tenants = cur.fetchall()
+              if len(tenants) < 2:
+                  cur.execute("SELECT tenant_id FROM public.scheduled_tenants LIMIT 2;")
+                  tenants = cur.fetchall()
               if len(tenants) >= 2:
                   tenant_a, tenant_b = str(tenants[0][0]), str(tenants[1][0])
                   
