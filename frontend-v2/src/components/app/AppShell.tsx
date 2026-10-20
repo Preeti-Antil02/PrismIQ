@@ -418,7 +418,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
                     Target:
                   </span>
-                  <span className="font-bold text-xs text-[#17171b]">
+                  <span className="font-bold text-xs text-[#17171b]" suppressHydrationWarning>
                     {targetCompany}
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 text-[#9ca3af]" />
