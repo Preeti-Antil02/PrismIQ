@@ -96,20 +96,25 @@ jobs:
               print("Error: DATABASE_URL write secret is not set in repository secrets.")
               sys.exit(1)
 
+          import re
+          import urllib.parse
+
           ro_ref = os.environ.get("SUPABASE_READONLY_DB_URL")
           db_url = normalize_postgres_url(raw_db_url, reference_url=ro_ref)
 
-          if not db_url:
-              print("Error: Failed to normalize DATABASE_URL.")
-              sys.exit(1)
-
-          import re
-          m = re.search(r':([^@]+)@', raw_db_url)
+          m = re.match(r'^(?:postgres(?:ql)?://)([^:]+):(.*)@([^:/@]+)(?::(\d+))?(?:/(.*))?$', raw_db_url.strip().strip("'").strip('"'))
+          raw_pwd = ""
+          raw_user = ""
+          raw_host = ""
+          raw_port = "6543"
+          raw_rest = "postgres"
           if m:
-              pwd = m.group(1)
-              has_b = pwd.startswith('[') and pwd.endswith(']')
-              is_ph = 'YOUR-PASSWORD' in pwd or 'YOUR_PASSWORD' in pwd or 'your-password' in pwd
-              print(f"Auth structure: len={len(pwd)}, has_brackets={has_b}, is_placeholder={is_ph}")
+              raw_user, raw_pwd, raw_host, raw_port, raw_rest = m.groups()
+              safe_mask = "".join(c if c in "+/=%&$#@!*~-_" else ("A" if c.isalpha() else ("9" if c.isdigit() else "?")) for c in raw_pwd)
+              has_b = raw_pwd.startswith('[') and raw_pwd.endswith(']')
+              is_ph = 'YOUR-PASSWORD' in raw_pwd or 'YOUR_PASSWORD' in raw_pwd
+              print(f"Auth diagnostic: len={len(raw_pwd)}, mask={safe_mask}, has_brackets={has_b}, is_ph={is_ph}")
+              print(f"Target connection: user={raw_user}, host={raw_host}, port={raw_port}")
 
           filename = "${{ github.event.inputs.migration_file }}".strip()
           filepath = os.path.join("backend", "migrations", filename)
@@ -118,22 +123,46 @@ jobs:
               sql_script = f.read()
 
           conn = None
-          try:
-              conn = psycopg2.connect(db_url)
-          except Exception as conn_err:
-              if m and m.group(1).startswith('[') and m.group(1).endswith(']'):
-                  stripped_pwd = m.group(1)[1:-1]
-                  cleaned_raw = raw_db_url.replace(m.group(1), stripped_pwd)
-                  alt_url = normalize_postgres_url(cleaned_raw, reference_url=ro_ref)
-                  try:
-                      print("Attempting connection with unbracketed password...")
-                      conn = psycopg2.connect(alt_url)
-                      print("Connected successfully with unbracketed password!")
-                  except Exception as alt_err:
-                      print(f"Alt connection failed: {type(alt_err).__name__}: {alt_err}")
-              if not conn:
-                  print(f"Connection failed: {type(conn_err).__name__}: {conn_err}")
-                  sys.exit(1)
+          # 1. Try normalized URI
+          if db_url:
+              try:
+                  conn = psycopg2.connect(db_url)
+              except Exception as e:
+                  print(f"URI connection attempt failed: {type(e).__name__}: {e}")
+
+          # 2. Try direct kwargs fallback
+          if not conn and m:
+              parsed_db = raw_rest.split('?')[0] if raw_rest else "postgres"
+              candidates = [raw_pwd]
+              if raw_pwd.startswith('[') and raw_pwd.endswith(']'):
+                  candidates.append(raw_pwd[1:-1])
+              if "%" in raw_pwd:
+                  candidates.append(urllib.parse.unquote(raw_pwd))
+
+              clean_user = raw_user
+              if "pooler.supabase.com" in raw_host and "." not in clean_user:
+                  clean_user = f"{clean_user}.hmjcqdthzgzsmhpivrdb"
+
+              for c_pwd in candidates:
+                  if conn:
+                      break
+                  for p_port in [raw_port or 6543, 6543, 5432]:
+                      try:
+                          conn = psycopg2.connect(
+                              host=raw_host,
+                              port=int(p_port),
+                              user=clean_user,
+                              password=c_pwd,
+                              dbname=parsed_db
+                          )
+                          print(f"Connected successfully via direct parameters (port={p_port})!")
+                          break
+                      except Exception as kw_err:
+                          pass
+
+          if not conn:
+              print("Error: All database connection attempts failed.")
+              sys.exit(1)
           conn.autocommit = False
           cur = conn.cursor()
 
