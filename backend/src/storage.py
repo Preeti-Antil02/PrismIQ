@@ -374,7 +374,7 @@ def get_readonly_cursor() -> Generator[Any, None, None]:
 
 
 @contextmanager
-def get_tenant_db_cursor(tenant_id: str, readonly: bool = False) -> Generator[Any, None, None]:
+def get_tenant_db_cursor(tenant_id: str, readonly: bool = True) -> Generator[Any, None, None]:
     """
     Context manager yielding a PostgreSQL cursor scoped to the authenticated tenant's RLS context.
     Executes:
@@ -2415,7 +2415,7 @@ def save_tenant_delivery_config(
         }
     if not is_test_environment() and is_live_write_permitted():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
                 ensure_tenant_user_exists(cur, tid)
                 cur.execute("""
                     INSERT INTO tenant_delivery_configs (
@@ -2549,7 +2549,7 @@ def save_tenant_research_topic(
 
     if not is_test_environment() and is_live_write_permitted():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
                 ensure_tenant_user_exists(cur, tenant_id)
                 cur.execute("""
                     INSERT INTO tenant_research_topics (
@@ -2620,7 +2620,7 @@ def delete_tenant_research_topic(tenant_id: str, topic_id_or_label: str) -> bool
     deleted_pg = False
     if not is_test_environment() and is_live_write_permitted():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
                 cur.execute("""
                     DELETE FROM tenant_research_topics
                     WHERE (id::text = %s OR topic_label = %s);
@@ -2661,7 +2661,7 @@ def update_tenant_research_topic_status(tenant_id: str, topic_id_or_label: str, 
     updated_pg = False
     if not is_test_environment() and is_live_write_permitted():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
                 cur.execute("""
                     UPDATE tenant_research_topics
                     SET is_active = %s, updated_at = NOW()
@@ -2925,7 +2925,7 @@ def save_radar_evaluations(evaluations: List[Dict[str, Any]], tenant_id: str) ->
 
     if not is_test_environment() and is_live_write_permitted():
         try:
-            with get_tenant_db_cursor(tenant_id) as cur:
+            with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
                 params_list = []
                 for ev in evaluations:
                     raw_id = ev.get("id")
