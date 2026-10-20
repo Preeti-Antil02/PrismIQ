@@ -20,14 +20,18 @@ import {
   Calendar,
   Layers,
   ArrowRight,
+  Activity,
+  Flame,
+  Search,
 } from "lucide-react";
-import { useWorkspace } from "./AppShell";
+import { useWorkspace, useAppEvidence } from "./AppShell";
 import {
   PrismCard,
   PrismButton,
   PrismEmptyState,
   PrismLoadingSkeleton,
   PrismSectionHeader,
+  PrismCompanyBadge,
 } from "./PrismPrimitives";
 import {
   fetchTrends,
@@ -39,8 +43,107 @@ import {
   type TrackedCompany,
 } from "@/lib/api";
 
+// ============================================================================
+// Mini Momentum Velocity Sparkline Component
+// ============================================================================
+function MomentumSparkline({
+  vector,
+  label,
+}: {
+  vector: [number, number, number];
+  label: string;
+}) {
+  const maxVal = Math.max(...vector, 1);
+  const colorCls =
+    label === "surging"
+      ? "bg-emerald-500"
+      : label === "building"
+      ? "bg-blue-500"
+      : label === "fading"
+      ? "bg-amber-500"
+      : label === "transient"
+      ? "bg-purple-500"
+      : "bg-zinc-400";
+
+  return (
+    <div
+      className="flex items-end gap-1 h-5 px-1.5 py-0.5 rounded bg-zinc-100/80 border border-zinc-200/60"
+      title={`3-Week Velocity Vector: W-2: ${vector[0]}, W-1: ${vector[1]}, Current: ${vector[2]}`}
+    >
+      {vector.map((val, idx) => {
+        const heightPct = Math.max(18, Math.round((val / maxVal) * 100));
+        return (
+          <div key={idx} className="flex flex-col items-center">
+            <div
+              style={{ height: `${(heightPct * 13) / 100}px` }}
+              className={`w-1.5 rounded-xs transition-all ${colorCls} ${
+                idx === 2 ? "opacity-100 ring-1 ring-white" : "opacity-60"
+              }`}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================================
+// Signal Breakdown Proportion Bar Component
+// ============================================================================
+function SignalMixBar({ breakdown }: { breakdown?: Record<string, number> }) {
+  if (!breakdown || Object.keys(breakdown).length === 0) return null;
+  const total = Object.values(breakdown).reduce((a, b) => a + b, 0);
+  if (total === 0) return null;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-zinc-100">
+        {(breakdown.news || 0) > 0 && (
+          <div
+            style={{ width: `${((breakdown.news || 0) / total) * 100}%` }}
+            className="bg-sky-500"
+            title={`News: ${breakdown.news}`}
+          />
+        )}
+        {(breakdown.research || 0) > 0 && (
+          <div
+            style={{ width: `${((breakdown.research || 0) / total) * 100}%` }}
+            className="bg-purple-500"
+            title={`Research: ${breakdown.research}`}
+          />
+        )}
+        {(breakdown.github || 0) > 0 && (
+          <div
+            style={{ width: `${((breakdown.github || 0) / total) * 100}%` }}
+            className="bg-emerald-500"
+            title={`GitHub: ${breakdown.github}`}
+          />
+        )}
+        {(breakdown.hiring || 0) > 0 && (
+          <div
+            style={{ width: `${((breakdown.hiring || 0) / total) * 100}%` }}
+            className="bg-amber-500"
+            title={`Hiring: ${breakdown.hiring}`}
+          />
+        )}
+        {(breakdown.pricing || 0) > 0 && (
+          <div
+            style={{ width: `${((breakdown.pricing || 0) / total) * 100}%` }}
+            className="bg-rose-500"
+            title={`Pricing: ${breakdown.pricing}`}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Main TrendsPage Component
+// ============================================================================
 export function TrendsPage() {
   const { targetCompany } = useWorkspace();
+  const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
   const [loadingDetail, setLoadingDetail] = React.useState(false);
@@ -54,6 +157,7 @@ export function TrendsPage() {
   const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string>("all");
   const [selectedMomentumFilter, setSelectedMomentumFilter] = React.useState<string>("all");
   const [selectedTypeFilter, setSelectedTypeFilter] = React.useState<string>("all");
+  const [timelineSignalFilter, setTimelineSignalFilter] = React.useState<string>("all");
 
   const loadTrends = React.useCallback(async () => {
     setLoading(true);
@@ -127,6 +231,25 @@ export function TrendsPage() {
     });
   }, [trends, selectedCompanyFilter, selectedMomentumFilter, selectedTypeFilter]);
 
+  // KPI Metrics Computed
+  const kpis = React.useMemo(() => {
+    const totalCount = trends.length;
+    const surgingCount = trends.filter(
+      (t) => t.momentum.label === "surging" || t.momentum.label === "building"
+    ).length;
+    const crossCompanyCount = trends.filter(
+      (t) => t.cluster_type === "cross_company_trend"
+    ).length;
+    const allInvolved = new Set<string>();
+    trends.forEach((t) => t.companies_involved.forEach((c) => allInvolved.add(c)));
+    return {
+      totalCount,
+      surgingCount,
+      crossCompanyCount,
+      companiesCount: allInvolved.size,
+    };
+  }, [trends]);
+
   // Momentum badge helper
   const getMomentumBadge = (momentum: { label: string; vector: [number, number, number] }) => {
     const { label, vector } = momentum;
@@ -138,7 +261,7 @@ export function TrendsPage() {
 
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${colorCls}`}>
-        <span className="capitalize">{label}</span>
+        <span className="capitalize">{label.replace(/_/g, " ")}</span>
         <span className="text-[10px] opacity-75 font-mono">[{vector.join(",")}]</span>
       </span>
     );
@@ -175,7 +298,7 @@ export function TrendsPage() {
     );
   };
 
-  // Swimlanes grouped by company
+  // Swimlanes grouped by company and filtered by signal type
   const swimlanes = React.useMemo(() => {
     if (!trendDetail) return [];
     const map: Record<string, TimelineNode[]> = {};
@@ -185,13 +308,20 @@ export function TrendsPage() {
     trendDetail.timeline.forEach((node) => {
       const comp = node.company || "Other";
       if (!map[comp]) map[comp] = [];
-      map[comp].push(node);
+      if (
+        timelineSignalFilter === "all" ||
+        node.signal_type.toLowerCase().includes(timelineSignalFilter.toLowerCase())
+      ) {
+        map[comp].push(node);
+      }
     });
     return Object.entries(map).map(([comp, nodes]) => ({
       company: comp,
-      nodes: nodes.sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime()),
+      nodes: nodes.sort(
+        (a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime()
+      ),
     }));
-  }, [trendDetail]);
+  }, [trendDetail, timelineSignalFilter]);
 
   return (
     <div className="space-y-8 pb-16">
@@ -215,6 +345,55 @@ export function TrendsPage() {
           <span>Refresh Trends</span>
         </PrismButton>
       </div>
+
+      {/* Top KPI Summary Metrics Bar */}
+      {trends.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl bg-white border border-[rgba(20,20,30,0.07)] shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                Total Storylines
+              </span>
+              <Layers className="w-4 h-4 text-indigo-500" />
+            </div>
+            <div className="text-2xl font-bold text-zinc-900">{kpis.totalCount}</div>
+            <div className="text-[11px] text-zinc-400 mt-0.5">Clustered & tracked</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white border border-[rgba(20,20,30,0.07)] shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                High Velocity
+              </span>
+              <Flame className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="text-2xl font-bold text-emerald-600">{kpis.surgingCount}</div>
+            <div className="text-[11px] text-zinc-400 mt-0.5">Surging or building</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white border border-[rgba(20,20,30,0.07)] shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                Cross-Company Waves
+              </span>
+              <Activity className="w-4 h-4 text-purple-500" />
+            </div>
+            <div className="text-2xl font-bold text-purple-600">{kpis.crossCompanyCount}</div>
+            <div className="text-[11px] text-zinc-400 mt-0.5">Multi-competitor shifts</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-white border border-[rgba(20,20,30,0.07)] shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                Competitors Monitored
+              </span>
+              <Building2 className="w-4 h-4 text-blue-500" />
+            </div>
+            <div className="text-2xl font-bold text-zinc-900">{kpis.companiesCount}</div>
+            <div className="text-[11px] text-zinc-400 mt-0.5">Active across storylines</div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <PrismLoadingSkeleton count={3} />
@@ -306,14 +485,17 @@ export function TrendsPage() {
                       <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider font-mono">
                         {t.cluster_id}
                       </span>
-                      {getMomentumBadge(t.momentum)}
+                      <div className="flex items-center gap-1.5">
+                        <MomentumSparkline vector={t.momentum.vector} label={t.momentum.label} />
+                        {getMomentumBadge(t.momentum)}
+                      </div>
                     </div>
 
                     <h3 className="font-semibold text-sm text-zinc-900 line-clamp-2 mb-2">
                       {t.representative_title}
                     </h3>
 
-                    <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
                       {t.companies_involved.map((comp) => (
                         <span
                           key={comp}
@@ -322,6 +504,11 @@ export function TrendsPage() {
                           {comp}
                         </span>
                       ))}
+                    </div>
+
+                    {/* Signal proportion bar */}
+                    <div className="mb-2.5">
+                      <SignalMixBar breakdown={t.signal_breakdown} />
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-zinc-100 text-xs text-zinc-500 font-medium">
@@ -355,6 +542,10 @@ export function TrendsPage() {
                               ? "Cross-Company Trend"
                               : "Single-Company Storyline"}
                           </span>
+                          <MomentumSparkline
+                            vector={trendDetail.momentum.vector}
+                            label={trendDetail.momentum.label}
+                          />
                           {getMomentumBadge(trendDetail.momentum)}
                         </div>
                         <h2 className="text-xl font-bold text-zinc-900 leading-snug">
@@ -393,17 +584,29 @@ export function TrendsPage() {
 
                   {/* Horizontal Swimlane Timeline Card */}
                   <PrismCard className="p-6 overflow-hidden">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                       <div>
                         <h3 className="app-title-sm">Storyline Chronology (Swimlanes)</h3>
                         <p className="text-xs text-zinc-500 mt-0.5">
-                          Chronological sequence grouped by corporate group with node classification badges.
+                          Chronological sequence grouped by corporate group. Click any node to open verified Evidence Ledger.
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
-                        <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> News
-                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block ml-2" /> Research
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block ml-2" /> GitHub
+
+                      {/* Source Legend & Filter */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {["all", "news", "research", "github", "hiring"].map((st) => (
+                          <button
+                            key={st}
+                            onClick={() => setTimelineSignalFilter(st)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all ${
+                              timelineSignalFilter === st
+                                ? "bg-zinc-900 text-white shadow-2xs"
+                                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                            }`}
+                          >
+                            {st === "all" ? "All Sources" : st}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -425,7 +628,24 @@ export function TrendsPage() {
                             {lane.nodes.map((node, idx) => (
                               <div
                                 key={node.event_id || idx}
-                                className="min-w-[280px] max-w-[320px] bg-zinc-50/80 hover:bg-white border border-zinc-200/80 hover:border-indigo-300 rounded-xl p-3.5 transition-all shadow-2xs hover:shadow-sm flex flex-col justify-between"
+                                onClick={() =>
+                                  openEvidence({
+                                    company_name: node.company || lane.company,
+                                    title: node.title,
+                                    why_it_matters: `Cross-company storyline event (${
+                                      node.node_class === "first_party"
+                                        ? "1st Party Direct Announcement"
+                                        : "3rd Party Corroboration"
+                                    }). Grounded in validated market signals.`,
+                                    raw_excerpt: node.title,
+                                    url: node.source_url,
+                                    source: node.signal_type,
+                                    published_at: node.published_at,
+                                    confidence: "High",
+                                    tier: "Must-Know",
+                                  })
+                                }
+                                className="min-w-[280px] max-w-[320px] bg-zinc-50/80 hover:bg-white border border-zinc-200/80 hover:border-[#6e57dc] rounded-xl p-3.5 transition-all shadow-2xs hover:shadow-md cursor-pointer flex flex-col justify-between group"
                               >
                                 <div>
                                   <div className="flex items-center justify-between gap-1 mb-2">
@@ -435,24 +655,17 @@ export function TrendsPage() {
                                     </span>
                                   </div>
 
-                                  <h4 className="text-xs font-semibold text-zinc-900 line-clamp-3 leading-snug mb-2">
+                                  <h4 className="text-xs font-semibold text-zinc-900 group-hover:text-indigo-600 line-clamp-3 leading-snug mb-2 transition-colors">
                                     {node.title}
                                   </h4>
                                 </div>
 
                                 <div className="pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px] text-zinc-500">
                                   <span>{node.published_at ? node.published_at.slice(0, 10) : "Undated"}</span>
-                                  {node.source_url && (
-                                    <a
-                                      href={node.source_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-0.5 text-indigo-600 hover:text-indigo-800 font-medium"
-                                    >
-                                      <span>Source</span>
-                                      <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                  )}
+                                  <span className="inline-flex items-center gap-0.5 text-[#6e57dc] group-hover:underline font-semibold">
+                                    <span>Evidence</span>
+                                    <ChevronRight className="w-3 h-3" />
+                                  </span>
                                 </div>
                               </div>
                             ))}
