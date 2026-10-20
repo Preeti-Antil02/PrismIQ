@@ -427,9 +427,10 @@ export function buildCompetitorSummaries(
   radarEvals: RadarEvaluation[],
 ): CompetitorActivitySummary[] {
   return companies.map((comp) => {
-    const compSignals = signals.filter((s) => s.company_name === comp.company_name);
-    const compEvents = events.filter((e) => e.company_name === comp.company_name);
-    const compFindings = findings.filter((f) => f.company_name === comp.company_name);
+    const compName = (comp.company_name || "").trim().toLowerCase();
+    const compSignals = signals.filter((s) => (s.company_name || "").trim().toLowerCase() === compName);
+    const compEvents = events.filter((e) => (e.company_name || "").trim().toLowerCase() === compName);
+    const compFindings = findings.filter((f) => (f.company_name || "").trim().toLowerCase() === compName);
 
     // Signal counts by source type (initialize all 5 monitored sources)
     const signals_by_source: Record<string, number> = {
@@ -467,15 +468,16 @@ export function buildCompetitorSummaries(
     radarEvals.forEach((ev) => {
       const conns = ev.competitor_connections || {};
       const direct = conns[comp.company_name];
-      if (direct) {
+      if (direct && direct.status) {
         radar_connections[ev.topic_label] = direct.status;
       } else {
         const matchedKey = Object.keys(conns).find(
           (k) =>
-            comp.company_name.toLowerCase().includes(k.toLowerCase()) ||
-            k.toLowerCase().includes(comp.company_name.toLowerCase())
+            compName &&
+            k &&
+            (compName.includes(k.toLowerCase()) || k.toLowerCase().includes(compName))
         );
-        if (matchedKey && conns[matchedKey]) {
+        if (matchedKey && conns[matchedKey]?.status) {
           radar_connections[ev.topic_label] = conns[matchedKey].status;
         }
       }
