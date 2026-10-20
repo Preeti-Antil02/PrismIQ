@@ -9,9 +9,9 @@ const BACKEND_BASE = (
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const trendId = params.id;
+  const { id: trendId } = await params;
   const backendUrl = new URL(`${BACKEND_BASE}/trends/${trendId}`);
 
   const incomingAuth = request.headers.get("authorization");
