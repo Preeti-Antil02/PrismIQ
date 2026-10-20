@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS public.global_entity_exclusions (
 CREATE TABLE IF NOT EXISTS public.trend_clusters (
     cluster_id TEXT PRIMARY KEY,
     global_topic_label TEXT NOT NULL,
-    cluster_type TEXT NOT NULL CHECK (cluster_type IN ('cross_company_trend', 'single_company_storyline', 'emerging')),
+    cluster_type TEXT NOT NULL CHECK (cluster_type IN ('cross_company_trend', 'single_company_storyline', 'emerging', 'single_event')),
     momentum_vector INT[] NOT NULL DEFAULT '{0, 0, 0}',
     momentum_label TEXT NOT NULL CHECK (momentum_label IN ('building', 'steady', 'fading', 'too_early_to_call', 'low_coverage')),
     momentum_rule_id TEXT NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.trend_cluster_members (
     source_url TEXT NOT NULL,
     resolved_publisher TEXT NOT NULL,
     node_class TEXT NOT NULL CHECK (node_class IN ('third_party', 'first_party')),
-    signal_type TEXT NOT NULL CHECK (signal_type IN ('news', 'github', 'research', 'pricing')),
+    signal_type TEXT NOT NULL CHECK (signal_type IN ('news', 'github', 'research', 'pricing', 'jobs', 'blog')),
     source_date DATE NOT NULL,
     source_timestamp TIMESTAMPTZ,
     date_source TEXT NOT NULL,
