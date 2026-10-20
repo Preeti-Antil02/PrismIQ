@@ -118,7 +118,7 @@ def run_trend_build(
         tenant_tracked = {}
         for tid in scheduled_tenants:
             cur.execute("""
-                SELECT company_name FROM public.user_tracked_companies WHERE tenant_id = %s;
+                SELECT company_name FROM public.tenant_tracked_companies WHERE tenant_id = %s;
             """, (tid,))
             tenant_tracked[tid] = [r[0] for r in cur.fetchall()]
 
