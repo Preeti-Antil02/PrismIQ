@@ -45,7 +45,7 @@ def _get_fallback_clusters(tenant_id: str) -> List[Dict[str, Any]]:
     # Get tenant's tracked companies
     tracked = []
     try:
-        with storage.get_tenant_db_cursor(tenant_id) as cur:
+        with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             cur.execute("SELECT company_name FROM tenant_tracked_companies WHERE status = 'active';")
             tracked = [r[0] for r in cur.fetchall()]
     except Exception:
@@ -99,7 +99,7 @@ def get_tenant_trends(
 
     # 1. Attempt DB Query
     try:
-        with storage.get_tenant_db_cursor(tenant_id) as cur:
+        with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             # Check if tenant_trend_views table exists
             cur.execute("""
                 SELECT EXISTS (
@@ -256,7 +256,7 @@ def get_trend_detail(tenant_id: str, trend_id: str) -> Optional[Dict[str, Any]]:
     """
     # 1. Try DB fetch
     try:
-        with storage.get_tenant_db_cursor(tenant_id) as cur:
+        with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             cur.execute("""
                 SELECT 
                     tc.cluster_id,
@@ -385,7 +385,7 @@ def get_trend_detail(tenant_id: str, trend_id: str) -> Optional[Dict[str, Any]]:
     # Audited absences
     tracked = ["Cloudflare", "Vercel", "Netlify", "Stripe"]
     try:
-        with storage.get_tenant_db_cursor(tenant_id) as cur:
+        with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             cur.execute("SELECT company_name FROM tenant_tracked_companies WHERE status = 'active';")
             tracked = [r[0] for r in cur.fetchall()]
     except Exception:
