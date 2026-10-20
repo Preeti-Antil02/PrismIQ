@@ -103,17 +103,37 @@ jobs:
               print("Error: Failed to normalize DATABASE_URL.")
               sys.exit(1)
 
+          import re
+          m = re.search(r':([^@]+)@', raw_db_url)
+          if m:
+              pwd = m.group(1)
+              has_b = pwd.startswith('[') and pwd.endswith(']')
+              is_ph = 'YOUR-PASSWORD' in pwd or 'YOUR_PASSWORD' in pwd or 'your-password' in pwd
+              print(f"Auth structure: len={len(pwd)}, has_brackets={has_b}, is_placeholder={is_ph}")
+
           filename = "${{ github.event.inputs.migration_file }}".strip()
           filepath = os.path.join("backend", "migrations", filename)
 
           with open(filepath, "r", encoding="utf-8") as f:
               sql_script = f.read()
 
+          conn = None
           try:
               conn = psycopg2.connect(db_url)
           except Exception as conn_err:
-              print(f"Connection failed: {type(conn_err).__name__}: {conn_err}")
-              sys.exit(1)
+              if m and m.group(1).startswith('[') and m.group(1).endswith(']'):
+                  stripped_pwd = m.group(1)[1:-1]
+                  cleaned_raw = raw_db_url.replace(m.group(1), stripped_pwd)
+                  alt_url = normalize_postgres_url(cleaned_raw, reference_url=ro_ref)
+                  try:
+                      print("Attempting connection with unbracketed password...")
+                      conn = psycopg2.connect(alt_url)
+                      print("Connected successfully with unbracketed password!")
+                  except Exception as alt_err:
+                      print(f"Alt connection failed: {type(alt_err).__name__}: {alt_err}")
+              if not conn:
+                  print(f"Connection failed: {type(conn_err).__name__}: {conn_err}")
+                  sys.exit(1)
           conn.autocommit = False
           cur = conn.cursor()
 
