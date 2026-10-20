@@ -91,17 +91,29 @@ export function CompetitorsPage() {
   }, [companies, signals, events, findings, radarEvals]);
 
   const targetSummary = React.useMemo(() => {
-    return summaries.find((s) => s.is_target) || summaries.find((s) => s.company_name.toLowerCase() === targetCompany.toLowerCase());
+    return (
+      summaries.find((s) => s.is_target) ||
+      summaries.find(
+        (s) =>
+          (s.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()
+      )
+    );
   }, [summaries, targetCompany]);
 
   const competitorSummaries = React.useMemo(() => {
-    return summaries.filter((s) => !s.is_target && s.company_name.toLowerCase() !== targetCompany.toLowerCase());
+    return summaries.filter(
+      (s) =>
+        !s.is_target &&
+        (s.company_name || "").toLowerCase() !== (targetCompany || "").toLowerCase()
+    );
   }, [summaries, targetCompany]);
 
   const filteredCompetitors = React.useMemo(() => {
     if (!searchQuery.trim()) return competitorSummaries;
     const q = searchQuery.toLowerCase();
-    return competitorSummaries.filter((c) => c.company_name.toLowerCase().includes(q));
+    return competitorSummaries.filter((c) =>
+      (c.company_name || "").toLowerCase().includes(q)
+    );
   }, [competitorSummaries, searchQuery]);
 
   return (
