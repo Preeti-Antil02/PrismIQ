@@ -57,8 +57,8 @@ CREATE INDEX IF NOT EXISTS idx_trend_clusters_dates ON public.trend_clusters (la
 CREATE TABLE IF NOT EXISTS public.trend_cluster_members (
     member_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cluster_id TEXT NOT NULL REFERENCES public.trend_clusters(cluster_id) ON DELETE CASCADE,
-    event_id TEXT REFERENCES public.consolidated_events(event_id) ON DELETE SET NULL,
-    research_id UUID REFERENCES public.research_items(id) ON DELETE SET NULL,
+    event_id VARCHAR(64) REFERENCES public.consolidated_events(event_id) ON DELETE SET NULL,
+    research_id VARCHAR(64) REFERENCES public.research_items(id) ON DELETE SET NULL,
     story_key TEXT NOT NULL,
     canonical_company TEXT NOT NULL,
     corporate_group TEXT NOT NULL,
@@ -96,7 +96,7 @@ CREATE INDEX IF NOT EXISTS idx_trend_lineage_child ON public.trend_cluster_linea
 -- 6. Tenant Trend Views Table (Tenant-Scoped Competitive Visibility)
 CREATE TABLE IF NOT EXISTS public.tenant_trend_views (
     view_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL,
     cluster_id TEXT NOT NULL REFERENCES public.trend_clusters(cluster_id) ON DELETE CASCADE,
     is_cross_competitor BOOLEAN NOT NULL DEFAULT FALSE,
     tenant_momentum_label TEXT NOT NULL,
@@ -112,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_tenant_trend_views_cluster ON public.tenant_trend
 -- 7. Tenant Trend Snapshots Table (Daily Timeline State Caching)
 CREATE TABLE IF NOT EXISTS public.tenant_trend_snapshots (
     snapshot_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL,
     as_of_date DATE NOT NULL,
     snapshot_data JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -208,9 +208,21 @@ CREATE POLICY trend_cluster_members_tenant_read ON public.trend_cluster_members
         )
     );
 
--- Read-only role provision block note for migration 007 compatibility:
--- When applying this migration, execute migration 007 section 3 loop to provision
--- read-only SELECT grants on these 9 new tables for prismiq_readonly.
+-- Grant SELECT on the 9 new tables to prismiq_readonly if role exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'prismiq_readonly') THEN
+        GRANT SELECT ON public.company_aliases TO prismiq_readonly;
+        GRANT SELECT ON public.global_entity_exclusions TO prismiq_readonly;
+        GRANT SELECT ON public.trend_clusters TO prismiq_readonly;
+        GRANT SELECT ON public.trend_cluster_members TO prismiq_readonly;
+        GRANT SELECT ON public.trend_cluster_lineage TO prismiq_readonly;
+        GRANT SELECT ON public.tenant_trend_views TO prismiq_readonly;
+        GRANT SELECT ON public.tenant_trend_snapshots TO prismiq_readonly;
+        GRANT SELECT ON public.company_ingestion_ledger TO prismiq_readonly;
+        GRANT SELECT ON public.trend_build_runs TO prismiq_readonly;
+    END IF;
+END $$;
 
 -- ----------------------------------------------------------------------------
 -- ROLLBACK SCRIPT (Execute manually only if reverting this migration):
