@@ -173,3 +173,31 @@ def test_failed_reads_surface_in_dry_run(monkeypatch):
     with patch("src.storage.get_readonly_cursor", side_effect=RuntimeError("Simulated DB Read Failure")):
         with pytest.raises(RuntimeError, match="Simulated DB Read Failure"):
             storage.get_entity_anchor("Vercel")
+
+
+def test_onboarding_confirm_without_live_write_authorization_does_not_raise(monkeypatch, tmp_path):
+    """
+    Verify that when running locally (outside test environment, without live write authorization),
+    save_tenant_confirmed_companies gracefully writes flat-file parity data without raising PermissionError.
+    """
+    monkeypatch.setattr(storage, "is_test_environment", lambda: False)
+    monkeypatch.setattr(storage, "is_live_write_permitted", lambda: False)
+    monkeypatch.setattr(storage, "is_dry_run", lambda: False)
+    monkeypatch.setattr(storage, "_get_data_dir", lambda: tmp_path)
+
+    tracked = storage.save_tenant_confirmed_companies(
+        tenant_id="c8f13b91-46ef-4682-9975-f85764d8a12e",
+        target_company="meesho",
+        confirmed_competitors=["Flipkart", "Shopee"],
+    )
+
+    assert len(tracked) == 3
+    assert tracked[0]["company_name"] == "meesho"
+    assert tracked[0]["is_target"] is True
+    assert tracked[1]["company_name"] == "Flipkart"
+    assert tracked[2]["company_name"] == "Shopee"
+
+    # Verify local parity files exist
+    assert (tmp_path / "confirmed_competitors_meesho.json").exists()
+    assert (tmp_path / "tracked_companies_c8f13b91-46ef-4682-9975-f85764d8a12e.json").exists()
+
