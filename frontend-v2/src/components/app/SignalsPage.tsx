@@ -80,7 +80,7 @@ export function SignalsPage() {
         return false;
       }
       // Company match
-      if (selectedCompany !== "ALL" && sig.company_name.toLowerCase() !== selectedCompany.toLowerCase()) {
+      if (selectedCompany !== "ALL" && (sig.company_name || "").toLowerCase() !== selectedCompany.toLowerCase()) {
         return false;
       }
       // Confidence match
@@ -91,7 +91,7 @@ export function SignalsPage() {
       // Search match
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const text = `${sig.title} ${sig.raw_excerpt || ""} ${sig.why_it_matters || ""} ${sig.company_name}`.toLowerCase();
+        const text = `${sig.title || ""} ${sig.raw_excerpt || ""} ${sig.why_it_matters || ""} ${sig.company_name || ""}`.toLowerCase();
         if (!text.includes(q)) return false;
       }
       return true;
@@ -225,7 +225,7 @@ export function SignalsPage() {
           </button>
           {companies.map((comp) => {
             const count = signals.filter(
-              (s) => s.company_name.toLowerCase() === comp.company_name.toLowerCase()
+              (s) => (s.company_name || "").toLowerCase() === (comp.company_name || "").toLowerCase()
             ).length;
             if (count === 0) return null;
             return (
@@ -233,7 +233,7 @@ export function SignalsPage() {
                 key={comp.company_name}
                 onClick={() => setSelectedCompany(comp.company_name)}
                 className={`app-filter-btn ${
-                  selectedCompany.toLowerCase() === comp.company_name.toLowerCase()
+                  selectedCompany.toLowerCase() === (comp.company_name || "").toLowerCase()
                     ? "app-filter-btn-active"
                     : ""
                 }`}
@@ -291,7 +291,7 @@ export function SignalsPage() {
                   <div className="flex items-center gap-2">
                     <PrismCompanyBadge
                       name={sig.company_name}
-                      isTarget={sig.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                      isTarget={(sig.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                       size="sm"
                     />
                     <span className="app-pill bg-zinc-100 text-zinc-700 text-[10px] flex items-center gap-1 uppercase font-bold tracking-wider">
