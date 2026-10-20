@@ -26,7 +26,26 @@ def run_trend_build(
     start_time = datetime.now(timezone.utc)
     print(f"Starting trend build run (dry_run={dry_run}, as_of={target_date})...")
 
-    conn = psycopg2.connect(db_url)
+    try:
+        conn = psycopg2.connect(db_url)
+    except Exception:
+        import re
+        m = re.match(r'^(?:postgres(?:ql)?://)([^:]+):(.*)@([^:/@]+)(?::(\d+))?(?:/(.*))?$', db_url.strip().strip("'").strip('"'))
+        if m:
+            raw_user, raw_pwd, raw_host, raw_port, raw_rest = m.groups()
+            parsed_db = raw_rest.split('?')[0] if raw_rest else "postgres"
+            clean_user = raw_user
+            if "pooler.supabase.com" in raw_host and "." not in clean_user:
+                clean_user = f"{clean_user}.hmjcqdthzgzsmhpivrdb"
+            conn = psycopg2.connect(
+                host=raw_host,
+                port=int(raw_port or 6543),
+                user=clean_user,
+                password=raw_pwd,
+                dbname=parsed_db
+            )
+        else:
+            raise
     conn.autocommit = False
     cur = conn.cursor()
 
