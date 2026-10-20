@@ -1174,17 +1174,20 @@ def save_confirmed_competitors(
     if is_dry_run():
         return target_file
     # 1. Primary PostgreSQL Write
-    if confirmed_competitors:
-        with get_db_cursor() as cur:
-            comp_sql = """
-                INSERT INTO companies (name, status)
-                VALUES (%s, 'confirmed')
-                ON CONFLICT (name) DO UPDATE
-                SET status = 'confirmed',
-                    updated_at = NOW();
-            """
-            _execute_batch(cur, comp_sql, [(c.strip(),) for c in confirmed_competitors if c.strip()], page_size=50)
-            logger.info(f"Dual-write: updated {len(confirmed_competitors)} confirmed competitors in PostgreSQL.")
+    if confirmed_competitors and (is_test_environment() or is_live_write_permitted()):
+        try:
+            with get_db_cursor() as cur:
+                comp_sql = """
+                    INSERT INTO companies (name, status)
+                    VALUES (%s, 'confirmed')
+                    ON CONFLICT (name) DO UPDATE
+                    SET status = 'confirmed',
+                        updated_at = NOW();
+                """
+                _execute_batch(cur, comp_sql, [(c.strip(),) for c in confirmed_competitors if c.strip()], page_size=50)
+                logger.info(f"Dual-write: updated {len(confirmed_competitors)} confirmed competitors in PostgreSQL.")
+        except Exception as e:
+            logger.warning(f"Dual-write: could not persist confirmed competitors to PostgreSQL: {e}")
 
     # 2. Secondary Flat File Write
     data_dir = _get_data_dir()
@@ -1244,125 +1247,153 @@ def save_tenant_confirmed_companies(
     now_dt = datetime.now(timezone.utc)
     meta_map = competitor_metadata or {}
 
-    # 1. Primary PostgreSQL Write
-    with get_db_cursor() as cur:
-        # Guarantee parent tenant row exists in auth.users before foreign key references
-        ensure_tenant_user_exists(cur, tid)
-
-        # Fetch candidate metadata from discovery_candidates if available
-        candidate_meta: Dict[str, Dict[str, Any]] = {}
+    # Fetch candidate metadata from discovery proposal file if available (local/fallback)
+    candidate_meta: Dict[str, Dict[str, Any]] = {}
+    clean_target = _sanitize_filename(target)
+    proposal_file = _get_data_dir() / f"discovery_proposal_{clean_target}.json"
+    if proposal_file.exists():
         try:
-            cur.execute("""
-                SELECT LOWER(name), domain, category, tier, confidence, rationale, source
-                FROM discovery_candidates
-                WHERE tenant_id = %s;
-            """, (tid,))
-            for row in cur.fetchall():
-                candidate_meta[row[0]] = {
-                    "domain": row[1],
-                    "category": row[2],
-                    "tier": row[3],
-                    "confidence": row[4],
-                    "rationale": row[5],
-                    "source": row[6],
-                }
-        except Exception:
-            pass
+            with open(proposal_file, "r", encoding="utf-8") as pf:
+                pdata = json.load(pf)
+                for c in pdata.get("candidates", []):
+                    cname = c.get("name", "").strip().lower()
+                    if cname:
+                        candidate_meta[cname] = {
+                            "domain": c.get("domain") or c.get("website") or c.get("primary_domain"),
+                            "category": c.get("category") or c.get("industry_category"),
+                            "tier": c.get("tier") or "core",
+                            "confidence": c.get("confidence") or "High",
+                            "rationale": c.get("rationale"),
+                            "source": c.get("source"),
+                        }
+        except Exception as e:
+            logger.warning(f"Failed to read local discovery proposal for {target}: {e}")
 
-        # Ensure target company in companies registry
-        cur.execute(
-            "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
-            (target,)
-        )
-        # Ensure competitor companies in companies registry
-        comp_registry_sql = """
-            INSERT INTO companies (name, status)
-            VALUES (%s, 'confirmed')
-            ON CONFLICT (name) DO UPDATE
-            SET status = 'confirmed', updated_at = NOW();
-        """
-        _execute_batch(cur, comp_registry_sql, [(c,) for c in competitors], page_size=50)
+    # Build target metadata
+    target_meta = meta_map.get(target) or candidate_meta.get(target.lower()) or {}
+    target_domain = target_meta.get("domain") or target_meta.get("primary_domain") or (CANONICAL_COMPANY_METADATA.get(target) or {}).get("domain") or (CANONICAL_COMPANY_METADATA.get(target.lower()) or {}).get("domain")
+    target_cat = target_meta.get("category") or target_meta.get("industry_category") or (CANONICAL_COMPANY_METADATA.get(target) or {}).get("category") or (CANONICAL_COMPANY_METADATA.get(target.lower()) or {}).get("category") or "Primary Subject Entity"
 
-        # Archive any previous target company for this tenant if name is different
-        cur.execute("""
-            UPDATE tenant_tracked_companies
-            SET is_target = FALSE, status = 'archived', updated_at = %s
-            WHERE tenant_id = %s AND is_target = TRUE AND company_name != %s AND status = 'active';
-        """, (now_dt, tid, target))
+    # Build competitor parameter tuples
+    ttc_params = []
+    for c in competitors:
+        c_meta = meta_map.get(c) or candidate_meta.get(c.lower()) or {}
+        c_dom = c_meta.get("domain") or c_meta.get("website") or c_meta.get("primary_domain") or (CANONICAL_COMPANY_METADATA.get(c) or {}).get("domain") or (CANONICAL_COMPANY_METADATA.get(c.lower()) or {}).get("domain")
+        c_cat = c_meta.get("category") or c_meta.get("industry_category") or (CANONICAL_COMPANY_METADATA.get(c) or {}).get("category") or (CANONICAL_COMPANY_METADATA.get(c.lower()) or {}).get("category") or "Competitor Platform"
+        c_tier = c_meta.get("tier") or "core"
+        c_conf = c_meta.get("confidence") or "High"
+        c_rat = c_meta.get("rationale") or f"Confirmed competitor for market tracking alongside {target}."
+        c_src = c_meta.get("source") or "Competitive intelligence index"
+        ttc_params.append((tid, c, c_dom, c_cat, c_tier, c_conf, c_rat, c_src, now_dt, now_dt))
 
-        # Upsert target company into tenant_tracked_companies with domain/category/tier
-        target_meta = meta_map.get(target) or candidate_meta.get(target.lower()) or {}
-        target_domain = target_meta.get("domain") or target_meta.get("primary_domain") or (CANONICAL_COMPANY_METADATA.get(target) or {}).get("domain")
-        target_cat = target_meta.get("category") or target_meta.get("industry_category") or (CANONICAL_COMPANY_METADATA.get(target) or {}).get("category") or "Primary Subject Entity"
+    # 1. Primary PostgreSQL Write
+    if is_test_environment() or is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                # Guarantee parent tenant row exists in auth.users before foreign key references
+                ensure_tenant_user_exists(cur, tid)
 
-        target_ttc_sql = """
-            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, added_at, updated_at)
-            VALUES (%s, %s, TRUE, 'active', %s, %s, 'core', 'High', 'Primary subject entity for market benchmarking and signal correlation.', %s, %s)
-            ON CONFLICT (tenant_id, company_name) DO UPDATE
-            SET is_target = TRUE, status = 'active',
-                primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
-                industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
-                tier = 'core',
-                confidence = 'High',
-                updated_at = EXCLUDED.updated_at;
-        """
-        cur.execute(target_ttc_sql, (tid, target, target_domain, target_cat, now_dt, now_dt))
+                # Fetch candidate metadata from discovery_candidates if available
+                try:
+                    cur.execute("""
+                        SELECT LOWER(name), domain, category, tier, confidence, rationale, source
+                        FROM discovery_candidates
+                        WHERE tenant_id = %s;
+                    """, (tid,))
+                    for row in cur.fetchall():
+                        candidate_meta[row[0]] = {
+                            "domain": row[1],
+                            "category": row[2],
+                            "tier": row[3],
+                            "confidence": row[4],
+                            "rationale": row[5],
+                            "source": row[6],
+                        }
+                except Exception:
+                    pass
 
-        # Archive any competitors previously active for this tenant that are not in the new confirmed list
-        if competitors:
-            cur.execute("""
-                UPDATE tenant_tracked_companies
-                SET status = 'archived', updated_at = %s
-                WHERE tenant_id = %s AND NOT is_target AND NOT (company_name = ANY(%s)) AND status = 'active';
-            """, (now_dt, tid, competitors))
-        else:
-            cur.execute("""
-                UPDATE tenant_tracked_companies
-                SET status = 'archived', updated_at = %s
-                WHERE tenant_id = %s AND NOT is_target AND status = 'active';
-            """, (now_dt, tid))
+                # Ensure target company in companies registry
+                cur.execute(
+                    "INSERT INTO companies (name, status) VALUES (%s, 'active') ON CONFLICT (name) DO NOTHING;",
+                    (target,)
+                )
+                # Ensure competitor companies in companies registry
+                comp_registry_sql = """
+                    INSERT INTO companies (name, status)
+                    VALUES (%s, 'confirmed')
+                    ON CONFLICT (name) DO UPDATE
+                    SET status = 'confirmed', updated_at = NOW();
+                """
+                _execute_batch(cur, comp_registry_sql, [(c,) for c in competitors], page_size=50)
 
-        # Upsert confirmed competitors into tenant_tracked_companies with domain/category/tier/confidence/rationale
-        comp_ttc_sql = """
-            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, source, added_at, updated_at)
-            VALUES (%s, %s, FALSE, 'active', %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (tenant_id, company_name) DO UPDATE
-            SET is_target = FALSE, status = 'active',
-                primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
-                industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
-                tier = COALESCE(EXCLUDED.tier, tenant_tracked_companies.tier),
-                confidence = COALESCE(EXCLUDED.confidence, tenant_tracked_companies.confidence),
-                rationale = COALESCE(EXCLUDED.rationale, tenant_tracked_companies.rationale),
-                source = COALESCE(EXCLUDED.source, tenant_tracked_companies.source),
-                updated_at = EXCLUDED.updated_at;
-        """
-        ttc_params = []
-        for c in competitors:
-            c_meta = meta_map.get(c) or candidate_meta.get(c.lower()) or {}
-            c_dom = c_meta.get("domain") or c_meta.get("website") or c_meta.get("primary_domain") or (CANONICAL_COMPANY_METADATA.get(c) or {}).get("domain") or (CANONICAL_COMPANY_METADATA.get(c.lower()) or {}).get("domain")
-            c_cat = c_meta.get("category") or c_meta.get("industry_category") or (CANONICAL_COMPANY_METADATA.get(c) or {}).get("category") or (CANONICAL_COMPANY_METADATA.get(c.lower()) or {}).get("category") or "Competitor Platform"
-            c_tier = c_meta.get("tier") or "core"
-            c_conf = c_meta.get("confidence") or "High"
-            c_rat = c_meta.get("rationale") or f"Confirmed competitor for market tracking alongside {target}."
-            c_src = c_meta.get("source") or "Competitive intelligence index"
-            ttc_params.append((tid, c, c_dom, c_cat, c_tier, c_conf, c_rat, c_src, now_dt, now_dt))
-        _execute_batch(cur, comp_ttc_sql, ttc_params, page_size=50)
+                # Archive any previous target company for this tenant if name is different
+                cur.execute("""
+                    UPDATE tenant_tracked_companies
+                    SET is_target = FALSE, status = 'archived', updated_at = %s
+                    WHERE tenant_id = %s AND is_target = TRUE AND company_name != %s AND status = 'active';
+                """, (now_dt, tid, target))
 
-        # Update candidate statuses in discovery_candidates if present
-        if competitors:
-            cur.execute("""
-                UPDATE discovery_candidates
-                SET status = 'confirmed'
-                WHERE tenant_id = %s AND target_company = %s AND name = ANY(%s);
-            """, (tid, target, competitors))
+                # Upsert target company into tenant_tracked_companies with domain/category/tier
+                target_ttc_sql = """
+                    INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, added_at, updated_at)
+                    VALUES (%s, %s, TRUE, 'active', %s, %s, 'core', 'High', 'Primary subject entity for market benchmarking and signal correlation.', %s, %s)
+                    ON CONFLICT (tenant_id, company_name) DO UPDATE
+                    SET is_target = TRUE, status = 'active',
+                        primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
+                        industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
+                        tier = 'core',
+                        confidence = 'High',
+                        updated_at = EXCLUDED.updated_at;
+                """
+                cur.execute(target_ttc_sql, (tid, target, target_domain, target_cat, now_dt, now_dt))
 
-            cur.execute("""
-                UPDATE discovery_candidates
-                SET status = 'rejected'
-                WHERE tenant_id = %s AND target_company = %s AND NOT (name = ANY(%s));
-            """, (tid, target, competitors))
+                # Archive any competitors previously active for this tenant that are not in the new confirmed list
+                if competitors:
+                    cur.execute("""
+                        UPDATE tenant_tracked_companies
+                        SET status = 'archived', updated_at = %s
+                        WHERE tenant_id = %s AND NOT is_target AND NOT (company_name = ANY(%s)) AND status = 'active';
+                    """, (now_dt, tid, competitors))
+                else:
+                    cur.execute("""
+                        UPDATE tenant_tracked_companies
+                        SET status = 'archived', updated_at = %s
+                        WHERE tenant_id = %s AND NOT is_target AND status = 'active';
+                    """, (now_dt, tid))
 
-        logger.info(f"Persisted confirmed tracked companies for tenant {tid}: target={target}, competitors={competitors}")
+                # Upsert confirmed competitors into tenant_tracked_companies with domain/category/tier/confidence/rationale
+                comp_ttc_sql = """
+                    INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, source, added_at, updated_at)
+                    VALUES (%s, %s, FALSE, 'active', %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, company_name) DO UPDATE
+                    SET is_target = FALSE, status = 'active',
+                        primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
+                        industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
+                        tier = COALESCE(EXCLUDED.tier, tenant_tracked_companies.tier),
+                        confidence = COALESCE(EXCLUDED.confidence, tenant_tracked_companies.confidence),
+                        rationale = COALESCE(EXCLUDED.rationale, tenant_tracked_companies.rationale),
+                        source = COALESCE(EXCLUDED.source, tenant_tracked_companies.source),
+                        updated_at = EXCLUDED.updated_at;
+                """
+                _execute_batch(cur, comp_ttc_sql, ttc_params, page_size=50)
+
+                # Update candidate statuses in discovery_candidates if present
+                if competitors:
+                    cur.execute("""
+                        UPDATE discovery_candidates
+                        SET status = 'confirmed'
+                        WHERE tenant_id = %s AND target_company = %s AND name = ANY(%s);
+                    """, (tid, target, competitors))
+
+                    cur.execute("""
+                        UPDATE discovery_candidates
+                        SET status = 'rejected'
+                        WHERE tenant_id = %s AND target_company = %s AND NOT (name = ANY(%s));
+                    """, (tid, target, competitors))
+
+                logger.info(f"Persisted confirmed tracked companies for tenant {tid}: target={target}, competitors={competitors}")
+        except Exception as e:
+            logger.warning(f"Dual-write: could not persist confirmed tracked companies to PostgreSQL for tenant {tid}: {e}")
 
     # Return structured tracked companies
     tracked = [{"company_name": target, "is_target": True, "status": "active", "primary_domain": target_domain, "industry_category": target_cat}]
@@ -1390,13 +1421,18 @@ def untrack_tenant_company(tenant_id: str, company_name: str) -> bool:
         return False
     tid = str(tenant_id).strip()
     comp = str(company_name).strip()
-    with get_db_cursor() as cur:
-        cur.execute("""
-            UPDATE tenant_tracked_companies
-            SET status = 'untracked', updated_at = NOW()
-            WHERE tenant_id = %s AND company_name = %s AND status = 'active';
-        """, (tid, comp))
-        rowcount = cur.rowcount
+    rowcount = 0
+    if is_test_environment() or is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                cur.execute("""
+                    UPDATE tenant_tracked_companies
+                    SET status = 'untracked', updated_at = NOW()
+                    WHERE tenant_id = %s AND company_name = %s AND status = 'active';
+                """, (tid, comp))
+                rowcount = cur.rowcount
+        except Exception as e:
+            logger.warning(f"Failed to untrack company in Postgres for {tid}: {e}")
 
     # Parity local file update
     try:
@@ -1407,6 +1443,7 @@ def untrack_tenant_company(tenant_id: str, company_name: str) -> bool:
             updated_comps = [c for c in comps if c.get("company_name") != comp]
             with open(tenant_file, "w", encoding="utf-8") as tf:
                 json.dump(updated_comps, tf, indent=2)
+            rowcount = max(rowcount, 1)
     except Exception as e:
         logger.warning(f"Failed to update local tracked file on untrack for {tid}: {e}")
 
@@ -1431,68 +1468,86 @@ def track_tenant_company(
     cat = str(industry_category).strip() if industry_category else None
     now_dt = datetime.now(timezone.utc)
 
-    with get_db_cursor() as cur:
-        ensure_tenant_user_exists(cur, tid)
+    # Check canonical metadata for default enrichments
+    tier = "core"
+    conf = "High"
+    rat = f"Tracked competitor for market intelligence benchmarking."
+    src = "Workspace Watchlist"
+    canon = CANONICAL_COMPANY_METADATA.get(comp) or CANONICAL_COMPANY_METADATA.get(comp.lower()) or {}
+    if not dom: dom = canon.get("domain")
+    if not cat: cat = canon.get("category") or ("Primary Subject Entity" if is_target else "Competitor Platform")
 
-        # Check discovery_candidates or canonical metadata for enrichments
-        tier = "core"
-        conf = "High"
-        rat = f"Tracked competitor for market intelligence benchmarking."
-        src = "Workspace Watchlist"
+    entry = {
+        "company_name": comp,
+        "is_target": is_target,
+        "status": "active",
+        "primary_domain": dom,
+        "industry_category": cat,
+        "tier": tier,
+        "confidence": conf,
+        "rationale": rat,
+        "source": src,
+        "added_at": now_dt.isoformat(),
+    }
+
+    if is_test_environment() or is_live_write_permitted():
         try:
-            cur.execute("""
-                SELECT domain, category, tier, confidence, rationale, source
-                FROM discovery_candidates
-                WHERE tenant_id = %s AND LOWER(name) = %s
-                LIMIT 1;
-            """, (tid, comp.lower()))
-            dc_row = cur.fetchone()
-            if dc_row:
-                if not dom and dc_row[0]: dom = dc_row[0]
-                if not cat and dc_row[1]: cat = dc_row[1]
-                if dc_row[2]: tier = dc_row[2]
-                if dc_row[3]: conf = dc_row[3]
-                if dc_row[4]: rat = dc_row[4]
-                if dc_row[5] and isinstance(dc_row[5], str): src = dc_row[5]
-        except Exception:
-            pass
+            with get_db_cursor() as cur:
+                ensure_tenant_user_exists(cur, tid)
 
-        canon = CANONICAL_COMPANY_METADATA.get(comp) or CANONICAL_COMPANY_METADATA.get(comp.lower()) or {}
-        if not dom: dom = canon.get("domain")
-        if not cat: cat = canon.get("category") or ("Primary Subject Entity" if is_target else "Competitor Platform")
+                # Check discovery_candidates or canonical metadata for enrichments
+                try:
+                    cur.execute("""
+                        SELECT domain, category, tier, confidence, rationale, source
+                        FROM discovery_candidates
+                        WHERE tenant_id = %s AND LOWER(name) = %s
+                        LIMIT 1;
+                    """, (tid, comp.lower()))
+                    dc_row = cur.fetchone()
+                    if dc_row:
+                        if not dom and dc_row[0]: dom = dc_row[0]
+                        if not cat and dc_row[1]: cat = dc_row[1]
+                        if dc_row[2]: tier = dc_row[2]
+                        if dc_row[3]: conf = dc_row[3]
+                        if dc_row[4]: rat = dc_row[4]
+                        if dc_row[5] and isinstance(dc_row[5], str): src = dc_row[5]
+                except Exception:
+                    pass
 
-        cur.execute("INSERT INTO companies (name, status) VALUES (%s, 'confirmed') ON CONFLICT (name) DO NOTHING;", (comp,))
-        cur.execute("""
-            INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, source, added_at, updated_at)
-            VALUES (%s, %s, %s, 'active', %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (tenant_id, company_name) DO UPDATE
-            SET is_target = EXCLUDED.is_target,
-                status = 'active',
-                primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
-                industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
-                tier = COALESCE(EXCLUDED.tier, tenant_tracked_companies.tier),
-                confidence = COALESCE(EXCLUDED.confidence, tenant_tracked_companies.confidence),
-                rationale = COALESCE(EXCLUDED.rationale, tenant_tracked_companies.rationale),
-                source = COALESCE(EXCLUDED.source, tenant_tracked_companies.source),
-                updated_at = EXCLUDED.updated_at
-            RETURNING company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, source, added_at;
-        """, (tid, comp, is_target, dom, cat, tier, conf, rat, src, now_dt, now_dt))
-        if isinstance(cur, MockCursor):
-            row = (comp, is_target, "active", dom, cat, tier, conf, rat, src, now_dt)
-        else:
-            row = cur.fetchone()
-        entry = {
-            "company_name": row[0] if (row and len(row) > 0) else comp,
-            "is_target": row[1] if (row and len(row) > 1) else is_target,
-            "status": row[2] if (row and len(row) > 2) else "active",
-            "primary_domain": row[3] if (row and len(row) > 3) else dom,
-            "industry_category": row[4] if (row and len(row) > 4) else cat,
-            "tier": row[5] if (row and len(row) > 5) else tier,
-            "confidence": row[6] if (row and len(row) > 6) else conf,
-            "rationale": row[7] if (row and len(row) > 7) else rat,
-            "source": row[8] if (row and len(row) > 8) else src,
-            "added_at": row[9].isoformat() if (row and len(row) > 9 and hasattr(row[9], "isoformat")) else now_dt.isoformat(),
-        }
+                cur.execute("INSERT INTO companies (name, status) VALUES (%s, 'confirmed') ON CONFLICT (name) DO NOTHING;", (comp,))
+                cur.execute("""
+                    INSERT INTO tenant_tracked_companies (tenant_id, company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, source, added_at, updated_at)
+                    VALUES (%s, %s, %s, 'active', %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, company_name) DO UPDATE
+                    SET is_target = EXCLUDED.is_target,
+                        status = 'active',
+                        primary_domain = COALESCE(EXCLUDED.primary_domain, tenant_tracked_companies.primary_domain),
+                        industry_category = COALESCE(EXCLUDED.industry_category, tenant_tracked_companies.industry_category),
+                        tier = COALESCE(EXCLUDED.tier, tenant_tracked_companies.tier),
+                        confidence = COALESCE(EXCLUDED.confidence, tenant_tracked_companies.confidence),
+                        rationale = COALESCE(EXCLUDED.rationale, tenant_tracked_companies.rationale),
+                        source = COALESCE(EXCLUDED.source, tenant_tracked_companies.source),
+                        updated_at = EXCLUDED.updated_at
+                    RETURNING company_name, is_target, status, primary_domain, industry_category, tier, confidence, rationale, source, added_at;
+                """, (tid, comp, is_target, dom, cat, tier, conf, rat, src, now_dt, now_dt))
+                if isinstance(cur, MockCursor):
+                    row = (comp, is_target, "active", dom, cat, tier, conf, rat, src, now_dt)
+                else:
+                    row = cur.fetchone()
+                entry = {
+                    "company_name": row[0] if (row and len(row) > 0) else comp,
+                    "is_target": row[1] if (row and len(row) > 1) else is_target,
+                    "status": row[2] if (row and len(row) > 2) else "active",
+                    "primary_domain": row[3] if (row and len(row) > 3) else dom,
+                    "industry_category": row[4] if (row and len(row) > 4) else cat,
+                    "tier": row[5] if (row and len(row) > 5) else tier,
+                    "confidence": row[6] if (row and len(row) > 6) else conf,
+                    "rationale": row[7] if (row and len(row) > 7) else rat,
+                    "source": row[8] if (row and len(row) > 8) else src,
+                    "added_at": row[9].isoformat() if (row and len(row) > 9 and hasattr(row[9], "isoformat")) else now_dt.isoformat(),
+                }
+        except Exception as e:
+            logger.warning(f"Failed to track company in Postgres for {tid}: {e}")
 
     # Parity local file update
     try:
@@ -1945,17 +2000,21 @@ def save_pricing_snapshot(
     now_dt = datetime.now(timezone.utc)
 
     # 1. Primary PostgreSQL Write
-    with get_db_cursor() as cur:
-        ps_sql = """
-            INSERT INTO pricing_snapshots (company_name, url, timestamp, fetched_at, plans, source_file)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (company_name, timestamp, source_file) DO UPDATE
-            SET url = EXCLUDED.url,
-                fetched_at = EXCLUDED.fetched_at,
-                plans = EXCLUDED.plans;
-        """
-        cur.execute(ps_sql, (company, url, timestamp, now_dt, json.dumps(plans), rel_filename))
-        logger.info(f"Dual-write: persisted pricing snapshot for {company} ({len(plans)} plans) to PostgreSQL.")
+    if is_test_environment() or is_live_write_permitted():
+        try:
+            with get_db_cursor() as cur:
+                ps_sql = """
+                    INSERT INTO pricing_snapshots (company_name, url, timestamp, fetched_at, plans, source_file)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (company_name, timestamp, source_file) DO UPDATE
+                    SET url = EXCLUDED.url,
+                        fetched_at = EXCLUDED.fetched_at,
+                        plans = EXCLUDED.plans;
+                """
+                cur.execute(ps_sql, (company, url, timestamp, now_dt, json.dumps(plans), rel_filename))
+                logger.info(f"Dual-write: persisted pricing snapshot for {company} ({len(plans)} plans) to PostgreSQL.")
+        except Exception as e:
+            logger.warning(f"Dual-write: could not persist pricing snapshot to PostgreSQL: {e}")
 
     # 2. Secondary Flat File Write
     snapshot_data = {
