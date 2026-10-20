@@ -110,12 +110,6 @@ jobs:
           raw_rest = "postgres"
           if m:
               raw_user, raw_pwd, raw_host, raw_port, raw_rest = m.groups()
-              safe_mask = "".join(c if c in "+/=%&$#@!*~-_" else ("A" if c.isalpha() else ("9" if c.isdigit() else "?")) for c in raw_pwd)
-              has_b = raw_pwd.startswith('[') and raw_pwd.endswith(']')
-              is_ph = 'YOUR-PASSWORD' in raw_pwd or 'YOUR_PASSWORD' in raw_pwd
-              print(f"Auth diagnostic: len={len(raw_pwd)}, mask={safe_mask}, has_brackets={has_b}, is_ph={is_ph}")
-              print(f"Target connection: user={raw_user}, host={raw_host}, port={raw_port}")
-
           filename = "${{ github.event.inputs.migration_file }}".strip()
           filepath = os.path.join("backend", "migrations", filename)
 
