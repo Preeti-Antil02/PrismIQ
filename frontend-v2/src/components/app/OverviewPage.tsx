@@ -138,16 +138,17 @@ export function OverviewPage() {
       const topCompEvent = compEvents[0];
       if (topCompEvent) {
         distinctPicks.push(topCompEvent);
-        usedIds.add(topCompEvent.event_id);
+        usedIds.add(topCompEvent.event_id || String(distinctPicks.length));
       }
     }
 
     // If fewer than 5 distinct companies have events, backfill with remaining highest-impact events
     if (distinctPicks.length < 5) {
       for (const ev of sorted) {
-        if (!usedIds.has(ev.event_id)) {
+        const id = ev.event_id || String(distinctPicks.length);
+        if (!usedIds.has(id)) {
           distinctPicks.push(ev);
-          usedIds.add(ev.event_id);
+          usedIds.add(id);
           if (distinctPicks.length >= 5) break;
         }
       }
@@ -323,7 +324,7 @@ export function OverviewPage() {
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <PrismCompanyBadge
                       name={item.company_name}
-                      isTarget={item.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                      isTarget={(item.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                       size="sm"
                     />
                     <div className="flex items-center gap-1.5">
@@ -469,7 +470,7 @@ export function OverviewPage() {
                     <span className="font-bold text-xs text-[#17171b]">{topic.topic_label}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {topic.keywords.slice(0, 3).map((kw, i) => (
+                    {(Array.isArray(topic.keywords) ? topic.keywords : []).slice(0, 3).map((kw, i) => (
                       <span
                         key={i}
                         className="px-2 py-0.5 rounded-md bg-zinc-100 text-[10px] font-medium text-[#595a63]"
@@ -540,7 +541,7 @@ export function OverviewPage() {
                   <td className="whitespace-nowrap font-bold">
                     <PrismCompanyBadge
                       name={ev.company_name}
-                      isTarget={ev.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                      isTarget={(ev.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                       size="sm"
                     />
                   </td>
