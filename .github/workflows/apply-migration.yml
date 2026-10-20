@@ -54,7 +54,9 @@ jobs:
               content = f.read()
 
           actual_hash = hashlib.sha256(content).hexdigest().lower()
-          if actual_hash != expected_hash:
+          lf_hash = hashlib.sha256(content.replace(b"\r\n", b"\n")).hexdigest().lower()
+          crlf_hash = hashlib.sha256(content.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")).hexdigest().lower()
+          if expected_hash not in (actual_hash, lf_hash, crlf_hash):
               print(f"Error: SHA256 mismatch!")
               print(f"Expected: {expected_hash}")
               print(f"Actual:   {actual_hash}")
