@@ -122,6 +122,16 @@ def run_trend_build(
             """, (tid,))
             tenant_tracked[tid] = [r[0] for r in cur.fetchall()]
 
+        # Ensure constraints allow full range of engine outputs
+        cur.execute("""
+            ALTER TABLE public.trend_clusters DROP CONSTRAINT IF EXISTS trend_clusters_cluster_type_check;
+            ALTER TABLE public.trend_clusters ADD CONSTRAINT trend_clusters_cluster_type_check 
+                CHECK (cluster_type IN ('cross_company_trend', 'single_company_storyline', 'emerging', 'single_event'));
+            ALTER TABLE public.trend_cluster_members DROP CONSTRAINT IF EXISTS trend_cluster_members_signal_type_check;
+            ALTER TABLE public.trend_cluster_members ADD CONSTRAINT trend_cluster_members_signal_type_check 
+                CHECK (signal_type IN ('news', 'github', 'research', 'pricing', 'jobs', 'blog'));
+        """)
+
         # Insert Clusters and Members
         for c in clusters:
             cid = c["cluster_id"]
