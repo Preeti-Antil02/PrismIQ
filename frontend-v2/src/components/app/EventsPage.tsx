@@ -99,7 +99,7 @@ export function EventsPage() {
   const filteredEvents = React.useMemo(() => {
     return events.filter((ev) => {
       // Company match
-      if (selectedCompany !== "ALL" && ev.company_name.toLowerCase() !== selectedCompany.toLowerCase()) {
+      if (selectedCompany !== "ALL" && (ev.company_name || "").toLowerCase() !== selectedCompany.toLowerCase()) {
         return false;
       }
 
@@ -116,7 +116,7 @@ export function EventsPage() {
       // Search text match
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const text = `${ev.title} ${ev.event_summary || ""} ${ev.why_it_matters || ""} ${ev.company_name}`.toLowerCase();
+        const text = `${ev.title || ""} ${ev.event_summary || ""} ${ev.why_it_matters || ""} ${ev.company_name || ""}`.toLowerCase();
         if (!text.includes(q)) return false;
       }
       return true;
@@ -196,7 +196,7 @@ export function EventsPage() {
           </button>
           {allCompanyNames.map((compName) => {
             const count = events.filter(
-              (e) => e.company_name.toLowerCase() === compName.toLowerCase()
+              (e) => (e.company_name || "").toLowerCase() === compName.toLowerCase()
             ).length;
             return (
               <button
@@ -291,7 +291,7 @@ export function EventsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <PrismCompanyBadge
                     name={ev.company_name}
-                    isTarget={ev.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                    isTarget={(ev.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                     size="md"
                   />
                   <PrismTierBadge tier={ev.tier} />
