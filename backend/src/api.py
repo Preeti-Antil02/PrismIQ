@@ -1386,6 +1386,8 @@ def get_event_detail(
 # ============================================================================
 
 @app.post("/api/onboarding/discover")
+@app.post("/api/workspace/discover")
+@app.post("/workspace/discover")
 def onboard_discover_candidates(
     req: OnboardDiscoverRequest,
     tenant_id: str = Depends(get_current_tenant),
@@ -1447,6 +1449,8 @@ def onboard_discover_candidates(
 
 
 @app.post("/api/onboarding/confirm")
+@app.post("/api/workspace/confirm")
+@app.post("/workspace/confirm")
 def onboard_confirm_candidates(
     req: OnboardConfirmRequest,
     tenant_id: str = Depends(get_current_tenant),
@@ -1459,11 +1463,25 @@ def onboard_confirm_candidates(
     if not target:
         raise HTTPException(status_code=400, detail="Target company name cannot be empty")
 
-    tracked = storage.save_tenant_confirmed_companies(
-        tenant_id=tenant_id,
-        target_company=target,
-        confirmed_competitors=req.confirmed_competitors,
-    )
+    try:
+        tracked = storage.save_tenant_confirmed_companies(
+            tenant_id=tenant_id,
+            target_company=target,
+            confirmed_competitors=req.confirmed_competitors,
+        )
+    except Exception as e:
+        logger.error(f"Error saving tenant confirmed companies for tenant {tenant_id}: {e}", exc_info=True)
+        # Resilient fallback: ensure flat files and local state are preserved
+        storage.save_confirmed_competitors(target, req.confirmed_competitors)
+        tracked = [{"company_name": target, "is_target": True, "status": "active"}] + [
+            {"company_name": c, "is_target": False, "status": "active"} for c in req.confirmed_competitors
+        ]
+        try:
+            tenant_file = storage._get_data_dir() / f"tracked_companies_{tenant_id}.json"
+            with open(tenant_file, "w", encoding="utf-8") as tf:
+                json.dump(tracked, tf, indent=2)
+        except Exception:
+            pass
 
     return {
         "status": "confirmed",
