@@ -27,3 +27,5 @@ data/*.db
 published_briefs/*.json
 published_briefs/*.md
 !published_briefs/.gitkeep
+!published_briefs/trends_clusters.json
+!published_briefs/brief.md
