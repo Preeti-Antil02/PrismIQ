@@ -58,6 +58,9 @@ def is_test_environment() -> bool:
 
 
 DEFAULT_SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
+DEFAULT_SUPABASE_READONLY_DB_URL = (
+    "postgresql://prismiq_readonly.hmjcqdthzgzsmhpivrdb:RKrishna*02@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+)
 
 
 def is_dry_run() -> bool:
@@ -106,6 +109,11 @@ def normalize_postgres_url(raw_url: Optional[str], reference_url: Optional[str] 
     if not raw_url:
         return None
     url = raw_url.strip().strip("'").strip('"').strip()
+    if url.startswith("https://") or url.startswith("http://"):
+        # HTTP/REST endpoint passed instead of postgres DSN; cannot connect via psycopg2
+        if reference_url and not reference_url.startswith("http"):
+            return normalize_postgres_url(reference_url)
+        return None
     if "=" in url and not url.startswith("postgresql://") and not url.startswith("postgres://"):
         parts = url.split("=", 1)
         if len(parts) == 2 and ("://" in parts[1] or "@" in parts[1]):
@@ -183,20 +191,29 @@ def get_db_url() -> Optional[str]:
         or os.getenv("POSTGRES_URL")
         or DEFAULT_SUPABASE_DB_URL
     )
+    if raw and (raw.strip().startswith("https://") or raw.strip().startswith("http://")):
+        raw = None
     ref = os.getenv("SUPABASE_READONLY_DB_URL") or os.getenv("READONLY_DATABASE_URL")
-    return normalize_postgres_url(raw, reference_url=ref)
+    return normalize_postgres_url(raw, reference_url=ref) if raw else None
 
 
 _DB_POOL: Optional[Any] = None
+_DB_POOL_URL: Optional[str] = None
 _DB_POOL_LOCK = threading.Lock()
 
 def _get_connection_pool(db_url: str):
-    global _DB_POOL
-    if _DB_POOL is None:
+    global _DB_POOL, _DB_POOL_URL
+    if _DB_POOL is None or _DB_POOL_URL != db_url:
         with _DB_POOL_LOCK:
-            if _DB_POOL is None:
+            if _DB_POOL is None or _DB_POOL_URL != db_url:
+                if _DB_POOL is not None:
+                    try:
+                        _DB_POOL.closeall()
+                    except Exception:
+                        pass
                 import psycopg2.pool
                 _DB_POOL = psycopg2.pool.ThreadedConnectionPool(1, 10, db_url)
+                _DB_POOL_URL = db_url
     return _DB_POOL
 
 def get_db_connection(db_url: Optional[str] = None, readonly: bool = False) -> Tuple[Any, Optional[Any]]:
@@ -237,6 +254,8 @@ def get_db_connection(db_url: Optional[str] = None, readonly: bool = False) -> T
                 # Platform environment (live GITHUB_ACTIONS or RENDER):
                 # Reads may use SUPABASE_READONLY_DB_URL if set, or fall back to SUPABASE_DB_URL in a read-only session
                 db_url = ro_url or write_url
+                if not db_url and os.getenv("RENDER") == "true":
+                    db_url = normalize_postgres_url(DEFAULT_SUPABASE_READONLY_DB_URL)
                 if not db_url:
                     raise ConnectionError("Neither SUPABASE_READONLY_DB_URL nor SUPABASE_DB_URL is set.")
         else:
@@ -248,6 +267,9 @@ def get_db_connection(db_url: Optional[str] = None, readonly: bool = False) -> T
                     "Local database write access is strictly prohibited."
                 )
             db_url = write_url
+            if not db_url and os.getenv("RENDER") == "true":
+                # Render without valid SUPABASE_DB_URL cannot write, fail closed
+                pass
             if not db_url:
                 raise ConnectionError("SUPABASE_DB_URL is not set. Primary PostgreSQL store cannot be accessed.")
 
@@ -1710,8 +1732,9 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
                            primary_domain, industry_category, tier, confidence, rationale, source
                     FROM tenant_tracked_companies
                     WHERE status = 'active'
+                      AND (tenant_id = %s::uuid OR tenant_id IS NULL)
                     ORDER BY is_target DESC, company_name ASC;
-                """)
+                """, (tid,))
                 rows = cur.fetchall()
                 comps = []
                 for r in rows:
@@ -2473,13 +2496,14 @@ def get_tenant_research_topics(tenant_id: str, include_paused: bool = False) -> 
     if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
             with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-                filter_clause = "WHERE TRUE" if include_paused else "WHERE is_active = TRUE"
+                active_clause = "AND is_active = TRUE" if not include_paused else ""
                 cur.execute(f"""
                     SELECT id, topic_label, keywords, source, is_active, created_at, updated_at
                     FROM tenant_research_topics
-                    {filter_clause}
+                    WHERE (tenant_id = %s::uuid OR tenant_id IS NULL)
+                    {active_clause}
                     ORDER BY created_at ASC;
-                """)
+                """, (str(tenant_id),))
                 rows = cur.fetchall()
                 topics = []
                 for r in rows:
