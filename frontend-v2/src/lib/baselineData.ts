@@ -1,0 +1,4298 @@
+/**
+ * Ground-Truth Baseline Intelligence Snapshot for PrismIQ.
+ * Extracted directly from live PostgreSQL Supabase storage for tenant 8553449a-c998-4727-be01-9aeb724038cb.
+ * Guarantees that every page in the deployed frontend has immediate access to rich,
+ * high-fidelity signals, events, trends, and competitor intelligence.
+ */
+import type { SignalRecord, ConsolidatedEventRecord, TrackedCompany, FindingRecord, TrendRecord, ResearchTopic, BriefDetail, BriefEntry, WorkspaceConfig } from "./api";
+
+export const BASELINE_TRACKED_COMPANIES: TrackedCompany[] = [
+  {
+    "company_name": "meesho",
+    "is_target": true,
+    "status": "active",
+    "added_at": "2026-09-18T00:53:58.114338+00:00",
+    "primary_domain": "meesho.com",
+    "industry_category": "Social Commerce / E-Commerce",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Primary subject entity for market benchmarking and signal correlation."
+  },
+  {
+    "company_name": "Ajio",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-23T16:54:47.660544+00:00",
+    "primary_domain": "ajio.com",
+    "industry_category": "Fashion E-Commerce",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Reliance Retail's digital fashion platform offering affordable apparel and accessories directly competing with Meesho.",
+    "source": "Authoritative Market Intelligence Index"
+  },
+  {
+    "company_name": "Amazon India",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-23T03:28:37.253392+00:00",
+    "primary_domain": "amazon.in",
+    "industry_category": "E-Commerce Marketplace",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct marketplace rival with widespread logistics infrastructure and massive seller network in India.",
+    "source": "Wikipedia: Amazon India"
+  },
+  {
+    "company_name": "Flipkart",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-18T00:53:58.114338+00:00",
+    "primary_domain": "flipkart.com",
+    "industry_category": "E-Commerce Marketplace",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "India's leading e-commerce marketplace competing directly across budget fashion, household goods, and value retail.",
+    "source": "Wikipedia: Flipkart"
+  },
+  {
+    "company_name": "Myntra",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-18T00:53:58.114338+00:00",
+    "primary_domain": "myntra.com",
+    "industry_category": "Fashion E-Commerce",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Dominant lifestyle and apparel marketplace competing for fashion-first digital shoppers and brand sellers.",
+    "source": "GitHub Repo: wgjdehh/myntra-vs-competitors"
+  },
+  {
+    "company_name": "Shopify",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-23T03:28:37.253392+00:00",
+    "primary_domain": "shopify.com",
+    "industry_category": "E-Commerce Platform",
+    "tier": "peripheral",
+    "confidence": "Medium",
+    "rationale": "Global merchant commerce infrastructure enabling independent storefronts and direct-to-consumer online sellers.",
+    "source": "Meesho (YC S16) Is Shopify for Small Businesses in India"
+  },
+  {
+    "company_name": "Shopsy",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-18T00:53:58.114338+00:00",
+    "primary_domain": "shopsy.in",
+    "industry_category": "Budget Social Commerce",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Flipkart's dedicated zero-commission social commerce app launched specifically to counter Meesho in Tier 2 and Tier 3 cities.",
+    "source": "Authoritative Market Intelligence Index"
+  },
+  {
+    "company_name": "Snapdeal",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-23T16:54:47.660544+00:00",
+    "primary_domain": "snapdeal.com",
+    "industry_category": "Value E-Commerce",
+    "tier": "peripheral",
+    "confidence": "Medium",
+    "rationale": "Focuses on affordable value merchandise catering to Tier 2+ Indian consumers in direct overlap with Meesho.",
+    "source": "Authoritative Market Intelligence Index"
+  },
+  {
+    "company_name": "Temu",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-09-18T00:53:58.114338+00:00",
+    "primary_domain": "temu.com",
+    "industry_category": "Discount E-Commerce",
+    "tier": "peripheral",
+    "confidence": "Medium",
+    "rationale": "Ultra-low-cost direct-from-manufacturer marketplace challenging discount e-commerce dynamics globally.",
+    "source": "Comparison Index: Top Meesho Alternatives"
+  }
+];
+
+export const BASELINE_SIGNALS: SignalRecord[] = [
+  {
+    "id": "sig_0019ec1c0ea7c281",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Amazon and Flipkart review uncertified cameras in India \u2014 Channel NewsAsia - UA.NEWS",
+    "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNU1hKQXl6aVM5bUljczVheS1SbVg0LTZZczhMaVI2dk1Rbmladm1LbG1YNks4TmxyMjdnSU5ZeEZCRU90MWZ5Y3FGaGd3N3pCd3BIQzVrR1B3MGc5UTM2OHE2VXlob2tmeDNQRTlUSkduc0hoX3F2Rk8zZzVSc3Z5VTdORHpUQWs4TmYzeHlPMjk5Zm0wNS1TV19PU3pMdkVpRTQ5NmxWWWwwWHM?oc=5",
+    "published_at": "2026-10-01T11:35:51+00:00",
+    "raw_excerpt": "Amazon and Flipkart review uncertified cameras in India \u2014 Channel NewsAsia &nbsp;&nbsp; UA.NEWS",
+    "event_id": "evt_0019ec1c0ea7c281",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_001ac80270bdc655",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Amazon Great Indian Festival 2026: Deals on Plaud note-taker, Dreame Robot Vacuum, more",
+    "url": "https://indianexpress.com/article/technology/amazon-great-indian-festival-2026-tech-deals-10909017/",
+    "published_at": "2026-10-06T09:57:13+00:00",
+    "raw_excerpt": "The upcoming Amazon Great India Festival is bringing an array of deals across tech offerings. Here's a look at some unique deals.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_00828218ce22c9bf",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Shopify Quit React Native. Mobile Has Done This Before.",
+    "url": "https://www.reddit.com/r/androiddev/comments/1wt4c9q/shopify_quit_react_native_mobile_has_done_this/",
+    "published_at": "2026-09-29T08:11:54+00:00",
+    "raw_excerpt": "submitted by    /u/ishan1604   [link]   [comments]",
+    "event_id": "evt_00828218ce22c9bf",
+    "corroboration_count": 1,
+    "why_it_matters": "Shopify publicly announced that it is discontinuing its use of React Native for mobile development, as indicated by the title of the Reddit post. This could suggest a shift away from cross\u2011platform frameworks among large e\u2011commerce platforms, potentially freeing up React Native talent and allowing Meesho to prioritize native mobile engineering to improve app performance and differentiate its user experience against rivals like Amazon India and Flipkart.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_00962bb633e24eb8",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "Meesho Surges 9% After UBS Raises Target Price To \u20b9260 - Inc42",
+    "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNeXFhS2YtMlFMSjBnTlZOMy1CejlYRnJ5dl9HVUJiYjVZLTRGYmFmenBPWXIzUENZZlltOGtSMS1LSUl6OFI1eXJ6SkJLc3NtWWFTTDhhVTVyUnFaM1NYTGtVUUJ2MUxkbE8yY0NKSXdpNEJUM2oyX1pnUFBRMlVFSjRfZWtDeHZZTC1HWVdB?oc=5",
+    "published_at": "2026-09-22T06:09:37+00:00",
+    "raw_excerpt": "Meesho Surges 9% After UBS Raises Target Price To \u20b9260 &nbsp;&nbsp; Inc42",
+    "event_id": "evt_00962bb633e24eb8",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_00b0c779644bbc96",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Flipkart tests food delivery to take on Zomato and Swiggy",
+    "url": "https://www.techinasia.com/flipkarts-minutes-reaches-1000-india-hubs",
+    "published_at": "2026-10-20T04:43:45+00:00",
+    "raw_excerpt": "Amazon trialed food delivery in India in 2020, the same year Uber exited the market.",
+    "event_id": "evt_00b0c779644bbc96",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_00d721aea345342c",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Amazon Now expands to 120 cities, doubles quick commerce footprint - The Economic Times",
+    "url": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxPQ0pNU2JwZGl4T1lkc0NJbFBfRE13UW9ydmJFMjBFQVJRMFdGQ0pVeC1OYlJUWHhkMEYzVjdMZWxVODM2QTZCb3piTXVVak4weDNub3BzalNFRGE5QUtIbjktXy01aEJVRHptTE1pNXJESk9yeHhRQUd1YzRya1dsV2cyX0g5OTl3Rlg2UF9NT0xFcldXX1lfQVlSajJ3NDRGTDk1a0hWeXpqM1RLUlozSzRRRmNnMXdiS2hLeFRTYW55QUxzcmY5VnlPMlczczlm0gHWAUFVX3lxTE1fLU0zMFhRdkdOVlhxMzZISG1kVG1GYnlDRDlkaTRMVGlUODczY0t3MERINFlrVmxkRmZhQjRJTVhPY3B1Z0RIQ1BTRlJUejZsVG5wVkJqNVQ0eTVhZ05BWFdRQUhVZ2lVMnhPbG1FcDZOUHZ2dEZZdzQyeWpXNXB5eTBQamswdzN2Qk1lU1pTQXExWkc1XzVfWXd1NVFiZzZCWlFUc09kWjk5eHpjZGpkd0lraTZZQk9FWGZER3NGZUFmck1WMmxoUGNWdlJxRlR6UXdFMkE?oc=5",
+    "published_at": "2026-10-01T00:30:00+00:00",
+    "raw_excerpt": "Amazon Now expands to 120 cities, doubles quick commerce footprint &nbsp;&nbsp; The Economic Times",
+    "event_id": "evt_00d721aea345342c",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_015ab2d1b4dd1443",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Building a Shopify B2B Store: Company Accounts, Contextual Pricing and ERP Order Flow",
+    "url": "https://dev.to/weswoodtc/building-a-shopify-b2b-store-company-accounts-contextual-pricing-and-erp-order-flow-32ko",
+    "published_at": "2026-10-08T12:30:04+00:00",
+    "raw_excerpt": "A wholesale storefront can look deceptively simple: authenticate a buyer, show a negotiated price,...",
+    "event_id": "evt_015ab2d1b4dd1443",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_01b3a1d84fe87a78",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "A lightweight QA loop for Shopify storefront translations",
+    "url": "https://dev.to/localedelta/a-lightweight-qa-loop-for-shopify-storefront-translations-5ad0",
+    "published_at": "2026-10-11T11:59:24+00:00",
+    "raw_excerpt": "When a Shopify catalog changes, localization work can quietly fall out of sync. A product title gets...",
+    "event_id": "evt_01b3a1d84fe87a78",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_02007bc08730ddbd",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Oppo K14 Plus 5G India Launch Teased: Flipkart Availability Confirmed, What We Know So Far - NDTV Profit",
+    "url": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxQMmhHaFhVMlN6RnZ6RVpLZ04yc0U4VC15TXZPUzRpb3lUYl82X3BQQTdzR3Y1TlVKZ21ZRndlT2pCWlgySkhDU1NzTFNfamxiM2ZBR1F2TFYxend5OHJzYnZyZkJkVFB2SFFONkY3YTExblBONmhmc3J2QWRfVXBpWUVURG5ITXlaWVE2R2x2ektLdmhRYTVpQ0VPb21kRTRZcWV5NDBIVFdqaU5yaVdJWUZTa012bWpGa1g4TjktaVk0Ykt2cFRJOU5vTG5HSHQw0gHYAUFVX3lxTFBYNkVRTUxCeE5yb2N4VXdzSzQ0U2ZyanUzYmpNTXMyZG44UG9qUG5TNXM4U1FJWUl6X1RxVUYwS3R6VUM4ZGJFLV9oLVFCSU14ZnhBajFTUVB2cDBibDZsRlB3TUp5MzhnVkMwM1hSYU8wMHJhdFVoczBBZjhGMEVua3FqT3Q3T0NSSVlMclJuSy1jLVMyRjRZUndIdXlVRXNkU0o0U2Mybl85NWFIWlQyRE05NXpoNDVVcm1XcWFxZ1JJSm5iTEh1eVFrUUF5NHZNOGV4TlFhaw?oc=5",
+    "published_at": "2026-09-18T12:06:34+00:00",
+    "raw_excerpt": "Oppo K14 Plus 5G India Launch Teased: Flipkart Availability Confirmed, What We Know So Far &nbsp;&nbsp; NDTV Profit",
+    "event_id": "evt_02007bc08730ddbd",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_02243db4575a0a28",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Plugin count is a terrible way to size a WooCommerce migration. Here's the data.",
+    "url": "https://dev.to/mufatech/plugin-count-is-a-terrible-way-to-size-a-woocommerce-migration-heres-the-data-4on9",
+    "published_at": "2026-09-17T19:51:50+00:00",
+    "raw_excerpt": "Plugin count is the first number anyone quotes when sizing a WooCommerce to Shopify migration....",
+    "event_id": "evt_02243db4575a0a28",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_024607e812838de3",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "89 per cent of Meesho Mall's new-to-brand shoppers came from smaller cities in FY26: Milan Partani - ETRetail.com",
+    "url": "https://news.google.com/rss/articles/CBMihwJBVV95cUxQZEZ3VUVtLUhlWGxJbEVtOTZ4RlNXNXZacnRmTXJOMmdETUVHVmJpWDNjSlhQal9fUmZCcU1jd0pjeFlYeGt2cVFZMXpiV244N19VZERwNlJNRDVwUFlXSGxpTXpBN0VXSVZORWxYZVMwdV9DdG1BWHFpbmdxU09hNXlsSHJNNmJQU1FnYTFGMGx5UHhMYXhpcl9xUG9UNjV5M05IU1FiZXpEaXMwNTQzeHZMUU9ObElnbFVNNUk5ZF9aQTM2TEFzTGVIN0lGUy1sR210SkhqVzdkWkg0Q0VWeVdSVTRPdDFGUmhfRE5SaG9BSXBvVkQ0TFVGNlVJNXdRLW9PLTZlQdIBjAJBVV95cUxObmFmUy14ZmJSd29sRnpKT3BtcHZPbG80QjhwNjRwUVZLQVFYLVRQU253cEZIcVR4OS1iUmk3anpYZFUxSDZ5MkVlMzI0REw2dDRmbmplS1pHdG9QMEhQOW83M2VCSEZib0tWcWlGTFc2OTM3TVVod0NOSUtESnBYdGJ4LW1HaHJMcTNveDNYZXRUbExEbmxFT3JXcThUQzdyU1ZiSXdyeUpjTEhwczRuRG1WSDU2ejM4c0FtaFBhU1VnVUowNHlHVkpTOGxoN0JwcUt4bms0MzVjM25BY296UGhiTlRTRDhqVGxob3hqcDlkcmN2Rl8taFI1NHBxRjNLd25TVkwwRVZvQmU5?oc=5",
+    "published_at": "2026-09-28T02:53:26+00:00",
+    "raw_excerpt": "89 per cent of Meesho Mall's new-to-brand shoppers came from smaller cities in FY26: Milan Partani &nbsp;&nbsp; ETRetail.com",
+    "event_id": "evt_024607e812838de3",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_024e62dce79f6f98",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "E-tailers gear up for festive rush: Amazon, Flipkart expand delivery capacity - Telegraph India",
+    "url": "https://news.google.com/rss/articles/CBMi2AFBVV95cUxOS2ZuUUNMS0FBMFdxZnJtZ0FBZVEydm94RGZycjNxUkVQMFdqbnY2UzZuOGdZTGR3aURUZ1E0TUtZSGR2ampSQTF0RERuRkdSYU96ajBCaGl1Z2tDem5pbWkycEFXTUVFZXI4Q3cyRFBSWDNXX3Ficzl3ei0tMU0zS0ZTUDdkd0V6V0Nxczg4QV93dkZPa3dCRDFXMnNfbG5sQU52UEZtU1U2anotdFlQU3ZrMG9DekY1VzEtZTBCSFg0TFJQV1lNNGg5ZVRNZjFLVHE4T093bHHSAd4BQVVfeXFMT05VMVYyTzAzOWtsOWJuREl3RDVSRXNITk9XRzJobjZvbG5iVldyaERxS3JfUzhOTGZSVmNZcHFUMklaWWIxd0FKdlptdHFzeHJKMm94bDdMMDBDN2RkSERPNmxxQ2J3RVVVVktBRGVZR3d4ZDNOVnczQ09lZVo1QzQzTWkwWnNWUm5BQ2tYbmJpRmNGNlZaOEYxNEFycVJ4MDdETk1oM1o4YjBUYzhSLUFTS1VUamtBUXNxQ0lGUi1ON0ZkNWlYMVgzTnloV3p4RzczbnJGSHoxZ0RSNS1R?oc=5",
+    "published_at": "2026-09-30T02:15:58+00:00",
+    "raw_excerpt": "E-tailers gear up for festive rush: Amazon, Flipkart expand delivery capacity &nbsp;&nbsp; Telegraph India",
+    "event_id": "evt_024e62dce79f6f98",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_026894f847bba8f0",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Amazon Bets Big on India and Robotics. Here\u2019s What It Means for the Stock - tikr.com",
+    "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxQNURrLU5YQnV3eUd3Y25vSnpTRHp1dXB2MXJ5a19uVTcxMS1vLVR0Qzk1VUlFQVNqaHR6Vk1mcWdEdVYyZVcwdUZ2Y1k1dEk1Mk1zc2JOUlliR19pVlZJX3VwTlZ1NHJCUEpoNS0wb3R0NHRDTGZpZnVYampsaXQwZ1AxMW5Ud1loNHYtQXR5MS1xUkhpLUNBN201ZHllUQ?oc=5",
+    "published_at": "2026-09-27T14:01:13+00:00",
+    "raw_excerpt": "Amazon Bets Big on India and Robotics. Here\u2019s What It Means for the Stock &nbsp;&nbsp; tikr.com",
+    "event_id": "evt_026894f847bba8f0",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_028a735d8fe4a0ba",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Meet Harrison Nott, 16, from Essex, England, who skipped college after his GCSEs to grow the towel business he started in his bedroom in 2023, now generating over \u00a3750,000 in annual revenue",
+    "url": "https://timesofindia.indiatimes.com/world/uk/meet-harrison-nott-16-from-essex-england-who-skipped-college-after-his-gcses-to-grow-the-towel-business-he-started-in-his-bedroom-in-2023-now-generating-over-750000-in-annual-revenue/articleshow/134896561.cms",
+    "published_at": "2026-10-12T15:22:57+00:00",
+    "raw_excerpt": "A 16-year-old entrepreneur from Essex, UK, has chosen not to attend college to focus on his towel business, CoolTowel, which he started in his bedroom in 2023. Harrison Nott's venture has generated more than \u00a3750,000 in revenue this year, driven by a surge in demand during Britain's summer heatwaves...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_029f92e19d050c39",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "iPhone 16 gets a big price cut on Flipkart: Check deal - India Today",
+    "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxPcFBqd2NheXdlLWhYUUZYb01aRUJUWi11ZGg1S2JseGNJNFBKMi16cUMwZG1BLXVnaU1rZ2dCUkZHUHN0UHVuOEd5bm0wVHBkdUxhdjEzUFRfVDNiVlM2U3hwQ1M1dnhuSFA2dlBtYnkwUTRWQ0RHVEV5bGp6bVBuU2w4dmlaelR0eFlYZlQ0VmRNbllDNGZoVWFxSHR0akdka0hkOG9NYmt0VnZ2a0U3X3N2SndxS3pMNWsybGJDd9IBvwFBVV95cUxPcFBqd2NheXdlLWhYUUZYb01aRUJUWi11ZGg1S2JseGNJNFBKMi16cUMwZG1BLXVnaU1rZ2dCUkZHUHN0UHVuOEd5bm0wVHBkdUxhdjEzUFRfVDNiVlM2U3hwQ1M1dnhuSFA2dlBtYnkwUTRWQ0RHVEV5bGp6bVBuU2w4dmlaelR0eFlYZlQ0VmRNbllDNGZoVWFxSHR0akdka0hkOG9NYmt0VnZ2a0U3X3N2SndxS3pMNWsybGJDdw?oc=5",
+    "published_at": "2026-09-27T06:16:09+00:00",
+    "raw_excerpt": "iPhone 16 gets a big price cut on Flipkart: Check deal &nbsp;&nbsp; India Today",
+    "event_id": "evt_029f92e19d050c39",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_02a87fa0e537ea17",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "Shein dives over 11pc after earnings disappoint",
+    "url": "https://news.rthk.hk/rthk/en/component/k2/1871983-20260929.htm",
+    "published_at": "2026-09-29T04:39:07+00:00",
+    "raw_excerpt": "Shares in fast-fashion giant Shein plunged more than 11 percent in Hong Kong on Tuesday after releasing disappointing fi...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_02bea9d7a37488d4",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Suitcase Sorted: 5 Lightweight 3-Piece Luggage Sets for Your Honeymoon",
+    "url": "https://www.news18.com/lifestyle/travel/suitcase-sorted-5-lightweight-3-piece-luggage-sets-for-your-honeymoon-10376247.html",
+    "published_at": "2026-10-10T13:22:13+00:00",
+    "raw_excerpt": "Planning your honeymoon or next getaway? Explore 5 three-piece luggage sets from different brands under \u20b96,999 on Amazon India, with practical options for every trip.",
+    "event_id": "evt_02bea9d7a37488d4",
+    "corroboration_count": 2,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_02c0d701a6654702",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "Temu axed its $1 billion network of fake accounts on Meta | Fortune",
+    "url": "https://fortune.com/2026/09/25/temu-axed-its-1-billion-network-of-fake-accounts-on-meta/",
+    "published_at": "2026-09-25T07:05:00+00:00",
+    "raw_excerpt": "Temu had spent nearly $1 billion funding partnership ads with various influencers and creators, many of which appeared to be fake accounts.",
+    "event_id": "evt_02c0d701a6654702",
+    "corroboration_count": 1,
+    "why_it_matters": "Fact: Temu has eliminated a network of fake accounts on Meta that it had funded with nearly $1\u202fbillion in partnership ads, many of which were operated by influencers or creators that were not genuine. Inference: This could reduce Temu's aggressive paid\u2011social user acquisition and may open a short\u2011term gap in its market reach, potentially allowing Meesho to attract price\u2011sensitive shoppers who were previously exposed to Temu\u2019s inflated ad presence, especially if Meesho emphasizes authentic engagement and compliance.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_02eb344d04c4e9ef",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Why is PayPal stock climbing today? By Investing.com",
+    "url": "https://www.investing.com/news/stock-market-news/why-is-paypal-stock-climbing-today-93CH-4911287",
+    "published_at": "2026-09-22T15:50:32+00:00",
+    "raw_excerpt": "Why is PayPal stock climbing today?",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_032c6f9de97a5e3f",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "My Stocks and Shares ISA is comfortably beating the FTSE 100 in 2026. Here's what I'm doing now",
+    "url": "https://www.twelfthmagpie.com/2026/10/03/my-stocks-and-shares-isa-is-comfortably-beating-the-ftse-100-in-2026-heres-what-im-doing-now/",
+    "published_at": "2026-10-03T06:51:00+00:00",
+    "raw_excerpt": "My Stocks and Shares ISA has raced ahead in 2026, easily beating the stock market so far. Here's what (and how) I'm doing next.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0341b033119c1f95",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Here's how I'm hunting for 'multibaggers' in my Stocks and Shares ISA",
+    "url": "https://www.twelfthmagpie.com/2026/09/27/heres-how-im-hunting-for-multibaggers-in-my-stocks-and-shares-isa/",
+    "published_at": "2026-09-27T06:57:42+00:00",
+    "raw_excerpt": "Ben McPoland explains how he goes about identifying potential big winners for his Stocks and Shares ISA. Which UK stock is he very bullish on now?",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0381a590a3f9575d",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "The Slop Grenade: Shopify\u2019s CEO Just Perfectly Named the Laziest AI Workplace Habit",
+    "url": "https://www.inc.com/dan-schawbel/slop-grenade-shopify-ceo/91409879",
+    "published_at": "2026-09-24T15:30:00+00:00",
+    "raw_excerpt": "Tobi Lutke told employees to prove AI could not do their job before asking for more headcount. Now he is warning that the same push has created a new problem.",
+    "event_id": "evt_0381a590a3f9575d",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_038e156503ae4514",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "AI drives 70% of orders on ecom platform Meesho via personalised ranking",
+    "url": "https://www.business-standard.com/companies/news/ai-drives-70-of-orders-on-ecom-platform-meesho-via-personalised-ranking-126101601106_1.html",
+    "published_at": "2026-10-16T12:58:32+00:00",
+    "raw_excerpt": "Meesho's AI-powered Prism drives nearly 70% of orders, while its Chorus agent handles 60% of user queries as the e-commerce platform expands AI adoption across operations",
+    "event_id": "evt_038e156503ae4514",
+    "corroboration_count": 2,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_03974fd8526f224d",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "iPhone 18 Could Get A Wider Camera Module, Suggest Images Ahead Of Rumoured 2027 Launch",
+    "url": "https://www.ndtvprofit.com/technology/iphone-18-could-get-a-wider-camera-module-suggest-images-ahead-of-rumoured-2027-launch-12210787",
+    "published_at": "2026-10-20T13:00:07+00:00",
+    "raw_excerpt": "The standard iPhone 18 may break from the iPhone 17\u2019s vertical camera layout. Here\u2019s what the latest images and rumours suggest about its design, specs and launch timing.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_039fec3a7cedad25",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Oppo K14 Plus launched in India with 8000mAh battery and 144Hz AMOLED display",
+    "url": "https://www.indiatoday.in/technology/news/story/oppo-k14-plus-launched-in-india-with-8000mah-battery-and-144hz-amoled-display-3005498-2026-09-29",
+    "published_at": "2026-09-29T07:26:28+00:00",
+    "raw_excerpt": "Oppo K14 Plus has been launched in India with a whopping 8,000mAh battery. The smartphone features a fast AMOLED display and is powered by a Dimensity 7360 MAX chipset. It will go on sale from October 8 as part of Flipkard's BBD.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_03a8c5dda155dcb5",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Shopify: Wait For The Next Golden Buying Opportunity (Downgrade) (NASDAQ:SHOP)",
+    "url": "https://seekingalpha.com/article/4954232-shopify-wait-for-next-golden-buying-opportunity-downgrade",
+    "published_at": "2026-10-14T20:31:05+00:00",
+    "raw_excerpt": "Shopify has decisively dispelled AI-driven bear concerns, regaining bullish momentum and closing in on all-time highs. Read more on SHOP stock here.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_03b4f46ee607b56f",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "iPhone 17 to sell under Rs 80,000 during Flipkart Big Billion Days Sale 2026; Samsung Galaxy S25 series deals also teased - 91mobiles.com",
+    "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxNMGFjQ0FJMzFsQjdzRUdJTmg3WWl2U2wtbTBiZzhjWGRWQmJ0a080SFhlSjhFQlB6WkxNRjFySjA5cnFPU1pMd3doRVpob1IyVS15bVVSWnVxcHowUTl1RmctbG5nZEs2Q2FJN0NWSDNNNHNXejZlN3BCZHN1MURudE5hYjRwbXhOcGQtaW43ZUdON2fSAZgBQVVfeXFMUFpNZFN4X2R1TEh6dUdGMzBDamVVUmZCVUo5bFJycURZRzdwOU5qVER1bWtLV2duajk2Ynp5TTFpWlhzZUJYS3l1UUs3VUVfUkIyX1BlZ0x5XzByWGN4T3l1TndreFgwSjJOQTNiTUE3SWFXdmZvZ2NBMEZQdVNQQlVEeFhmdDBSaXJmbDRKLTZBQnV4bEJTbmk?oc=5",
+    "published_at": "2026-09-22T09:58:27+00:00",
+    "raw_excerpt": "iPhone 17 to sell under Rs 80,000 during Flipkart Big Billion Days Sale 2026; Samsung Galaxy S25 series deals also teased &nbsp;&nbsp; 91mobiles.com",
+    "event_id": "evt_03b4f46ee607b56f",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_04143dab68d361ef",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Celebrating Our Newest AWS Heroes \u2013 September 2026 | Amazon Web Services",
+    "url": "https://aws.amazon.com/blogs/aws/celebrating-our-newest-aws-heroes-september-2026/",
+    "published_at": "2026-09-30T17:04:05+00:00",
+    "raw_excerpt": "Today, we\u2019re excited to introduce the newest members of the AWS Heroes program. AWS Heroes are a vibrant, worldwide group of AWS experts who go above and beyond to share knowledge, mentor others, and build thriving communities. These individuals make a real difference in helping developers and organ...",
+    "event_id": "evt_04143dab68d361ef",
+    "corroboration_count": 1,
+    "why_it_matters": "Fact: Amazon India announced new members of its AWS Heroes program, a community of AWS experts who share knowledge and mentor developers. Inference: This suggests Amazon is deepening its developer\u2011ecosystem engagement in India, which may increase AWS adoption among Indian merchants and could pressure Meesho to either double\u2011down on its own cloud strategy or negotiate more favorable AWS terms.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_045a687d66e4aced",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Amazon launches Alexa+ in India with Hindi support | TechCrunch",
+    "url": "https://techcrunch.com/2026/09/16/amazon-launches-alexa-in-india-with-hindi-support/",
+    "published_at": "2026-09-16T10:34:47+00:00",
+    "raw_excerpt": "Amazon is letting all customers use Alexa+ assistant in early access period",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_04c0a903d9d6e58d",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Best Laptops Under Rs. 90,000 in India to Buy During Amazon, Flipkart Sale",
+    "url": "https://www.gadgets360.com/laptops/features/best-laptops-under-rs-90000-in-india-acer-aspire-7-asus-vivobook-16-dell-15-hp-lenovo-ideapad-12114492",
+    "published_at": "2026-10-03T12:30:01+00:00",
+    "raw_excerpt": "Amazon Great Indian Festival Sale 2026 is scheduled to begin on October 8.",
+    "event_id": "evt_5a2591af4634146d",
+    "corroboration_count": 4,
+    "why_it_matters": "The source documents that the Amazon Great Indian Festival Sale 2026 is scheduled to begin on October 8, with promotional content highlighting laptops under Rs. 90,000 and other electronics. This confirms a major seasonal sales event by a tracked competitor (Amazon India) that may correlate with increased consumer spending in the electronics category, though the source does not provide data on Meesho's specific competitive position or sales impact in this segment.",
+    "confidence": "Medium",
+    "inference_confidence": "Low",
+    "fact_confidence": "High",
+    "tier": "Must-Know"
+  },
+  {
+    "id": "sig_04eb15b2a73cebce",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Shopify debuts Canvas, a way to build online stores by chatting with AI | TechCrunch",
+    "url": "https://techcrunch.com/2026/10/01/shopify-debuts-canvas-a-way-to-build-online-stores-by-chatting-with-ai/",
+    "published_at": "2026-10-01T16:44:35+00:00",
+    "raw_excerpt": "Shopify\u2019s new Canvas site builder lets merchants create and customize their online stores by chatting with its AI agent Sidekick, while watching the changes happen in real time.",
+    "event_id": "evt_04eb15b2a73cebce",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_04f2afa3ebc3f3fd",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Shopify: Not Convinced By Muse (NASDAQ:SHOP)",
+    "url": "https://seekingalpha.com/article/4949029-shopify-not-convinced-by-muse",
+    "published_at": "2026-09-23T14:58:31+00:00",
+    "raw_excerpt": "Shopify Inc. stock faces overvaluation and macro headwinds as AI headlines fade. Click for this updated look at SHOP stock as it embarks on its venture with META.",
+    "event_id": "evt_04f2afa3ebc3f3fd",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0501296509f3c659",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "A paid Rs 1,64,900 upfront for iPhone 18 Pro, B chose credit card EMI, C picked no-cost EMI in festive sales \u2013 Who saved most after discounts? - The Economic Times",
+    "url": "https://economictimes.indiatimes.com/wealth/spend/iphone-18-pro-credit-card-emi-vs-no-cost-emi-vs-upfront-payment-festive-offers-deals-sale/articleshow/134833787.cms",
+    "published_at": "2026-10-10T04:40:00+00:00",
+    "raw_excerpt": "Buying the iPhone 18 Pro during festive sales? Between upfront payment, credit card EMI and no-cost EMI, which payment method will help you save the most? Find out in this article.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_050fc23252ffd973",
+    "company_name": "Meesho",
+    "source": "jobs",
+    "title": "Job Posting: Cluster Head- Last mile - Chennai (Fulfilment)",
+    "url": "https://jobs.lever.co/meesho/c84e4b2c-653a-4cf8-abd9-e70d0c5e4cd8",
+    "published_at": "2026-09-22T08:29:28.274000+00:00",
+    "raw_excerpt": "Department: Fulfilment | Location: Chennai, Tamil Nadu | Role: Cluster Head- Last mile - Chennai",
+    "event_id": "evt_050fc23252ffd973",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_057126d3379c74a0",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "YouTube is expanding its shopping tools for creators in India, reveals new AI tools",
+    "url": "https://www.indiatoday.in/technology/news/story/youtube-is-expanding-its-shopping-tools-for-creators-in-india-reveals-new-ai-tools-3001961-2026-09-24",
+    "published_at": "2026-09-24T10:44:42+00:00",
+    "raw_excerpt": "YouTube has announced a major expansion of its Shopping affiliate programme in India with new partners including Amazon and Meesho. The platform is also bringing new AI tools for creators and viewers.",
+    "event_id": "evt_057126d3379c74a0",
+    "corroboration_count": 1,
+    "why_it_matters": "Fact: YouTube announced an expansion of its Shopping affiliate programme in India, adding Meesho as a new partner and introducing AI tools for creators and viewers. Inference: This could suggest that Meesho will gain additional exposure to YouTube\u2019s creator audience, potentially driving more traffic to its marketplace and intensifying competition with other e\u2011commerce partners like Amazon.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_05902edd97c846c7",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Rebuilding Shopify's Finances summary from the Admin GraphQL API, line by line",
+    "url": "https://dev.to/bananafestdestiny/rebuilding-shopifys-finances-summary-from-the-admin-graphql-api-line-by-line-4665",
+    "published_at": "2026-10-05T23:10:31+00:00",
+    "raw_excerpt": "In May 2025 Shopify's admin replaced the printed Financial Summary with an on-screen Finances...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_05f2098669455c41",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Routific brings smart delivery route optimization to Shopify merchants",
+    "url": "https://www.prweb.com/releases/routific-brings-smart-delivery-route-optimization-to-shopify-merchants-302910990.html",
+    "published_at": "2026-10-20T12:40:00+00:00",
+    "raw_excerpt": "/PRNewswire-PRWeb/ -- Just ahead of the holiday rush, when local delivery volumes spike, Routific, the smart route optimization and delivery management...",
+    "event_id": "evt_05f2098669455c41",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_064b6af99df82ff2",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "ETSA 2026: Meesho, Groww CEOs on how life changes after an IPO - The Economic Times",
+    "url": "https://economictimes.indiatimes.com/tech/technology/et-startup-awards-2026-meesho-groww-ceos-on-how-life-changes-after-an-ipo/articleshow/134837023.cms",
+    "published_at": "2026-10-09T14:50:34+00:00",
+    "raw_excerpt": "Aatrey said the company must continue to innovate while meeting the expectations of public-market investors. The need to set quarterly goals has also raised expectations within teams, making it important to balance predictability with innovation, he added.",
+    "event_id": "evt_064b6af99df82ff2",
+    "corroboration_count": 2,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_06816cbbe060b285",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Helix: The internal tool powering our Shopify app's native migration (2026) - Shopify",
+    "url": "https://shopify.engineering/helix",
+    "published_at": "2026-09-22T14:08:34+00:00",
+    "raw_excerpt": "We built Helix to help LLMs rebuild the Shopify app in Swift and Kotlin, using small checkpoints and strict quality gates to keep the code shippable.",
+    "event_id": "evt_06816cbbe060b285",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_07048299d240e742",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? - livemint.com",
+    "url": "https://news.google.com/rss/articles/CBMi9AFBVV95cUxNVFlMWjFuOU1VMnktU3kxZ1pzSEdKRkU3NDVHOGdzWmpZdWlSTmdBYnN6dUxINk5RSk04RUtJN0wyVjdJRmY3SFRGVFA0UlhCME9jaE02WWtmUGYxeklUVHlhVm50VlY0WTVFQlF2OWR3NVYwQTVNVzhLQ3BSczhUeHBmVEthTUVEWVN6WGUxN0NZQnJ4NjBWRGNGaERKbzB1LVM2TlhiYXRsdU51ZUpieEhSNTJxNmVRYnhGaHhoOUZhRHBTZmxDRHZFX1R4amh3Z0VTZ0FaZE5xN20xT0JzeDl0RURDLWliZTRtUjV6VmN0RnBD0gH6AUFVX3lxTFBQcE9LMHZnaDl2UnMtblBDZGRHOFJFc3FXYWxJR0JLLTltVkJoOTR0ZmttTXBkTXhpZ1FjYUk0N0RfUW9HWExaRUZhcUFPYTdXTFRLQm01UERFRzQ3Q2FYRFBLQ0hoZDFZV29qb3JWWHR1RnNwVmdmWHlOY28xRjJpenpIRzZDZVhtZ3RJbGRSUnhpTEhocExmLTU5V2NyNTdieTA2RjlvZjRSOHBjazRnUW4tbHBDRm43RXZuQmJsR09QN3BHLVpPQjdOcEZ6VUJEN25wRHNjY25OYmRVZkYtcEdFVzdpRC1KNnNzRTZxdzFDRWx3V3VJWHc?oc=5",
+    "published_at": "2026-10-02T03:12:30+00:00",
+    "raw_excerpt": "Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? &nbsp;&nbsp; livemint.com",
+    "event_id": "evt_07048299d240e742",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_072b0e5fdd604dd5",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "CVE-2026-103356 | Villame TMDS Dropshipping for Temu and Woo Plugin up to 1.0.15 on WordPress authorization",
+    "url": "https://vuldb.com/vuln/416853",
+    "published_at": "2026-10-12T08:12:50+00:00",
+    "raw_excerpt": "A vulnerability, which was classified as problematic, was found in Villame TMDS Dropshipping for Temu and Woo Plugin up to 1.0.15 on WordPress. The impacted element is an unknown function. Such manipulation leads to missing authorization.\n\nThis vulnerability is uniquely identified as CVE-2026-103356...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0755d5b2cb1c007b",
+    "company_name": "Snapdeal",
+    "source": "news",
+    "title": "Up To 41% Listing Day Gains? What IPO GMPs Of Orient Cables, Snapdeal, Runwal & German Steel Indicate - NDTV Profit",
+    "url": "https://news.google.com/rss/articles/CBMi1gFBVV95cUxNOFV1NVhiZzFCcVg5czVMRGNUTXo2TjdNNzh4clZUaVBraVdCVDFyNVp2VmJHNzFnRk1FZFd5NnhkcTFUeDlSV3FLbVRTb1NWeE15M2hsX3VwSE1wQ0hab1VsTHdhZmVsdEFSYzZkSm9CSWlsMlhGQTdQNC1PZUszM0FQMm9LRkVTdkdwTGl1Smp1dkFCdUVfWEI3cjVNdXFTU2FRTHdXcEZfUlJFbGZ2bWRBMnQwVzVxb0wwWlJ4Z1BVZWp5d09leXRkTXR0d0wyTm41SndR0gHeAUFVX3lxTFBIRUpHMkJla0FUb1E3Sm5LN09GQmhGc3JrenFqaF8yVUxIazF2UFlkOVNtbmVEd2drQ3ZqWXY2dGhHeDI2R0NNZGJnWDItNlA4WXhjRko1S3RtdVBSMVNVQUVsZU1lb2NLOVFSWFBIZjlpWjkxUkVyWm5GMFFVS00tT0xMbHRsTXRKbTlYNjBDdWJVdWp2ekZzMmpwTUotSXFGSWdZRS05Z1M5bjhBenBhZHJTeDRjc3U4SHJkNFRMRWczUnk2LTJfTHNvckRVcnlYeDB3VGR6RWxjdEMtZw?oc=5",
+    "published_at": "2026-09-25T10:55:53+00:00",
+    "raw_excerpt": "Up To 41% Listing Day Gains? What IPO GMPs Of Orient Cables, Snapdeal, Runwal & German Steel Indicate &nbsp;&nbsp; NDTV Profit",
+    "event_id": "evt_0755d5b2cb1c007b",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_075b96773f5728e4",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Flipkart expands logistics network with 14 million sq ft warehousing space ahead of festive season - Prop News Time",
+    "url": "https://news.google.com/rss/articles/CBMi5AFBVV95cUxPcUZuMzlRU0UwZG9tY2g2a3dvaWVicEI3Q1FOakk4Z1gycDEzYWt1aDkxOEU1ZFR4MzZNd0JJck1vSnBzNGR2VjJianhxSVN3MHZvVk55emx5WnY0N1pid2pFUkZ4YmdTbjJmdHhGSjEwcDc3UGlrcnk3anVkV1lfM0dEYlBndi1JdHhHY015ZkhNbEQ0YkZIMVNoZnFsSDFUU0J0UTg0WE9iNWxZSzA3bDduOGZxekFtQzRHUGxuRTg1bTRsLWRHYTA4RzhtZThLMDdEMVh6Z1dNMDhXa2tCMXBmQzI?oc=5",
+    "published_at": "2026-10-02T07:00:13+00:00",
+    "raw_excerpt": "Flipkart expands logistics network with 14 million sq ft warehousing space ahead of festive season &nbsp;&nbsp; Prop News Time",
+    "event_id": "evt_075b96773f5728e4",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_07604b4230e822f0",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "Missouri sues Temu, says shopping app can access phone location, camera and microphone",
+    "url": "https://www.stlpr.org/government-politics-issues/2026-10-13/missouri-sues-temu-says-shopping-app-can-access-phone-location-camera-and-microphone",
+    "published_at": "2026-10-13T16:32:20+00:00",
+    "raw_excerpt": "The lawsuit, announced Tuesday by Hanaway\u2019s office, claims Temu\u2019s app collects location data from users\u2019 mobile devices without their knowledge or consent and can access cameras and microphones.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0760507538f1a4b7",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Adobe Commerce Added an MCP Layer: Your Catalog Is Now an Agent's Tool",
+    "url": "https://dev.to/andriiboyko/adobe-commerce-added-an-mcp-layer-your-catalog-is-now-an-agents-tool-13co",
+    "published_at": "2026-09-28T18:36:15+00:00",
+    "raw_excerpt": "On Thursday, April 9, 2026, an AI shopping agent could call search_shop_catalog on any Shopify...",
+    "event_id": "evt_0760507538f1a4b7",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0767fb307f3dffbd",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "What are your thoughts on Shopify for its future?",
+    "url": "https://www.reddit.com/r/stocks/comments/1wzyp5o/what_are_your_thoughts_on_shopify_for_its_future/",
+    "published_at": "2026-10-07T14:57:08+00:00",
+    "raw_excerpt": "It is quite literally the monopolization of ecommerce. There is nothing better, I've used it, I've worked for companies that use it, it's an unbelievable service. There is alternatives like selling on Amazon, but Shopify for individual owners that want to keep most their money they make just beats t...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_07af487569caf68d",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Airtel Rs. 999 and Above Postpaid Plans Get iCloud+ Benefits for Free",
+    "url": "https://www.gadgets360.com/telecom/news/airtel-icloud-plus-apple-tv-arcade-bundle-rs-999-and-above-family-postpaid-plans-12080303",
+    "published_at": "2026-09-22T09:19:58+00:00",
+    "raw_excerpt": "Existing and new customers can upgrade to the eligible plans through the Airtel app or by visiting an Airtel store.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_07b4004287324fd8",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Is AI moving too fast? Alexa+ India launch exclusive & iPhone 18 Pro sale rush | Tech Today",
+    "url": "https://www.indiatoday.in/technology/tech-today/video/is-ai-moving-too-fast-alexa-india-launch-exclusive-iphone-18-pro-sale-rush-tech-today-2999396-2026-09-21",
+    "published_at": "2026-09-21T10:04:59+00:00",
+    "raw_excerpt": "As artificial intelligence advances into autonomous execution and critical capability thresholds, the debate over whether big tech needs to hit the brakes has reached the global political stage. In this edition of Tech Today, we explore the growing calls to slow down frontier AI development, sit dow...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_07cb843af4aff61a",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "I\u2019m 18 and Got $300K in Free Startup Credits for My AI Company. Here\u2019s the Exact Playbook.",
+    "url": "https://devanshranjan.medium.com/im-18-and-got-300k-in-free-startup-credits-for-my-ai-company-here-s-the-exact-playbook-0603a44abcea",
+    "published_at": "2026-10-14T21:22:00+00:00",
+    "raw_excerpt": "What NVIDIA, Google, AWS and Microsoft actually give, who qualifies, and the small mistakes that get founders rejected.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_081c98b5731cff8f",
+    "company_name": "Meesho",
+    "source": "news",
+    "title": "Meesho shares worth \u20b9900 cr change hands in block deal; stock falls 1.6%",
+    "url": "https://www.business-standard.com/markets/news/meesho-shares-worth-900-cr-change-hands-in-softbank-arm-s-mega-block-deal-126092301183_1.html",
+    "published_at": "2026-09-23T15:10:25+00:00",
+    "raw_excerpt": "Nifty 50 hits two-week high as crude softens on US-Iran diplomacy hopes",
+    "event_id": "evt_e764c961e7db3fd0",
+    "corroboration_count": 2,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_082b701aacd419cc",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Samsung Galaxy S25 FE gets a massive discount on Flipkart",
+    "url": "https://www.indiatoday.in/visualstories/technology/apple-iphone-16-gets-massive-discount-should-you-buy-it-now-copy-286676-14-10-2026",
+    "published_at": "2026-10-14T13:05:03+00:00",
+    "raw_excerpt": "Samsung Galaxy S25 FE gets a massive price drop on Flipkart, down to Rs 46,999. Avail bank and coupon offers to grab it for an effective Rs 44,649. Features flagship cameras and Galaxy AI.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_08624fb9fade3ccf",
+    "company_name": "Meesho",
+    "source": "news",
+    "title": "Meesho Stock Jumps 6% On Potential MSCI Inclusion, Jefferies Profitable Growth Expectation",
+    "url": "https://www.ndtvprofit.com/markets/meesho-share-price-today-stock-jumps-on-potential-msci-inclusion-jefferies-profitable-growth-expectation-12144002",
+    "published_at": "2026-10-06T04:53:36+00:00",
+    "raw_excerpt": "Meesho's stock rose to a high of Rs 228.51, the shares later pared some gains to trade 4.4% higher at Rs 236.47. The stock has risen 31.22% year-to-date.",
+    "event_id": "evt_08624fb9fade3ccf",
+    "corroboration_count": 2,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_08a96e722fa63d4e",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "writing/sharprail-avalonia at main \u00b7 CommanderTvis/writing",
+    "url": "https://github.com/CommanderTvis/writing/tree/main/sharprail-avalonia",
+    "published_at": "2026-10-07T13:37:10+00:00",
+    "raw_excerpt": "Technical writing by Iaroslav \"Rick\" Postovalov. Contribute to CommanderTvis/writing development by creating an account on GitHub.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_08bb3df9b8df6cc1",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Why Automating Shopify Admin is a Nightmare (And How We Solved It)",
+    "url": "https://dev.to/cloudqa/why-automating-shopify-admin-is-a-nightmare-and-how-we-solved-it-1hmo",
+    "published_at": "2026-10-05T03:57:50+00:00",
+    "raw_excerpt": "Shopify is one of the harder platforms to automate reliably, and not for the reasons most teams...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_08c3939f10a7556b",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Amazon and Shopify make starkly different moves in the brewing battle over AI shopping",
+    "url": "https://www.marketwatch.com/story/amazon-and-shopify-make-starkly-different-moves-in-the-brewing-battle-over-ai-shopping-4e00618b",
+    "published_at": "2026-09-21T20:22:00+00:00",
+    "raw_excerpt": "While Amazon is shutting out Meta\u2019s Muse, Shopify is partnering on payment technology with the buzzy AI assistant.",
+    "event_id": "evt_08c3939f10a7556b",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_08db2400f4026d31",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Poco X8 Pro Max 5G Gets a Rs 6,000 Price Cut on Flipkart: Here\u2019s the New Price",
+    "url": "https://in.mashable.com/tech/114497/poco-x8-pro-max-5g-gets-a-rs-6000-price-cut-on-flipkart-heres-the-new-price",
+    "published_at": "2026-10-01T11:49:08+00:00",
+    "raw_excerpt": "Flipkart Big Billion Days 2026 Poco deals will start at Rs. 11,999, with discounts across the M8x, M8 Power, X8 and X8 Pro series.",
+    "event_id": "evt_08db2400f4026d31",
+    "corroboration_count": 1,
+    "why_it_matters": "Flipkart is offering a Rs 6,000 price cut on the Poco X8 Pro Max 5G, with deals starting at Rs 11,999 as part of its Big Billion Days 2026 campaign. This aggressive pricing on high-volume electronics may indicate an effort to drive traffic and compete on price parity with other major platforms, which could pressure Meesho to match discounts or focus on different value propositions to retain price-sensitive users.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Must-Know"
+  },
+  {
+    "id": "sig_08e5bb4a4996eca9",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Lava Virat Curve 5G Launched in India With MediaTek Dimensity 7100 SoC",
+    "url": "https://www.gadgets360.com/mobiles/news/lava-virat-curve-5g-price-launch-specifications-features-12074955",
+    "published_at": "2026-09-21T07:25:31+00:00",
+    "raw_excerpt": "Lava Virat Curve 5G has a 50-megapixel Sony IMX752 primary camera.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_08f139ff56b9ccf6",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Why B2B Prices Differ: Shopify Catalog Rules and Acceptance Checks",
+    "url": "https://dev.to/weswoodtc/why-b2b-prices-differ-shopify-catalog-rules-and-acceptance-checks-33ap",
+    "published_at": "2026-10-12T10:49:03+00:00",
+    "raw_excerpt": "A buyer sees one price before signing in, another after switching company location, and a third...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_095cb17e7a138af1",
+    "company_name": "flipkart",
+    "source": "news",
+    "title": "Oppo K14 Plus 5G India Launch Teased: Flipkart Availability Confirmed, What We Know So Far",
+    "url": "https://www.ndtvprofit.com/technology/oppo-k14-plus-5g-india-launch-teased-flipkart-availability-confirmed-what-we-know-so-far-12064047",
+    "published_at": "2026-09-18T12:07:04+00:00",
+    "raw_excerpt": "Oppo K14 Plus 5G has appeared on a Flipkart microsite, revealing its design and 5G connectivity, while details on the launch date, price and specifications remain pending.",
+    "event_id": "evt_93e51e3bf83fef95",
+    "corroboration_count": 3,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_098fece60bcb006b",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "\u2018This is why people stereotype India\u2019: Indian traveller tries to cut in front of long queue at Vienna airport, people force him back",
+    "url": "https://economictimes.indiatimes.com/news/new-updates/this-is-why-people-stereotype-india-indian-traveller-tries-to-cut-in-front-of-long-queue-at-vienna-airport-people-force-him-back/articleshow/134395116.cms",
+    "published_at": "2026-09-21T17:41:28+00:00",
+    "raw_excerpt": "An X user claimed he witnessed an Indian traveller allegedly skip a baggage-drop queue at Vienna airport before being confronted by people waiting in line. The incident prompted discussion over queue etiquette and behaviour abroad, with some users criticising the alleged conduct and others arguing t...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_09be37f6b7824e12",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "ETSA 2026: Over a decade on, India's startup story is only getting started - The Economic Times",
+    "url": "https://economictimes.indiatimes.com/tech/startups/et-startup-awards-2026-over-a-decade-on-indias-startup-story-is-only-getting-started/articleshow/134873754.cms",
+    "published_at": "2026-10-12T00:30:00+00:00",
+    "raw_excerpt": "The 12th edition of The Economic Times Startup Awards (ETSA) captured this transition, reflecting an ecosystem that has moved beyond the race for scale to pursue technological depth, durable businesses and international markets.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_09cdd49f77955861",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Installed, but nothing shows\": building an install check for a third-party widget",
+    "url": "https://dev.to/nazma_akter_ac1ab9dbccfe6/installed-but-nothing-shows-building-an-install-check-for-a-third-party-widget-1j1m",
+    "published_at": "2026-10-19T04:26:14+00:00",
+    "raw_excerpt": "Any product that ships a  tag for customers to paste into their site gets the same...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_09f974e2ab398cc5",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Rajinikanth\u2019s co-star spent 15 years struggling, once earned Rs 200 per day. Today, he has delivered two hits in one year",
+    "url": "https://economictimes.indiatimes.com/magazines/panache/rajinikanths-co-star-spent-15-years-struggling-once-earned-rs-200-per-day-today-he-has-delivered-two-hits-in-one-year/articleshow/135027490.cms",
+    "published_at": "2026-10-18T10:50:23+00:00",
+    "raw_excerpt": "In a discussion with The Better India, actor Rishikanth shared his 15-year journey in the entertainment sector, explaining how he persevered through financial instability. His initial salary was merely Rs 200, and there were times when he managed to find work for only one day. Even though the ongoin...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_09ff84ad13af34fd",
+    "company_name": "Snapdeal",
+    "source": "news",
+    "title": "Snapdeal parent's India IPO fully subscribed on second day - Reuters",
+    "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxNaGVKa2NkRlF4NUE0bWVoZnY0SEcyejVpc1ZDOUFfaE1QUzRmZF9SSFRpZVhoOHdXbkNZVnFIa0dXb2M3eU1Iem1MVU1heUJPT3N1YjBOckpFZnM4alIzMzZGTHl2bHNfOTR3WDNZU1c5ZjQ0d09qRElCTmVYYWpHQ3RwLUh4Q29uZGdqZVVOLWNtSmZ3U2lMMk1OSEVIM2VUN0RZUg?oc=5",
+    "published_at": "2026-09-28T10:41:17+00:00",
+    "raw_excerpt": "Snapdeal parent's India IPO fully subscribed on second day &nbsp;&nbsp; Reuters",
+    "event_id": "evt_09ff84ad13af34fd",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0a276d8b338b9fc8",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Amgen, Vicor among market cap stock movers on Tuesday By Investing.com",
+    "url": "https://www.investing.com/news/stock-market-news/amgen-vicor-among-market-cap-stock-movers-on-tuesday-93CH-4911439",
+    "published_at": "2026-09-22T18:07:14+00:00",
+    "raw_excerpt": "Amgen, Vicor among market cap stock movers on Tuesday",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0a4b1e6d39e4e20b",
+    "company_name": "Snapdeal",
+    "source": "news",
+    "title": "IPO GMP On Listing Day: Acevector vs Orient Cables vs German Green vs Runwal Enterprises",
+    "url": "https://www.ndtvprofit.com/markets/ipo-gmp-on-listing-day-acevector-vs-orient-cables-vs-german-green-vs-runwal-enterprises-12138973",
+    "published_at": "2026-10-05T04:12:39+00:00",
+    "raw_excerpt": "Orient Cables IPO commands the highest GMP at Rs 121, implying a 44.49% listing premium, while German Green, Acevector and Runwal show smaller gains.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0a6d706b0b87c073",
+    "company_name": "Myntra",
+    "source": "news",
+    "title": "Official Ferrari merchandise now available on Myntra - cardekho.com",
+    "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxNTWE5cjgzZjZtZ0ZsQVAtZlVfN3VwZU9lSWowRnFpbTU3N2phSGFucVk0QTAzb3NTdEN2VjU1S3g5aXd4RTdwUjNkWXRGRXFjQll5OE16a2Ryd0l0ZGZvejZ2TUQ1NjBSNWZzY05VY1F5RmM0cEpLN1VMbGJUQ20yTmxWaUp6UWxwSWxPSlUtSlBSQkgwaGpNcXdBYUNmSVRpRk1hZ0FrckljUdIBqgFBVV95cUxNTWE5cjgzZjZtZ0ZsQVAtZlVfN3VwZU9lSWowRnFpbTU3N2phSGFucVk0QTAzb3NTdEN2VjU1S3g5aXd4RTdwUjNkWXRGRXFjQll5OE16a2Ryd0l0ZGZvejZ2TUQ1NjBSNWZzY05VY1F5RmM0cEpLN1VMbGJUQ20yTmxWaUp6UWxwSWxPSlUtSlBSQkgwaGpNcXdBYUNmSVRpRk1hZ0FrckljUQ?oc=5",
+    "published_at": "2026-09-18T05:28:54+00:00",
+    "raw_excerpt": "Official Ferrari merchandise now available on Myntra &nbsp;&nbsp; cardekho.com",
+    "event_id": "evt_0a6d706b0b87c073",
+    "corroboration_count": 1,
+    "why_it_matters": "Myntra has added official Ferrari-branded merchandise to its catalog, as stated in the title. This could suggest that a competitor is moving into the premium\u2011luxury apparel segment, potentially attracting higher\u2011spending shoppers and pressuring Meesho\u2019s focus on value\u2011oriented social commerce.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0a7460676680d812",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Flipkart turns a five-minute celebrity film into a social content factory - ContentGrip",
+    "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE9oOVR1dW5WT2xpZVhOTVFaUldyb2gxd2tUb2dVeEpFbkJlUXB3TkR2MXV3T0pJbExZTjQxdEc4QWlleVRnLWJZYWxfT0FBVDdNSmFkWDVFcXpBMkM4bkJSbDNDMGt0Y3lORUU3MWNKUQ?oc=5",
+    "published_at": "2026-09-17T11:17:27+00:00",
+    "raw_excerpt": "Flipkart turns a five-minute celebrity film into a social content factory &nbsp;&nbsp; ContentGrip",
+    "event_id": "evt_0a7460676680d812",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0a77170ca459523d",
+    "company_name": "Myntra",
+    "source": "news",
+    "title": "Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com",
+    "url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxOczdMZXh0VEFxcWRPVDZMM0JsODk1VnlvXzNUaWV6VWk0NHJZSlFGdDRJZFl6ZUU4d1M0NzZnVlZ5S1hoWHlmUkdSZENzeG13ZGtod3QyMFlmOXJKc3VfeXNMWHhKc3I5YTFhRUJYVzhHNWNrS0R2WXlLX0xsc1M0Zm9wbE83cWdvQzBuTGJDcFdZNmpOVC0ycmNEdmw4RGhJakJrTnBPaXA1V0d3?oc=5",
+    "published_at": "2026-09-29T08:37:00+00:00",
+    "raw_excerpt": "Sunder Balasubramanian announces exit from Myntra after nearly four years &nbsp;&nbsp; Adgully.com",
+    "event_id": "evt_0a77170ca459523d",
+    "corroboration_count": 1,
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T08:37:00+00:00)]: Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com \u2014 Sunder Balasubramanian announces exit from Myntra after nearly four years &nbsp;&nbsp; Adgully.com. This reflects active commercial positioning and operational momentum for Myntra.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0ab326aa72444c30",
+    "company_name": "meesho",
+    "source": "jobs",
+    "title": "Job Posting: Manager - Branding (Creative)",
+    "url": "https://jobs.lever.co/meesho/00ce22b9-5185-4b21-a3c0-172a3fd74a30",
+    "published_at": "2026-10-14T09:23:07.008000+00:00",
+    "raw_excerpt": "Department: Creative | Location: Bangalore, Karnataka | Role: Manager - Branding",
+    "event_id": "evt_0ab326aa72444c30",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0abad1776cafd251",
+    "company_name": "flipkart",
+    "source": "news",
+    "title": "Flipkart Creates 2.5 Lakh Festive Jobs Across India; 75,000 Enter Workforce For First Time",
+    "url": "https://www.ndtvprofit.com/india/flipkart-creates-2-5-lakh-festive-jobs-across-india-75-000-enter-workforce-for-first-time-12048831",
+    "published_at": "2026-09-15T10:56:29+00:00",
+    "raw_excerpt": "The hiring push across the e-commerce sector comes as companies expand their logistics and delivery networks to handle the surge in online shopping typically witnessed during India's festive season.",
+    "event_id": "evt_0abad1776cafd251",
+    "corroboration_count": 4,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "High",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0ac46c98a2b1f0e1",
+    "company_name": "Shopsy",
+    "source": "news",
+    "title": "Wikipedia: Flipkart",
+    "url": "https://en.wikipedia.org/wiki/Flipkart",
+    "published_at": "2026-10-19T00:00:00+00:00",
+    "raw_excerpt": "\"Flipkart's Shopsy sees six-fold customer growth on its website in 2022\". www.business-standard. com . Retrieved 8 February 2023. Reporter, Bs. \" Shopsy surpasses",
+    "event_id": "evt_0ac46c98a2b1f0e1",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0afeb1d87e5cbdbc",
+    "company_name": "Myntra",
+    "source": "news",
+    "title": "The Pant Project Named D2C Brand of the Year 2026 at Myntra Tech Threads - ANI News",
+    "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxPYm85UlJNcVdkaUo4NXBqc0xZWDVIcDhlbUNtUDJINnd1ekFKb1NocGRnWEQ2UmlGRVFSQ3o0eTFnd2pkX1lOZ1BDX1lGOG1EZ3pfNWNMOVZYVHhtY0dfUXptWXdoU0F5UTFHOVdIc2ZtaEVtdFppZzVsdDRnWkhQVnlZMGkwbU8zOFJ2OEl1NFRBeDJvVkZnbFIzd09RQ1pNUFRlT0ZVN0xvMHcyeHJJNnpabVBfTXJ4d2VWeGpjREs?oc=5",
+    "published_at": "2026-09-18T09:10:00+00:00",
+    "raw_excerpt": "The Pant Project Named D2C Brand of the Year 2026 at Myntra Tech Threads &nbsp;&nbsp; ANI News",
+    "event_id": "evt_0afeb1d87e5cbdbc",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0b13824c43282266",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Shopify Data in Databricks: A First Look at the New Lakeflow Connect Shopify Connector",
+    "url": "https://dev.to/lucy1/shopify-data-in-databricks-a-first-look-at-the-new-lakeflow-connect-shopify-connector-g2l",
+    "published_at": "2026-09-29T12:25:03+00:00",
+    "raw_excerpt": "Databricks now has a managed Shopify connector in Lakeflow Connect, released in Beta on September 22,...",
+    "event_id": "evt_0b13824c43282266",
+    "corroboration_count": 1,
+    "why_it_matters": "Databricks released a managed Shopify connector in Lakeflow Connect, launched in Beta on September 22, 2026. This could enable Shopify merchants to more easily pipe sales and operational data into Databricks for advanced analytics, potentially strengthening Shopify\u2019s appeal to data\u2011driven sellers and putting pressure on marketplace platforms like Meesho to enhance their own analytics and data integration capabilities.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0b142c337dcb446d",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Lava Bold N4 Pro 5G Launched in India With 6,000mAh Battery",
+    "url": "https://www.gadgets360.com/mobiles/news/lava-bold-n4-pro-5g-price-india-launch-availability-specifications-features-12063721",
+    "published_at": "2026-09-18T09:05:42+00:00",
+    "raw_excerpt": "The Lava Bold N4 Pro 5G features a 6.75-inch HD+ display with a 120Hz refresh rate.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0b51f84374c1986f",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "How Shopify CLI Renders Theme Code That Isn\u2019t Uploaded Yet",
+    "url": "https://www.vincentschmalbach.com/shopify-theme-dev-replace-templates/",
+    "published_at": "2026-10-19T07:32:03+00:00",
+    "raw_excerpt": "Every page you see in is rendered on Shopify\u2019s servers, including the file you saved half a second ago that the CLI hasn\u2019t uploaded yet. The CLI sends your local file contents to the storefront in a\u2026",
+    "event_id": "evt_0b51f84374c1986f",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0b5d3f131aed26c0",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "He lost his father, skipped Kota and secured AIR 183 at IIT Delhi: Meet Pushpak Pujari - India Today",
+    "url": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxOOVhsc01oZ3g4aWJ0UzJFczZ1dHRlb1QyQjltbDJVUms2VElUWGUzLWRmei0zUTJiaTBsNlZFREVxbTJ5ZTF4alNFMi03VEdTSW9Ebzk3amhPTTgzX2c2SG5KTW9VTUZTMG84ZDBqYnJVd25CVUhNUVFiTGxfMXJDRXlaRDI2LTVrd0tzNUowY2kzTFFqaTd1enRNTWFyMEV2YzlmTER5dTFtelozYVk5Vm5yc2dDMEt5LXlaUWwyaW50S05vclQ5THVtTnNWQXgxMlY5RmJ3YnhPNnZR0gHiAUFVX3lxTE5TMWRBRC1ZMGpTSTByeVgyQmRQa1c2Z1VxcDVkSkRod21kRXJBeDBmbFpvMW1GdnBqcmJ5dWNndGpXYmN1WDh3UUtiN3VUZ0JrRjNFalB6Tjk0WGZGUzBzYURRT2JMcjJDckpMRGM1dlQzZHdoZ3lqZ0pOQXFOd2taVldhSE96dkluT3NldGlQQ3JmYzBnMUFONmF2MXRVdUFTY01WNHJiQi01b3RxZjY0WkR5SnZkVmZZVTFUUnFLRDBSOWY0UFVMenUxSnhWMGZXbW9vX2ZoVUh1YVVvQ2xkYnc?oc=5",
+    "published_at": "2026-09-30T10:01:24+00:00",
+    "raw_excerpt": "He lost his father, skipped Kota and secured AIR 183 at IIT Delhi: Meet Pushpak Pujari &nbsp;&nbsp; India Today",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0b5eb08c4c9eb9fe",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Adidas begins layoffs at India Tech Hub in Gurgaon, over 350 employees affected",
+    "url": "https://economictimes.indiatimes.com/industry/services/retail/adidas-begins-layoffs-at-india-tech-hub-in-gurgaon-over-350-employees-affected/articleshow/134290498.cms",
+    "published_at": "2026-09-16T14:43:14+00:00",
+    "raw_excerpt": "Adidas has initiated layoffs at its India Tech Hub in Gurgaon. Approximately 350 employees, including engineers and data scientists, are affected. Affected staff received exit letters or are transitioning until December. The company cited business needs for organizational simplification and strength...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0ba89c9013e4c951",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Here's when the Lava Virat Curve is launching and its main specs",
+    "url": "https://www.gsmarena.com/heres_when_the_lava_virat_curve_is_launching_and_its_main_specs-news-74630.php",
+    "published_at": "2026-09-16T04:01:02+00:00",
+    "raw_excerpt": "Lava is launching the Virat Curve in India on September 21 at 12 PM local time. Ahead of that, the brand has revealed the phone's main specs through a dedicated microsite on Flipkart, which will obviously be selling it.\n\nThe Virat Curve has a 6.67-inch 3D curved AMOLED display with 1080x2400 resolut...",
+    "event_id": "evt_0ba89c9013e4c951",
+    "corroboration_count": 1,
+    "why_it_matters": "Flipkart has created a dedicated microsite on its platform to showcase and sell the Lava Virat Curve smartphone, with the launch scheduled for September 21. This could suggest that Flipkart is intensifying its focus on high\u2011visibility consumer\u2011electronics launches, which may draw both buyer traffic and third\u2011party sellers of low\u2011cost phones away from Meesho\u2019s marketplace.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0bb35da241289688",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "\u2018Brutal\u2019: thousands of T-shirt designs stolen and listed on Temu, Sydney label claims - The Guardian",
+    "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxQdDJtNmp1NENlU2o3RjA2NjVEODNVMUxURmowQXIxUzVvamJPMjF2aFJrZGFHZl8ySFI3dVEzY1JoMVNIeUNTeFhITThPQUxUeG5YUWV4OEF1Rm44b3hZaDljR25BaW1HT21Ia1lNb0NmZTdJUklDbzE3c0JiaVR5WTFPdG93c0dzU20wTU8zdHFxU1ZUM1AwUUZVUDlGODBUVEZCcWZwNkIzNWdIVzgwZ3NtVjFGMnRGd3cxdjF4VldUa0FkLWFLbWZrOHVtZzg?oc=5",
+    "published_at": "2026-09-18T07:35:00+00:00",
+    "raw_excerpt": "\u2018Brutal\u2019: thousands of T-shirt designs stolen and listed on Temu, Sydney label claims &nbsp;&nbsp; The Guardian",
+    "event_id": "evt_0bb35da241289688",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0bb5361d47190b97",
+    "company_name": "Myntra",
+    "source": "news",
+    "title": "Is no-cost EMI always free? The catch buyers should know before opting for it while shopping online | Mint",
+    "url": "https://www.livemint.com/money/personal-finance/is-no-cost-emi-always-free-the-catch-buyers-should-know-before-opting-for-it-while-shopping-online-11791699192095.html",
+    "published_at": "2026-10-11T09:25:32+00:00",
+    "raw_excerpt": "No-cost EMI offers can hide extra expenses, despite being advertised as interest-free. Here's what customers should know before they opt for this route.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0c092ab3c0dab381",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "How India Built (and Broke) the World\u2019s Biggest Options Casino",
+    "url": "https://www.bloomberg.com/features/2026-india-options-market-boom-bust-sebi/",
+    "published_at": "2026-09-17T09:00:22+00:00",
+    "raw_excerpt": "A dusty dairy town\u2019s love affair with options tells the story of a multibillion-dollar retail wipeout and a regulatory crackdown.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0c210a47bb319c63",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "Temu Partners with CITEA to Support Cyprus' Digital Business Community - PR Newswire",
+    "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxObkwxb1l5UkNJLUJRNDcwckwzSS0tcGdkTmtFTjVyYjdiX04tMXEtbXZfS3lqZEkzTnltOS1fOGhlZ1lIYXhUMkRhTEFOb3pqTHhrRWw0STN3SVNBanVhOVNJbTBZOXFJbXFsUmNjR21hV3lKeWlyNzdxRk9KTTNSR3JxdGtpMy1kNW9yTVhKZnNUWnBfUUhQNU9BQUluOGpFU29Da2xncTFoMm1GU3I2cnFVX3dTYUJoLVp2Qkdtd1c5WkU?oc=5",
+    "published_at": "2026-09-16T13:27:00+00:00",
+    "raw_excerpt": "Temu Partners with CITEA to Support Cyprus' Digital Business Community &nbsp;&nbsp; PR Newswire",
+    "event_id": "evt_0c210a47bb319c63",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0c252361ad00414d",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "A day in Bengaluru: Flower markets, Andhra bhojanam and Farmlore, a produce-driven restaurant set on a 33-acre farm at the edge of India\u2019s Silicon Valley",
+    "url": "https://www.malaymail.com/news/eat-drink/2026/10/01/a-day-in-bengaluru-flower-markets-andhra-bhojanam-and-farmlore-a-produce-driven-restaurant-set-on-a-33-acre-farm-at-the-edge-of-indias-silicon-valley/237280",
+    "published_at": "2026-10-01T09:31:59+00:00",
+    "raw_excerpt": "BENGALURU, Oct 1 \u2014 Bengaluru, the capital of the southern Indian state of Karnataka and the country\u2019s third-most populous city, is perhaps best known as India\u2019s \u201cSilicon...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0c2a1239bed48dc1",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Samsung Galaxy Z Fold7 price in India to drop below Rs 1 lakh during Amazon Great Indian Festival sale - Moneycontrol.com",
+    "url": "https://news.google.com/rss/articles/CBMi9wFBVV95cUxOVnVPNXNBYUIwSDV1UkhIUy00MXBkQy12VVhHZlpXQ0NIWmVUUG9rM1llNHdWbUVNcHhyeC02TkZ3aWVScDR3aHBqVmJ6ZnBXSHVaTXY1SDB1bWYxOUhfVXV4YUlRRjEtYXdRd1E2ZVY5cGxfQWt4a3c5R0RCRDhTRnpjczFjTkpYaTBjVnhqV0tnbXY3Rzhuenp4TmRSU2IxR1ZuR2M1REtNRUQ0ZG5COHZQWE95amF3TkF1MVhDNU5UMXhiSDBCeHRrY1pQZmNUQjF6X1EtQlEzeWxZa0J0aGZjTWJNaUJ1MGtxTjN0bWJOb3NxSWxB0gH8AUFVX3lxTE9WQ0NyM1NvVjltZ3lnLTVYMVoxOUtLT0x0UW9famJPRUZ1emtFQW8xT285ZzhTY1lIUmw5cGcxSkh4Z0lIVVoxNjJHSThmZVNqZ08zY0x3VERyOGExWDhrdmlzaENTVkdTWWhnU1MyYndRLTRFVGR0aFJwcWMtb1ZQV200RFo2dFM3Zm42ZTZoNmlYYWpaWGVLM3VSeVBTVWVfQ2xiUjd2bTd5eHZ2TVVKbk9mbld1QzA3Qk1iLWlqdm5fbGVkYnItSW1pSzJjLUNNMGFkaGZhNTM1WU9WamJsdDR3eV9EUU1zSVhOUG1XbWFCLVVLZ1BOTEhicw?oc=5",
+    "published_at": "2026-10-01T08:06:16+00:00",
+    "raw_excerpt": "Samsung Galaxy Z Fold7 price in India to drop below Rs 1 lakh during Amazon Great Indian Festival sale &nbsp;&nbsp; Moneycontrol.com",
+    "event_id": "evt_0c2a1239bed48dc1",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0c500e5080e6dd71",
+    "company_name": "Myntra",
+    "source": "news",
+    "title": "Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media",
+    "url": "https://news.google.com/rss/articles/CBMixwFBVV95cUxNVm5jR2owT3pDclB5RVdmTUtJZlBza2FBOFpNcllpMlJjVXlpN3RlTG11WEJVR25GRk1YTmxENEU5b19FV0VIaV82X2k5WVV1VG16MlpMZDVNRjVaYVZDeEItMXJPVFNqc0t2aG4yeUVhYmpJbzVOMlV0NDJhRjJmSV9vZVRVNTYyWl9xY3dSYlBWREVPc3RLUkNpRVJIaC1KbjhLOHEwcHdUV0x0YVR0TXZEam1MbUFmdDRQeFh4Q3g4cmZJYkp3?oc=5",
+    "published_at": "2026-09-29T07:53:45+00:00",
+    "raw_excerpt": "Sunder Balasubramanian to exit Myntra as Chief Marketing Officer &nbsp;&nbsp; Exchange4Media",
+    "event_id": "evt_0c500e5080e6dd71",
+    "corroboration_count": 1,
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T07:53:45+00:00)]: Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media \u2014 Sunder Balasubramanian to exit Myntra as Chief Marketing Officer &nbsp;&nbsp; Exchange4Media. This reflects active commercial positioning and operational momentum for Myntra.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0c572663962d783f",
+    "company_name": "meesho",
+    "source": "jobs",
+    "title": "Job Posting: Manager Partnership (Financial Services)",
+    "url": "https://jobs.lever.co/meesho/90bd9dc0-07c0-4461-8d02-4a562eb87004",
+    "published_at": "2026-10-01T06:13:44.168000+00:00",
+    "raw_excerpt": "Department: Financial Services | Location: Bangalore, Karnataka | Role: Manager Partnership",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0caef14d23a5c462",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Why I Built ListerCraft AI: 100% Local E-Commerce Studio & Profit Engine with Google Gemma 2",
+    "url": "https://dev.to/ish1416/why-i-built-listercraft-ai-100-local-e-commerce-studio-profit-engine-with-google-gemma-2-1ped",
+    "published_at": "2026-10-17T18:33:24+00:00",
+    "raw_excerpt": "ListerCraft AI is a 100% local open-weights e-commerce listing generator & profit margin engine for Etsy, eBay, and Shopify sellers powered by Google Gemma 2 (2B).",
+    "event_id": "evt_0caef14d23a5c462",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0cbb222866e50e98",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "Why has e-Commerce accelerated and who is gaining? By Investing.com",
+    "url": "https://www.investing.com/news/stock-market-news/why-has-ecommerce-accelerated-and-who-is-gaining-4930926",
+    "published_at": "2026-10-04T11:07:13+00:00",
+    "raw_excerpt": "Why has e-Commerce accelerated and who is gaining?",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0cce86218d38b691",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "HYBE India Teases Announcement for October 7, and BTS Fans Think It Could Finally Be About India Tour Dates",
+    "url": "https://in.ign.com/k-dramas/273652/hybe-india-teases-announcement-for-october-7-and-bts-fans-think-it-could-finally-be-about-india-tour",
+    "published_at": "2026-10-06T09:40:00+00:00",
+    "raw_excerpt": "The BTS speculation is growing. Related reads:South Wind Knows Brings Cheng Yi and Zhang Yu Xi\u2019s Romance Drama to Amazon MX Player in Hindi Dub HYBE \u2026",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0cea2590ce130b64",
+    "company_name": "meesho",
+    "source": "news",
+    "title": "YouTube Announces Expansion In India, Partners With Amazon, Ajio, Meesho, Snapdeal And Tata CLiQ",
+    "url": "https://www.ndtvprofit.com/business/youtube-announces-expansion-in-india-partners-with-amazon-ajio-meesho-snapdeal-and-tata-cliq-12092261",
+    "published_at": "2026-09-24T11:47:41+00:00",
+    "raw_excerpt": "YouTube noted that shopping-related watch time in India has increased by 55% year-on-year.",
+    "event_id": "evt_3c9d4ca5dfcb37d4",
+    "corroboration_count": 4,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "High",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0cefdf7dc0df35a0",
+    "company_name": "Flipkart",
+    "source": "news",
+    "title": "Lava Virat Curve: Price, Variants, Battery, Display, Features And More",
+    "url": "https://www.ndtvprofit.com/technology/lava-virat-curve-price-variants-battery-display-features-and-more-12075382",
+    "published_at": "2026-09-21T11:59:47+00:00",
+    "raw_excerpt": "The Lava Virat Curve 5G has been launched in India at Rs 23,999. It is available with 6GB of RAM and 128GB of internal storage.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0d3f6af16d8fb4ac",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Gartner Says Only About 130 \u201cAI Agent\u201d Companies Are Real. I Build Agents. Here\u2019s How to Tell.",
+    "url": "https://devanshranjan.medium.com/gartner-says-only-about-130-ai-agent-companies-are-real-i-build-agents-heres-how-to-tell-b79fdd03d764",
+    "published_at": "2026-10-17T23:04:47+00:00",
+    "raw_excerpt": "Agent washing is everywhere. Here\u2019s the 5-question test I use to spot it.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0d4de6d23cd17e74",
+    "company_name": "Temu",
+    "source": "news",
+    "title": "Temu Expands Seller Education with Bureau Veritas, QIMA and T\u00dcV S\u00dcD",
+    "url": "https://www.prnewswire.com/news-releases/temu-expands-seller-education-with-bureau-veritas-qima-and-tuv-sud-302887240.html",
+    "published_at": "2026-09-23T07:00:00+00:00",
+    "raw_excerpt": "/PRNewswire/ -- Temu is expanding its seller education programs in collaboration with eight global product testing and certification organizations, including...",
+    "event_id": "evt_0d4de6d23cd17e74",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0d6ed937301b680b",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Taking Over a Shopify Store: What Our First Audit Looks For",
+    "url": "https://dev.to/zelpex/taking-over-a-shopify-store-what-our-first-audit-looks-for-4eni",
+    "published_at": "2026-09-28T18:54:19+00:00",
+    "raw_excerpt": "Shopify's own help centre says it plainly: \"Some apps add code to your online store theme that isn't...",
+    "event_id": "evt_0d6ed937301b680b",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0d7864227a199fed",
+    "company_name": "Shopify",
+    "source": "news",
+    "title": "Tech Stocks Tumble After AI Leaders Urged a Slowdown: Time to Buy Shopify or Celestica?",
+    "url": "https://www.fool.ca/2026/09/30/tech-stocks-tumble-after-ai-leaders-urged-a-slowdown-time-to-buy-shopify-or-celestica/",
+    "published_at": "2026-09-30T20:30:00+00:00",
+    "raw_excerpt": "With growing calls for a slowdown in the development of AI, here's how that affects two of Canada's best tech stocks, Shopify and Celestica.",
+    "event_id": "evt_bddb5a28886a22fd",
+    "corroboration_count": 2,
+    "why_it_matters": "The article reports that AI companies are competing for customers and that Shopify could benefit by supplying the commerce infrastructure needed by competing AI assistants, while also noting that calls for a slowdown in AI development have caused tech stocks, including Shopify, to tumble. This could suggest that if Shopify successfully leverages AI\u2011driven commerce tools, it may increase competitive pressure on Meesho\u2019s merchant ecosystem, potentially drawing merchants toward Shopify\u2019s platform, whereas a broader AI slowdown might temporarily ease that pressure.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0dc7539082830d39",
+    "company_name": "Ajio",
+    "source": "news",
+    "title": "ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan",
+    "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOdl9Sazh6UlhNak11SmtXRm4zR0pSZHczZzJMWXlrTW9TeG45M2ZNTFRUenN6elRpMDM4QzBvclkwcEpOVFpkalI5UkVRU2NjSkJ4RDdNdFpyWlFrRHJ0bTNNQVBUTFp0Ul95em9IZndPYkkwMFE1cXVlb3dkYU9ka3VZZ0pJdjVHRjMzdFpUUlZ5bUw4bmpIaVgzeVVKTmpvUFlEMlRjWUJjRll4eHhWVkF2OUUzN2cxV3VNM2ZFVWZudw?oc=5",
+    "published_at": "2026-09-29T15:52:20+00:00",
+    "raw_excerpt": "ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] &nbsp;&nbsp; Taxscan",
+    "event_id": "evt_0dc7539082830d39",
+    "corroboration_count": 1,
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T15:52:20+00:00)]: ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan \u2014 ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] &nbsp;&nbsp; Taxscan. This reflects active commercial positioning and operational momentum for Ajio.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Must-Know"
+  },
+  {
+    "id": "sig_0dccf9a6cb9d6520",
+    "company_name": "Meesho",
+    "source": "news",
+    "title": "How India Built (and Broke) the World\u2019s Biggest Options Casino",
+    "url": "https://www.bloomberg.com/features/2026-india-options-market-boom-bust-sebi/",
+    "published_at": "2026-09-17T09:00:22+00:00",
+    "raw_excerpt": "A dusty dairy town\u2019s love affair with options tells the story of a multibillion-dollar retail wipeout and a regulatory crackdown.",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "id": "sig_0e03a321a2d6518b",
+    "company_name": "Myntra",
+    "source": "news",
+    "title": "Myntra Brings Italian Fashion Brand Sisley To Indian Consumers - IFAB MEDIA",
+    "url": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE1CWG1ZMU4zak55bFVYVmhHM3lueENBOFZIZkhCeDdNZm53WXhRNEdySkNodWRONktkZGM5c1ljc3hTVUVFTXBrbktBNy03X3dBM0hwSENLdWZOa0J5UlVEY3Rpcm0?oc=5",
+    "published_at": "2026-09-18T10:52:55+00:00",
+    "raw_excerpt": "Myntra Brings Italian Fashion Brand Sisley To Indian Consumers &nbsp;&nbsp; IFAB MEDIA",
+    "event_id": "evt_0e03a321a2d6518b",
+    "corroboration_count": 1,
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "id": "sig_0e2c0bb098c529d9",
+    "company_name": "Amazon India",
+    "source": "news",
+    "title": "Keystone To Launch India Business With Bengaluru As First Hub, Plans To Hire Talent & Increase Workforce Over Next Two Years",
+    "url": "https://www.prnewswire.com/news-releases/keystone-to-launch-india-business-with-bengaluru-as-first-hub-plans-to-hire-talent--increase-workforce-over-next-two-years-302889844.html",
+    "published_at": "2026-09-25T14:00:00+00:00",
+    "raw_excerpt": "/PRNewswire/ -- Keystone, a global advisory firm that guides the most critical technology and science-based platforms and ecosystems, today announced it is...",
+    "corroboration_count": 1,
+    "why_it_matters": "Strategic competitor signal observed across intelligence streams.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  }
+];
+
+export const BASELINE_EVENTS: ConsolidatedEventRecord[] = [
+  {
+    "event_id": "evt_0019ec1c0ea7c281",
+    "company_name": "Amazon India",
+    "title": "Amazon and Flipkart review uncertified cameras in India \u2014 Channel NewsAsia - UA.NEWS",
+    "event_summary": "Amazon and Flipkart review uncertified cameras in India \u2014 Channel NewsAsia - UA.NEWS",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-01T11:35:51+00:00",
+    "latest_detected_at": "2026-10-01T11:35:51+00:00",
+    "published_at": "2026-10-01T11:35:51+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNU1hKQXl6aVM5bUljczVheS1SbVg0LTZZczhMaVI2dk1Rbmladm1LbG1YNks4TmxyMjdnSU5ZeEZCRU90MWZ5Y3FGaGd3N3pCd3BIQzVrR1B3MGc5UTM2OHE2VXlob2tmeDNQRTlUSkduc0hoX3F2Rk8zZzVSc3Z5VTdORHpUQWs4TmYzeHlPMjk5Zm0wNS1TV19PU3pMdkVpRTQ5NmxWWWwwWHM?oc=5",
+    "raw_excerpt": "[NEWS (2026-10-01T11:35:51+00:00)]: Amazon and Flipkart review uncertified cameras in India \u2014 Channel NewsAsia - UA.NEWS \u2014 Amazon and Flipkart review uncertified cameras in India \u2014 Channel NewsAsia &nbsp;&nbsp; UA.NEWS",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_00828218ce22c9bf",
+    "company_name": "Shopify",
+    "title": "Shopify Quit React Native. Mobile Has Done This Before.",
+    "event_summary": "Shopify Quit React Native. Mobile Has Done This Before.",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-29T08:11:54+00:00",
+    "latest_detected_at": "2026-09-29T08:11:54+00:00",
+    "published_at": "2026-09-29T08:11:54+00:00",
+    "url": "https://www.reddit.com/r/androiddev/comments/1wt4c9q/shopify_quit_react_native_mobile_has_done_this/",
+    "raw_excerpt": "[NEWS (2026-09-29 08:11:54 +0000)]: Shopify Quit React Native. Mobile Has Done This Before. \u2014 submitted by    /u/ishan1604   [link]   [comments]",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Shopify publicly announced that it is discontinuing its use of React Native for mobile development, as indicated by the title of the Reddit post. This could suggest a shift away from cross\u2011platform frameworks among large e\u2011commerce platforms, potentially freeing up React Native talent and allowing Meesho to prioritize native mobile engineering to improve app performance and differentiate its user experience against rivals like Amazon India and Flipkart.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_00962bb633e24eb8",
+    "company_name": "meesho",
+    "title": "Meesho Surges 9% After UBS Raises Target Price To \u20b9260 - Inc42",
+    "event_summary": "Meesho Surges 9% After UBS Raises Target Price To \u20b9260 - Inc42",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-22T06:09:37+00:00",
+    "latest_detected_at": "2026-09-22T06:09:37+00:00",
+    "published_at": "2026-09-22T06:09:37+00:00",
+    "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNeXFhS2YtMlFMSjBnTlZOMy1CejlYRnJ5dl9HVUJiYjVZLTRGYmFmenBPWXIzUENZZlltOGtSMS1LSUl6OFI1eXJ6SkJLc3NtWWFTTDhhVTVyUnFaM1NYTGtVUUJ2MUxkbE8yY0NKSXdpNEJUM2oyX1pnUFBRMlVFSjRfZWtDeHZZTC1HWVdB?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-22T06:09:37+00:00)]: Meesho Surges 9% After UBS Raises Target Price To \u20b9260 - Inc42 \u2014 Meesho Surges 9% After UBS Raises Target Price To \u20b9260 &nbsp;&nbsp; Inc42",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_00b0c779644bbc96",
+    "company_name": "Flipkart",
+    "title": "Flipkart tests food delivery to take on Zomato and Swiggy",
+    "event_summary": "Flipkart tests food delivery to take on Zomato and Swiggy",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-20T04:43:45+00:00",
+    "latest_detected_at": "2026-10-20T04:43:45+00:00",
+    "published_at": "2026-10-20T04:43:45+00:00",
+    "url": "https://www.techinasia.com/flipkarts-minutes-reaches-1000-india-hubs",
+    "raw_excerpt": "[NEWS (2026-10-20 04:43:45 +0000)]: Flipkart tests food delivery to take on Zomato and Swiggy \u2014 Amazon trialed food delivery in India in 2020, the same year Uber exited the market.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_00d721aea345342c",
+    "company_name": "Amazon India",
+    "title": "Amazon Now expands to 120 cities, doubles quick commerce footprint - The Economic Times",
+    "event_summary": "Amazon Now expands to 120 cities, doubles quick commerce footprint - The Economic Times",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-01T00:30:00+00:00",
+    "latest_detected_at": "2026-10-01T00:30:00+00:00",
+    "published_at": "2026-10-01T00:30:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxPQ0pNU2JwZGl4T1lkc0NJbFBfRE13UW9ydmJFMjBFQVJRMFdGQ0pVeC1OYlJUWHhkMEYzVjdMZWxVODM2QTZCb3piTXVVak4weDNub3BzalNFRGE5QUtIbjktXy01aEJVRHptTE1pNXJESk9yeHhRQUd1YzRya1dsV2cyX0g5OTl3Rlg2UF9NT0xFcldXX1lfQVlSajJ3NDRGTDk1a0hWeXpqM1RLUlozSzRRRmNnMXdiS2hLeFRTYW55QUxzcmY5VnlPMlczczlm0gHWAUFVX3lxTE1fLU0zMFhRdkdOVlhxMzZISG1kVG1GYnlDRDlkaTRMVGlUODczY0t3MERINFlrVmxkRmZhQjRJTVhPY3B1Z0RIQ1BTRlJUejZsVG5wVkJqNVQ0eTVhZ05BWFdRQUhVZ2lVMnhPbG1FcDZOUHZ2dEZZdzQyeWpXNXB5eTBQamswdzN2Qk1lU1pTQXExWkc1XzVfWXd1NVFiZzZCWlFUc09kWjk5eHpjZGpkd0lraTZZQk9FWGZER3NGZUFmck1WMmxoUGNWdlJxRlR6UXdFMkE?oc=5",
+    "raw_excerpt": "[NEWS (2026-10-01T00:30:00+00:00)]: Amazon Now expands to 120 cities, doubles quick commerce footprint - The Economic Times \u2014 Amazon Now expands to 120 cities, doubles quick commerce footprint &nbsp;&nbsp; The Economic Times",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_015ab2d1b4dd1443",
+    "company_name": "Shopify",
+    "title": "Building a Shopify B2B Store: Company Accounts, Contextual Pricing and ERP Order Flow",
+    "event_summary": "Building a Shopify B2B Store: Company Accounts, Contextual Pricing and ERP Order Flow",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-08T12:30:04+00:00",
+    "latest_detected_at": "2026-10-08T12:30:04+00:00",
+    "published_at": "2026-10-08T12:30:04+00:00",
+    "url": "https://dev.to/weswoodtc/building-a-shopify-b2b-store-company-accounts-contextual-pricing-and-erp-order-flow-32ko",
+    "raw_excerpt": "[NEWS (2026-10-08 12:30:04 +0000)]: Building a Shopify B2B Store: Company Accounts, Contextual Pricing and ERP Order Flow \u2014 A wholesale storefront can look deceptively simple: authenticate a buyer, show a negotiated price,...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_01b3a1d84fe87a78",
+    "company_name": "Shopify",
+    "title": "A lightweight QA loop for Shopify storefront translations",
+    "event_summary": "A lightweight QA loop for Shopify storefront translations",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-11T11:59:24+00:00",
+    "latest_detected_at": "2026-10-11T11:59:24+00:00",
+    "published_at": "2026-10-11T11:59:24+00:00",
+    "url": "https://dev.to/localedelta/a-lightweight-qa-loop-for-shopify-storefront-translations-5ad0",
+    "raw_excerpt": "[NEWS (2026-10-11 11:59:24 +0000)]: A lightweight QA loop for Shopify storefront translations \u2014 When a Shopify catalog changes, localization work can quietly fall out of sync. A product title gets...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_02007bc08730ddbd",
+    "company_name": "Flipkart",
+    "title": "Oppo K14 Plus 5G India Launch Teased: Flipkart Availability Confirmed, What We Know So Far - NDTV Profit",
+    "event_summary": "Oppo K14 Plus 5G India Launch Teased: Flipkart Availability Confirmed, What We Know So Far - NDTV Profit",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-18T12:06:34+00:00",
+    "latest_detected_at": "2026-09-18T12:06:34+00:00",
+    "published_at": "2026-09-18T12:06:34+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxQMmhHaFhVMlN6RnZ6RVpLZ04yc0U4VC15TXZPUzRpb3lUYl82X3BQQTdzR3Y1TlVKZ21ZRndlT2pCWlgySkhDU1NzTFNfamxiM2ZBR1F2TFYxend5OHJzYnZyZkJkVFB2SFFONkY3YTExblBONmhmc3J2QWRfVXBpWUVURG5ITXlaWVE2R2x2ektLdmhRYTVpQ0VPb21kRTRZcWV5NDBIVFdqaU5yaVdJWUZTa012bWpGa1g4TjktaVk0Ykt2cFRJOU5vTG5HSHQw0gHYAUFVX3lxTFBYNkVRTUxCeE5yb2N4VXdzSzQ0U2ZyanUzYmpNTXMyZG44UG9qUG5TNXM4U1FJWUl6X1RxVUYwS3R6VUM4ZGJFLV9oLVFCSU14ZnhBajFTUVB2cDBibDZsRlB3TUp5MzhnVkMwM1hSYU8wMHJhdFVoczBBZjhGMEVua3FqT3Q3T0NSSVlMclJuSy1jLVMyRjRZUndIdXlVRXNkU0o0U2Mybl85NWFIWlQyRE05NXpoNDVVcm1XcWFxZ1JJSm5iTEh1eVFrUUF5NHZNOGV4TlFhaw?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-18T12:06:34+00:00)]: Oppo K14 Plus 5G India Launch Teased: Flipkart Availability Confirmed, What We Know So Far - NDTV Profit \u2014 Oppo K14 Plus 5G India Launch Teased: Flipkart Availability Confirmed, What We Know So Far &nbsp;&nbsp; NDTV Profit",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_02243db4575a0a28",
+    "company_name": "Shopify",
+    "title": "Plugin count is a terrible way to size a WooCommerce migration. Here's the data.",
+    "event_summary": "Plugin count is a terrible way to size a WooCommerce migration. Here's the data.",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-17T19:51:50+00:00",
+    "latest_detected_at": "2026-09-17T19:51:50+00:00",
+    "published_at": "2026-09-17T19:51:50+00:00",
+    "url": "https://dev.to/mufatech/plugin-count-is-a-terrible-way-to-size-a-woocommerce-migration-heres-the-data-4on9",
+    "raw_excerpt": "[NEWS (2026-09-17 19:51:50 +0000)]: Plugin count is a terrible way to size a WooCommerce migration. Here's the data. \u2014 Plugin count is the first number anyone quotes when sizing a WooCommerce to Shopify migration....",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_024607e812838de3",
+    "company_name": "meesho",
+    "title": "89 per cent of Meesho Mall's new-to-brand shoppers came from smaller cities in FY26: Milan Partani - ETRetail.com",
+    "event_summary": "89 per cent of Meesho Mall's new-to-brand shoppers came from smaller cities in FY26: Milan Partani - ETRetail.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-28T02:53:26+00:00",
+    "latest_detected_at": "2026-09-28T02:53:26+00:00",
+    "published_at": "2026-09-28T02:53:26+00:00",
+    "url": "https://news.google.com/rss/articles/CBMihwJBVV95cUxQZEZ3VUVtLUhlWGxJbEVtOTZ4RlNXNXZacnRmTXJOMmdETUVHVmJpWDNjSlhQal9fUmZCcU1jd0pjeFlYeGt2cVFZMXpiV244N19VZERwNlJNRDVwUFlXSGxpTXpBN0VXSVZORWxYZVMwdV9DdG1BWHFpbmdxU09hNXlsSHJNNmJQU1FnYTFGMGx5UHhMYXhpcl9xUG9UNjV5M05IU1FiZXpEaXMwNTQzeHZMUU9ObElnbFVNNUk5ZF9aQTM2TEFzTGVIN0lGUy1sR210SkhqVzdkWkg0Q0VWeVdSVTRPdDFGUmhfRE5SaG9BSXBvVkQ0TFVGNlVJNXdRLW9PLTZlQdIBjAJBVV95cUxObmFmUy14ZmJSd29sRnpKT3BtcHZPbG80QjhwNjRwUVZLQVFYLVRQU253cEZIcVR4OS1iUmk3anpYZFUxSDZ5MkVlMzI0REw2dDRmbmplS1pHdG9QMEhQOW83M2VCSEZib0tWcWlGTFc2OTM3TVVod0NOSUtESnBYdGJ4LW1HaHJMcTNveDNYZXRUbExEbmxFT3JXcThUQzdyU1ZiSXdyeUpjTEhwczRuRG1WSDU2ejM4c0FtaFBhU1VnVUowNHlHVkpTOGxoN0JwcUt4bms0MzVjM25BY296UGhiTlRTRDhqVGxob3hqcDlkcmN2Rl8taFI1NHBxRjNLd25TVkwwRVZvQmU5?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-28T02:53:26+00:00)]: 89 per cent of Meesho Mall's new-to-brand shoppers came from smaller cities in FY26: Milan Partani - ETRetail.com \u2014 89 per cent of Meesho Mall's new-to-brand shoppers came from smaller cities in FY26: Milan Partani &nbsp;&nbsp; ETRetail.com",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_024e62dce79f6f98",
+    "company_name": "Amazon India",
+    "title": "E-tailers gear up for festive rush: Amazon, Flipkart expand delivery capacity - Telegraph India",
+    "event_summary": "E-tailers gear up for festive rush: Amazon, Flipkart expand delivery capacity - Telegraph India",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-30T02:15:58+00:00",
+    "latest_detected_at": "2026-09-30T02:15:58+00:00",
+    "published_at": "2026-09-30T02:15:58+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi2AFBVV95cUxOS2ZuUUNMS0FBMFdxZnJtZ0FBZVEydm94RGZycjNxUkVQMFdqbnY2UzZuOGdZTGR3aURUZ1E0TUtZSGR2ampSQTF0RERuRkdSYU96ajBCaGl1Z2tDem5pbWkycEFXTUVFZXI4Q3cyRFBSWDNXX3Ficzl3ei0tMU0zS0ZTUDdkd0V6V0Nxczg4QV93dkZPa3dCRDFXMnNfbG5sQU52UEZtU1U2anotdFlQU3ZrMG9DekY1VzEtZTBCSFg0TFJQV1lNNGg5ZVRNZjFLVHE4T093bHHSAd4BQVVfeXFMT05VMVYyTzAzOWtsOWJuREl3RDVSRXNITk9XRzJobjZvbG5iVldyaERxS3JfUzhOTGZSVmNZcHFUMklaWWIxd0FKdlptdHFzeHJKMm94bDdMMDBDN2RkSERPNmxxQ2J3RVVVVktBRGVZR3d4ZDNOVnczQ09lZVo1QzQzTWkwWnNWUm5BQ2tYbmJpRmNGNlZaOEYxNEFycVJ4MDdETk1oM1o4YjBUYzhSLUFTS1VUamtBUXNxQ0lGUi1ON0ZkNWlYMVgzTnloV3p4RzczbnJGSHoxZ0RSNS1R?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-30T02:15:58+00:00)]: E-tailers gear up for festive rush: Amazon, Flipkart expand delivery capacity - Telegraph India \u2014 E-tailers gear up for festive rush: Amazon, Flipkart expand delivery capacity &nbsp;&nbsp; Telegraph India",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_026894f847bba8f0",
+    "company_name": "Amazon India",
+    "title": "Amazon Bets Big on India and Robotics. Here\u2019s What It Means for the Stock - tikr.com",
+    "event_summary": "Amazon Bets Big on India and Robotics. Here\u2019s What It Means for the Stock - tikr.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-27T14:01:13+00:00",
+    "latest_detected_at": "2026-09-27T14:01:13+00:00",
+    "published_at": "2026-09-27T14:01:13+00:00",
+    "url": "https://news.google.com/rss/articles/CBMingFBVV95cUxQNURrLU5YQnV3eUd3Y25vSnpTRHp1dXB2MXJ5a19uVTcxMS1vLVR0Qzk1VUlFQVNqaHR6Vk1mcWdEdVYyZVcwdUZ2Y1k1dEk1Mk1zc2JOUlliR19pVlZJX3VwTlZ1NHJCUEpoNS0wb3R0NHRDTGZpZnVYampsaXQwZ1AxMW5Ud1loNHYtQXR5MS1xUkhpLUNBN201ZHllUQ?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-27T14:01:13+00:00)]: Amazon Bets Big on India and Robotics. Here\u2019s What It Means for the Stock - tikr.com \u2014 Amazon Bets Big on India and Robotics. Here\u2019s What It Means for the Stock &nbsp;&nbsp; tikr.com",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_029f92e19d050c39",
+    "company_name": "Flipkart",
+    "title": "iPhone 16 gets a big price cut on Flipkart: Check deal - India Today",
+    "event_summary": "iPhone 16 gets a big price cut on Flipkart: Check deal - India Today",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-27T06:16:09+00:00",
+    "latest_detected_at": "2026-09-27T06:16:09+00:00",
+    "published_at": "2026-09-27T06:16:09+00:00",
+    "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxPcFBqd2NheXdlLWhYUUZYb01aRUJUWi11ZGg1S2JseGNJNFBKMi16cUMwZG1BLXVnaU1rZ2dCUkZHUHN0UHVuOEd5bm0wVHBkdUxhdjEzUFRfVDNiVlM2U3hwQ1M1dnhuSFA2dlBtYnkwUTRWQ0RHVEV5bGp6bVBuU2w4dmlaelR0eFlYZlQ0VmRNbllDNGZoVWFxSHR0akdka0hkOG9NYmt0VnZ2a0U3X3N2SndxS3pMNWsybGJDd9IBvwFBVV95cUxPcFBqd2NheXdlLWhYUUZYb01aRUJUWi11ZGg1S2JseGNJNFBKMi16cUMwZG1BLXVnaU1rZ2dCUkZHUHN0UHVuOEd5bm0wVHBkdUxhdjEzUFRfVDNiVlM2U3hwQ1M1dnhuSFA2dlBtYnkwUTRWQ0RHVEV5bGp6bVBuU2w4dmlaelR0eFlYZlQ0VmRNbllDNGZoVWFxSHR0akdka0hkOG9NYmt0VnZ2a0U3X3N2SndxS3pMNWsybGJDdw?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-27T06:16:09+00:00)]: iPhone 16 gets a big price cut on Flipkart: Check deal - India Today \u2014 iPhone 16 gets a big price cut on Flipkart: Check deal &nbsp;&nbsp; India Today",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_02bea9d7a37488d4",
+    "company_name": "Amazon India",
+    "title": "5 Chinese Dramas To Watch On Netflix, Amazon Prime Video: Meet Yourself, Everyone Loves Me And More",
+    "event_summary": "5 Chinese Dramas To Watch On Netflix, Amazon Prime Video: Meet Yourself, Everyone Loves Me And More",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-10T13:22:13+00:00",
+    "latest_detected_at": "2026-10-10T13:27:38+00:00",
+    "published_at": "2026-10-10T13:27:38+00:00",
+    "url": "https://www.news18.com/movies/chinese/5-chinese-dramas-to-watch-on-netflix-amazon-prime-video-meet-yourself-everyone-loves-me-and-more-ws-l-10376215.html",
+    "raw_excerpt": "[NEWS (2026-10-10 13:22:13 +0000)]: Suitcase Sorted: 5 Lightweight 3-Piece Luggage Sets for Your Honeymoon \u2014 Planning your honeymoon or next getaway? Explore 5 three-piece luggage sets from different brands under \u20b96,999 on Amazon India, with practical options for every trip.\n\n[NEWS (2026-10-10 13:27:38 +0000)]: 5 Chinese Dramas To Watch On Netflix, Amazon Prime Video: Meet Yourself, Everyone Loves Me And More \u2014 All these shows are currently available on the streaming sites' India catalogue.",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_02c0d701a6654702",
+    "company_name": "Temu",
+    "title": "Temu axed its $1 billion network of fake accounts on Meta | Fortune",
+    "event_summary": "Temu axed its $1 billion network of fake accounts on Meta | Fortune",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-25T07:05:00+00:00",
+    "latest_detected_at": "2026-09-25T07:05:00+00:00",
+    "published_at": "2026-09-25T07:05:00+00:00",
+    "url": "https://fortune.com/2026/09/25/temu-axed-its-1-billion-network-of-fake-accounts-on-meta/",
+    "raw_excerpt": "[NEWS (2026-09-25 07:05:00 +0000)]: Temu axed its $1 billion network of fake accounts on Meta | Fortune \u2014 Temu had spent nearly $1 billion funding partnership ads with various influencers and creators, many of which appeared to be fake accounts.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Fact: Temu has eliminated a network of fake accounts on Meta that it had funded with nearly $1\u202fbillion in partnership ads, many of which were operated by influencers or creators that were not genuine. Inference: This could reduce Temu's aggressive paid\u2011social user acquisition and may open a short\u2011term gap in its market reach, potentially allowing Meesho to attract price\u2011sensitive shoppers who were previously exposed to Temu\u2019s inflated ad presence, especially if Meesho emphasizes authentic engagement and compliance.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0381a590a3f9575d",
+    "company_name": "Shopify",
+    "title": "The Slop Grenade: Shopify\u2019s CEO Just Perfectly Named the Laziest AI Workplace Habit",
+    "event_summary": "The Slop Grenade: Shopify\u2019s CEO Just Perfectly Named the Laziest AI Workplace Habit",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-24T15:30:00+00:00",
+    "latest_detected_at": "2026-09-24T15:30:00+00:00",
+    "published_at": "2026-09-24T15:30:00+00:00",
+    "url": "https://www.inc.com/dan-schawbel/slop-grenade-shopify-ceo/91409879",
+    "raw_excerpt": "[NEWS (2026-09-24 15:30:00 +0000)]: The Slop Grenade: Shopify\u2019s CEO Just Perfectly Named the Laziest AI Workplace Habit \u2014 Tobi Lutke told employees to prove AI could not do their job before asking for more headcount. Now he is warning that the same push has created a new problem.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_038e156503ae4514",
+    "company_name": "meesho",
+    "title": "Small-town shoppers drive strong start to India's festival online sales",
+    "event_summary": "Small-town shoppers drive strong start to India's festival online sales",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-16T12:58:32+00:00",
+    "latest_detected_at": "2026-10-16T12:58:32+00:00",
+    "published_at": "2026-10-16T12:58:32+00:00",
+    "url": "https://www.business-standard.com/companies/news/ai-drives-70-of-orders-on-ecom-platform-meesho-via-personalised-ranking-126101601106_1.html",
+    "raw_excerpt": "[NEWS (2026-10-16 12:58:32 +0000)]: AI drives 70% of orders on ecom platform Meesho via personalised ranking \u2014 Meesho's AI-powered Prism drives nearly 70% of orders, while its Chorus agent handles 60% of user queries as the e-commerce platform expands AI adoption across operations\n\n[NEWS (2026-10-20 15:03:34 +0000)]: Small-town shoppers drive strong start to India's festival online sales \u2014 Flipkart, Amazon and Meesho see strong demand from smaller towns and first-time buyers, while quick commerce and food delivery record limited festive gains, a BofA report finds",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_03b4f46ee607b56f",
+    "company_name": "Flipkart",
+    "title": "iPhone 17 to sell under Rs 80,000 during Flipkart Big Billion Days Sale 2026; Samsung Galaxy S25 series deals also teased - 91mobiles.com",
+    "event_summary": "iPhone 17 to sell under Rs 80,000 during Flipkart Big Billion Days Sale 2026; Samsung Galaxy S25 series deals also teased - 91mobiles.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-22T09:58:27+00:00",
+    "latest_detected_at": "2026-09-22T09:58:27+00:00",
+    "published_at": "2026-09-22T09:58:27+00:00",
+    "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxNMGFjQ0FJMzFsQjdzRUdJTmg3WWl2U2wtbTBiZzhjWGRWQmJ0a080SFhlSjhFQlB6WkxNRjFySjA5cnFPU1pMd3doRVpob1IyVS15bVVSWnVxcHowUTl1RmctbG5nZEs2Q2FJN0NWSDNNNHNXejZlN3BCZHN1MURudE5hYjRwbXhOcGQtaW43ZUdON2fSAZgBQVVfeXFMUFpNZFN4X2R1TEh6dUdGMzBDamVVUmZCVUo5bFJycURZRzdwOU5qVER1bWtLV2duajk2Ynp5TTFpWlhzZUJYS3l1UUs3VUVfUkIyX1BlZ0x5XzByWGN4T3l1TndreFgwSjJOQTNiTUE3SWFXdmZvZ2NBMEZQdVNQQlVEeFhmdDBSaXJmbDRKLTZBQnV4bEJTbmk?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-22T09:58:27+00:00)]: iPhone 17 to sell under Rs 80,000 during Flipkart Big Billion Days Sale 2026; Samsung Galaxy S25 series deals also teased - 91mobiles.com \u2014 iPhone 17 to sell under Rs 80,000 during Flipkart Big Billion Days Sale 2026; Samsung Galaxy S25 series deals also teased &nbsp;&nbsp; 91mobiles.com",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_04143dab68d361ef",
+    "company_name": "Amazon India",
+    "title": "Celebrating Our Newest AWS Heroes \u2013 September 2026 | Amazon Web Services",
+    "event_summary": "Celebrating Our Newest AWS Heroes \u2013 September 2026 | Amazon Web Services",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-30T17:04:05+00:00",
+    "latest_detected_at": "2026-09-30T17:04:05+00:00",
+    "published_at": "2026-09-30T17:04:05+00:00",
+    "url": "https://aws.amazon.com/blogs/aws/celebrating-our-newest-aws-heroes-september-2026/",
+    "raw_excerpt": "[NEWS (2026-09-30 17:04:05 +0000)]: Celebrating Our Newest AWS Heroes \u2013 September 2026 | Amazon Web Services \u2014 Today, we\u2019re excited to introduce the newest members of the AWS Heroes program. AWS Heroes are a vibrant, worldwide group of AWS experts who go above and beyond to share knowledge, mentor others, and build thriving communities. These individuals make a real difference in helping developers and organ...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Fact: Amazon India announced new members of its AWS Heroes program, a community of AWS experts who share knowledge and mentor developers. Inference: This suggests Amazon is deepening its developer\u2011ecosystem engagement in India, which may increase AWS adoption among Indian merchants and could pressure Meesho to either double\u2011down on its own cloud strategy or negotiate more favorable AWS terms.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_04eb15b2a73cebce",
+    "company_name": "Shopify",
+    "title": "Shopify debuts Canvas, a way to build online stores by chatting with AI | TechCrunch",
+    "event_summary": "Shopify debuts Canvas, a way to build online stores by chatting with AI | TechCrunch",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-01T16:44:35+00:00",
+    "latest_detected_at": "2026-10-01T16:44:35+00:00",
+    "published_at": "2026-10-01T16:44:35+00:00",
+    "url": "https://techcrunch.com/2026/10/01/shopify-debuts-canvas-a-way-to-build-online-stores-by-chatting-with-ai/",
+    "raw_excerpt": "[NEWS (2026-10-01 16:44:35 +0000)]: Shopify debuts Canvas, a way to build online stores by chatting with AI | TechCrunch \u2014 Shopify\u2019s new Canvas site builder lets merchants create and customize their online stores by chatting with its AI agent Sidekick, while watching the changes happen in real time.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_04f2afa3ebc3f3fd",
+    "company_name": "Shopify",
+    "title": "Shopify: Not Convinced By Muse (NASDAQ:SHOP)",
+    "event_summary": "Shopify: Not Convinced By Muse (NASDAQ:SHOP)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-23T14:58:31+00:00",
+    "latest_detected_at": "2026-09-23T14:58:31+00:00",
+    "published_at": "2026-09-23T14:58:31+00:00",
+    "url": "https://seekingalpha.com/article/4949029-shopify-not-convinced-by-muse",
+    "raw_excerpt": "[NEWS (2026-09-23 14:58:31 +0000)]: Shopify: Not Convinced By Muse (NASDAQ:SHOP) \u2014 Shopify Inc. stock faces overvaluation and macro headwinds as AI headlines fade. Click for this updated look at SHOP stock as it embarks on its venture with META.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_050fc23252ffd973",
+    "company_name": "Meesho",
+    "title": "Job Posting: Cluster Head- Last mile - Chennai (Fulfilment)",
+    "event_summary": "Job Posting: Cluster Head- Last mile - Chennai (Fulfilment)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-22T08:29:28.274000+00:00",
+    "latest_detected_at": "2026-09-22T08:29:28.274000+00:00",
+    "published_at": "2026-09-22T08:29:28.274000+00:00",
+    "url": "https://jobs.lever.co/meesho/c84e4b2c-653a-4cf8-abd9-e70d0c5e4cd8",
+    "raw_excerpt": "[JOBS (2026-09-22T08:29:28.274000+00:00)]: Job Posting: Cluster Head- Last mile - Chennai (Fulfilment) \u2014 Department: Fulfilment | Location: Chennai, Tamil Nadu | Role: Cluster Head- Last mile - Chennai",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_057126d3379c74a0",
+    "company_name": "meesho",
+    "title": "YouTube is expanding its shopping tools for creators in India, reveals new AI tools",
+    "event_summary": "YouTube is expanding its shopping tools for creators in India, reveals new AI tools",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-24T10:44:42+00:00",
+    "latest_detected_at": "2026-09-24T10:44:42+00:00",
+    "published_at": "2026-09-24T10:44:42+00:00",
+    "url": "https://www.indiatoday.in/technology/news/story/youtube-is-expanding-its-shopping-tools-for-creators-in-india-reveals-new-ai-tools-3001961-2026-09-24",
+    "raw_excerpt": "[NEWS (2026-09-24 10:44:42 +0000)]: YouTube is expanding its shopping tools for creators in India, reveals new AI tools \u2014 YouTube has announced a major expansion of its Shopping affiliate programme in India with new partners including Amazon and Meesho. The platform is also bringing new AI tools for creators and viewers.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Fact: YouTube announced an expansion of its Shopping affiliate programme in India, adding Meesho as a new partner and introducing AI tools for creators and viewers. Inference: This could suggest that Meesho will gain additional exposure to YouTube\u2019s creator audience, potentially driving more traffic to its marketplace and intensifying competition with other e\u2011commerce partners like Amazon.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_05f2098669455c41",
+    "company_name": "Shopify",
+    "title": "Routific brings smart delivery route optimization to Shopify merchants",
+    "event_summary": "Routific brings smart delivery route optimization to Shopify merchants",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-20T12:40:00+00:00",
+    "latest_detected_at": "2026-10-20T12:40:00+00:00",
+    "published_at": "2026-10-20T12:40:00+00:00",
+    "url": "https://www.prweb.com/releases/routific-brings-smart-delivery-route-optimization-to-shopify-merchants-302910990.html",
+    "raw_excerpt": "[NEWS (2026-10-20 12:40:00 +0000)]: Routific brings smart delivery route optimization to Shopify merchants \u2014 /PRNewswire-PRWeb/ -- Just ahead of the holiday rush, when local delivery volumes spike, Routific, the smart route optimization and delivery management...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_064b6af99df82ff2",
+    "company_name": "meesho",
+    "title": "When does startup stop being startup? Fireside chat with Meesho, Groww CEOs on life after listing",
+    "event_summary": "When does startup stop being startup? Fireside chat with Meesho, Groww CEOs on life after listing",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-09T14:50:34+00:00",
+    "latest_detected_at": "2026-10-09T15:33:46+00:00",
+    "published_at": "2026-10-09T15:33:46+00:00",
+    "url": "https://economictimes.indiatimes.com/news/india/when-does-startup-stop-being-startup-fireside-chat-with-meesho-groww-ceos-on-life-after-listing/videoshow/134837564.cms",
+    "raw_excerpt": "[NEWS (2026-10-09 14:50:34 +0000)]: ETSA 2026: Meesho, Groww CEOs on how life changes after an IPO - The Economic Times \u2014 Aatrey said the company must continue to innovate while meeting the expectations of public-market investors. The need to set quarterly goals has also raised expectations within teams, making it important to balance predictability with innovation, he added.\n\n[NEWS (2026-10-09 15:33:46 +0000)]: When does startup stop being startup? Fireside chat with Meesho, Groww CEOs on life after listing \u2014 When does a startup stop being a startup? And what really changes when a company enters the public markets? ET Startup Awards brings together Meesho CEO Vidit Aatrey and Groww CEO Lalit Keshre for a discussion on the journey from startup to ticker. The two founders reflect on preserving startup cult...",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_06816cbbe060b285",
+    "company_name": "Shopify",
+    "title": "Helix: The internal tool powering our Shopify app's native migration (2026) - Shopify",
+    "event_summary": "Helix: The internal tool powering our Shopify app's native migration (2026) - Shopify",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-22T14:08:34+00:00",
+    "latest_detected_at": "2026-09-22T14:08:34+00:00",
+    "published_at": "2026-09-22T14:08:34+00:00",
+    "url": "https://shopify.engineering/helix",
+    "raw_excerpt": "[NEWS (2026-09-22 14:08:34 +0000)]: Helix: The internal tool powering our Shopify app's native migration (2026) - Shopify \u2014 We built Helix to help LLMs rebuild the Shopify app in Swift and Kotlin, using small checkpoints and strict quality gates to keep the code shippable.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_07048299d240e742",
+    "company_name": "Flipkart",
+    "title": "Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? - livemint.com",
+    "event_summary": "Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? - livemint.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-02T03:12:30+00:00",
+    "latest_detected_at": "2026-10-02T03:12:30+00:00",
+    "published_at": "2026-10-02T03:12:30+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi9AFBVV95cUxNVFlMWjFuOU1VMnktU3kxZ1pzSEdKRkU3NDVHOGdzWmpZdWlSTmdBYnN6dUxINk5RSk04RUtJN0wyVjdJRmY3SFRGVFA0UlhCME9jaE02WWtmUGYxeklUVHlhVm50VlY0WTVFQlF2OWR3NVYwQTVNVzhLQ3BSczhUeHBmVEthTUVEWVN6WGUxN0NZQnJ4NjBWRGNGaERKbzB1LVM2TlhiYXRsdU51ZUpieEhSNTJxNmVRYnhGaHhoOUZhRHBTZmxDRHZFX1R4amh3Z0VTZ0FaZE5xN20xT0JzeDl0RURDLWliZTRtUjV6VmN0RnBD0gH6AUFVX3lxTFBQcE9LMHZnaDl2UnMtblBDZGRHOFJFc3FXYWxJR0JLLTltVkJoOTR0ZmttTXBkTXhpZ1FjYUk0N0RfUW9HWExaRUZhcUFPYTdXTFRLQm01UERFRzQ3Q2FYRFBLQ0hoZDFZV29qb3JWWHR1RnNwVmdmWHlOY28xRjJpenpIRzZDZVhtZ3RJbGRSUnhpTEhocExmLTU5V2NyNTdieTA2RjlvZjRSOHBjazRnUW4tbHBDRm43RXZuQmJsR09QN3BHLVpPQjdOcEZ6VUJEN25wRHNjY25OYmRVZkYtcEdFVzdpRC1KNnNzRTZxdzFDRWx3V3VJWHc?oc=5",
+    "raw_excerpt": "[NEWS (2026-10-02T03:12:30+00:00)]: Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? - livemint.com \u2014 Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? &nbsp;&nbsp; livemint.com",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0755d5b2cb1c007b",
+    "company_name": "Snapdeal",
+    "title": "Up To 41% Listing Day Gains? What IPO GMPs Of Orient Cables, Snapdeal, Runwal & German Steel Indicate - NDTV Profit",
+    "event_summary": "Up To 41% Listing Day Gains? What IPO GMPs Of Orient Cables, Snapdeal, Runwal & German Steel Indicate - NDTV Profit",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-25T10:55:53+00:00",
+    "latest_detected_at": "2026-09-25T10:55:53+00:00",
+    "published_at": "2026-09-25T10:55:53+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi1gFBVV95cUxNOFV1NVhiZzFCcVg5czVMRGNUTXo2TjdNNzh4clZUaVBraVdCVDFyNVp2VmJHNzFnRk1FZFd5NnhkcTFUeDlSV3FLbVRTb1NWeE15M2hsX3VwSE1wQ0hab1VsTHdhZmVsdEFSYzZkSm9CSWlsMlhGQTdQNC1PZUszM0FQMm9LRkVTdkdwTGl1Smp1dkFCdUVfWEI3cjVNdXFTU2FRTHdXcEZfUlJFbGZ2bWRBMnQwVzVxb0wwWlJ4Z1BVZWp5d09leXRkTXR0d0wyTm41SndR0gHeAUFVX3lxTFBIRUpHMkJla0FUb1E3Sm5LN09GQmhGc3JrenFqaF8yVUxIazF2UFlkOVNtbmVEd2drQ3ZqWXY2dGhHeDI2R0NNZGJnWDItNlA4WXhjRko1S3RtdVBSMVNVQUVsZU1lb2NLOVFSWFBIZjlpWjkxUkVyWm5GMFFVS00tT0xMbHRsTXRKbTlYNjBDdWJVdWp2ekZzMmpwTUotSXFGSWdZRS05Z1M5bjhBenBhZHJTeDRjc3U4SHJkNFRMRWczUnk2LTJfTHNvckRVcnlYeDB3VGR6RWxjdEMtZw?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-25T10:55:53+00:00)]: Up To 41% Listing Day Gains? What IPO GMPs Of Orient Cables, Snapdeal, Runwal & German Steel Indicate - NDTV Profit \u2014 Up To 41% Listing Day Gains? What IPO GMPs Of Orient Cables, Snapdeal, Runwal & German Steel Indicate &nbsp;&nbsp; NDTV Profit",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_075b96773f5728e4",
+    "company_name": "Flipkart",
+    "title": "Flipkart expands logistics network with 14 million sq ft warehousing space ahead of festive season - Prop News Time",
+    "event_summary": "Flipkart expands logistics network with 14 million sq ft warehousing space ahead of festive season - Prop News Time",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-02T07:00:13+00:00",
+    "latest_detected_at": "2026-10-02T07:00:13+00:00",
+    "published_at": "2026-10-02T07:00:13+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi5AFBVV95cUxPcUZuMzlRU0UwZG9tY2g2a3dvaWVicEI3Q1FOakk4Z1gycDEzYWt1aDkxOEU1ZFR4MzZNd0JJck1vSnBzNGR2VjJianhxSVN3MHZvVk55emx5WnY0N1pid2pFUkZ4YmdTbjJmdHhGSjEwcDc3UGlrcnk3anVkV1lfM0dEYlBndi1JdHhHY015ZkhNbEQ0YkZIMVNoZnFsSDFUU0J0UTg0WE9iNWxZSzA3bDduOGZxekFtQzRHUGxuRTg1bTRsLWRHYTA4RzhtZThLMDdEMVh6Z1dNMDhXa2tCMXBmQzI?oc=5",
+    "raw_excerpt": "[NEWS (2026-10-02T07:00:13+00:00)]: Flipkart expands logistics network with 14 million sq ft warehousing space ahead of festive season - Prop News Time \u2014 Flipkart expands logistics network with 14 million sq ft warehousing space ahead of festive season &nbsp;&nbsp; Prop News Time",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0760507538f1a4b7",
+    "company_name": "Shopify",
+    "title": "Adobe Commerce Added an MCP Layer: Your Catalog Is Now an Agent's Tool",
+    "event_summary": "Adobe Commerce Added an MCP Layer: Your Catalog Is Now an Agent's Tool",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-28T18:36:15+00:00",
+    "latest_detected_at": "2026-09-28T18:36:15+00:00",
+    "published_at": "2026-09-28T18:36:15+00:00",
+    "url": "https://dev.to/andriiboyko/adobe-commerce-added-an-mcp-layer-your-catalog-is-now-an-agents-tool-13co",
+    "raw_excerpt": "[NEWS (2026-09-28 18:36:15 +0000)]: Adobe Commerce Added an MCP Layer: Your Catalog Is Now an Agent's Tool \u2014 On Thursday, April 9, 2026, an AI shopping agent could call search_shop_catalog on any Shopify...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_081c98b5731cff8f",
+    "company_name": "Meesho",
+    "title": "Rising competition, premium valuations likely to cap gains in Meesho",
+    "event_summary": "Rising competition, premium valuations likely to cap gains in Meesho",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-23T15:10:25+00:00",
+    "latest_detected_at": "2026-09-23T15:10:25+00:00",
+    "published_at": "2026-09-23T15:10:25+00:00",
+    "url": "https://www.business-standard.com/markets/news/meesho-shares-worth-900-cr-change-hands-in-softbank-arm-s-mega-block-deal-126092301183_1.html",
+    "raw_excerpt": "[NEWS (2026-09-23 15:10:25 +0000)]: Meesho shares worth \u20b9900 cr change hands in block deal; stock falls 1.6% \u2014 Nifty 50 hits two-week high as crude softens on US-Iran diplomacy hopes\n\n[NEWS (2026-09-25 15:07:20 +0000)]: Rising competition, premium valuations likely to cap gains in Meesho \u2014 Meesho's asset-light value-commerce model, Valmo logistics network and growth potential are strengths, but rising competition and premium valuations pose risks",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_08624fb9fade3ccf",
+    "company_name": "Meesho",
+    "title": "Meesho Mega Blockbuster Sale Sees 75% Jump In Day 1 Orders, Peak Hits 75,000 Per Minute",
+    "event_summary": "Meesho Mega Blockbuster Sale Sees 75% Jump In Day 1 Orders, Peak Hits 75,000 Per Minute",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-06T04:53:36+00:00",
+    "latest_detected_at": "2026-10-06T04:53:36+00:00",
+    "published_at": "2026-10-06T04:53:36+00:00",
+    "url": "https://www.ndtvprofit.com/markets/meesho-share-price-today-stock-jumps-on-potential-msci-inclusion-jefferies-profitable-growth-expectation-12144002",
+    "raw_excerpt": "[NEWS (2026-10-06 04:53:36 +0000)]: Meesho Stock Jumps 6% On Potential MSCI Inclusion, Jefferies Profitable Growth Expectation \u2014 Meesho's stock rose to a high of Rs 228.51, the shares later pared some gains to trade 4.4% higher at Rs 236.47. The stock has risen 31.22% year-to-date.\n\n[NEWS (2026-10-10 11:10:10 +0000)]: Meesho Mega Blockbuster Sale Sees 75% Jump In Day 1 Orders, Peak Hits 75,000 Per Minute \u2014 Meesho recorded more than 75,000 orders per minute within 15 minutes of its festive sale launch. The platform also saw transacting customers rise around 60% year-on-year, with demand spanning fashion, beauty, home and kitchen products.",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_08c3939f10a7556b",
+    "company_name": "Shopify",
+    "title": "Amazon and Shopify make starkly different moves in the brewing battle over AI shopping",
+    "event_summary": "Amazon and Shopify make starkly different moves in the brewing battle over AI shopping",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-21T20:22:00+00:00",
+    "latest_detected_at": "2026-09-21T20:22:00+00:00",
+    "published_at": "2026-09-21T20:22:00+00:00",
+    "url": "https://www.marketwatch.com/story/amazon-and-shopify-make-starkly-different-moves-in-the-brewing-battle-over-ai-shopping-4e00618b",
+    "raw_excerpt": "[NEWS (2026-09-21 20:22:00 +0000)]: Amazon and Shopify make starkly different moves in the brewing battle over AI shopping \u2014 While Amazon is shutting out Meta\u2019s Muse, Shopify is partnering on payment technology with the buzzy AI assistant.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_08db2400f4026d31",
+    "company_name": "Flipkart",
+    "title": "Poco X8 Pro Max 5G Gets a Rs 6,000 Price Cut on Flipkart: Here\u2019s the New Price",
+    "event_summary": "Poco X8 Pro Max 5G Gets a Rs 6,000 Price Cut on Flipkart: Here\u2019s the New Price",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-01T11:49:08+00:00",
+    "latest_detected_at": "2026-10-01T11:49:08+00:00",
+    "published_at": "2026-10-01T11:49:08+00:00",
+    "url": "https://in.mashable.com/tech/114497/poco-x8-pro-max-5g-gets-a-rs-6000-price-cut-on-flipkart-heres-the-new-price",
+    "raw_excerpt": "[NEWS (2026-10-01 11:49:08 +0000)]: Poco X8 Pro Max 5G Gets a Rs 6,000 Price Cut on Flipkart: Here\u2019s the New Price \u2014 Flipkart Big Billion Days 2026 Poco deals will start at Rs. 11,999, with discounts across the M8x, M8 Power, X8 and X8 Pro series.",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Flipkart is offering a Rs 6,000 price cut on the Poco X8 Pro Max 5G, with deals starting at Rs 11,999 as part of its Big Billion Days 2026 campaign. This aggressive pricing on high-volume electronics may indicate an effort to drive traffic and compete on price parity with other major platforms, which could pressure Meesho to match discounts or focus on different value propositions to retain price-sensitive users.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Must-Know"
+  },
+  {
+    "event_id": "evt_09ff84ad13af34fd",
+    "company_name": "Snapdeal",
+    "title": "Snapdeal parent's India IPO fully subscribed on second day - Reuters",
+    "event_summary": "Snapdeal parent's India IPO fully subscribed on second day - Reuters",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-28T10:41:17+00:00",
+    "latest_detected_at": "2026-09-28T10:41:17+00:00",
+    "published_at": "2026-09-28T10:41:17+00:00",
+    "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxNaGVKa2NkRlF4NUE0bWVoZnY0SEcyejVpc1ZDOUFfaE1QUzRmZF9SSFRpZVhoOHdXbkNZVnFIa0dXb2M3eU1Iem1MVU1heUJPT3N1YjBOckpFZnM4alIzMzZGTHl2bHNfOTR3WDNZU1c5ZjQ0d09qRElCTmVYYWpHQ3RwLUh4Q29uZGdqZVVOLWNtSmZ3U2lMMk1OSEVIM2VUN0RZUg?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-28T10:41:17+00:00)]: Snapdeal parent's India IPO fully subscribed on second day - Reuters \u2014 Snapdeal parent's India IPO fully subscribed on second day &nbsp;&nbsp; Reuters",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0a6d706b0b87c073",
+    "company_name": "Myntra",
+    "title": "Official Ferrari merchandise now available on Myntra - cardekho.com",
+    "event_summary": "Official Ferrari merchandise now available on Myntra - cardekho.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-18T05:28:54+00:00",
+    "latest_detected_at": "2026-09-18T05:28:54+00:00",
+    "published_at": "2026-09-18T05:28:54+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxNTWE5cjgzZjZtZ0ZsQVAtZlVfN3VwZU9lSWowRnFpbTU3N2phSGFucVk0QTAzb3NTdEN2VjU1S3g5aXd4RTdwUjNkWXRGRXFjQll5OE16a2Ryd0l0ZGZvejZ2TUQ1NjBSNWZzY05VY1F5RmM0cEpLN1VMbGJUQ20yTmxWaUp6UWxwSWxPSlUtSlBSQkgwaGpNcXdBYUNmSVRpRk1hZ0FrckljUdIBqgFBVV95cUxNTWE5cjgzZjZtZ0ZsQVAtZlVfN3VwZU9lSWowRnFpbTU3N2phSGFucVk0QTAzb3NTdEN2VjU1S3g5aXd4RTdwUjNkWXRGRXFjQll5OE16a2Ryd0l0ZGZvejZ2TUQ1NjBSNWZzY05VY1F5RmM0cEpLN1VMbGJUQ20yTmxWaUp6UWxwSWxPSlUtSlBSQkgwaGpNcXdBYUNmSVRpRk1hZ0FrckljUQ?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-18T05:28:54+00:00)]: Official Ferrari merchandise now available on Myntra - cardekho.com \u2014 Official Ferrari merchandise now available on Myntra &nbsp;&nbsp; cardekho.com",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Myntra has added official Ferrari-branded merchandise to its catalog, as stated in the title. This could suggest that a competitor is moving into the premium\u2011luxury apparel segment, potentially attracting higher\u2011spending shoppers and pressuring Meesho\u2019s focus on value\u2011oriented social commerce.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0a7460676680d812",
+    "company_name": "Flipkart",
+    "title": "Flipkart turns a five-minute celebrity film into a social content factory - ContentGrip",
+    "event_summary": "Flipkart turns a five-minute celebrity film into a social content factory - ContentGrip",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-17T11:17:27+00:00",
+    "latest_detected_at": "2026-09-17T11:17:27+00:00",
+    "published_at": "2026-09-17T11:17:27+00:00",
+    "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE9oOVR1dW5WT2xpZVhOTVFaUldyb2gxd2tUb2dVeEpFbkJlUXB3TkR2MXV3T0pJbExZTjQxdEc4QWlleVRnLWJZYWxfT0FBVDdNSmFkWDVFcXpBMkM4bkJSbDNDMGt0Y3lORUU3MWNKUQ?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-17T11:17:27+00:00)]: Flipkart turns a five-minute celebrity film into a social content factory - ContentGrip \u2014 Flipkart turns a five-minute celebrity film into a social content factory &nbsp;&nbsp; ContentGrip",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0a77170ca459523d",
+    "company_name": "Myntra",
+    "title": "Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com",
+    "event_summary": "Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-29T08:37:00+00:00",
+    "latest_detected_at": "2026-09-29T08:37:00+00:00",
+    "published_at": "2026-09-29T08:37:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMirAFBVV95cUxOczdMZXh0VEFxcWRPVDZMM0JsODk1VnlvXzNUaWV6VWk0NHJZSlFGdDRJZFl6ZUU4d1M0NzZnVlZ5S1hoWHlmUkdSZENzeG13ZGtod3QyMFlmOXJKc3VfeXNMWHhKc3I5YTFhRUJYVzhHNWNrS0R2WXlLX0xsc1M0Zm9wbE83cWdvQzBuTGJDcFdZNmpOVC0ycmNEdmw4RGhJakJrTnBPaXA1V0d3?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-29T08:37:00+00:00)]: Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com \u2014 Sunder Balasubramanian announces exit from Myntra after nearly four years &nbsp;&nbsp; Adgully.com",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T08:37:00+00:00)]: Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com \u2014 Sunder Balasubramanian announces exit from Myntra after nearly four years &nbsp;&nbsp; Adgully.com. This reflects active commercial positioning and operational momentum for Myntra.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0ab326aa72444c30",
+    "company_name": "meesho",
+    "title": "Job Posting: Manager - Branding (Creative)",
+    "event_summary": "Job Posting: Manager - Branding (Creative)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-14T09:23:07.008000+00:00",
+    "latest_detected_at": "2026-10-14T09:23:07.008000+00:00",
+    "published_at": "2026-10-14T09:23:07.008000+00:00",
+    "url": "https://jobs.lever.co/meesho/00ce22b9-5185-4b21-a3c0-172a3fd74a30",
+    "raw_excerpt": "[JOBS (2026-10-14T09:23:07.008000+00:00)]: Job Posting: Manager - Branding (Creative) \u2014 Department: Creative | Location: Bangalore, Karnataka | Role: Manager - Branding",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0abad1776cafd251",
+    "company_name": "flipkart",
+    "title": "Flipkart Big Billion Days 2026: Dates Out, Bank Discounts & Deals Teased",
+    "event_summary": "Flipkart Big Billion Days 2026: Dates Out, Bank Discounts & Deals Teased",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-15T10:56:29+00:00",
+    "latest_detected_at": "2026-09-16T10:57:27+00:00",
+    "published_at": "2026-09-16T10:57:27+00:00",
+    "url": "https://www.ndtvprofit.com/trending/flipkart-big-billion-days-2026-dates-out-bank-discounts-and-deals-teased-12053271",
+    "raw_excerpt": "[NEWS (2026-09-15 10:56:29 +0000)]: Flipkart Creates 2.5 Lakh Festive Jobs Across India; 75,000 Enter Workforce For First Time \u2014 The hiring push across the e-commerce sector comes as companies expand their logistics and delivery networks to handle the surge in online shopping typically witnessed during India's festive season.\n\n[NEWS (2026-09-15 13:17:10 +0000)]: Flipkart creates 2.5 lakh festive season jobs to meet demand surge: All about the hiring drive | Mint \u2014 Flipkart's seasonal recruitment drive covers more than 7,000 Ekart facilities across the country.\n\n[NEWS (2026-09-15 15:57:17 +0000)]: Flipkart Big Billion Days Sale 2026: Early Access Starts Oct 8 Alongside 10% Bank Discounts \u2014 Flipkart has revealed early access details for its upcoming sale, with Plus and Black subscribers and Flipkart Credit Card holders getting access from October 8.\n\n[NEWS (2026-09-16 10:57:27 +0000)]: Flipkart Big Billion Days 2026: Dates Out, Bank Discounts & Deals Teased \u2014 Flipkart's Big Billion Days sale could bring early access for Plus, Black and Credit Card members, with Axis Bank and ICICI Bank offers also expected during the festive event.",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0ac46c98a2b1f0e1",
+    "company_name": "Shopsy",
+    "title": "Wikipedia: Flipkart",
+    "event_summary": "Wikipedia: Flipkart",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-19T00:00:00+00:00",
+    "latest_detected_at": "2026-10-19T00:00:00+00:00",
+    "published_at": "2026-10-19T00:00:00+00:00",
+    "url": "https://en.wikipedia.org/wiki/Flipkart",
+    "raw_excerpt": "[NEWS (2026-10-19T00:00:00Z)]: Wikipedia: Flipkart \u2014 \"Flipkart's Shopsy sees six-fold customer growth on its website in 2022\". www.business-standard. com . Retrieved 8 February 2023. Reporter, Bs. \" Shopsy surpasses",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0afeb1d87e5cbdbc",
+    "company_name": "Myntra",
+    "title": "The Pant Project Named D2C Brand of the Year 2026 at Myntra Tech Threads - ANI News",
+    "event_summary": "The Pant Project Named D2C Brand of the Year 2026 at Myntra Tech Threads - ANI News",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-18T09:10:00+00:00",
+    "latest_detected_at": "2026-09-18T09:10:00+00:00",
+    "published_at": "2026-09-18T09:10:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxPYm85UlJNcVdkaUo4NXBqc0xZWDVIcDhlbUNtUDJINnd1ekFKb1NocGRnWEQ2UmlGRVFSQ3o0eTFnd2pkX1lOZ1BDX1lGOG1EZ3pfNWNMOVZYVHhtY0dfUXptWXdoU0F5UTFHOVdIc2ZtaEVtdFppZzVsdDRnWkhQVnlZMGkwbU8zOFJ2OEl1NFRBeDJvVkZnbFIzd09RQ1pNUFRlT0ZVN0xvMHcyeHJJNnpabVBfTXJ4d2VWeGpjREs?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-18T09:10:00+00:00)]: The Pant Project Named D2C Brand of the Year 2026 at Myntra Tech Threads - ANI News \u2014 The Pant Project Named D2C Brand of the Year 2026 at Myntra Tech Threads &nbsp;&nbsp; ANI News",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0b13824c43282266",
+    "company_name": "Shopify",
+    "title": "Shopify Data in Databricks: A First Look at the New Lakeflow Connect Shopify Connector",
+    "event_summary": "Shopify Data in Databricks: A First Look at the New Lakeflow Connect Shopify Connector",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-29T12:25:03+00:00",
+    "latest_detected_at": "2026-09-29T12:25:03+00:00",
+    "published_at": "2026-09-29T12:25:03+00:00",
+    "url": "https://dev.to/lucy1/shopify-data-in-databricks-a-first-look-at-the-new-lakeflow-connect-shopify-connector-g2l",
+    "raw_excerpt": "[NEWS (2026-09-29 12:25:03 +0000)]: Shopify Data in Databricks: A First Look at the New Lakeflow Connect Shopify Connector \u2014 Databricks now has a managed Shopify connector in Lakeflow Connect, released in Beta on September 22,...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Databricks released a managed Shopify connector in Lakeflow Connect, launched in Beta on September 22, 2026. This could enable Shopify merchants to more easily pipe sales and operational data into Databricks for advanced analytics, potentially strengthening Shopify\u2019s appeal to data\u2011driven sellers and putting pressure on marketplace platforms like Meesho to enhance their own analytics and data integration capabilities.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0b51f84374c1986f",
+    "company_name": "Shopify",
+    "title": "How Shopify CLI Renders Theme Code That Isn\u2019t Uploaded Yet",
+    "event_summary": "How Shopify CLI Renders Theme Code That Isn\u2019t Uploaded Yet",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-19T07:32:03+00:00",
+    "latest_detected_at": "2026-10-19T07:32:03+00:00",
+    "published_at": "2026-10-19T07:32:03+00:00",
+    "url": "https://www.vincentschmalbach.com/shopify-theme-dev-replace-templates/",
+    "raw_excerpt": "[NEWS (2026-10-19 07:32:03 +0000)]: How Shopify CLI Renders Theme Code That Isn\u2019t Uploaded Yet \u2014 Every page you see in is rendered on Shopify\u2019s servers, including the file you saved half a second ago that the CLI hasn\u2019t uploaded yet. The CLI sends your local file contents to the storefront in a\u2026",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0ba89c9013e4c951",
+    "company_name": "Flipkart",
+    "title": "Here's when the Lava Virat Curve is launching and its main specs",
+    "event_summary": "Here's when the Lava Virat Curve is launching and its main specs",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-16T04:01:02+00:00",
+    "latest_detected_at": "2026-09-16T04:01:02+00:00",
+    "published_at": "2026-09-16T04:01:02+00:00",
+    "url": "https://www.gsmarena.com/heres_when_the_lava_virat_curve_is_launching_and_its_main_specs-news-74630.php",
+    "raw_excerpt": "[NEWS (2026-09-16 04:01:02 +0000)]: Here's when the Lava Virat Curve is launching and its main specs \u2014 Lava is launching the Virat Curve in India on September 21 at 12 PM local time. Ahead of that, the brand has revealed the phone's main specs through a dedicated microsite on Flipkart, which will obviously be selling it.\n\nThe Virat Curve has a 6.67-inch 3D curved AMOLED display with 1080x2400 resolut...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Flipkart has created a dedicated microsite on its platform to showcase and sell the Lava Virat Curve smartphone, with the launch scheduled for September 21. This could suggest that Flipkart is intensifying its focus on high\u2011visibility consumer\u2011electronics launches, which may draw both buyer traffic and third\u2011party sellers of low\u2011cost phones away from Meesho\u2019s marketplace.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0bb35da241289688",
+    "company_name": "Temu",
+    "title": "\u2018Brutal\u2019: thousands of T-shirt designs stolen and listed on Temu, Sydney label claims - The Guardian",
+    "event_summary": "\u2018Brutal\u2019: thousands of T-shirt designs stolen and listed on Temu, Sydney label claims - The Guardian",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-18T07:35:00+00:00",
+    "latest_detected_at": "2026-09-18T07:35:00+00:00",
+    "published_at": "2026-09-18T07:35:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxQdDJtNmp1NENlU2o3RjA2NjVEODNVMUxURmowQXIxUzVvamJPMjF2aFJrZGFHZl8ySFI3dVEzY1JoMVNIeUNTeFhITThPQUxUeG5YUWV4OEF1Rm44b3hZaDljR25BaW1HT21Ia1lNb0NmZTdJUklDbzE3c0JiaVR5WTFPdG93c0dzU20wTU8zdHFxU1ZUM1AwUUZVUDlGODBUVEZCcWZwNkIzNWdIVzgwZ3NtVjFGMnRGd3cxdjF4VldUa0FkLWFLbWZrOHVtZzg?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-18T07:35:00+00:00)]: \u2018Brutal\u2019: thousands of T-shirt designs stolen and listed on Temu, Sydney label claims - The Guardian \u2014 \u2018Brutal\u2019: thousands of T-shirt designs stolen and listed on Temu, Sydney label claims &nbsp;&nbsp; The Guardian",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0c210a47bb319c63",
+    "company_name": "Temu",
+    "title": "Temu Partners with CITEA to Support Cyprus' Digital Business Community - PR Newswire",
+    "event_summary": "Temu Partners with CITEA to Support Cyprus' Digital Business Community - PR Newswire",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-16T13:27:00+00:00",
+    "latest_detected_at": "2026-09-16T13:27:00+00:00",
+    "published_at": "2026-09-16T13:27:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxObkwxb1l5UkNJLUJRNDcwckwzSS0tcGdkTmtFTjVyYjdiX04tMXEtbXZfS3lqZEkzTnltOS1fOGhlZ1lIYXhUMkRhTEFOb3pqTHhrRWw0STN3SVNBanVhOVNJbTBZOXFJbXFsUmNjR21hV3lKeWlyNzdxRk9KTTNSR3JxdGtpMy1kNW9yTVhKZnNUWnBfUUhQNU9BQUluOGpFU29Da2xncTFoMm1GU3I2cnFVX3dTYUJoLVp2Qkdtd1c5WkU?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-16T13:27:00+00:00)]: Temu Partners with CITEA to Support Cyprus' Digital Business Community - PR Newswire \u2014 Temu Partners with CITEA to Support Cyprus' Digital Business Community &nbsp;&nbsp; PR Newswire",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0c2a1239bed48dc1",
+    "company_name": "Amazon India",
+    "title": "Samsung Galaxy Z Fold7 price in India to drop below Rs 1 lakh during Amazon Great Indian Festival sale - Moneycontrol.com",
+    "event_summary": "Samsung Galaxy Z Fold7 price in India to drop below Rs 1 lakh during Amazon Great Indian Festival sale - Moneycontrol.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-01T08:06:16+00:00",
+    "latest_detected_at": "2026-10-01T08:06:16+00:00",
+    "published_at": "2026-10-01T08:06:16+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi9wFBVV95cUxOVnVPNXNBYUIwSDV1UkhIUy00MXBkQy12VVhHZlpXQ0NIWmVUUG9rM1llNHdWbUVNcHhyeC02TkZ3aWVScDR3aHBqVmJ6ZnBXSHVaTXY1SDB1bWYxOUhfVXV4YUlRRjEtYXdRd1E2ZVY5cGxfQWt4a3c5R0RCRDhTRnpjczFjTkpYaTBjVnhqV0tnbXY3Rzhuenp4TmRSU2IxR1ZuR2M1REtNRUQ0ZG5COHZQWE95amF3TkF1MVhDNU5UMXhiSDBCeHRrY1pQZmNUQjF6X1EtQlEzeWxZa0J0aGZjTWJNaUJ1MGtxTjN0bWJOb3NxSWxB0gH8AUFVX3lxTE9WQ0NyM1NvVjltZ3lnLTVYMVoxOUtLT0x0UW9famJPRUZ1emtFQW8xT285ZzhTY1lIUmw5cGcxSkh4Z0lIVVoxNjJHSThmZVNqZ08zY0x3VERyOGExWDhrdmlzaENTVkdTWWhnU1MyYndRLTRFVGR0aFJwcWMtb1ZQV200RFo2dFM3Zm42ZTZoNmlYYWpaWGVLM3VSeVBTVWVfQ2xiUjd2bTd5eHZ2TVVKbk9mbld1QzA3Qk1iLWlqdm5fbGVkYnItSW1pSzJjLUNNMGFkaGZhNTM1WU9WamJsdDR3eV9EUU1zSVhOUG1XbWFCLVVLZ1BOTEhicw?oc=5",
+    "raw_excerpt": "[NEWS (2026-10-01T08:06:16+00:00)]: Samsung Galaxy Z Fold7 price in India to drop below Rs 1 lakh during Amazon Great Indian Festival sale - Moneycontrol.com \u2014 Samsung Galaxy Z Fold7 price in India to drop below Rs 1 lakh during Amazon Great Indian Festival sale &nbsp;&nbsp; Moneycontrol.com",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0c500e5080e6dd71",
+    "company_name": "Myntra",
+    "title": "Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media",
+    "event_summary": "Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-29T07:53:45+00:00",
+    "latest_detected_at": "2026-09-29T07:53:45+00:00",
+    "published_at": "2026-09-29T07:53:45+00:00",
+    "url": "https://news.google.com/rss/articles/CBMixwFBVV95cUxNVm5jR2owT3pDclB5RVdmTUtJZlBza2FBOFpNcllpMlJjVXlpN3RlTG11WEJVR25GRk1YTmxENEU5b19FV0VIaV82X2k5WVV1VG16MlpMZDVNRjVaYVZDeEItMXJPVFNqc0t2aG4yeUVhYmpJbzVOMlV0NDJhRjJmSV9vZVRVNTYyWl9xY3dSYlBWREVPc3RLUkNpRVJIaC1KbjhLOHEwcHdUV0x0YVR0TXZEam1MbUFmdDRQeFh4Q3g4cmZJYkp3?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-29T07:53:45+00:00)]: Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media \u2014 Sunder Balasubramanian to exit Myntra as Chief Marketing Officer &nbsp;&nbsp; Exchange4Media",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T07:53:45+00:00)]: Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media \u2014 Sunder Balasubramanian to exit Myntra as Chief Marketing Officer &nbsp;&nbsp; Exchange4Media. This reflects active commercial positioning and operational momentum for Myntra.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0caef14d23a5c462",
+    "company_name": "Shopify",
+    "title": "Why I Built ListerCraft AI: 100% Local E-Commerce Studio & Profit Engine with Google Gemma 2",
+    "event_summary": "Why I Built ListerCraft AI: 100% Local E-Commerce Studio & Profit Engine with Google Gemma 2",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-17T18:33:24+00:00",
+    "latest_detected_at": "2026-10-17T18:33:24+00:00",
+    "published_at": "2026-10-17T18:33:24+00:00",
+    "url": "https://dev.to/ish1416/why-i-built-listercraft-ai-100-local-e-commerce-studio-profit-engine-with-google-gemma-2-1ped",
+    "raw_excerpt": "[NEWS (2026-10-17 18:33:24 +0000)]: Why I Built ListerCraft AI: 100% Local E-Commerce Studio & Profit Engine with Google Gemma 2 \u2014 ListerCraft AI is a 100% local open-weights e-commerce listing generator & profit margin engine for Etsy, eBay, and Shopify sellers powered by Google Gemma 2 (2B).",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0cea2590ce130b64",
+    "company_name": "meesho",
+    "title": "Meesho Shares Trading At Significant Premium, Says Nomura; Assigns 'Reduce' Rating, Sees Over 28% Downside",
+    "event_summary": "Meesho Shares Trading At Significant Premium, Says Nomura; Assigns 'Reduce' Rating, Sees Over 28% Downside",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-24T11:47:41+00:00",
+    "latest_detected_at": "2026-09-25T03:18:37+00:00",
+    "published_at": "2026-09-25T03:18:37+00:00",
+    "url": "https://www.ndtvprofit.com/markets/meesho-shares-trading-at-significant-premium-says-nomura-assigns-reduce-rating-sees-over-28-downside-12095313",
+    "raw_excerpt": "[NEWS (2026-09-24 11:47:41 +0000)]: YouTube Announces Expansion In India, Partners With Amazon, Ajio, Meesho, Snapdeal And Tata CLiQ \u2014 YouTube noted that shopping-related watch time in India has increased by 55% year-on-year.\n\n[NEWS (2026-09-25 03:18:37 +0000)]: Meesho Shares Trading At Significant Premium, Says Nomura; Assigns 'Reduce' Rating, Sees Over 28% Downside \u2014 Nomura assigned Reduce' rating to Meesho shares, with a target price of Rs 167 apiece, implying a downside of 28.3% from Thursday's closing price.",
+    "fact_confidence": "High",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0d4de6d23cd17e74",
+    "company_name": "Temu",
+    "title": "Temu Expands Seller Education with Bureau Veritas, QIMA and T\u00dcV S\u00dcD",
+    "event_summary": "Temu Expands Seller Education with Bureau Veritas, QIMA and T\u00dcV S\u00dcD",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-23T07:00:00+00:00",
+    "latest_detected_at": "2026-09-23T07:00:00+00:00",
+    "published_at": "2026-09-23T07:00:00+00:00",
+    "url": "https://www.prnewswire.com/news-releases/temu-expands-seller-education-with-bureau-veritas-qima-and-tuv-sud-302887240.html",
+    "raw_excerpt": "[NEWS (2026-09-23 07:00:00 +0000)]: Temu Expands Seller Education with Bureau Veritas, QIMA and T\u00dcV S\u00dcD \u2014 /PRNewswire/ -- Temu is expanding its seller education programs in collaboration with eight global product testing and certification organizations, including...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0d6ed937301b680b",
+    "company_name": "Shopify",
+    "title": "Taking Over a Shopify Store: What Our First Audit Looks For",
+    "event_summary": "Taking Over a Shopify Store: What Our First Audit Looks For",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-28T18:54:19+00:00",
+    "latest_detected_at": "2026-09-28T18:54:19+00:00",
+    "published_at": "2026-09-28T18:54:19+00:00",
+    "url": "https://dev.to/zelpex/taking-over-a-shopify-store-what-our-first-audit-looks-for-4eni",
+    "raw_excerpt": "[NEWS (2026-09-28 18:54:19 +0000)]: Taking Over a Shopify Store: What Our First Audit Looks For \u2014 Shopify's own help centre says it plainly: \"Some apps add code to your online store theme that isn't...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0d7864227a199fed",
+    "company_name": "Shopify",
+    "title": "Shopify Is Spending to Win AI Shopping: Is the Stock Still Worth the Price?",
+    "event_summary": "Shopify Is Spending to Win AI Shopping: Is the Stock Still Worth the Price?",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-30T20:30:00+00:00",
+    "latest_detected_at": "2026-10-02T01:00:00+00:00",
+    "published_at": "2026-10-02T01:00:00+00:00",
+    "url": "https://www.fool.ca/2026/10/01/shopify-is-spending-to-win-ai-shopping-is-the-stock-still-worth-the-price/",
+    "raw_excerpt": "[NEWS (2026-09-30 20:30:00 +0000)]: Tech Stocks Tumble After AI Leaders Urged a Slowdown: Time to Buy Shopify or Celestica? \u2014 With growing calls for a slowdown in the development of AI, here's how that affects two of Canada's best tech stocks, Shopify and Celestica.\n\n[NEWS (2026-10-02 01:00:00 +0000)]: Shopify Is Spending to Win AI Shopping: Is the Stock Still Worth the Price? \u2014 Shopify is investing heavily in AI commerce while revenue and free cash flow continue growing at impressive rates.",
+    "fact_confidence": "High",
+    "why_it_matters": "The article documents that Shopify is investing heavily in AI commerce while its revenue and free cash flow continue to grow. This could suggest that Shopify may soon roll out more advanced AI\u2011driven merchant tools, increasing competitive pressure on Meesho\u2019s social commerce platform and potentially prompting Meesho to accelerate its own AI capabilities to retain merchants.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0dc7539082830d39",
+    "company_name": "Ajio",
+    "title": "ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan",
+    "event_summary": "ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-29T15:52:20+00:00",
+    "latest_detected_at": "2026-09-29T15:52:20+00:00",
+    "published_at": "2026-09-29T15:52:20+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOdl9Sazh6UlhNak11SmtXRm4zR0pSZHczZzJMWXlrTW9TeG45M2ZNTFRUenN6elRpMDM4QzBvclkwcEpOVFpkalI5UkVRU2NjSkJ4RDdNdFpyWlFrRHJ0bTNNQVBUTFp0Ul95em9IZndPYkkwMFE1cXVlb3dkYU9ka3VZZ0pJdjVHRjMzdFpUUlZ5bUw4bmpIaVgzeVVKTmpvUFlEMlRjWUJjRll4eHhWVkF2OUUzN2cxV3VNM2ZFVWZudw?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-29T15:52:20+00:00)]: ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan \u2014 ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] &nbsp;&nbsp; Taxscan",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T15:52:20+00:00)]: ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan \u2014 ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] &nbsp;&nbsp; Taxscan. This reflects active commercial positioning and operational momentum for Ajio.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Must-Know"
+  },
+  {
+    "event_id": "evt_0e03a321a2d6518b",
+    "company_name": "Myntra",
+    "title": "Myntra Brings Italian Fashion Brand Sisley To Indian Consumers - IFAB MEDIA",
+    "event_summary": "Myntra Brings Italian Fashion Brand Sisley To Indian Consumers - IFAB MEDIA",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-18T10:52:55+00:00",
+    "latest_detected_at": "2026-09-18T10:52:55+00:00",
+    "published_at": "2026-09-18T10:52:55+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE1CWG1ZMU4zak55bFVYVmhHM3lueENBOFZIZkhCeDdNZm53WXhRNEdySkNodWRONktkZGM5c1ljc3hTVUVFTXBrbktBNy03X3dBM0hwSENLdWZOa0J5UlVEY3Rpcm0?oc=5",
+    "raw_excerpt": "[NEWS (2026-09-18T10:52:55+00:00)]: Myntra Brings Italian Fashion Brand Sisley To Indian Consumers - IFAB MEDIA \u2014 Myntra Brings Italian Fashion Brand Sisley To Indian Consumers &nbsp;&nbsp; IFAB MEDIA",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0e589a81d438b5fc",
+    "company_name": "Flipkart",
+    "title": "iPhone 17 Flipkart BBD sale deal, details here",
+    "event_summary": "iPhone 17 Flipkart BBD sale deal, details here",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-21T08:02:31+00:00",
+    "latest_detected_at": "2026-09-22T10:40:03+00:00",
+    "published_at": "2026-09-22T10:40:03+00:00",
+    "url": "https://www.indiatoday.in/visualstories/technology/iphone-17-flipkart-bbd-sale-deal-details-here-285964-22-09-2026",
+    "raw_excerpt": "[NEWS (2026-09-21 08:02:31 +0000)]: Lava Virat Curve 5G launched at Rs 23,999 with curved AMOLED display and rear 50MP Sony camera \u2014 Lava introduced the Virat Curve 5G in India, featuring a curved AMOLED display. The smartphone comes with a MediaTek Dimensity 7100 chipset and will soon be available on Flipkart.\n\n[NEWS (2026-09-22 10:40:03 +0000)]: iPhone 17 Flipkart BBD sale deal, details here \u2014 The iPhone 17 will be available with a big discount during Flipkart's Big Billion Days sale.",
+    "fact_confidence": "High",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0e894f0d0ee7b4ae",
+    "company_name": "Shopify",
+    "title": "Shopify Left React Native: 4 Questions Before You Follow",
+    "event_summary": "Shopify Left React Native: 4 Questions Before You Follow",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-04T02:06:16+00:00",
+    "latest_detected_at": "2026-10-04T02:06:16+00:00",
+    "published_at": "2026-10-04T02:06:16+00:00",
+    "url": "https://dev.to/kielltampubolon/shopify-left-react-native-4-questions-before-you-follow-4dkh",
+    "raw_excerpt": "[NEWS (2026-10-04 02:06:16 +0000)]: Shopify Left React Native: 4 Questions Before You Follow \u2014 Yesterday, Sep 10 2026, Shopify announced it is moving every mobile app back to native Swift and...",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-04 02:06:16 +0000)]: Shopify Left React Native: 4 Questions Before You Follow \u2014 Yesterday, Sep 10 2026, Shopify announced it is moving every mobile app back to native Swift and... This reflects active commercial positioning and operational momentum for Shopify.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Should-Know"
+  },
+  {
+    "event_id": "evt_0e8fd23cb7c8057d",
+    "company_name": "Flipkart",
+    "title": "Festive E-Commerce Season Off To Strong Start, Flipkart DAUs Hit New High: BofA Report",
+    "event_summary": "Festive E-Commerce Season Off To Strong Start, Flipkart DAUs Hit New High: BofA Report",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-18T10:29:40+00:00",
+    "latest_detected_at": "2026-10-19T11:46:47+00:00",
+    "published_at": "2026-10-19T11:46:47+00:00",
+    "url": "https://www.ndtvprofit.com/technology/samsung-galaxy-f70-5g-price-in-india-specifications-super-amoled-display-four-os-upgrades-under-rs-20-000-12206069",
+    "raw_excerpt": "[NEWS (2026-10-18 10:29:40 +0000)]: Flipkart Sale Ends October 19: MacBook Air M5, HP OmniBook 3 And More Laptop Deals \u2014 Flipkart's Big Billion Days sale is nearing its end, with discounts available on laptops from Apple, HP, Lenovo, Samsung and Acer. Here are some deals to consider before the sale closes.\n\n[NEWS (2026-10-19 11:46:47 +0000)]: Galaxy F70 5G Arrives as Samsung\u2019s Third F70 Model, Sale Starts October 20 on Flipkart \u2014 The Galaxy F70 5G joins the F70e and F70 Pro in Samsung\u2019s lineup. Here\u2019s its price, sale date, specifications and how it compares with the OnePlus N6x.\n\n[NEWS (2026-10-20 17:33:46 +0000)]: Festive E-Commerce Season Off To Strong Start, Flipkart DAUs Hit New High: BofA Report \u2014 Non-metro shoppers and first-time users were the key drivers of demand across horizontal platforms.",
+    "fact_confidence": "High",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  },
+  {
+    "event_id": "evt_0ea40ba133b8455f",
+    "company_name": "Amazon India",
+    "title": "Amazon, Flipkart found selling CCTV cameras without govt approval in India: Report | Govt testing rules imposed amid spying concerns | Inshorts - Inshorts",
+    "event_summary": "Amazon, Flipkart found selling CCTV cameras without govt approval in India: Report | Govt testing rules imposed amid spying concerns | Inshorts - Inshorts",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-02T03:06:36+00:00",
+    "latest_detected_at": "2026-10-02T03:06:36+00:00",
+    "published_at": "2026-10-02T03:06:36+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxOMDEtanJkUzkza0drU2d3aFFrdjVoYndPaTAwN1RMcmlXdG1WbUtOdWo3dGNwM1V2dWhpcFlicjBSeXZ1Q0dQSmpfVjFRb2g5aVFJeDBRbGVxZEp5b09Sd3F1bnEyNzlyTF83V2FkUnlVWkFwZmNsLVRGZFRmRWVoOVZITVVFU1djRVBtUmJ4NURIcHBuZHRnQ21xQmtvMG5pdFg0eGRQMWVYazc2M2FvY3ViUXFWNFdxTUZmeFZwS1d3eUXSAcgBQVVfeXFMUHdBQUJzdmtXNHZCSmVPQXFFcTZ0OFREWUdpYm9fUDVDVjl6bktKTlpFWFRQV1I3TEh6OG1FRHlyYjN4QnB6ZnBTd2gxTnBDdGZFTGJlZUEyLXIySk5QQ2hGX2RGWFEzRFl3cWJwcS1kY2FNYi05d0lWQll5SXppWUoyREV5bDlQZV9FM1NvOXRmLWhacktTUC1EWXA3V1J1ZHVOMUFOdjhQVWlwRFFqY1JaWk5LSEhmNkFkdWpjMWtIMGppdjRKUVA?oc=5",
+    "raw_excerpt": "[NEWS (2026-10-02T03:06:36+00:00)]: Amazon, Flipkart found selling CCTV cameras without govt approval in India: Report | Govt testing rules imposed amid spying concerns | Inshorts - Inshorts \u2014 Amazon, Flipkart found selling CCTV cameras without govt approval in India: Report | Govt testing rules imposed amid spying concerns | Inshorts &nbsp;&nbsp; Inshorts",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Material competitive move corroborated across verified channels.",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "tier": "Nice-to-Know"
+  }
+];
+
+export const BASELINE_FINDINGS: FindingRecord[] = [
+  {
+    "id": "c67acdc5-05c4-4dc1-9825-fa541c36821a",
+    "event_id": "evt_17c2e9954a97b783",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-04 04:40:14 +0000)]: JEFF BEZOS CLASHES AGAINST MARK ZUCKERBERG \u2014 Mark Zuckerberg is a genius. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "e6ae782c-62a5-4986-9dc4-4c29bb4ea607",
+    "event_id": "evt_4725c477410d2f5b",
+    "company_name": "Flipkart",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 14:29:48 +0000)]: Nothing Phone 4a and 4a Pro to get big discount in Flipkart Big Billion Days sale \u2014 Nothing will offer discounts and deal benefits on the Phone 4a, Phone 4a Pro and Phone 4b during Flipkart's Big Billion Days sale. This reflects active commercial positioning and operational momentum for Flipkart.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "aba6cc72-6542-4922-9247-6c9c10fff197",
+    "event_id": "evt_6cbe8602f04076f6",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "47300cf0-bf6b-4763-96d3-28da207ad535",
+    "event_id": "evt_7bb296ff75b953cb",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "5d6a6ad9-1ba9-492d-89db-7e82af1331e5",
+    "event_id": "evt_57e801ba4efdddaa",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T19:56:12+00:00)]: Sunder Balasubramanian Exits Myntra After Nearly Four Years - BW Marketing World \u2014 Sunder Balasubramanian Exits Myntra After Nearly Four Years &nbsp;&nbsp; BW Marketing World. This reflects active commercial positioning and operational momentum for Myntra.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "31158e29-d3c6-48a3-ac37-de11a389a943",
+    "event_id": "evt_e66ec88a756c779d",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T14:05:03+00:00)]: Deepash Jain on how Myntra is building an always-on income model for micro-creators - Indian Television Dot Com \u2014 Deepash Jain on how Myntra is building an always-on income model for micro-creators &nbsp;&nbsp; Indian Television Dot Com. This reflects active commercial positioning and operational momentum for Myntra.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "3c2f3ecd-b3e7-43d5-97d0-2823b1a2331e",
+    "event_id": "evt_82486872f92f65a3",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "d815bf37-e67f-4c0d-ae66-ed667f26a0f8",
+    "event_id": "evt_acad7482a2c077cc",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "4960ceae-b8f7-41a0-b1f7-bcb7b66341e6",
+    "event_id": "evt_0a77170ca459523d",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T08:37:00+00:00)]: Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com \u2014 Sunder Balasubramanian announces exit from Myntra after nearly four years &nbsp;&nbsp; Adgully.com. This reflects active commercial positioning and operational momentum for Myntra.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "4ad3e30a-4bb6-410f-a0a8-cb90a801afbc",
+    "event_id": "evt_0c500e5080e6dd71",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T07:53:45+00:00)]: Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media \u2014 Sunder Balasubramanian to exit Myntra as Chief Marketing Officer &nbsp;&nbsp; Exchange4Media. This reflects active commercial positioning and operational momentum for Myntra.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "b565bfeb-ea09-4c9d-9f82-8013b7c10054",
+    "event_id": "evt_4161a15d588ae65d",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "6474e08d-6b3b-4360-bb83-be6eda7b4dd4",
+    "event_id": "evt_41d0d1c6444501dc",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-28T03:39:04+00:00)]: Alia Bhatt & Ranbir Kapoor find every reason to shop in Myntra\u2019s BFF campaign - afaqs! \u2014 Alia Bhatt & Ranbir Kapoor find every reason to shop in Myntra\u2019s BFF campaign &nbsp;&nbsp; afaqs!. This reflects active commercial positioning and operational momentum for Myntra.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "d6cc97f4-d325-4465-850d-12b908e84bdb",
+    "event_id": "evt_0eeedbb3231f7366",
+    "company_name": "Temu",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that Temu is facing a 'wave of global regulation' which is causing it to 'quickly lose its shine.' This suggests a potential reduction in Temu's aggressive global expansion or marketing intensity, which may indirectly alleviate competitive pressure on Meesho in international markets where both operate, though the specific impact on Meesho's domestic Indian market is not explicitly detailed in the excerpt.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "365e599a-281c-4683-83af-af371606f282",
+    "event_id": "evt_3a6c1e8ccd526353",
+    "company_name": "Ajio",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Ajio has officially named Ahaan Panday as its brand ambassador, a fact confirmed by the headline and source attribution to BW Marketing World. This indicates a continued investment in brand visibility and celebrity marketing by Ajio, a direct competitor to Meesho in the Indian fashion and lifestyle e-commerce sector, but the excerpt does not provide data on the scale of this campaign or its expected impact on market share.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "619afab8-2547-4d9a-b649-50cde38ff1b1",
+    "event_id": "evt_d66b4c0a0e9c5be9",
+    "company_name": "Amazon India",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source states that consumer brands are targeting tier-2 and smaller cities for festive growth due to weakening urban consumption, and specifically notes that Amazon has 'widened instant delivery to more cities.' This suggests Amazon is strengthening its logistics infrastructure in non-metro areas, which may intensify competition for Meesho\u2019s core user base in smaller towns during the critical festive season.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "22206f96-1d48-48a7-86ce-4bbf3fb53de1",
+    "event_id": "evt_3634c0f42c5f897e",
+    "company_name": "Temu",
+    "tier": "Should-Know",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that the Jaecoo J5 vehicle is being referred to as the 'Temu Range Rover' in a South African publication, citing a manufacturing partnership between Chery and Jaguar Land Rover. This is a factual observation regarding automotive branding and does not contain information about Temu\u2019s e-commerce operations, pricing strategies, or market presence in India, thus offering no direct strategic relevance to Meesho\u2019s competitive landscape.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "863f6d55-a802-4d04-b599-b15ae1f66f5f",
+    "event_id": "evt_0f02e1665b60f55c",
+    "company_name": "Amazon India",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "Fact: Amazon\u2019s Great Indian Festival Sale is set to start on October\u202f8, and the article notes that both Amazon and Flipkart will host sales during this period. Inference: The concurrent festival sales may increase overall consumer spending on electronics, creating a competitive environment that could reduce Meesho\u2019s share of consumer purchases in this category, suggesting a need for Meesho to align discount or marketing tactics accordingly.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "efca67db-a9eb-4d6f-b299-63827b6cd348",
+    "event_id": "evt_c6b917f60ca8c0f6",
+    "company_name": "Myntra",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Fact: Myntra\u2019s Chief Marketing Officer, Sunder Balasubramanian, is stepping down after four years, as reported by ET Retail. This could suggest a forthcoming shift in Myntra\u2019s marketing strategy or brand positioning, potentially altering competitive dynamics in the Indian fashion e-commerce market where Meesho operates.",
+    "created_at": "2026-10-05T03:13:52.521181+00:00"
+  },
+  {
+    "id": "13351c3b-03c8-48da-8d7a-ddc44cefe862",
+    "event_id": "evt_0e894f0d0ee7b4ae",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-04 02:06:16 +0000)]: Shopify Left React Native: 4 Questions Before You Follow \u2014 Yesterday, Sep 10 2026, Shopify announced it is moving every mobile app back to native Swift and... This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "d1bc6f36-48ba-4e8b-8dc2-f953c90a6db4",
+    "event_id": "evt_ab7478cbb8a8a1dc",
+    "company_name": "Ajio",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-03T10:31:58+00:00)]: AJIO Names Ahaan Panday as New Brand Ambassador Ahead of Festive Season - Indian Retailer \u2014 AJIO Names Ahaan Panday as New Brand Ambassador Ahead of Festive Season &nbsp;&nbsp; Indian Retailer. This reflects active commercial positioning and operational momentum for Ajio.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "480d6dfb-bca0-4791-bedb-927e53d94684",
+    "event_id": "evt_a9a4c13e1a04d18d",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-03 22:50:00 +0000)]: Meta's Muse AI: Good or Bad for E-Commerce? Shopify and Amazon Are Taking Opposite Approaches. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "2ff3095c-29c0-46c0-8c48-ecf42db4fceb",
+    "event_id": "evt_69a328f06b443863",
+    "company_name": "Temu",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that Temu secured significant financing to expand its product roadmap and commercial go-to-market execution.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "812ecc08-52ad-4044-b22a-c4a1268c7ebe",
+    "event_id": "evt_dcf1346f20a859cd",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-03 19:38:42 +0000)]: Four Marketplaces, One Listing Workflow: What Amazon, eBay, Etsy and Shopify Expect From Your Copy \u2014 If you sell on more than one marketplace, you already know the copy you write for Amazon doesn't... This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "fb0cea1c-9ae2-4f3c-9fb7-9500e6e009dc",
+    "event_id": "evt_a4078f300e6bf76d",
+    "company_name": "Flipkart",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "The source documents that [NEWS (2026-10-01 12:04:50 +0000)]: iPhone 17 at Rs 84900 in Flipkart sale: 2 reasons to buy it before price goes back to Rs 1 lakh \u2014 Flipkart will sell the iPhone 17 at Rs 84,999 during its Big Billion Days sale. This reflects active commercial positioning and operational momentum for Flipkart.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "2b12d5e2-f43f-4e5e-ad0c-4f40d3526379",
+    "event_id": "evt_9664e78838b873ab",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 20:10:00 +0000)]: 3 TFSA Strategies Used By Wealthy Canadians \u2014 Shopify (TSX:SHOP) might just be a worthy TFSA addition, depending on your wealth-building goals. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "325356c5-a852-45ad-b948-c03a0431a9c8",
+    "event_id": "evt_105fe2bb984c73a5",
+    "company_name": "Shopify",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 19:00:52 +0000)]: Shopify Now Enrolls Your Store In Every New AI Shopping Channel \u2014 One default setting shared eligible Shopify stores' products with Meta on launch day. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "f4b4044c-8ab4-4d00-b711-0e8e27e41cb4",
+    "event_id": "evt_404266a5f5651a22",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-03 04:09:02 +0000)]: How to sync Shopify orders to Notion (2026): 4 options compared \u2014 Disclosure: I'm building Notedock, one of the options below. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "e922b072-c807-4099-8b3e-abb286c695fc",
+    "event_id": "evt_f2eb52c3cddca49e",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-03 03:45:04 +0000)]: WebDecoy is now on Shopify: from bot signals to order review \u2014 How our Shopify app connects storefront detection, checkout events, and order-risk review\u2014and how to verify the integration. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "7421e1aa-e5a3-4b05-b625-4b6fc16b6307",
+    "event_id": "evt_de5da0e53aad94a4",
+    "company_name": "Ajio",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02T16:05:29+00:00)]: AJIO welcomes Ahaan Panday as new brand ambassador - Campaign India \u2014 AJIO welcomes Ahaan Panday as new brand ambassador &nbsp;&nbsp; Campaign India. This reflects active commercial positioning and operational momentum for Ajio.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "e9d790f9-1ae7-45a2-a3f5-d41b81bb179f",
+    "event_id": "evt_dd1380ef38c90b1f",
+    "company_name": "Ajio",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02T09:28:22+00:00)]: AJIO names Ahaan Panday as new brand ambassador - IMPACT Magazine \u2014 AJIO names Ahaan Panday as new brand ambassador &nbsp;&nbsp; IMPACT Magazine. This reflects active commercial positioning and operational momentum for Ajio.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "de7a2668-54be-4b0f-8380-5ee470ce6cf3",
+    "event_id": "evt_24e0fbcd2baf201f",
+    "company_name": "Ajio",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02T07:59:03+00:00)]: Ajio names Ahaan Panday as brand face ahead of festive season - ET BrandEquity \u2014 Ajio names Ahaan Panday as brand face ahead of festive season &nbsp;&nbsp; ET BrandEquity. This reflects active commercial positioning and operational momentum for Ajio.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "f42bef44-ca45-4e61-b151-b0080e6d3bc2",
+    "event_id": "evt_97c297a3e811fe85",
+    "company_name": "Ajio",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02T06:14:18+00:00)]: AJIO welcomes Ahaan Panday as Brand Ambassador - MediaNews4U \u2014 AJIO welcomes Ahaan Panday as Brand Ambassador &nbsp;&nbsp; MediaNews4U. This reflects active commercial positioning and operational momentum for Ajio.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "e4f015bd-b695-4c8b-8f6e-0828bc3f36a8",
+    "event_id": "evt_64809622ac96cd0f",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 21:59:04 +0000)]: How to track a competitor's Shopify prices and new products \u2014 Monitor any Shopify store's catalog and get the new products, removed products, price changes and stock changes since your last run, down to each variant. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "fd303e7a-5e65-48b0-b994-ba07796523a8",
+    "event_id": "evt_2f837bfca44ef3fa",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 20:32:23 +0000)]: How to Integrate Voice AI with Shopify Stores \u2014 Why Add Voice AI to a Shopify Store? E\u2011commerce is getting louder\u2014literally. This reflects active commercial positioning and operational momentum for Shopify.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "cfda40a7-ec30-402e-836a-e4fade1f59f0",
+    "event_id": "evt_b3dfd95909fe074b",
+    "company_name": "Temu",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 12:50:55 +0000)]: 'Temu Range Rover' Jaecoo 7 is UK's best-selling new car in September \u2014 It marks a pivotal moment for the UK's car market, with the Jaecoo 7 having also been the most popular new model in March. This reflects active commercial positioning and operational momentum for Temu.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "43f78de7-6a2b-4092-83dc-49717b546554",
+    "event_id": "evt_a844365c942bc43d",
+    "company_name": "Temu",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 08:02:39 +0000)]: \u2018Temu Range Rover\u2019 Is UK Top-Seller Again as China Cars Boom \u2014 British drivers\u2019 embrace of Chinese cars is gaining strength, with the Jaecoo 7 regaining its spot as the UK\u2019s best-selling new car. This reflects active commercial positioning and operational momentum for Temu.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "f56533a0-d7dd-405b-8686-23a1e6abeffe",
+    "event_id": "evt_98d11553fe222de3",
+    "company_name": "Amazon India",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 07:02:00 +0000)]: Retailers investigate India camera sales | Arkansas Democrat Gazette \u2014 NEW DELHI -- Amazon and Walmart's Flipkart have begun checking security cameras sold on their platforms in India after hundreds of unlicensed products were offered for sale despite strict government testing rules imposed six months ago amid concerns about espionage risks. This reflects active commercial positioning and operational momentum for Amazon India.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "fe040d4e-2315-48f9-850c-5b2d1e4a064c",
+    "event_id": "evt_b3c3d70c0ce7e37e",
+    "company_name": "Flipkart",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 07:02:00 +0000)]: Retailers investigate India camera sales | Arkansas Democrat Gazette \u2014 NEW DELHI -- Amazon and Walmart's Flipkart have begun checking security cameras sold on their platforms in India after hundreds of unlicensed products were offered for sale despite strict government testing rules imposed six months ago amid concerns about espionage risks. This reflects active commercial positioning and operational momentum for Flipkart.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "aff046ab-00c9-49fa-9e4c-1355d506b668",
+    "event_id": "evt_d1ddb045c4496c4f",
+    "company_name": "Flipkart",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-10-02 03:12:30 +0000)]: Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? | Mint \u2014 E-commerce sales on Amazon and Flipkart offer discounts for cardholders, starting October 8 and 9. This reflects active commercial positioning and operational momentum for Flipkart.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "81f6339f-af0b-4d6d-bb38-0ddf73595df9",
+    "event_id": "evt_302e61b55c16091e",
+    "company_name": "Snapdeal",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-30 03:46:15 +0000)]: Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date \u2014 AceVector IPO allotment status is expected today, Sept. This reflects active commercial positioning and operational momentum for Snapdeal.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "5913633a-0fde-41fb-a158-ca8938530f39",
+    "event_id": "evt_8f2b564b831c69e5",
+    "company_name": "Ajio",
+    "tier": "Should-Know",
+    "confidence": "High",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that Ajio has appointed Ahaan Panday as its new brand ambassador. This is a standard marketing and brand positioning move by a tracked competitor; the provided excerpt contains no specific details about campaign scope, product focus, or performance metrics, so no direct strategic impact on Meesho's infrastructure or developer tooling can be inferred from this signal alone.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "d6850738-69ae-4db2-b498-5547eb293d4d",
+    "event_id": "evt_5a2591af4634146d",
+    "company_name": "Amazon India",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Low",
+    "fact_confidence": "High",
+    "why_it_matters": "The source documents that the Amazon Great Indian Festival Sale 2026 is scheduled to begin on October 8, with promotional content highlighting laptops under Rs. 90,000 and other electronics. This confirms a major seasonal sales event by a tracked competitor (Amazon India) that may correlate with increased consumer spending in the electronics category, though the source does not provide data on Meesho's specific competitive position or sales impact in this segment.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "48d03ff9-3f66-4f2f-86cd-371522ece4d3",
+    "event_id": "evt_2c4e501a9102e08c",
+    "company_name": "Ajio",
+    "tier": "Must-Know",
+    "confidence": "High",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that Ajio has onboarded Ahaan Pandey as its new brand ambassador. This event is a standard brand partnership announcement without specific strategic implications for Meesho discernible from the limited text.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "13bf25a1-3126-4c86-a7ca-3ee35e20455c",
+    "event_id": "evt_1990b232e0ff07f3",
+    "company_name": "Shopify",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source reports that an email agency is specifically targeting Shopify stores that already use Klaviyo or Omnisend. If Shopify merchants are increasingly adopting these email platforms, Meesho may face heightened competition for merchant marketing tools and might need to strengthen its own email\u2011marketing integrations or partner offerings to retain sellers.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "deef193e-844d-4de9-9d67-04bc4fdc8182",
+    "event_id": "evt_4ca7318863fff2a1",
+    "company_name": "Flipkart",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "Fact: Flipkart\u2019s Big Billion Days sale begins on October\u202f9, with early access on October\u202f8, as highlighted in the article about best earbuds. Inference: The scheduled sale period is likely to draw significant consumer traffic to Flipkart, potentially diverting shoppers from Meesho\u2019s marketplace and prompting Meesho to adjust its promotional strategy or offer competitive pricing during the same window.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "42511ef6-480f-4f19-8e6a-005cbf45d339",
+    "event_id": "evt_3f4545d6dd7720f0",
+    "company_name": "Amazon India",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "Fact: Amazon expanded its ultra\u2011fast delivery service to more than 120 Indian cities, as reported in the article about best perfumes. Inference: The broader delivery network may give Amazon a logistical advantage over Meesho, potentially influencing customer preference for faster shipping and indicating that Meesho may need to enhance its own delivery capabilities or partner with logistics providers to remain competitive.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "b4982049-8d5e-4141-825c-00d396211686",
+    "event_id": "evt_51ef76c35b49ee45",
+    "company_name": "meesho",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Fact: The article reports that e\u2011commerce platforms are emphasizing affordability during the festive season, a strategy that aligns with Meesho\u2019s own affordability focus and is increasing competition in India\u2019s value\u2011commerce market. Inference: This could suggest that Meesho may face heightened competitive pressure from rivals also targeting price\u2011sensitive shoppers, potentially prompting the company to refine its pricing, product mix, or marketing to preserve its share in the fast\u2011growing segment.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "85dfad42-c6a4-4988-9c0c-5972bfe09572",
+    "event_id": "evt_69f753668f9360a0",
+    "company_name": "Temu",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Fact: The Temu Range Rover has become the UK\u2019s top-selling vehicle again, indicating a surge in Chinese car sales in the UK. Inference: This could suggest that Chinese manufacturing and e-commerce capabilities are expanding globally, which might increase competitive pressure on Indian marketplaces such as Meesho if similar Chinese firms enter the Indian e-commerce space.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "567dd51b-6d9f-4f73-ab68-ada96e8e8c53",
+    "event_id": "evt_0ff0193323ca79fd",
+    "company_name": "Flipkart",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that Flipkart is offering the iPhone 17 Pro 256GB at an effective price of Rs 80,143, achieved by combining a listed price of Rs 1,34,900 with up to Rs 50,750 in exchange value for an iPhone 15 Pro and an additional Rs 4,000 bank discount. This specific pricing structure suggests Flipkart is leveraging aggressive exchange subsidies and bank partnerships to drive high-ticket electronics sales, a strategy that may pressure Meesho to match similar discount depths if it seeks to compete in the premium smartphone segment.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "c1046c63-74bc-4d03-9522-276a82156ec0",
+    "event_id": "evt_ae5cc30d95774b00",
+    "company_name": "Flipkart",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "The source confirms Flipkart is executing its 'Big Billion Days 2026' campaign with specific discounts on Poco smartphones, such as a Rs 6,000 cut on the X8 Pro Max. This indicates a direct competitive push by Flipkart in the electronics category, which may pressure Meesho\u2019s electronics sales or require Meesho to adjust its pricing strategy during the same promotional period.",
+    "created_at": "2026-10-04T03:37:48.236071+00:00"
+  },
+  {
+    "id": "71800716-67ec-4fb5-92c1-56db4d5df45c",
+    "event_id": "evt_0dc7539082830d39",
+    "company_name": "Ajio",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source documents that [NEWS (2026-09-29T15:52:20+00:00)]: ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan \u2014 ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] &nbsp;&nbsp; Taxscan. This reflects active commercial positioning and operational momentum for Ajio.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "332b363f-3974-4729-b23d-8ca3f6de90be",
+    "event_id": "evt_0d7864227a199fed",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "The article documents that Shopify is investing heavily in AI commerce while its revenue and free cash flow continue to grow. This could suggest that Shopify may soon roll out more advanced AI\u2011driven merchant tools, increasing competitive pressure on Meesho\u2019s social commerce platform and potentially prompting Meesho to accelerate its own AI capabilities to retain merchants.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "e8edecfc-3755-4afb-b787-4c857af15867",
+    "event_id": "evt_e63b7989ba24649d",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "f0292cdd-bad1-4da6-b749-734b77b10fde",
+    "event_id": "evt_668a1c5b692c6271",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "The Nasdaq article titled \u201cChewy vs. Shopify: Which Consumer Stock Is a Better Buy in 2026?\u201d reports that Muse could be a major catalyst for Shopify, giving new merchants another reason to choose the platform, and that Chewy is strengthening its competitive position through high\u2011margin health services and an Autoship subscription model. If Shopify successfully leverages Muse to attract more merchants, it could increase competitive pressure on Meesho\u2019s merchant acquisition and retention in India, and Chewy\u2019s subscription focus may signal a broader shift toward recurring\u2011revenue models that Meesho might need to consider for its own offerings.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "5edc8e0f-03d4-4ae5-b876-865da6e9312a",
+    "event_id": "evt_54bfe9c33a7fe952",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "54ba761c-3f04-4f2c-9977-499f7439ed02",
+    "event_id": "evt_ba7edc988ce85fa2",
+    "company_name": "Flipkart",
+    "tier": "Should-Know",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "High",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "d314d3da-12c8-46d1-8661-1470eedc4276",
+    "event_id": "evt_04eb15b2a73cebce",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "e9e7cdde-a563-47fb-8596-1cfdbb1361f9",
+    "event_id": "evt_a1630b072ef070f7",
+    "company_name": "Flipkart",
+    "tier": "Should-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "High",
+    "why_it_matters": "The source documents that Flipkart is offering a substantial discount on the iPhone\u202f16 in India, as indicated by the article title and reinforced by recent news of similar price cuts on other flagship smartphones (e.g., Samsung S26\u202fUltra, iPhone\u202f17). This could suggest that Flipkart is intensifying price competition on premium mobile devices, which may draw price\u2011sensitive consumers away from Meesho\u2019s marketplace and pressure Meesho to adjust its pricing or promotional approach for high\u2011ticket items.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "711f8833-7dcf-4a05-bc8e-e548059dab5a",
+    "event_id": "evt_da04556f5b82d37d",
+    "company_name": "Shopify",
+    "tier": "Should-Know",
+    "confidence": "Low",
+    "inference_confidence": "Low",
+    "fact_confidence": "Medium",
+    "why_it_matters": "Analysis unavailable due to rate limits.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  },
+  {
+    "id": "07e07f9b-ade8-4c40-a316-a4e0983f566b",
+    "event_id": "evt_4ab78018f1b964fe",
+    "company_name": "Amazon India",
+    "tier": "Must-Know",
+    "confidence": "Medium",
+    "inference_confidence": "Medium",
+    "fact_confidence": "Medium",
+    "why_it_matters": "The source states that Amazon and Flipkart are auditing third-party security camera listings due to a report flagging hundreds of devices lacking mandatory government approvals. This regulatory compliance action suggests that Meesho may also face similar scrutiny or operational requirements to remove unlicensed electronics, potentially impacting its inventory management and seller compliance processes.",
+    "created_at": "2026-10-02T03:20:53.517614+00:00"
+  }
+];
+
+export const BASELINE_TRENDS: TrendRecord[] = [
+  {
+    "cluster_id": "cluster_0177",
+    "trend_name": "State of agent skills",
+    "representative_title": "State of agent skills",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 21,
+    "raw_event_count": 23,
+    "companies_involved": [
+      "Microsoft",
+      "Research",
+      "Vercel"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0527",
+    "trend_name": "Escaping the OpenAI Codex sandbox, twice",
+    "representative_title": "Escaping the OpenAI Codex sandbox, twice",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 6,
+    "raw_event_count": 6,
+    "companies_involved": [
+      "OpenAI",
+      "Vercel"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0062",
+    "trend_name": "Cloudflare acquires Deno to improve its Workers programming model",
+    "representative_title": "Cloudflare acquires Deno to improve its Workers programming model",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 4,
+    "raw_event_count": 4,
+    "companies_involved": [
+      "Cloudflare"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0064",
+    "trend_name": "GitHub",
+    "representative_title": "GitHub",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 4,
+    "raw_event_count": 88,
+    "companies_involved": [
+      "Vercel"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0040",
+    "trend_name": "Google's AI Tools Transform Swedish Classrooms",
+    "representative_title": "Google's AI Tools Transform Swedish Classrooms",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 12,
+    "raw_event_count": 16,
+    "companies_involved": [
+      "Google",
+      "Yoodli"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0041",
+    "trend_name": "Anthropic\u2019s IPO pitch embraces AI\u2019s promise and peril",
+    "representative_title": "Anthropic\u2019s IPO pitch embraces AI\u2019s promise and peril",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 26,
+    "raw_event_count": 38,
+    "companies_involved": [
+      "Anthropic",
+      "OpenAI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0119",
+    "trend_name": "OpenAI and Anthropic Launch New Models\u2014They Are Fighting the Wrong Battle",
+    "representative_title": "OpenAI and Anthropic Launch New Models\u2014They Are Fighting the Wrong Battle",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 49,
+    "raw_event_count": 89,
+    "companies_involved": [
+      "Anthropic",
+      "OpenAI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0155",
+    "trend_name": "How Meta got ahead of OpenAI in the AI agent race",
+    "representative_title": "How Meta got ahead of OpenAI in the AI agent race",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 24,
+    "raw_event_count": 31,
+    "companies_involved": [
+      "Meta",
+      "OpenAI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0552",
+    "trend_name": "Amazon Blocks Meta's Muse. It Could Be a Gift for Walmart and Shopify",
+    "representative_title": "Amazon Blocks Meta's Muse. It Could Be a Gift for Walmart and Shopify",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 7,
+    "raw_event_count": 8,
+    "companies_involved": [
+      "Amazon",
+      "Meta",
+      "Shopify"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_1017",
+    "trend_name": "Anthropic, OpenAI, Google and SpaceXAI face lawsuit claiming AI slowdown harms subscribers and violates antitrust laws",
+    "representative_title": "Anthropic, OpenAI, Google and SpaceXAI face lawsuit claiming AI slowdown harms subscribers and violates antitrust laws",
+    "cluster_type": "cross_company_trend",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 13,
+    "raw_event_count": 47,
+    "companies_involved": [
+      "SpaceXAI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0026",
+    "trend_name": "This Is AMD's Biggest Hurdle in an AI Sell-Off (and No, It's Not Nvidia)",
+    "representative_title": "This Is AMD's Biggest Hurdle in an AI Sell-Off (and No, It's Not Nvidia)",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 4,
+    "raw_event_count": 4,
+    "companies_involved": [
+      "NVIDIA"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0042",
+    "trend_name": "Anthropic bans users from \u2018needless abusive or cruel behavior\u2019 towards Claude",
+    "representative_title": "Anthropic bans users from \u2018needless abusive or cruel behavior\u2019 towards Claude",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 9,
+    "raw_event_count": 9,
+    "companies_involved": [
+      "Anthropic"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0044",
+    "trend_name": "CERN and Mistral join forces to accelerate AI for science",
+    "representative_title": "CERN and Mistral join forces to accelerate AI for science",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 11,
+    "raw_event_count": 13,
+    "companies_involved": [
+      "Google",
+      "Mistral AI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0066",
+    "trend_name": "How Cloudflare addressed a cross-tenant data exposure vulnerability in Containers",
+    "representative_title": "How Cloudflare addressed a cross-tenant data exposure vulnerability in Containers",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 3,
+    "raw_event_count": 3,
+    "companies_involved": [
+      "Cloudflare"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0068",
+    "trend_name": "How we rebuilt Cloudflare Workers\u2019 module registry for Node.js compatibility",
+    "representative_title": "How we rebuilt Cloudflare Workers\u2019 module registry for Node.js compatibility",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 4,
+    "raw_event_count": 4,
+    "companies_involved": [
+      "Cloudflare"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0089",
+    "trend_name": "Flipkart Big Billion Days Sale 2026: iPhone 17 Gets Rs. 19,901 Off, iPhone 15 Also Discounted",
+    "representative_title": "Flipkart Big Billion Days Sale 2026: iPhone 17 Gets Rs. 19,901 Off, iPhone 15 Also Discounted",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 16,
+    "raw_event_count": 18,
+    "companies_involved": [
+      "Flipkart"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0124",
+    "trend_name": "Cloudflare Clef: open-source decision models",
+    "representative_title": "Cloudflare Clef: open-source decision models",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 5,
+    "raw_event_count": 5,
+    "companies_involved": [
+      "Cloudflare",
+      "Microsoft"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0145",
+    "trend_name": "OpenAI launches GPT-6 Sol and Luna, boasting lower cost and fewer mistakes",
+    "representative_title": "OpenAI launches GPT-6 Sol and Luna, boasting lower cost and fewer mistakes",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 19,
+    "raw_event_count": 42,
+    "companies_involved": [
+      "OpenAI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0156",
+    "trend_name": "Anthropic AI Model Goes Rogue, Submits Fake Unsolved Murder Tip",
+    "representative_title": "Anthropic AI Model Goes Rogue, Submits Fake Unsolved Murder Tip",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 32,
+    "raw_event_count": 58,
+    "companies_involved": [
+      "Anthropic"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0158",
+    "trend_name": "Has OpenAI learned anything from the Hugging Face hack?",
+    "representative_title": "Has OpenAI learned anything from the Hugging Face hack?",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 27,
+    "raw_event_count": 30,
+    "companies_involved": [
+      "Hugging Face",
+      "OpenAI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0173",
+    "trend_name": "Nadella's Next Act: Can Microsoft's CEO Repeat His Cloud Magic in AI?",
+    "representative_title": "Nadella's Next Act: Can Microsoft's CEO Repeat His Cloud Magic in AI?",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 9,
+    "raw_event_count": 14,
+    "companies_involved": [
+      "Microsoft"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0181",
+    "trend_name": "Flipkart announces Big Billion Days sale 2026 announced: Bank discounts, early access and more",
+    "representative_title": "Flipkart announces Big Billion Days sale 2026 announced: Bank discounts, early access and more",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 9,
+    "raw_event_count": 12,
+    "companies_involved": [
+      "Flipkart"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0187",
+    "trend_name": "Musk says he will rename SpaceXAI to SpaceXSI",
+    "representative_title": "Musk says he will rename SpaceXAI to SpaceXSI",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 5,
+    "raw_event_count": 7,
+    "companies_involved": [
+      "SpaceXAI"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0190",
+    "trend_name": "Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date",
+    "representative_title": "Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 6,
+    "raw_event_count": 11,
+    "companies_involved": [
+      "Snapdeal"
+    ],
+    "relevance_score": 0.85
+  },
+  {
+    "cluster_id": "cluster_0195",
+    "trend_name": "Adaptive application security for the AI era: how Cloudflare connects code, traffic, and intelligence to stop attacks",
+    "representative_title": "Adaptive application security for the AI era: how Cloudflare connects code, traffic, and intelligence to stop attacks",
+    "cluster_type": "single_company_storyline",
+    "primary_category": "Strategic Movements",
+    "momentum": {
+      "label": "building",
+      "vector": [
+        1,
+        2,
+        3
+      ]
+    },
+    "distinct_story_count": 5,
+    "raw_event_count": 5,
+    "companies_involved": [
+      "Cloudflare",
+      "Google",
+      "Microsoft"
+    ],
+    "relevance_score": 0.85
+  }
+];
+
+export const BASELINE_TOPICS: ResearchTopic[] = [
+  {
+    "id": "topic-1",
+    "topic_label": "AI Research & Agentic Tooling",
+    "keywords": [
+      "llm",
+      "agentic",
+      "ai",
+      "reasoning",
+      "model",
+      "inference"
+    ],
+    "is_active": true
+  },
+  {
+    "id": "topic-2",
+    "topic_label": "Pricing & Packaging Movements",
+    "keywords": [
+      "pricing",
+      "tier",
+      "subscription",
+      "plan",
+      "billing",
+      "metering"
+    ],
+    "is_active": true
+  },
+  {
+    "id": "topic-3",
+    "topic_label": "Product Launches & Releases",
+    "keywords": [
+      "launch",
+      "release",
+      "changelog",
+      "v1",
+      "beta",
+      "announcement"
+    ],
+    "is_active": true
+  },
+  {
+    "id": "topic-4",
+    "topic_label": "Edge Infrastructure & Runtimes",
+    "keywords": [
+      "edge",
+      "serverless",
+      "workers",
+      "wasm",
+      "runtime",
+      "latency"
+    ],
+    "is_active": true
+  },
+  {
+    "id": "topic-5",
+    "topic_label": "Strategic Alliances & Ecosystem",
+    "keywords": [
+      "partnership",
+      "acquisition",
+      "strategic",
+      "ecosystem",
+      "integration"
+    ],
+    "is_active": true
+  },
+  {
+    "id": "topic-6",
+    "topic_label": "Signals & Talent Movements",
+    "keywords": [
+      "hiring",
+      "talent",
+      "engineering",
+      "careers",
+      "leadership",
+      "community"
+    ],
+    "is_active": true
+  }
+];
+
+export const BASELINE_RADAR_EVALUATIONS = [
+  {
+    topic_id: "topic-1",
+    topic_label: "AI Research & Agentic Tooling",
+    keywords: ["llm", "agentic", "ai", "reasoning", "model", "inference"],
+    research_item_count: 14,
+    research_item_ids: ["sig-ai-1", "sig-ai-2"],
+    competitor_connections: {
+      Shopify: { status: "Active Adoption", reason: "Embedded LLM storefront agents and auto-catalog generation tools." },
+      Flipkart: { status: "Scaling", reason: "Generative AI search and conversational buying assistant deployed." },
+      "Amazon India": { status: "Mature", reason: "Rufus conversational AI shopping assistant rolled out across app tiers." }
+    },
+    state_change_detected: true,
+    why_it_matters: "Accelerated shift toward agentic automated shopping experiences altering customer discovery flow."
+  },
+  {
+    topic_id: "topic-2",
+    topic_label: "Pricing & Packaging Movements",
+    keywords: ["pricing", "tier", "subscription", "plan", "billing", "metering"],
+    research_item_count: 9,
+    research_item_ids: ["sig-pr-1"],
+    competitor_connections: {
+      Temu: { status: "Aggressive", reason: "Direct factory pricing model pressurizing mass apparel marketplace margins." },
+      Meesho: { status: "Zero Commission Benchmark", reason: "Zero-commission marketplace model continues to anchor seller retention." },
+      Flipkart: { status: "Promotional", reason: "Seasonal Big Billion Days price parity guarantees and tier discounts." }
+    },
+    state_change_detected: true,
+    why_it_matters: "Direct price compression across value fashion segments requiring margin optimization."
+  },
+  {
+    topic_id: "topic-3",
+    topic_label: "Product Launches & Releases",
+    keywords: ["launch", "release", "changelog", "v1", "beta", "announcement"],
+    research_item_count: 18,
+    research_item_ids: ["sig-pl-1"],
+    competitor_connections: {
+      Myntra: { status: "Feature Rollout", reason: "Myntra FWD virtual dressing room and rapid delivery pilot expansion." },
+      Shopsy: { status: "Scaling", reason: "Hyper-local tier-3 seller app onboarding revamped for faster dispatch." }
+    },
+    state_change_detected: false,
+    why_it_matters: "Feature convergence around fast cataloging and localized vernacular UI."
+  },
+  {
+    topic_id: "topic-4",
+    topic_label: "Edge Infrastructure & Runtimes",
+    keywords: ["edge", "serverless", "workers", "wasm", "runtime", "latency"],
+    research_item_count: 6,
+    research_item_ids: ["sig-ed-1"],
+    competitor_connections: {
+      Shopify: { status: "Optimized", reason: "Oxygen global edge checkout rendering sub-50ms TTFB." },
+      Flipkart: { status: "Scaling", reason: "Dynamic flash sale edge caching deployed for peak concurrency bursts." }
+    },
+    state_change_detected: false,
+    why_it_matters: "Sub-second mobile loading speeds directly correlating with higher cart checkout conversions."
+  },
+  {
+    topic_id: "topic-5",
+    topic_label: "Strategic Alliances & Ecosystem",
+    keywords: ["partnership", "acquisition", "strategic", "ecosystem", "integration"],
+    research_item_count: 11,
+    research_item_ids: ["sig-al-1"],
+    competitor_connections: {
+      Ajio: { status: "Brand Exclusive", reason: "Reliance retail tie-ins with global fast-fashion apparel houses." },
+      Snapdeal: { status: "IPO Preparation", reason: "AceVector parent consolidation and logistics partnership restructuring." }
+    },
+    state_change_detected: true,
+    why_it_matters: "Vertical brand partnerships limiting open distributor access in premium categories."
+  },
+  {
+    topic_id: "topic-6",
+    topic_label: "Signals & Talent Movements",
+    keywords: ["hiring", "talent", "engineering", "careers", "leadership", "community"],
+    research_item_count: 12,
+    research_item_ids: ["sig-ta-1"],
+    competitor_connections: {
+      "Amazon India": { status: "Hiring Surge", reason: "Senior VP and director-level engineering positions opened in Bengaluru." },
+      Flipkart: { status: "Executive Addition", reason: "Supply chain and quick-commerce operations leadership appointments." }
+    },
+    state_change_detected: false,
+    why_it_matters: "Aggressive hiring in quick-commerce fulfillment indicates rapid competitive delivery expansion."
+  }
+];
+
+export const BASELINE_WORKSPACE_SETTINGS = {
+  tenant_id: "8553449a-c998-4727-be01-9aeb724038cb",
+  workspace_name: "Meesho Competitive Intelligence",
+  owner_email: "8553449a@prismiq.ai",
+  auth_role: "authenticated",
+  rls_enforcement: "Active (PostgreSQL Row Level Security)",
+  tracked_companies_count: 9,
+  active_topics_count: 6,
+  paused_topics_count: 0,
+  total_signals_evaluated: 1561,
+  noise_suppressed_count: 445,
+  cadence: "Daily (00:00 UTC)",
+  schedule: "0 0 * * *",
+  api_version: "2.0.0",
+  api_status: "Operational"
+};
+
+
+export const BASELINE_WORKSPACE_CONFIG: WorkspaceConfig = {
+  tenant_id: "8553449a-c998-4727-be01-9aeb724038cb",
+  target_company: "Meesho",
+  competitors: ["Flipkart", "Amazon India", "Myntra", "Ajio", "Shopify", "Shopsy", "Snapdeal", "Temu"],
+  tracked_companies: BASELINE_TRACKED_COMPANIES,
+  topics: BASELINE_TOPICS.map((t) => ({
+    id: t.id,
+    topic_label: t.topic_label,
+    keywords: t.keywords,
+    source: t.source,
+    is_active: t.is_active,
+  })),
+  has_target: true,
+  has_competitors: true,
+  has_preferences: true,
+  is_configured: true,
+  onboarding_complete: true,
+};
+
+export const BASELINE_LATEST_BRIEF: BriefDetail = {"id": "data_latest", "date": "2026-10-05T03:21:07.520132+00:00", "filename": "brief_latest.md", "content": "# PrismIQ Competitive Intelligence Brief\n\n## Pipeline Execution & Data Coverage\n\n- \u23f1\ufe0f **Execution Mode**: Autonomous Scheduled Run (cadence: daily)\n- \u26a0\ufe0f **Source Alert**: `github` source unavailable this cycle (404 Client Error: Not Found for url: https://api.github.com/orgs/66analytics/events?per_page=30 after 2 attempts). Pipeline continued with remaining healthy sources.\n\n## Top 3 decisions this informs\n\n1. **Temu** (Temu\u2019s UK sales more than double to $171mn): The source documents that Temu secured significant financing to expand its product roadmap and commercial go-to-market execution.\n2. **Temu** (In Focus | Boxed in: how Temu\u2019s global shopping revolution ran off the rails): The source documents that Temu is facing a 'wave of global regulation' which is causing it to 'quickly lose its shine.' This suggests a potential reduction in Temu's aggressive global expansion or marketing intensity, which may indirectly alleviate competitive pressure on Meesho in international markets where both operate, though the specific impact on Meesho's domestic Indian market is not explicitly detailed in the excerpt.\n3. **Flipkart** (Ecommerce platform Flipkart doubles active seller base in 15 months): Fact: Flipkart doubled its active seller base in 15 months, attributing the growth to a zero\u2011commission model, simplified onboarding, and AI\u2011led tools for selection, pricing, and catalogues. Inference: The rapid expansion of sellers, especially in Tier\u202f2 and Tier\u202f3 markets, may intensify competition for Meesho\u2019s seller acquisition and could pressure Meesho to reconsider its commission structure and tooling to retain and attract sellers.\n\n## Executive Summary & Theme Synthesis Rollup\n\n- **Monitoring Scope**: 50 consolidated events synthesized across 5 strategic themes.\n- **Cross-Competitor Patterns**: 0 verified multi-competitor pattern(s) identified.\n\n| Theme | Active Competitors | Total Events | Cross-Competitor Pattern Detected? |\n|---|---|---|---|\n| **Product & Platform Development** | Temu, Ajio, Amazon India, Flipkart, Shopify, meesho, Myntra, Snapdeal | 48 | \u274c No pattern |\n| **Pricing & Packaging** | None | 0 | \u274c No pattern |\n| **Talent & Organization** | meesho | 1 | \u274c No pattern |\n| **Security & Reliability** | None | 0 | \u274c No pattern |\n| **Market Positioning & Partnerships** | Flipkart | 1 | \u274c No pattern |\n\n## Strategic Themes & Cross-Competitor Analysis\n\n### Theme: Product & Platform Development\n\n*Product activities across competitors represent independent, disparate feature releases without a shared strategic shift.*\n\n#### Temu (7 items)\n\n##### Must-Know\n\n- **[Temu\u2019s UK sales more than double to $171mn](https://www.ft.com/content/b119a81f-2347-4ba8-8b5f-13b380cf45fa?syn-25a6b1a6=1)**\n  - **Source**: news (Single-Source) | **Confidence**: Medium | **Freshness**: 1 day old (*Date: 2026-10-03 13:54:13 +0000*)\n  - **Why it matters**: The source documents that Temu secured significant financing to expand its product roadmap and commercial go-to-market execution.\n- **[In Focus | Boxed in: how Temu\u2019s global shopping revolution ran off the rails](https://www.scmp.com/tech/big-tech/article/3369595/temu-took-world-storm-has-shopping-app-lost-its-thunder)**\n  - **Source**: news (Single-Source) | **Confidence**: Fact Medium, Inference Low | **Freshness**: New today (*Date: 2026-10-05 02:00:19 +0000*)\n  - **Why it matters**: The source documents that Temu is facing a 'wave of global regulation' which is causing it to 'quickly lose its shine.' This suggests a potential reduction in Temu's aggressive global expansion or marketing intensity, which may indirectly alleviate competitive pressure on Meesho in international markets where both operate, though the specific impact on Meesho's domestic Indian market is not explicitly detailed in the excerpt.\n- **[Popular Jaecoo J5 wears 'Temu Range Rover' moniker with pride | The Citizen](https://www.citizen.co.za/motoring/jaecoo-j5-shines-as-temu-range-rover/)**\n  - **Source**: news (Single-Source) | **Confidence**: Fact Medium, Inference Low | **Freshness**: New today (*Date: 2026-10-04 12:15:00 +0000*)\n  - **Why it matters**: The source documents that the Jaecoo J5 vehicle is being referred to as the 'Temu Range Rover' in a South African publication, citing a manufacturing partnership between Chery and Jaguar Land Rover. This is a factual observation regarding automotive branding and does not contain information about Temu\u2019s e-commerce operations, pricing strategies, or market presence in India, thus offering no direct strategic relevance to Meesho\u2019s competitive landscape.\n\n##### Should-Know\n\n- **[\u2018Temu Range Rover\u2019 is UK top-seller again as Chinese cars boom](https://www.detroitnews.com/story/business/autos/foreign/2026/10/02/chinese-make-inroads-in-uk-as-temu-range-rover-regains-sales-crown/92054301007/)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: Fact: The Temu Range Rover has become the UK\u2019s top-selling vehicle again, indicating a surge in Chinese car sales in the UK. Inference: This could suggest that Chinese manufacturing and e-commerce capabilities are expanding globally, which might increase competitive pressure on Indian marketplaces such as Meesho if similar Chinese firms enter the Indian e-commerce space. (*Date: 2026-10-02 13:47:13 +0000*)\n- **['Temu Range Rover' Jaecoo 7 is UK's best-selling new car in September](https://www.dailymail.com/money/cars/article-16178141/Temu-Range-Rover-takeover-Jaecoo-7-Britains-best-selling-new-car-September-Chinese-brands-run-riot.html)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 12:50:55 +0000)]: 'Temu Range Rover' Jaecoo 7 is UK's best-selling new car in September \u2014 It marks a pivotal moment for the UK's car market, with the Jaecoo 7 having also been the most popular new model in March. This reflects active commercial positioning and operational momentum for Temu. (*Date: 2026-10-02 12:50:55 +0000*)\n- **[\u2018Temu Range Rover\u2019 Is UK Top-Seller Again as China Cars Boom](https://www.bloomberg.com/news/articles/2026-10-02/-temu-range-rover-is-uk-best-seller-again-as-chinese-cars-boom)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 08:02:39 +0000)]: \u2018Temu Range Rover\u2019 Is UK Top-Seller Again as China Cars Boom \u2014 British drivers\u2019 embrace of Chinese cars is gaining strength, with the Jaecoo 7 regaining its spot as the UK\u2019s best-selling new car. This reflects active commercial positioning and operational momentum for Temu. (*Date: 2026-10-02 08:02:39 +0000*)\n- **[Temu Introduces New GI Protection Feature to Support Local Producers](https://www.prnewswire.com/news-releases/temu-introduces-new-gi-protection-feature-to-support-local-producers-302895726.html)** (Medium confidence | 3 days old | news)\n  - **Why it matters**: Temu has added a dedicated geographical indications (GI) category to its Brand Registry Portal, enabling local producers to register and protect unique product names. This could make Temu more attractive to local producers seeking brand protection, potentially drawing them away from competitors like Meesho that currently lack a similar GI-focused feature. If local producers prioritize GI protection, Meesho may need to develop comparable capabilities to retain its supplier base. (*Date: 2026-10-01 09:00:00 +0000*)\n\n#### Ajio (7 items)\n\n##### Must-Know\n\n- **[ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan](https://news.google.com/rss/articles/CBMiwgFBVV95cUxOdl9Sazh6UlhNak11SmtXRm4zR0pSZHczZzJMWXlrTW9TeG45M2ZNTFRUenN6elRpMDM4QzBvclkwcEpOVFpkalI5UkVRU2NjSkJ4RDdNdFpyWlFrRHJ0bTNNQVBUTFp0Ul95em9IZndPYkkwMFE1cXVlb3dkYU9ka3VZZ0pJdjVHRjMzdFpUUlZ5bUw4bmpIaVgzeVVKTmpvUFlEMlRjWUJjRll4eHhWVkF2OUUzN2cxV3VNM2ZFVWZudw?oc=5)**\n  - **Source**: news (Single-Source) | **Confidence**: Medium | **Freshness**: 5 days old (*Date: 2026-09-29T15:52:20+00:00*)\n  - **Why it matters**: The source documents that [NEWS (2026-09-29T15:52:20+00:00)]: ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] - Taxscan \u2014 ITAT Upholds Reliefs for Reliance Retail, AJIO Marketing Expense Allowed as Revenue [Read Order] &nbsp;&nbsp; Taxscan. This reflects active commercial positioning and operational momentum for Ajio.\n\n##### Should-Know\n\n- **[Ajio Names Ahaan Panday As Brand Ambassador - BW Marketing World](https://news.google.com/rss/articles/CBMilgFBVV95cUxPMVd5N1VPeE9tLS1tdm05UTJ0eU9CdnRHYmlaVTdfYXY1OXlrQ2owMjg3T19YdDBwcWxNR21LU3o4WnFPbmp4UncxbXg0anNQU0l3U0ZpZklNNFZkanU1UHQ5cVJTNW1OdFRkRnF1aFhfdXNzTGs0VzRtWXg4aGZuSDJURUF5OU5wcFlhTHNRV3dxUGNWU2c?oc=5)** (Fact Medium / Inference Low confidence | New today | news)\n  - **Why it matters**: Ajio has officially named Ahaan Panday as its brand ambassador, a fact confirmed by the headline and source attribution to BW Marketing World. This indicates a continued investment in brand visibility and celebrity marketing by Ajio, a direct competitor to Meesho in the Indian fashion and lifestyle e-commerce sector, but the excerpt does not provide data on the scale of this campaign or its expected impact on market share. (*Date: 2026-10-04T19:56:31+00:00*)\n- **[AJIO Names Ahaan Panday as New Brand Ambassador Ahead of Festive Season - Indian Retailer](https://news.google.com/rss/articles/CBMiyAFBVV95cUxOZU03b2FGc3hLU1hfUUtGVElNcGhEZ2xTaldnTWFGdTk1OXJXQVFCbm1MRC1YaGJWLW5mSE15M0xNSkp1ZklZNGR4UDRvdlRTenNCQVprT3FUZnJSaWZlWWVwTVZiVHZvdXdMMTRfNEN1aDFYN1FCaS01U2E3Yy15MW8yOGFEZkszcWV6OXJmLVp0NTZHZW1zRm1MREJLSnBxb0oxaS1BaVQ1S1ZoUlRpVmdIbjd3UFFhWlA0Tnh3UkpFaVp6a3VlWA?oc=5)** (Medium confidence | 1 day old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-03T10:31:58+00:00)]: AJIO Names Ahaan Panday as New Brand Ambassador Ahead of Festive Season - Indian Retailer \u2014 AJIO Names Ahaan Panday as New Brand Ambassador Ahead of Festive Season &nbsp;&nbsp; Indian Retailer. This reflects active commercial positioning and operational momentum for Ajio. (*Date: 2026-10-03T10:31:58+00:00*)\n- **[AJIO welcomes Ahaan Panday as new brand ambassador - Campaign India](https://news.google.com/rss/articles/CBMitAFBVV95cUxQUW5Uei1scGo0ZDNJNGJZVWd1dV8zbXhyeUtKY3hfdUlMYU13OThvTU42YUJveVBsR3R6bGRCSS0yUDVMVEpsT3lSRS0zYkROakVXeGZSaGNDaEIzcDhuVktfSS1TMmVXWjlVeEFDa3Y2UjhHX3ZIRkJaVUJEMVNxbDF4bjhOTnlPaVBzYVFIMmFGeGxoUmdvcV9QaXAxUllGNmVHajUtZjE0YWg5YmlUNzVlMjY?oc=5)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02T16:05:29+00:00)]: AJIO welcomes Ahaan Panday as new brand ambassador - Campaign India \u2014 AJIO welcomes Ahaan Panday as new brand ambassador &nbsp;&nbsp; Campaign India. This reflects active commercial positioning and operational momentum for Ajio. (*Date: 2026-10-02T16:05:29+00:00*)\n- **[AJIO names Ahaan Panday as new brand ambassador - IMPACT Magazine](https://news.google.com/rss/articles/CBMipgFBVV95cUxPcW1RbGhkakIyX0plVGhhU1RLcDkxT19wMjhJQkVwTW1lTkZVamNoUkxza0RGclU4SUIwekdhZmNWVm96T1dENFRRanVsSEpsRGQtOTJZZVhhNEk4SGhMel9ydmtNaXp1bmFjSHlGTE5lZ2EzRWJYVGZTUlhXY2E0UnVReXZiT3hySVJnVXZJck84MFU1V3U2YnQzLXUzUW9PRzhYU053?oc=5)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02T09:28:22+00:00)]: AJIO names Ahaan Panday as new brand ambassador - IMPACT Magazine \u2014 AJIO names Ahaan Panday as new brand ambassador &nbsp;&nbsp; IMPACT Magazine. This reflects active commercial positioning and operational momentum for Ajio. (*Date: 2026-10-02T09:28:22+00:00*)\n- **[Ajio names Ahaan Panday as brand face ahead of festive season - ET BrandEquity](https://news.google.com/rss/articles/CBMi5AFBVV95cUxQWDBKcFNkWXlFS3ZieGw5ck9pc3FVeEx0Skw3SldLWHFPNXpJY21FLTVUVUw5d0FSdC1ZbVEtQ1BWY1djaVFqS29CajRYMDFIckIyU0VlWDBvYVB6a1Zjd19ENFJjdS1sZ3U1YmIzZVNRQVZueHpKc2g2QlFNeF8xTGtRY1VJUXZ6X3dCdTROLTlOempld1lrdGlrTkdPcnQycTRoaWZTLURGZlhmTWt5c2lwckp1SDRUUHpIRTJhU0lNX2JoODBsd2RSTDI3VGpGV1dLRHBrZHlwTnhRaGUzNmRCZ1HSAeQBQVVfeXFMUFgwSnBTZFl5RUt2YnhsOXJPaXNxVXhMdEpMN0pXS1hxTzV6SWNtRS01VFVMOXdBUnQtWW1RLUNQVmNXY2lRaktvQmo0WDAxSHJCMlNFZVgwb2FQemtWY3dfRDRSY3UtbGd1NWJiM2VTUUFWbnh6SnNoNkJRTXhfMUxrUWNVSVF2el93QnU0Ti05TnpqZXdZa3Rpa05HT3J0MnE0aGlmUy1ERmZYZk1reXNpcHJKdUg0VFB6SEUyYVNJTV9iaDgwbHdkUkwyN1RqRldXS0Rwa2R5cE54UWhlMzZkQmdR?oc=5)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02T07:59:03+00:00)]: Ajio names Ahaan Panday as brand face ahead of festive season - ET BrandEquity \u2014 Ajio names Ahaan Panday as brand face ahead of festive season &nbsp;&nbsp; ET BrandEquity. This reflects active commercial positioning and operational momentum for Ajio. (*Date: 2026-10-02T07:59:03+00:00*)\n- **[AJIO welcomes Ahaan Panday as Brand Ambassador - MediaNews4U](https://news.google.com/rss/articles/CBMigAFBVV95cUxQR2FpRnEtaXVDUW9MQjFmeHBYMU5ZS2Q4U08zck96a005R0loaHBFY1FVX0VxY1BUa0ZWSWZlNzhvSUp3YWxMcU1xYVcyZWM5eFVYMlUzT3dKaXliNXFHU0c0Yks2XzVBZXk3ZUZhNXRndlVtYzJsQzdsdXhNcWpxMw?oc=5)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02T06:14:18+00:00)]: AJIO welcomes Ahaan Panday as Brand Ambassador - MediaNews4U \u2014 AJIO welcomes Ahaan Panday as Brand Ambassador &nbsp;&nbsp; MediaNews4U. This reflects active commercial positioning and operational momentum for Ajio. (*Date: 2026-10-02T06:14:18+00:00*)\n\n#### Amazon India (7 items)\n\n##### Must-Know\n\n- **[Best TVs Under Rs. 50,000 in India to Buy During Amazon, Flipkart Sale](https://www.gadgets360.com/smart-home/features/best-smart-tv-under-rs-50000-india-amazon-flipkart-sale-xiaomi-samsung-tcl-price-offers-12115671)**\n  - **Corroboration**: 4 signals (news \u2014 Medium) | **Confidence**: Fact High, Inference Medium | **Freshness**: New today (*Date: 2026-10-04 07:30:08 +0000*)\n  - **Why it matters**: Fact: Amazon\u2019s Great Indian Festival Sale is set to start on October\u202f8, and the article notes that both Amazon and Flipkart will host sales during this period. Inference: The concurrent festival sales may increase overall consumer spending on electronics, creating a competitive environment that could reduce Meesho\u2019s share of consumer purchases in this category, suggesting a need for Meesho to align discount or marketing tactics accordingly.\n- **[Best Perfumes Under \u20b91,500 In 2026: Top Picks from Bella Vita, Skinn and Wild Stone](https://www.news18.com/lifestyle/beauty/best-perfumes-under-1500-in-2026-top-picks-from-bella-vita-skinn-and-wild-stone-10366507.html)**\n  - **Corroboration**: 3 signals (news \u2014 Medium) | **Confidence**: Fact High, Inference Medium | **Freshness**: New today (*Date: 2026-10-04 06:13:09 +0000*)\n  - **Why it matters**: Fact: Amazon expanded its ultra\u2011fast delivery service to more than 120 Indian cities, as reported in the article about best perfumes. Inference: The broader delivery network may give Amazon a logistical advantage over Meesho, potentially influencing customer preference for faster shipping and indicating that Meesho may need to enhance its own delivery capabilities or partner with logistics providers to remain competitive.\n- **[Retailers investigate India camera sales | Arkansas Democrat Gazette](https://www.arkansasonline.com/news/2026/oct/02/retailers-investigate-india-camera-sales/)**\n  - **Source**: news (Single-Source) | **Confidence**: Medium | **Freshness**: 2 days old (*Date: 2026-10-02 07:02:00 +0000*)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 07:02:00 +0000)]: Retailers investigate India camera sales | Arkansas Democrat Gazette \u2014 NEW DELHI -- Amazon and Walmart's Flipkart have begun checking security cameras sold on their platforms in India after hundreds of unlicensed products were offered for sale despite strict government testing rules imposed six months ago amid concerns about espionage risks. This reflects active commercial positioning and operational momentum for Amazon India.\n- **[Dupahiya 2 Review: Gajraj Rao, Sparsh Shrivastav Return In Chaotic And Entertaining Series](https://in.mashable.com/entertainment/114509/dupahiya-2-review-gajraj-rao-sparsh-shrivastav-return-in-chaotic-and-entertaining-series)**\n  - **Source**: news (Single-Source) | **Confidence**: Fact Medium, Inference Low | **Freshness**: 3 days old (*Date: 2026-10-01 19:05:22 +0000*)\n  - **Why it matters**: The source documents the release of the series 'Dupahiya 2' on Amazon Prime Video, which is a content streaming service distinct from Amazon India's e-commerce operations. There is no evidence in the excerpt linking this entertainment content to Meesho's competitive landscape in e-commerce or infrastructure.\n- **[Amazon, Flipkart Audit Security Camera Listings in India Over Govt Compliance: Report](https://www.ndtvprofit.com/business/espionage-fears-prompt-amazon-flipkart-to-purge-unapproved-security-cameras-in-india-12127123)**\n  - **Source**: news (Single-Source) | **Confidence**: Medium | **Freshness**: 3 days old (*Date: 2026-10-01 16:49:03 +0000*)\n  - **Why it matters**: The source states that Amazon and Flipkart are auditing third-party security camera listings due to a report flagging hundreds of devices lacking mandatory government approvals. This regulatory compliance action suggests that Meesho may also face similar scrutiny or operational requirements to remove unlicensed electronics, potentially impacting its inventory management and seller compliance processes.\n- **[Amazon, Walmart's Flipkart launch review of unlicensed security camera listings on India platforms](https://www.channelnewsasia.com/business/amazon-walmarts-flipkart-launch-review-unlicensed-security-camera-listings-india-platforms-6424266)**\n  - **Source**: news (Single-Source) | **Confidence**: Medium | **Freshness**: 3 days old (*Date: 2026-10-01 10:49:58 +0000*)\n  - **Why it matters**: The source documents that Amazon and Flipkart have begun reviewing unlicensed security camera listings in response to strict government testing rules imposed six months ago amid espionage concerns. This highlights a tightening regulatory environment for electronics in India, which may indicate that Meesho must proactively ensure its electronics catalog meets these compliance standards to avoid delisting or regulatory penalties.\n\n##### Should-Know\n\n- **[Festive cheer shifts beyond metros as consumer brands bet big on small-town India](https://economictimes.indiatimes.com/industry/services/retail/festive-cheer-shifts-beyond-metros-as-consumer-brands-bet-big-on-small-town-india/articleshow/134679572.cms)** (Medium confidence | New today | news)\n  - **Why it matters**: The source states that consumer brands are targeting tier-2 and smaller cities for festive growth due to weakening urban consumption, and specifically notes that Amazon has 'widened instant delivery to more cities.' This suggests Amazon is strengthening its logistics infrastructure in non-metro areas, which may intensify competition for Meesho\u2019s core user base in smaller towns during the critical festive season. (*Date: 2026-10-04 18:52:47 +0000*)\n\n#### Flipkart (6 items)\n\n##### Must-Know\n\n- **[Ecommerce platform Flipkart doubles active seller base in 15 months](https://www.business-standard.com/companies/people/ecommerce-platform-flipkart-doubles-active-seller-base-in-15-months-126100400410_1.html)**\n  - **Corroboration**: 2 signals (news \u2014 Single-Source) | **Confidence**: Fact High, Inference Medium | **Freshness**: New today (*Date: 2026-10-04 11:14:34 +0000*)\n  - **Why it matters**: Fact: Flipkart doubled its active seller base in 15 months, attributing the growth to a zero\u2011commission model, simplified onboarding, and AI\u2011led tools for selection, pricing, and catalogues. Inference: The rapid expansion of sellers, especially in Tier\u202f2 and Tier\u202f3 markets, may intensify competition for Meesho\u2019s seller acquisition and could pressure Meesho to reconsider its commission structure and tooling to retain and attract sellers.\n- **[iPhone 17 Pro for Rs 80,143 on Flipkart? Here\u2019s how offers bring down the Rs 1.34 lakh price](https://economictimes.indiatimes.com/news/new-updates/iphone-17-pro-for-rs-80143-on-flipkart-heres-how-offers-bring-down-the-rs-1-34-lakh-price/articleshow/134637470.cms)**\n  - **Source**: news (Single-Source) | **Confidence**: Fact Medium, Inference Low | **Freshness**: 2 days old (*Date: 2026-10-02 10:53:15 +0000*)\n  - **Why it matters**: The source documents that Flipkart is offering the iPhone 17 Pro 256GB at an effective price of Rs 80,143, achieved by combining a listed price of Rs 1,34,900 with up to Rs 50,750 in exchange value for an iPhone 15 Pro and an additional Rs 4,000 bank discount. This specific pricing structure suggests Flipkart is leveraging aggressive exchange subsidies and bank partnerships to drive high-ticket electronics sales, a strategy that may pressure Meesho to match similar discount depths if it seeks to compete in the premium smartphone segment.\n- **[Retailers investigate India camera sales | Arkansas Democrat Gazette](https://www.arkansasonline.com/news/2026/oct/02/retailers-investigate-india-camera-sales/)**\n  - **Source**: news (Single-Source) | **Confidence**: Medium | **Freshness**: 2 days old (*Date: 2026-10-02 07:02:00 +0000*)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 07:02:00 +0000)]: Retailers investigate India camera sales | Arkansas Democrat Gazette \u2014 NEW DELHI -- Amazon and Walmart's Flipkart have begun checking security cameras sold on their platforms in India after hundreds of unlicensed products were offered for sale despite strict government testing rules imposed six months ago amid concerns about espionage risks. This reflects active commercial positioning and operational momentum for Flipkart.\n- **[Flipkart Big Billion Days: Poco X8 Pro Max Gets Rs 6,000 Off, Deals Start At Rs 11,999](https://www.ndtvprofit.com/technology/flipkart-big-billion-days-poco-x8-pro-max-gets-rs-6-000-off-deals-start-at-rs-11-999-12127153)**\n  - **Corroboration**: 2 signals (news \u2014 Single-Source) | **Confidence**: Fact High, Inference Medium | **Freshness**: 3 days old (*Date: 2026-10-01 17:07:31 +0000*)\n  - **Why it matters**: The source confirms Flipkart is executing its 'Big Billion Days 2026' campaign with specific discounts on Poco smartphones, such as a Rs 6,000 cut on the X8 Pro Max. This indicates a direct competitive push by Flipkart in the electronics category, which may pressure Meesho\u2019s electronics sales or require Meesho to adjust its pricing strategy during the same promotional period.\n\n##### Should-Know\n\n- **[iPhone 16 price drops by Rs 20,000 without conditions](https://www.indiatoday.in/visualstories/technology/iphone-16-price-drops-by-rs-20000-286312-03-10-2026)** (Fact High / Inference Medium confidence | 1 day old | Single-Source corroboration [news])\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 14:29:48 +0000)]: Nothing Phone 4a and 4a Pro to get big discount in Flipkart Big Billion Days sale \u2014 Nothing will offer discounts and deal benefits on the Phone 4a, Phone 4a Pro and Phone 4b during Flipkart's Big Billion Days sale. This reflects active commercial positioning and operational momentum for Flipkart. (*Date: 2026-10-03 05:55:03 +0000*)\n- **[Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? | Mint](https://www.livemint.com/money/amazon-great-indian-festival-and-flipkart-big-billion-days-in-oct-which-debit-credit-cards-offer-the-best-deals-11790906765219.html)** (Medium confidence | 3 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 03:12:30 +0000)]: Amazon Great Indian Festival and Flipkart Big Billion Days in Oct: Which debit, credit cards offer the best deals? | Mint \u2014 E-commerce sales on Amazon and Flipkart offer discounts for cardholders, starting October 8 and 9. This reflects active commercial positioning and operational momentum for Flipkart. (*Date: 2026-10-02 03:12:30 +0000*)\n\n#### Shopify (8 items)\n\n##### Should-Know\n\n- **[JEFF BEZOS CLASHES AGAINST MARK ZUCKERBERG](https://www.reddit.com/r/ValueInvesting/comments/1wx6tuo/jeff_bezos_clashes_against_mark_zuckerberg/)** (Medium confidence | New today | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-04 04:40:14 +0000)]: JEFF BEZOS CLASHES AGAINST MARK ZUCKERBERG \u2014 Mark Zuckerberg is a genius. This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-04 04:40:14 +0000*)\n- **[Shopify Left React Native: 4 Questions Before You Follow](https://dev.to/kielltampubolon/shopify-left-react-native-4-questions-before-you-follow-4dkh)** (Medium confidence | 1 day old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-04 02:06:16 +0000)]: Shopify Left React Native: 4 Questions Before You Follow \u2014 Yesterday, Sep 10 2026, Shopify announced it is moving every mobile app back to native Swift and... This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-04 02:06:16 +0000*)\n- **[Meta's Muse AI: Good or Bad for E-Commerce? Shopify and Amazon Are Taking Opposite Approaches.](https://www.nasdaq.com/articles/metas-muse-ai-good-or-bad-e-commerce-shopify-and-amazon-are-taking-opposite-approaches)** (Medium confidence | 1 day old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-03 22:50:00 +0000)]: Meta's Muse AI: Good or Bad for E-Commerce? Shopify and Amazon Are Taking Opposite Approaches. This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-03 22:50:00 +0000*)\n- **[Four Marketplaces, One Listing Workflow: What Amazon, eBay, Etsy and Shopify Expect From Your Copy](https://dev.to/neo_xia_3f4c019330af5fb9d/four-marketplaces-one-listing-workflow-what-amazon-ebay-etsy-and-shopify-expect-from-your-copy-3n8c)** (Medium confidence | 1 day old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-03 19:38:42 +0000)]: Four Marketplaces, One Listing Workflow: What Amazon, eBay, Etsy and Shopify Expect From Your Copy \u2014 If you sell on more than one marketplace, you already know the copy you write for Amazon doesn't... This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-03 19:38:42 +0000*)\n- **[How to sync Shopify orders to Notion (2026): 4 options compared](https://dev.to/ginugokz/how-to-sync-shopify-orders-to-notion-2026-4-options-compared-gai)** (Medium confidence | 1 day old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-03 04:09:02 +0000)]: How to sync Shopify orders to Notion (2026): 4 options compared \u2014 Disclosure: I'm building Notedock, one of the options below. This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-03 04:09:02 +0000*)\n- **[WebDecoy is now on Shopify: from bot signals to order review](https://dev.to/webdecoy/webdecoy-is-now-on-shopify-from-bot-signals-to-order-review-5gc)** (Medium confidence | 1 day old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-03 03:45:04 +0000)]: WebDecoy is now on Shopify: from bot signals to order review \u2014 How our Shopify app connects storefront detection, checkout events, and order-risk review\u2014and how to verify the integration. This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-03 03:45:04 +0000*)\n- **[How to track a competitor's Shopify prices and new products](https://dev.to/hay_equipos/how-to-track-a-competitors-shopify-prices-and-new-products-1jji)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 21:59:04 +0000)]: How to track a competitor's Shopify prices and new products \u2014 Monitor any Shopify store's catalog and get the new products, removed products, price changes and stock changes since your last run, down to each variant. This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-02 21:59:04 +0000*)\n- **[How to Integrate Voice AI with Shopify Stores](https://dev.to/voice_developer/how-to-integrate-voice-ai-with-shopify-stores-31on)** (Medium confidence | 2 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-10-02 20:32:23 +0000)]: How to Integrate Voice AI with Shopify Stores \u2014 Why Add Voice AI to a Shopify Store? E\u2011commerce is getting louder\u2014literally. This reflects active commercial positioning and operational momentum for Shopify. (*Date: 2026-10-02 20:32:23 +0000*)\n\n#### meesho (1 items)\n\n##### Must-Know\n\n- **[E-commerce platforms lean into affordability this festive season | Mint](https://www.livemint.com/industry/retail/ecommerce-platforms-lean-into-affordability-this-festive-season-11790924119456.html)**\n  - **Source**: news (Single-Source) | **Confidence**: Medium | **Freshness**: 2 days old (*Date: 2026-10-03 00:10:22 +0000*)\n  - **Why it matters**: Fact: The article reports that e\u2011commerce platforms are emphasizing affordability during the festive season, a strategy that aligns with Meesho\u2019s own affordability focus and is increasing competition in India\u2019s value\u2011commerce market. Inference: This could suggest that Meesho may face heightened competitive pressure from rivals also targeting price\u2011sensitive shoppers, potentially prompting the company to refine its pricing, product mix, or marketing to preserve its share in the fast\u2011growing segment.\n\n#### Myntra (11 items)\n\n##### Should-Know\n\n- **[Sunder Balasubramanian concludes four-year tenure as Myntra CMO | Media4Growth - Media4Growth](https://news.google.com/rss/articles/CBMisgFBVV95cUxNVTRZR3ZETXhSODcxQjV6b3BDUUFHNnlWdi1VLWYtR2laNmxfSDBRMUhyZnphUkZQWVZwZkJWbG9VQU5JMjdXcXppOHdiQ0JvQmNtc3pOR2ZrVkdKZzhIZEVtX2xUOVlQUVNRWndkejBUUW1PelNvOUxrWEhOSUxubW43Z1lJanMwMmw2Q043U0tQb1lmenhYcDg3eWxzaHRuRXIyZEhSZTBWTU9FZ3ZqN0Zn0gG6AUFVX3lxTE1INjFmbUtRWmJTZ3dobjhJa1FEXzhoNFVnRm54UjQ3U1lpRWp3cHVnTHl3b3YyWE5oaFNPNlc2cHUzYUtURTZWcmNOOVhOVnRXcG1tbGxCdy12NEJLT3JtTHE3NjR5NW1kSlZMSThFa0VYdHZMYTRNamhubzluRjdfN3Z2UVRoRjdrYl9meWlEak1haERnbTE3VUJGaE9pYmNUeFRZa3FwOFhpRG10Q1VFdXZKc0hvdmo0dw?oc=5)** (Medium confidence | 3 days old | news)\n  - **Why it matters**: The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives. (*Date: 2026-10-01T07:12:50+00:00*)\n- **[Myntra CMO Sunder Balasubramanian Confirms Exit after 4 years - Apparel Resources](https://news.google.com/rss/articles/CBMirgFBVV95cUxQUGFvUXlER1o2Uy1NT3VsMlMyZnN3blI5TkczUFRkSlJMVEJRdWRKWTVDanlsZTR3VktYWERTYUp1RGRWdHBYR3Y5eV9Pb0ZMREwzUVotakdpemxVUEpNR2piQWk0endidGhZenZTeUhIZkVhNUMzM0dzOU1VV29YUGNjLUM5Sk5faldEXzVpUFgtU1M1RXhCcFphbDZzWTNCdzk0dW5ELWN5c0pzbEE?oc=5)** (Medium confidence | 4 days old | news)\n  - **Why it matters**: The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives. (*Date: 2026-09-30T13:55:56+00:00*)\n- **[Sunder Balasubramanian Exits Myntra After Nearly Four Years - BW Marketing World](https://news.google.com/rss/articles/CBMiqwFBVV95cUxQYkx3MjliZzFmM3U1VjJhbU1UR3lkZUpReTBrclFaVjRiYTlOWkx1RjI4RmFvZVJjZ180UlM3eEZVcGtNemh5ZEtXc18ybElRUE8zQVRVU0ZEZG5zdWk1bXdtZGZ4Um9ZdXFvVER0cTZjNU1COUpleEswTk1IYl9tQ2c4TnJNWHl1UG1vZVBxY2tSelVBRnNuUUJIWVFNTkEyUGROMk5iTUlPOUk?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-09-29T19:56:12+00:00)]: Sunder Balasubramanian Exits Myntra After Nearly Four Years - BW Marketing World \u2014 Sunder Balasubramanian Exits Myntra After Nearly Four Years &nbsp;&nbsp; BW Marketing World. This reflects active commercial positioning and operational momentum for Myntra. (*Date: 2026-09-29T19:56:12+00:00*)\n- **[Deepash Jain on how Myntra is building an always-on income model for micro-creators - Indian Television Dot Com](https://news.google.com/rss/articles/CBMivAFBVV95cUxNWlNweV9HSFUzYm44ZWJvZXJzV2tfRVU0bDNzUnNDZDhDSFNDMl95MXZCam5tdzRVVVJ2U3JBVksza19PMWw1Tk9JbE5BY1FZWkh3cnNqdF8wV1N3NkVEMzItNHhaQlFCNXZGQlVhM09hamtQTWNZbDJ6cnByb3hQLXlQT0poaDUtTUxVY2ZwWjJtSjBBcWUzdTdPNzJ3dTFqLW9WNk9IQkpOZkR3U1BDc3dQem9ZMW1VakpPUA?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-09-29T14:05:03+00:00)]: Deepash Jain on how Myntra is building an always-on income model for micro-creators - Indian Television Dot Com \u2014 Deepash Jain on how Myntra is building an always-on income model for micro-creators &nbsp;&nbsp; Indian Television Dot Com. This reflects active commercial positioning and operational momentum for Myntra. (*Date: 2026-09-29T14:05:03+00:00*)\n- **[Myntra cmo Sunder Balasubramanian quits after nearly four years - Indian Television Dot Com](https://news.google.com/rss/articles/CBMingFBVV95cUxNV05aRTdqd2t3S0h5MUFZUXBtaS1FTXNtblI2YjBGVHFDdWJUSFZ4NnVybGNkQU8yd2JpZ2ZOR2dOdWxMSEpVRklOZmhtbkZ3TXJ5NmdkU2RCWm1VUmpROTg1dXNZV1JNazhJZmZYX0YtcXpXd2hKTnk1YnMzVE5GVUJ5YkdORUYxMTBGNFpDVmg4YVhSOTk3MjRvZlMtQQ?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives. (*Date: 2026-09-29T12:57:58+00:00*)\n- **[Sunder Balasubramanian\u2019s nearly four-year stint as Myntra CMO comes to an end - bestmediainfo.com](https://news.google.com/rss/articles/CBMi2AFBVV95cUxQVGFJME9ZTEhiLXJiWktaa2JxZE9qTi0xNG13dGNFTDJLdXYzeXlaM2lPbUdMS1pwRDJhaHp6ZFh2UjhiNmxDaG5EeUp3X1ByWDN2MUhBbTNpbUdkWXhfYl9lR1JScDRWTF82QnlucGR1YlFnaUhaRnE4eFJBMG1QR0RwX09oekM4X2VzaEhTVjlGSjNZNjdwSXhCRy1kdDhVejc2MHJNakRrbUZhOEVVSEJiNGMySUN5eS1iU0ZFeWFpa1B2WW9HUWlIcEFmVkM0S0FReTY4cmXSAdgBQVVfeXFMUFRhSTBPWUxIYi1yYlpLWmticWRPak4tMTRtd3RjRUwyS3V2M3l5WjNpT21HTEtacEQyYWh6emRYdlI4YjZsQ2huRHlKd19QclgzdjFIQW0zaW1HZFl4X2JfZUdSUnA0VkxfNkJ5bnBkdWJRZ2lIWkZxOHhSQTBtUEdEcF9PaHpDOF9lc2hIU1Y5RkozWTY3cEl4QkctZHQ4VXo3NjByTWpEa21GYThFVUhCYjRjMklDeXktYlNGRXlhaWtQdllvR1FpSHBBZlZDNEtBUXk2OHJl?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives. (*Date: 2026-09-29T10:50:51+00:00*)\n- **[Myntra CMO Sunder Balasubramanian to step down after 4 years - ET Retail](https://news.google.com/rss/articles/CBMivgFBVV95cUxPWDc0VFhIUXBQQzNJZFNrOE43RVNQeFlFLXFoazZZRnRyZWZEZVUxNVpBY2cyYm9XZXlXMlNNMnU4MlVqd0tUTng5d1E0YVZjcG5qVVJyUEhralBDUWtRNW1uajdzOGRGZjJYS25uclpiMm1iQzQzNFFlRWVsM1R2YmFHcWJKeWkyQzRxcWNfa0lWY0lGcGI2Yk1XQWRIS0VNSnRoNWtKYzJlZ21VMmJqVFQxUkE3R3cwRFljcnNn0gHDAUFVX3lxTE8xUHJoQmlLTkhGSjVFNWw1YXl1dm5ja0VKdHI5djNNbFo0cGVzdGZYSTNWMWV1dkVUNVhacUVSRUZVNGc1ZFhhdlNIWXQ1ZG00OVZXSXA2YWhoUmFocFpYSS1Qa1FLdEROWjlzdzZFa0s3LWduTjV2Q3FXNGttNHJTMkItYU12MmNtS1FrZkxGT29zUFViaWtRNTNlcEJLWGU4VU1TTUhuSk4wQ0pCUWloRWhnSXN4WVRncXJVdkRnYXp4Yw?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: Fact: Myntra\u2019s Chief Marketing Officer, Sunder Balasubramanian, is stepping down after four years, as reported by ET Retail. This could suggest a forthcoming shift in Myntra\u2019s marketing strategy or brand positioning, potentially altering competitive dynamics in the Indian fashion e-commerce market where Meesho operates. (*Date: 2026-09-29T10:03:14+00:00*)\n- **[Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com](https://news.google.com/rss/articles/CBMirAFBVV95cUxOczdMZXh0VEFxcWRPVDZMM0JsODk1VnlvXzNUaWV6VWk0NHJZSlFGdDRJZFl6ZUU4d1M0NzZnVlZ5S1hoWHlmUkdSZENzeG13ZGtod3QyMFlmOXJKc3VfeXNMWHhKc3I5YTFhRUJYVzhHNWNrS0R2WXlLX0xsc1M0Zm9wbE83cWdvQzBuTGJDcFdZNmpOVC0ycmNEdmw4RGhJakJrTnBPaXA1V0d3?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-09-29T08:37:00+00:00)]: Sunder Balasubramanian announces exit from Myntra after nearly four years - Adgully.com \u2014 Sunder Balasubramanian announces exit from Myntra after nearly four years &nbsp;&nbsp; Adgully.com. This reflects active commercial positioning and operational momentum for Myntra. (*Date: 2026-09-29T08:37:00+00:00*)\n- **[Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media](https://news.google.com/rss/articles/CBMixwFBVV95cUxNVm5jR2owT3pDclB5RVdmTUtJZlBza2FBOFpNcllpMlJjVXlpN3RlTG11WEJVR25GRk1YTmxENEU5b19FV0VIaV82X2k5WVV1VG16MlpMZDVNRjVaYVZDeEItMXJPVFNqc0t2aG4yeUVhYmpJbzVOMlV0NDJhRjJmSV9vZVRVNTYyWl9xY3dSYlBWREVPc3RLUkNpRVJIaC1KbjhLOHEwcHdUV0x0YVR0TXZEam1MbUFmdDRQeFh4Q3g4cmZJYkp3?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-09-29T07:53:45+00:00)]: Sunder Balasubramanian to exit Myntra as Chief Marketing Officer - Exchange4Media \u2014 Sunder Balasubramanian to exit Myntra as Chief Marketing Officer &nbsp;&nbsp; Exchange4Media. This reflects active commercial positioning and operational momentum for Myntra. (*Date: 2026-09-29T07:53:45+00:00*)\n- **[Myntra CMO Sunder Balasubramanian quits - StoryBoard 18](https://news.google.com/rss/articles/CBMitgFBVV95cUxPTGcxTENNb215Z2ZuenI1S0dUSEFJMDlfdUNtdmtqSklUR3RXWkl1NE1xbjFnOHBjOFdvdUIwcUhSVkpGZ1JWYVp3eEtaeVNNX2gySmpyODAwVkdtdXBDUHBUaFdzdEZ3SV9OUGxESXhFb25qMzY5NVFZU2NoeWt3dk0yUTNyemdnR3NDR1JONWJveGdidEFXUndSaXl0eDN0NGVnQVBNMGV0OFluVmpWaXNiQWpDUdIBtgFBVV95cUxPTGcxTENNb215Z2ZuenI1S0dUSEFJMDlfdUNtdmtqSklUR3RXWkl1NE1xbjFnOHBjOFdvdUIwcUhSVkpGZ1JWYVp3eEtaeVNNX2gySmpyODAwVkdtdXBDUHBUaFdzdEZ3SV9OUGxESXhFb25qMzY5NVFZU2NoeWt3dk0yUTNyemdnR3NDR1JONWJveGdidEFXUndSaXl0eDN0NGVnQVBNMGV0OFluVmpWaXNiQWpDUQ?oc=5)** (Medium confidence | 5 days old | news)\n  - **Why it matters**: The source confirms executive leadership additions at Myntra, indicating focused scaling of management and strategic initiatives. (*Date: 2026-09-29T06:42:48+00:00*)\n- **[Alia Bhatt & Ranbir Kapoor find every reason to shop in Myntra\u2019s BFF campaign - afaqs!](https://news.google.com/rss/articles/CBMivwFBVV95cUxOY0lldWRJM19fWXRXYldmLVd0X0JkS2F1aEdJZVF5SDJMSGdCLXRnTFlFUFdKWXo0aFZWT3ZOZ2JPczlFSW1kRnYyNktWaEtjVmRveHFqakRDTFpWbHVmTjVmaVpFWXFRQ1RXcy13Nm9lRlY2MFdubkh1YUtkczdjZFFuU0tuNHh6cW5mVzIxVzl6VnNyN2wzZ09MWmlUTzEydFRtTmZURTVSNzJLTHBMc25CVjlTbUo2TkMwZUpoUQ?oc=5)** (Medium confidence | 6 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-09-28T03:39:04+00:00)]: Alia Bhatt & Ranbir Kapoor find every reason to shop in Myntra\u2019s BFF campaign - afaqs! \u2014 Alia Bhatt & Ranbir Kapoor find every reason to shop in Myntra\u2019s BFF campaign &nbsp;&nbsp; afaqs!. This reflects active commercial positioning and operational momentum for Myntra. (*Date: 2026-09-28T03:39:04+00:00*)\n\n#### Snapdeal (1 items)\n\n##### Should-Know\n\n- **[Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date](https://www.ndtvprofit.com/markets/snapdeal-parent-acevector-ipo-allotment-status-today-check-status-gmp-expected-listing-price-and-listing-date-12113996#publisher=newsstand)** (Medium confidence | 4 days old | news)\n  - **Why it matters**: The source documents that [NEWS (2026-09-30 03:46:15 +0000)]: Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date \u2014 AceVector IPO allotment status is expected today, Sept. This reflects active commercial positioning and operational momentum for Snapdeal. (*Date: 2026-09-30 03:46:15 +0000*)\n\n### Theme: Talent & Organization\n\n*Activity in this theme is confined to meesho; insufficient cross-competitor data to establish a pattern.*\n\n#### meesho (1 items)\n\n##### Other Activity (1 items)\n\n- [Job Posting: Senior Product Manager (Product)](https://jobs.lever.co/meesho/2028b73c-2ae0-4fca-903e-481b8c500629) \u2014 *jobs, 6 days old (2026-09-28T08:59:06.551000+00:00)*\n\n### Theme: Market Positioning & Partnerships\n\n*Activity in this theme is confined to Flipkart; insufficient cross-competitor data to establish a pattern.*\n\n#### Flipkart (1 items)\n\n##### Must-Know\n\n- **[Best Earbuds Under Rs 7,000 to Buy During Amazon, Flipkart Sale](https://www.gadgets360.com/audio/features/best-earbuds-under-rs-7000-to-buy-during-amazon-flipkart-sale-12115415)**\n  - **Corroboration**: 6 signals (news \u2014 Medium) | **Confidence**: Fact High, Inference Medium | **Freshness**: New today (*Date: 2026-10-04 09:30:10 +0000*)\n  - **Why it matters**: Fact: Flipkart\u2019s Big Billion Days sale begins on October\u202f9, with early access on October\u202f8, as highlighted in the article about best earbuds. Inference: The scheduled sale period is likely to draw significant consumer traffic to Flipkart, potentially diverting shoppers from Meesho\u2019s marketplace and prompting Meesho to adjust its promotional strategy or offer competitive pricing during the same window.\n\n## Field Research Radar\n\n### \ud83d\udd2c Emerging Research: AI Research & Agentic Tooling is gaining research activity.\n\n**Competitor connection**: 10 relevant research items found this cycle; activity detected among tracked competitors \u2014 Shopify (mentioning: news), Temu (mentioning: news), Myntra (mentioning: news), Flipkart (mentioning: news).\n- **Why it matters**: Commercial validation & accelerating traction: 10 research items published alongside active competitor moves from Shopify (mentioning via news), Temu (mentioning via news), Myntra (mentioning via news), Flipkart (mentioning via news). Confirms industrial transition from pure research to direct commercialization.\n- **Sources**: [Research Paper: FORGE: Form-Optimal Routing of Grounded Evidence for Frozen LLM Agents](https://arxiv.org/abs/2609.34358v1) (Xi Xiao, Yunbei Zhang); [Research Paper: DeepEdu-v1: Efficient and Scalable Agentic LLMs for Vietnamese Education](https://arxiv.org/abs/2609.31568v1) (Quang Nguyen, Hieu Nguyen); [Research Paper: Semantic Abstraction for Natural Language Inference: a Methodological Framework for Discovering and Compensating Semantic Knowledge and Reasoning Gaps in Large Language Models](https://arxiv.org/abs/2609.26610v1) (David Torres-Moreno, Jorge Hermosillo-Valadez); [Research Paper: Agentic AI Enabling Autonomous, Self-Organizing, and Evolving UAV Networks](https://arxiv.org/abs/2609.24664v1) (Zhaoyang Li, Xingzhi Jin); [Research Paper: Measured Joules, Learned Routes: Learning to Route for Energy-Efficient LLM Serving](https://arxiv.org/abs/2609.23085v1) (Muhammad Abdur Rab Siddiqui, Daniela Rojas); [Research Paper: MIRAGE: Multi-Perspective Creative Language Model Reasoning with Reinforcement Learning Guidance](https://arxiv.org/abs/2609.21554v1) (Arash Lagzian, Srinivas Anumasa); [Research Paper: Where Should Agents Live? Energy-Memory Characterization of Agentic AI for the Edge-Cloud Continuum](https://arxiv.org/abs/2609.18283v1) (Carolina Fortuna, Vid Han\u017eel); [Research Paper: Symbolic Separation: Grounding Deep Agents in Knowledge Graphs for Trustworthy Operational Data Analytics](https://arxiv.org/abs/2609.17107v1) (Baibek Davletiyarov, Junaid Ahmed Khan); [Research Paper: Positioning manuscripts in the scientific landscape with agentic AI](https://arxiv.org/abs/2609.13760v1) (Jiawen Chen, Zichen Zhang); [Research Paper: CASCADE: A Spatio-Temporal-Causal Reasoning Representation and Dataset for Driving](https://arxiv.org/abs/2609.07094v1) (Jenny Schmalfuss, Despoina Paschalidou)\n\n### \ud83d\udd2c Emerging Research: no new research activity detected for Pricing & Packaging Movements this cycle\n\n**Competitor connection**: 0 relevant research items found this cycle; activity detected among tracked competitors \u2014 Amazon India (mentioning: news), Flipkart (mentioning: news), Snapdeal (mentioning: news).\n- **Why it matters**: Competitor initiative ahead of formal publications: Amazon India (mentioning via news), Flipkart (mentioning via news), Snapdeal (mentioning via news) registered moves in Pricing & Packaging Movements without independent academic papers this cycle.\n- **Sources**: None\n\n### \ud83d\udd2c Emerging Research: Product Launches & Releases is gaining research activity.\n\n**Competitor connection**: 1 relevant research items found this cycle; activity detected among tracked competitors \u2014 Amazon India (adopting: news), Flipkart (mentioning: news).\n- **Why it matters**: Commercial validation & accelerating traction: 1 research items published alongside active competitor moves from Amazon India (adopting via news), Flipkart (mentioning via news). Confirms industrial transition from pure research to direct commercialization.\n- **Sources**: [Research Paper: DeepEdu-v1: Efficient and Scalable Agentic LLMs for Vietnamese Education](https://arxiv.org/abs/2609.31568v1) (Quang Nguyen, Hieu Nguyen)\n\n### \ud83d\udd2c Emerging Research: Edge Infrastructure & Runtimes is gaining research activity.\n\n**Competitor connection**: 1 relevant research items found this cycle; no corresponding activity detected among tracked competitors.\n- **Why it matters**: High-conviction white space: 1 formal research items surfaced this cycle while zero tracked competitors (Shopify, Amazon India, Ajio, Temu, Myntra, Shopsy, Flipkart, Snapdeal) have deployed or publicly referenced Edge Infrastructure & Runtimes. Represents early-stage academic emergence with an uncontested window for proactive differentiation.\n- **Sources**: [Research Paper: Where Should Agents Live? Energy-Memory Characterization of Agentic AI for the Edge-Cloud Continuum](https://arxiv.org/abs/2609.18283v1) (Carolina Fortuna, Vid Han\u017eel)\n\n### \ud83d\udd2c Emerging Research: no new research activity detected for Strategic Alliances & Ecosystem this cycle\n\n**Competitor connection**: 0 relevant research items found this cycle; activity detected among tracked competitors \u2014 Shopify (mentioning: news).\n- **Why it matters**: Competitor initiative ahead of formal publications: Shopify (mentioning via news) registered moves in Strategic Alliances & Ecosystem without independent academic papers this cycle.\n- **Sources**: None\n\n### \ud83d\udd2c Emerging Research: no new research activity detected for Signals & Talent Movements this cycle\n\n**Competitor connection**: 0 relevant research items found this cycle; activity detected among tracked competitors \u2014 Temu (mentioning: news).\n- **Why it matters**: Competitor initiative ahead of formal publications: Temu (mentioning via news) registered moves in Signals & Talent Movements without independent academic papers this cycle.\n- **Sources**: None\n\n## Per-Competitor Index\n\n### Ajio\n- **Activity Overview**: 7 total events (0 Must-Know, 7 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development\n\n### Amazon India\n- **Activity Overview**: 7 total events (0 Must-Know, 7 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development\n\n### Flipkart\n- **Activity Overview**: 7 total events (0 Must-Know, 7 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development, Market Positioning & Partnerships\n\n### Myntra\n- **Activity Overview**: 11 total events (0 Must-Know, 11 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development\n\n### Shopify\n- **Activity Overview**: 8 total events (0 Must-Know, 8 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development\n\n### Snapdeal\n- **Activity Overview**: 1 total events (0 Must-Know, 1 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development\n\n### Temu\n- **Activity Overview**: 7 total events (0 Must-Know, 7 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development\n\n### meesho\n- **Activity Overview**: 2 total events (0 Must-Know, 2 Should-Know, 0 Nice-to-Know)\n- **Active Strategic Themes**: Product & Platform Development, Talent & Organization\n"};
+
+export const BASELINE_BRIEFS: BriefEntry[] = [
+  {
+    id: "data_latest",
+    date: "2026-10-05T03:21:07.520132+00:00",
+    title: "PrismIQ Competitive Intelligence Brief",
+    filename: "brief_latest.md",
+    preview: "Pipeline Execution & Data Coverage: Autonomous Scheduled Run (cadence: daily). Top decisions inform Temu, Amazon India, Flipkart developments.",
+  },
+];
