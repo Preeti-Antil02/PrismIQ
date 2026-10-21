@@ -19,7 +19,7 @@ services:
       - key: SUPABASE_DB_URL
         sync: false
       - key: SUPABASE_READONLY_DB_URL
-        value: postgresql://prismiq_readonly.hmjcqdthzgzsmhpivrdb:RKrishna*02@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
+        sync: false
       - key: ALLOW_LIVE_WRITE
         value: "true"
       - key: OWNER_TENANT_ID
