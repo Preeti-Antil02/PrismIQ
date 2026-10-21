@@ -23,8 +23,14 @@ import {
   Activity,
   Flame,
   Search,
+  PieChart,
 } from "lucide-react";
 import { useWorkspace, useAppEvidence } from "./AppShell";
+import {
+  PrismDonutChart,
+  PrismHorizontalBarChart,
+  PrismLineChart,
+} from "@/components/ui/VisualCharts";
 import {
   PrismCard,
   PrismButton,
@@ -250,6 +256,108 @@ export function TrendsPage() {
     };
   }, [trends]);
 
+  // Visual Analytics for Trends (from actual live trend clusters)
+  const trendVelocityPoints = React.useMemo(() => {
+    const top4 = [...trends]
+      .sort((a, b) => b.distinct_story_count - a.distinct_story_count)
+      .slice(0, 4);
+
+    if (top4.length === 0) return [];
+
+    return [
+      {
+        label: "2 Wks Ago",
+        ...Object.fromEntries(top4.map((t) => [t.cluster_id, t.momentum.vector[0] || 0])),
+      },
+      {
+        label: "1 Wk Ago",
+        ...Object.fromEntries(top4.map((t) => [t.cluster_id, t.momentum.vector[1] || 0])),
+      },
+      {
+        label: "Current Week",
+        ...Object.fromEntries(top4.map((t) => [t.cluster_id, t.momentum.vector[2] || 0])),
+      },
+    ];
+  }, [trends]);
+
+  const trendVelocitySeries = React.useMemo(() => {
+    const colors = ["#8b5cf6", "#0ea5e9", "#10b981", "#f43f5e"];
+    return [...trends]
+      .sort((a, b) => b.distinct_story_count - a.distinct_story_count)
+      .slice(0, 4)
+      .map((t, idx) => {
+        const title = t.representative_title || t.trend_name || t.cluster_id;
+        return {
+          key: t.cluster_id,
+          name: title.length > 25 ? title.slice(0, 22) + "..." : title,
+          color: colors[idx % colors.length],
+        };
+      });
+  }, [trends]);
+
+  const momentumLifecycleDonut = React.useMemo(() => {
+    const counts = { surging: 0, building: 0, fading: 0, transient: 0, too_early: 0 };
+    trends.forEach((t) => {
+      const l = t.momentum.label;
+      if (l === "surging") counts.surging++;
+      else if (l === "building") counts.building++;
+      else if (l === "fading") counts.fading++;
+      else if (l === "transient") counts.transient++;
+      else counts.too_early++;
+    });
+
+    return [
+      { label: "Surging / Rapid", value: counts.surging, color: "#10b981" },
+      { label: "Building / Gaining", value: counts.building, color: "#3b82f6" },
+      { label: "Fading / Maturing", value: counts.fading, color: "#f59e0b" },
+      { label: "Transient / Early", value: counts.transient + counts.too_early, color: "#8b5cf6" },
+    ].filter((d) => d.value > 0);
+  }, [trends]);
+
+  const competitorStorylineBars = React.useMemo(() => {
+    const compCounts: Record<string, number> = {};
+    trends.forEach((t) => {
+      t.companies_involved.forEach((comp) => {
+        compCounts[comp] = (compCounts[comp] || 0) + 1;
+      });
+    });
+
+    return Object.entries(compCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([comp, cnt]) => ({
+        label: comp,
+        value: cnt,
+        badge: comp.toLowerCase() === (targetCompany || "").toLowerCase() ? "Target" : undefined,
+        secondaryText: `${cnt} storyline${cnt !== 1 ? "s" : ""}`,
+        color: comp.toLowerCase() === (targetCompany || "").toLowerCase() ? "#6e57dc" : "#0284c7",
+      }));
+  }, [trends, targetCompany]);
+
+  const trendSignalMixDonut = React.useMemo(() => {
+    const mix: Record<string, number> = { news: 0, research: 0, github: 0, hiring: 0, pricing: 0 };
+    trends.forEach((t) => {
+      if (t.signal_breakdown) {
+        Object.entries(t.signal_breakdown).forEach(([k, v]) => {
+          const lk = k.toLowerCase();
+          if (lk.includes("news")) mix.news += v;
+          else if (lk.includes("research")) mix.research += v;
+          else if (lk.includes("git")) mix.github += v;
+          else if (lk.includes("hir") || lk.includes("job")) mix.hiring += v;
+          else if (lk.includes("pric")) mix.pricing += v;
+        });
+      }
+    });
+
+    return [
+      { label: "News & Media", value: mix.news, color: "#0ea5e9" },
+      { label: "Research Disclosures", value: mix.research, color: "#8b5cf6" },
+      { label: "Code & Repositories", value: mix.github, color: "#10b981" },
+      { label: "Hiring Openings", value: mix.hiring, color: "#f59e0b" },
+      { label: "Pricing Adjustments", value: mix.pricing, color: "#ec4899" },
+    ].filter((d) => d.value > 0);
+  }, [trends]);
+
   // Momentum badge helper
   const getMomentumBadge = (momentum: { label: string; vector: [number, number, number] }) => {
     const { label, vector } = momentum;
@@ -391,6 +499,113 @@ export function TrendsPage() {
             </div>
             <div className="text-2xl font-bold text-zinc-900">{kpis.companiesCount}</div>
             <div className="text-[11px] text-zinc-400 mt-0.5">Active across storylines</div>
+          </div>
+        </div>
+      )}
+
+      {/* Visual Analytics: Longitudinal Trend Velocity & Storyline Wave Dynamics */}
+      {!loading && !error && trends.length > 0 && (
+        <div className="space-y-4">
+          <PrismSectionHeader
+            title="Longitudinal Trend Velocity & Storyline Dynamics"
+            subtitle="Trajectory curves across multi-week velocity vectors, momentum lifecycles, and competitor storyline exposure."
+            eyebrow="Trend Visual Analytics"
+            action={
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#70717a]">
+                <TrendingUp className="w-3.5 h-3.5 text-[#6e57dc]" />
+                <span>3-Week Acceleration Vectors</span>
+              </div>
+            }
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Chart 1: 3-Week Multi-Storyline Velocity Trajectory (Line Chart) */}
+            <PrismCard className="p-5">
+              <div className="pb-3 border-b border-[rgba(20,20,30,0.06)] mb-3">
+                <h3 className="text-sm font-bold text-[#17171b]">3-Week Storyline Velocity Trajectories</h3>
+                <p className="text-[11px] text-[#70717a] mt-0.5">Tracking velocity progression over W-2, W-1, and Current Week</p>
+              </div>
+
+              {trendVelocityPoints.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#9ca3af]">No multi-week trajectory data</div>
+              ) : (
+                <PrismLineChart
+                  points={trendVelocityPoints}
+                  series={trendVelocitySeries}
+                  height={190}
+                />
+              )}
+            </PrismCard>
+
+            {/* Chart 2: Storyline Momentum Lifecycle Split (Donut Chart) */}
+            <PrismCard className="p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-[#17171b]">Momentum Lifecycle Distribution</h3>
+                  <p className="text-[11px] text-[#70717a] mt-0.5">Surging, Building, Fading, and Transient market storylines</p>
+                </div>
+                <span className="app-pill bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                  {trends.length} Storylines
+                </span>
+              </div>
+
+              {momentumLifecycleDonut.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#9ca3af]">No momentum lifecycle data</div>
+              ) : (
+                <PrismDonutChart
+                  data={momentumLifecycleDonut}
+                  centerLabel="Storylines"
+                  centerValue={trends.length}
+                  size={180}
+                  thickness={22}
+                />
+              )}
+            </PrismCard>
+
+            {/* Chart 3: Competitor Storyline Engagement (Horizontal Bar Chart) */}
+            <PrismCard className="p-5">
+              <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-[#17171b]">Competitor Storyline Exposure</h3>
+                  <p className="text-[11px] text-[#70717a] mt-0.5">Number of evolving market storylines involving each competitor</p>
+                </div>
+                <span className="app-pill bg-purple-50 text-[#6e57dc] text-[10px] font-bold">
+                  Storyline Drivers
+                </span>
+              </div>
+
+              {competitorStorylineBars.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#9ca3af]">No competitor involvement recorded</div>
+              ) : (
+                <PrismHorizontalBarChart
+                  items={competitorStorylineBars}
+                />
+              )}
+            </PrismCard>
+
+            {/* Chart 4: Evidence Channel Distribution fueling trends (Donut Chart) */}
+            <PrismCard className="p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-[#17171b]">Trend Evidence Channel Mix</h3>
+                  <p className="text-[11px] text-[#70717a] mt-0.5">Corroborating signal sources fueling active trend clusters</p>
+                </div>
+                <span className="app-pill bg-sky-50 text-sky-700 text-[10px] font-bold">
+                  Multi-Source
+                </span>
+              </div>
+
+              {trendSignalMixDonut.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#9ca3af]">No signal breakdown available</div>
+              ) : (
+                <PrismDonutChart
+                  data={trendSignalMixDonut}
+                  centerLabel="Signals"
+                  size={180}
+                  thickness={22}
+                />
+              )}
+            </PrismCard>
           </div>
         </div>
       )}
