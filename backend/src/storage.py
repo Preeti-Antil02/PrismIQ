@@ -58,9 +58,6 @@ def is_test_environment() -> bool:
 
 
 DEFAULT_SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL", "")
-DEFAULT_SUPABASE_READONLY_DB_URL = (
-    "postgresql://prismiq_readonly.hmjcqdthzgzsmhpivrdb:RKrishna*02@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
-)
 
 
 def is_dry_run() -> bool:
@@ -254,8 +251,6 @@ def get_db_connection(db_url: Optional[str] = None, readonly: bool = False) -> T
                 # Platform environment (live GITHUB_ACTIONS or RENDER):
                 # Reads may use SUPABASE_READONLY_DB_URL if set, or fall back to SUPABASE_DB_URL in a read-only session
                 db_url = ro_url or write_url
-                if not db_url and os.getenv("RENDER") == "true":
-                    db_url = normalize_postgres_url(DEFAULT_SUPABASE_READONLY_DB_URL)
                 if not db_url:
                     raise ConnectionError("Neither SUPABASE_READONLY_DB_URL nor SUPABASE_DB_URL is set.")
         else:
