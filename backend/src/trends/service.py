@@ -30,23 +30,34 @@ def _get_fallback_clusters(tenant_id: str) -> List[Dict[str, Any]]:
     Fallback loader when trend database tables are not yet backfilled.
     Loads stratified clusters from local JSON and filters/scores by tenant tracked companies.
     """
-    json_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "scratch", "t2_third_cut_results.json")
-    if not os.path.exists(json_path):
-        return []
+    candidate_paths = [
+        os.path.join(os.path.dirname(__file__), "..", "..", "published_briefs", "trends_clusters.json"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "data", "trends_clusters.json"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "scratch", "t2_third_cut_results.json"),
+    ]
+    clusters = []
+    for json_path in candidate_paths:
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                clusters = data.get("stratified_25", [])
+                if clusters:
+                    break
+            except Exception as e:
+                logger.warning(f"Could not read fallback clusters from {json_path}: {e}")
 
-    try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        clusters = data.get("stratified_25", [])
-    except Exception as e:
-        logger.warning(f"Could not read fallback clusters: {e}")
+    if not clusters:
         return []
 
     # Get tenant's tracked companies
     tracked = []
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-            cur.execute("SELECT company_name FROM tenant_tracked_companies WHERE status = 'active';")
+            cur.execute(
+                "SELECT company_name FROM tenant_tracked_companies WHERE status = 'active' AND (tenant_id = %s::uuid OR tenant_id IS NULL);",
+                (str(tenant_id),)
+            )
             tracked = [r[0] for r in cur.fetchall()]
     except Exception:
         # Default watchlist for development / testing
