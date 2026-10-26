@@ -3543,7 +3543,7 @@ export const BASELINE_FINDINGS: FindingRecord[] = [
   }
 ];
 
-export const BASELINE_TRENDS: TrendRecord[] = [
+export const BASELINE_TRENDS: (TrendRecord & { members?: any[] })[] = [
   {
     "cluster_id": "cluster_0177",
     "trend_name": "State of agent skills",
@@ -3551,21 +3551,121 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        10,
+        6,
+        0
       ]
     },
     "distinct_story_count": 21,
     "raw_event_count": 23,
     "companies_involved": [
       "Microsoft",
-      "Research",
+      "Oracle",
       "Vercel"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-08-25",
+    "latest_detected_at": "2026-10-09",
+    "members": [
+      {
+        "event_id": "evt_334ce093e2800ed1",
+        "company": "Vercel",
+        "title": "How Rillet ships 3\u00d7 faster with AI agents on Vercel - Customers",
+        "url": "https://vercel.com/customers/how-rillet-ships-3-faster-with-ai-agents-on-vercel",
+        "publisher": "Vercel",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T04:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_3a895c1a6c79ba1f",
+        "company": "Microsoft",
+        "title": "Microsoft Execution Containers: Policy-driven containment for AI agents",
+        "url": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxPMHhKel95eVdnemQzSkZ6Y3dSZFRwdzNsVTQyYnNxRlBac3NPXzl6TENvUExvOHpUdlRlMlpJdS0zVGREbkkwWEFzUUhmdjB1YWlBX0RNV2xCbEd4elZqTEd0OGx3R1c4MWhUVnV5TEVoeVg3SEdYUlJyTFBqLUVSZkt2dFptQ3pXV1pwZ0U5bG9Zeko0R2xEaHo5VFhnTFhOWjNacm1tbmhCMHlCY0RhbFVaM2o0U2V6U1F6Tm1nTFJvb1k?oc=5",
+        "publisher": "Windows Blog",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T21:49:41+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "res_d33e8086a0080016",
+        "company": "Research",
+        "title": "Research Paper: Before They Can Solve: Predicting Post-Training Coding-Agent Performance from Base Models",
+        "url": "https://arxiv.org/abs/2610.10478v1",
+        "publisher": "arXiv/Research",
+        "node_class": "third_party",
+        "signal_type": "research",
+        "published_at": "2026-10-07T17:37:19Z",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_618c3a50b043be75",
+        "company": "Microsoft",
+        "title": "Agent Lightning v1.0: A 3,500-Line Lightweight Agentic RL Framework for Training Agents with Real Harnesses",
+        "url": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxNMVY5LUo3ejNEdlNhWnV2YjZwUTRVa2twT0txelFoOFJDUkVoMEpZR3JGMnlTUHgxc05GTE9hWHhYTk4xMkhYalNIZFFFTzdyd01ab3E0c1cxTEtXS1NCMUg2WFJ0aHY5cDN4QmhtYUlwNVQ4MlJBSldicVBwelRycDZieUJOVm1HUmtBZGZHU1dCdnlkR0k3ZjFpN2M0cVp1MXVYc0haem02emF0SFBqX3lSQzhuaXNORG5OZHZ6M2NmeGVUdklMS0dXOFN0R0QwSDZMUXF6dV9hYkVDY0p5ZFF2cmV4SjA?oc=5",
+        "publisher": "Microsoft",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T16:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "res_0ad2e068c5fe4825",
+        "company": "Research",
+        "title": "Research Paper: LiveMACE: Process-Aware Evaluation of LLM Agent Capabilities in Evolving Markets",
+        "url": "https://arxiv.org/abs/2610.09872v1",
+        "publisher": "arXiv/Research",
+        "node_class": "third_party",
+        "signal_type": "research",
+        "published_at": "2026-10-07T11:33:21Z",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "res_bc1ed27fc9a9b3de",
+        "company": "Research",
+        "title": "Research Paper: POLAR: Ontology-Guided Risk Prevention for Tool-Calling LLM Agents",
+        "url": "https://arxiv.org/abs/2610.08082v1",
+        "publisher": "arXiv/Research",
+        "node_class": "third_party",
+        "signal_type": "research",
+        "published_at": "2026-10-06T10:14:16Z",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "res_926f6d65c8a98051",
+        "company": "Research",
+        "title": "Research Paper: Control-Compute Governance in Agentic AI-RAN: AI Agents as Both Controllers and Workloads",
+        "url": "https://arxiv.org/abs/2610.04578v1",
+        "publisher": "arXiv/Research",
+        "node_class": "third_party",
+        "signal_type": "research",
+        "published_at": "2026-10-03T15:12:09Z",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_db279269fd83a15c",
+        "company": "Vercel",
+        "title": "How Rogo ships agent-written code to production in 5 minutes on Vercel - Customers",
+        "url": "https://vercel.com/customers/how-rogo-ships-agent-written-code-to-production-in-5-minutes-on-vercel",
+        "publisher": "Vercel",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-10-02T04:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0527",
@@ -3574,11 +3674,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
         1,
-        2,
-        3
+        1,
+        0
       ]
     },
     "distinct_story_count": 6,
@@ -3587,7 +3687,83 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "OpenAI",
       "Vercel"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-22",
+    "latest_detected_at": "2026-10-06",
+    "members": [
+      {
+        "event_id": "evt_297b3e03f4a69f9e",
+        "company": "OpenAI",
+        "title": "Advancing computer use with Ironclad",
+        "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE9RXzZqWjI3M3FjdC1IeVFTVGxQVXBKMnNKUmN0b3hvc05ZYmp3UXdoV2MtSkVkVlhXQnpISHBiMFk0bk5tYkZoYXhmN0Zubjcya3ZFMHk5bmxUM0JUNFh4R1FqX09MbDdhY0Faekgzaw?oc=5",
+        "publisher": "OpenAI",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-06T17:44:31+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_5f037806ec749294",
+        "company": "Vercel",
+        "title": "Making the Most of Vercel\u2019s AI SDK with Cloudflare Durable Objects",
+        "url": "https://blog.master.dev/making-the-most-of-vercels-ai-sdk-with-cloudflare-durable-objects/",
+        "publisher": "blog.master.dev",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-28T15:57:18+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f1472954157aa74e",
+        "company": "Vercel",
+        "title": "Using GPT-6 Sol with AI SDK evaluation",
+        "url": "https://vercel.com/i/using-gpt-6-sol-with-ai-sdk-evaluation",
+        "publisher": "Vercel",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-09-27T10:14:21+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_4cc15d33c478624b",
+        "company": "OpenAI",
+        "title": "OpenAI Hands Banks a Shortcut Around Billion-Dollar Core Rewrites",
+        "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxOVGs1dENKbFVVREVrck1LUDZCZGhyc3hYOUozNU9vU0NZZlhEV0piMERhYjltRFNrUC1IVDJLRzcwdHZjejZoUjRJbTdpZ3VSM19saVd6YlhUQjVWMlgxbkpYSUtCRFdkZUEwOXZvV1I5Zko3dW5PQXBCc1MtZWk3SG9WR3lyOWpRMU1hcE9rMlQyVFdrU1FBR2Q2UVp5WV8tVnc5YlZlSEdZazQ?oc=5",
+        "publisher": "PYMNTS.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-22T19:48:14+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c6cb5083f8ba00c7",
+        "company": "Vercel",
+        "title": "7 practical Jev use cases for AI applications",
+        "url": "https://vercel.com/i/jev-use-cases",
+        "publisher": "Vercel",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-09-22T06:16:56+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_5db8d8cb99f361e1",
+        "company": "OpenAI",
+        "title": "Escaping the OpenAI Codex sandbox, twice",
+        "url": "https://accomplish.ai/blog/escaping-the-openai-codex-sandbox-twice/",
+        "publisher": "Accomplish Blog",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-22T01:29:59+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0062",
@@ -3596,11 +3772,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        0,
+        3,
+        1
       ]
     },
     "distinct_story_count": 4,
@@ -3608,7 +3784,59 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Cloudflare"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-10-10",
+    "latest_detected_at": "2026-10-17",
+    "members": [
+      {
+        "event_id": "evt_a7e3af6a40544079",
+        "company": "Cloudflare",
+        "title": "Deno Acquired by Cloudflare, Will Work on Open Source Self-Hosting Platform for Applications",
+        "url": "https://developers.slashdot.org/story/26/10/17/0549255/deno-acquired-by-cloudflare-will-work-on-open-source-self-hosting-platform-for-applications?utm_source=rss1.0mainlinkanon&utm_medium=feed",
+        "publisher": "Slashdot",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-17T18:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e3f4489ac09232f2",
+        "company": "Cloudflare",
+        "title": "Cloudflare acquires software startup Deno to strengthen Workers",
+        "url": "https://www.techinasia.com/cloudflare-expands-developer-push-voidzero-deal",
+        "publisher": "techinasia.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T01:15:56+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_1e2c5a579dc367ce",
+        "company": "Cloudflare",
+        "title": "Cloudflare acquires Deno to improve its Workers programming model",
+        "url": "https://techcrunch.com/2026/10/10/cloudflare-acquires-deno-to-improve-its-workers-programming-model/",
+        "publisher": "TechCrunch",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T16:25:42+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_56a0ab4025a68687",
+        "company": "Cloudflare",
+        "title": "Deno is joining Cloudflare",
+        "url": "https://simonwillison.net/2026/Oct/9/deno-is-joining-cloudflare/",
+        "publisher": "simonwillison.net",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T13:13:04+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0064",
@@ -3617,11 +3845,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
         1,
-        2,
-        3
+        0,
+        1
       ]
     },
     "distinct_story_count": 4,
@@ -3629,7 +3857,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Vercel"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-08-26",
+    "latest_detected_at": "2026-10-04",
+    "members": [
+      {
+        "event_id": "evt_7c1a7e951810e9e2",
+        "company": "Vercel",
+        "title": "GitHub Issue opened in vercel/eve: Question: have you looked at x711 for agent tool calls?",
+        "url": "https://github.com/vercel/eve",
+        "publisher": "github.com",
+        "node_class": "third_party",
+        "signal_type": "github",
+        "published_at": "2026-10-18T17:08:54+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_976637a7e790f631",
+        "company": "Vercel",
+        "title": "GitHub Created branch git-co-author-attribution-rebased in vercel/eve",
+        "url": "https://github.com/vercel/eve",
+        "publisher": "github.com",
+        "node_class": "third_party",
+        "signal_type": "github",
+        "published_at": "2026-10-18T03:14:42+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_30f53a5a254066aa",
+        "company": "Vercel",
+        "title": "GitHub Created branch api-cleanup/context-vocabulary in vercel/eve",
+        "url": "https://github.com/vercel/eve",
+        "publisher": "github.com",
+        "node_class": "third_party",
+        "signal_type": "github",
+        "published_at": "2026-10-17T22:57:56+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c90de81261201110",
+        "company": "Vercel",
+        "title": "GitHub Push to vercel/eve",
+        "url": "https://github.com/vercel/eve",
+        "publisher": "github.com",
+        "node_class": "third_party",
+        "signal_type": "github",
+        "published_at": "2026-10-17T22:27:38+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e19b02c7da93990d",
+        "company": "Vercel",
+        "title": "GitHub Created branch fix/public-declaration-portability in vercel/eve",
+        "url": "https://github.com/vercel/eve",
+        "publisher": "github.com",
+        "node_class": "third_party",
+        "signal_type": "github",
+        "published_at": "2026-10-17T22:25:25+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_d66f0eaefd28062b",
+        "company": "Vercel",
+        "title": "Deploying a Website on Vercel: GitHub, Custom Domains, DNS, and HTTPS",
+        "url": "https://www.cyvorastudio.com/blogs/vercel-deployment-guide.html",
+        "publisher": "HackerNoon",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-04T17:26:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c083bab76e306a98",
+        "company": "Vercel",
+        "title": "GitHub",
+        "url": "https://github.com/vercel-labs/issue-graph",
+        "publisher": "vercel-labs/issue-graph: Map the complete reference graph around GitHub issues, pull requests, and repository backlogs.",
+        "node_class": "third_party",
+        "signal_type": "github",
+        "published_at": "2026-09-24T20:29:52+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_5578e2c469022894",
+        "company": "Vercel",
+        "title": "GitHub PullRequestReviewEvent created in vercel/eve",
+        "url": "https://github.com/vercel/eve",
+        "publisher": "github.com",
+        "node_class": "third_party",
+        "signal_type": "github",
+        "published_at": "2026-09-17T01:57:33+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0040",
@@ -3638,11 +3966,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
-        1,
-        2,
-        3
+        0,
+        10,
+        0
       ]
     },
     "distinct_story_count": 12,
@@ -3651,7 +3979,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "Google",
       "Yoodli"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-22",
+    "latest_detected_at": "2026-10-19",
+    "members": [
+      {
+        "event_id": "evt_9ce92c8b96f687dd",
+        "company": "Google",
+        "title": "AI and the Future of Learning - Google DeepMind\u2019s Lila Ibrahim",
+        "url": "https://economictimes.indiatimes.com/news/india/ai-and-the-future-of-learning-google-deepminds-lila-ibrahim-corner-office-conversation/videoshow/135028757.cms",
+        "publisher": "Corner Office Conversation",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T00:30:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_65d0e6d9e767f4ac",
+        "company": "Google",
+        "title": "AI and the Future of Learning - Google DeepMind\u2019s Lila Ibrahim",
+        "url": "https://economictimes.indiatimes.com/news/india/ai-and-the-future-of-learning-google-deepminds-lila-ibrahim-corner-office-conversation/videoshow/135028757.cms",
+        "publisher": "Corner Office Conversation",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T00:30:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_efd41893ad5dd9f3",
+        "company": "Google",
+        "title": "Google experiments with an AI-powered gaming platform",
+        "url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxNd19wOXlWcGQ4Wng0d3ZtS1hiTDZvanRPVHVkemgtUEQ0OXRGeTk0NVdBallhd01WV1ZpcVp5YmhZaUZrbkF0aVVBUVFkREcxSEJBNnZWMnhuY184U2Vfb1QwQW55bHhmNVZlRm9EX1dyQm5nVkpPUEZyMjIzMDdRRHZCV3l4Nm94NUdzMzZQbVZsdw?oc=5",
+        "publisher": "TechCrunch",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T14:36:23+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_cde01a1a052d03fc",
+        "company": "Google",
+        "title": "We're making it easier to identify AI-generated content globally.",
+        "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxOZFBxX0NuSXJvdzBhRGF2LVF6ZTVHYzBVQzBkVXZ4RUtHMWsyYlZUdXg0Yk9IZFpKOUJnRFF0dDFSelZHN1BnT0NydVFUYjhBWFFaOVpONFgzMFpYLS1KQ3ltQ3haeExvVjJNMzZXR3RINXlWdmZXLUVYdWlGdFFFRGFoN0VDcnJFZkxWWWFYRVUtNGJPUmdMdlRR?oc=5",
+        "publisher": "blog.google",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T14:18:04+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c4f4aa0f897d851d",
+        "company": "Google",
+        "title": "Google\u2019s new SynthID website can identify AI-generated media",
+        "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxPdTQ0b3liSmdicktJN2hIOGVlNVNYelhBWGw2SzRWaWlxcS1wN01SYXFza3RacGVBQzNmaWdNT2FuOHl0MnREVmdIdlFnSDN6VTNrYTRYSXJ5STAxYTRya0Y3bW92T0t5TDR4RWdTYXpDMzQ3Y0R1RTlvWktrM0pCUldkbVVUNXM1S3cyMElDNW8zaGxoWk82T1RR?oc=5",
+        "publisher": "TechCrunch",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T14:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_5168ec675548bf76",
+        "company": "Yoodli",
+        "title": "Yoodli Launches the AI Platform for Human Skills: AI That Helps People, Not Replaces Them",
+        "url": "https://www.prnewswire.com/news-releases/yoodli-launches-the-ai-platform-for-human-skills-ai-that-helps-people-not-replaces-them-302900420.html",
+        "publisher": "prnewswire.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T13:15:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f99f3161c43e4fdb",
+        "company": "Yoodli",
+        "title": "Yoodli\u2019s next act: AI that can teach workers almost any job skill",
+        "url": "https://www.geekwire.com/2026/yoodlis-next-act-ai-that-can-teach-workers-almost-any-job-skill/",
+        "publisher": "geekwire.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T13:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_258db8244139432e",
+        "company": "Google",
+        "title": "Introducing Playground: Create and play custom games",
+        "url": "https://news.google.com/rss/articles/CBMilwFBVV95cUxOX3EtVDA1V3h6c1dxNS1yc3J0OWlnaDJBdFZER3FkOXpJam1rVUJsRzRQTEdDRG5TWjlraHBhVGEyYUlMUFM1MGp6QkFhTjVjQjl0aE5qbDVsODFiMHl5RWV5U1B6ZmQ4R05WUnVpTGJNRWNzSEF2bTl5QnE1U0F5U0dOMlphOUVMOVA3U2YyckNnb1AtSFhJ?oc=5",
+        "publisher": "blog.google",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T12:17:07+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0041",
@@ -3660,20 +4088,121 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        5,
+        9,
+        0
       ]
     },
     "distinct_story_count": 26,
     "raw_event_count": 38,
     "companies_involved": [
       "Anthropic",
+      "Google",
       "OpenAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-19",
+    "latest_detected_at": "2026-10-19",
+    "members": [
+      {
+        "event_id": "evt_cb63db9bd7526b02",
+        "company": "Anthropic",
+        "title": "What to Know About the Obscure Private Trust Looming Over Anthropic\u2019s IPO",
+        "url": "https://www.wsj.com/tech/ai/anthropic-ipo-private-trust-188f41f7",
+        "publisher": "wsj.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T01:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_37593af0fa83ae5b",
+        "company": "Anthropic",
+        "title": "Anthropic IPO Forces Question of How to Price Rogue AI Risk",
+        "url": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNTzV2bmItYVJFajdYemxselN3Rm5VTEE3WFZOMVpjMTd6OVl2aUdQVWdmdzVnc0hZdTRvNEtTTkRYdTBXLTF6Sm5KcGZ6X3NVaWo3VGxkek80b1hPQWJkQ2gwN3ktNEl1U0RCejNYZE4tbGl4Wi1tODJydHdBaXBGMHRlNnJ3UVQtVXlqWTFaWlozUEpoN0lQN3BIcUpzMjF5YVRVWnExSnh4bndzM0Z1VUl1MA?oc=5",
+        "publisher": "Bloomberg.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T22:22:08+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a22c53522911854b",
+        "company": "Anthropic",
+        "title": "'Black Box' Revenue From Anthropic and OpenAI Stumps Traders",
+        "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxOYkhILXo3RWYzbS1GOWtma3NKS2p1VnhtWFE3QmFLMzhwcExvVkpYSmpKUDJXQzc3QnJUcVB2QmxyMHRaQUhrOHFLU1BmdzRHcmFNTFlvNjM1c2R4UnFweXl5TmJhZHdrSFhDSlhLYXRBRGZSZUlBRS00TGFycFFrTHI3Qk5OU2Vuc01fZURJaFUxUmZ2bXRxa0hzT2xTSThSWDJIeGtSSDFOZEF3SXBidmFR?oc=5",
+        "publisher": "Bloomberg.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T18:23:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_d51d4322eddff1c9",
+        "company": "OpenAI",
+        "title": "'Black Box' Revenue From Anthropic and OpenAI Stumps Traders",
+        "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxOYkhILXo3RWYzbS1GOWtma3NKS2p1VnhtWFE3QmFLMzhwcExvVkpYSmpKUDJXQzc3QnJUcVB2QmxyMHRaQUhrOHFLU1BmdzRHcmFNTFlvNjM1c2R4UnFweXl5TmJhZHdrSFhDSlhLYXRBRGZSZUlBRS00TGFycFFrTHI3Qk5OU2Vuc01fZURJaFUxUmZ2bXRxa0hzT2xTSThSWDJIeGtSSDFOZEF3SXBidmFR?oc=5",
+        "publisher": "Bloomberg.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T18:23:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_bf6ccaa348006f0f",
+        "company": "Anthropic",
+        "title": "Anthropic and OpenAI IPOs: who benefits more from the bifurcated timeline",
+        "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxQZE1YdnFvX0pCbVBTdmZnZWdoVDN1OHVSWDJqY1ZxeXNSbmtEWWlaRVVtV2JUR00tc05scDZLMnF4aExiSzlMWjJBVEdmcXhpbFhGcGRTQ0piWl9jVDhUMmp5UGQzQ3FKcmMyMThIZzB4cUZWa2t6X0otR2lzemdZZ2RUazJEaWN4SEFIWWVfVml3bFYzdF84cU1BVHhlZzZVUUNEQlpGWGlvWDMxc3RnbWd1MW9DUnY1LWtma0dMWDZWbTRpVWtLSjd5NHlyRzA?oc=5",
+        "publisher": "Investing.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T17:27:12+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_4faad9fd4c2298b6",
+        "company": "Anthropic",
+        "title": "Other IPOs on ice as investors await Anthropic\u2019s mega public debut",
+        "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPYkZrS0dKeUZWeENXZVVrYVdVMWNxNThXRno1NzhuRWRaaXR2Mmhhb01VY0g3NVJidDQ3YWExY096ZzZ6ZjBfamE4cmhEc0hxSWNZN3hPbEtjUjZ6Y3Ffb2I0dDVtdGQ2OXBXSTFhUlY3V2JkRjVpZkxVaHBFUllNR2VMVk1CUUMtWkNWWnRMMVBZUnBMeG54WjRjeW9WSlhZVVFoWWN6cXAxeUV3X0E?oc=5",
+        "publisher": "New York Post",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T17:17:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_3a2f45590022006f",
+        "company": "Anthropic",
+        "title": "The Other Anthropic Founder Trying to Fix the Company\u2019s \u2018Woke\u2019 Reputation",
+        "url": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE9pSTBZMDc1dzdWSm5hVS1uNWpZckxKZFdhbFFzRWtCa050M1hjV2JGMnBNUFBDUTF1dEhzQnVHamQ0NWlOSGttRWZIaWpRN1lkSUxsZl9TelZrLWZoX01zV2hqQ2pOUQ?oc=5",
+        "publisher": "WSJ",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T16:36:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_efe382ee7df2d720",
+        "company": "Anthropic",
+        "title": "Bradley Tusk on Anthropic IPO: Why add public market pressure if safety is your top priority?",
+        "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxQRGFlaV9NcHhtcXp0WlNOOXFtcjVER3dlWGUta1lvaGZKTWJScmQwQ3liYXFHMEV6Q1BJVXR1WFlPemp0Zk54c2s3RDFGWUFFNDFWSTlXOHBHdGJrR2JuRk5zUVhpaV9UQks1eDVGdl9oTVZUWlYzSjViZldTbHE3cmNGWlR5alF4QkRlNnp2NWtDLTBOaGtES0FwTjJlLTZQUlVRWmdYWkZLVWk2Y2dsaTMyb3N1cGt0eVVtaDRQWHJ0aHRydHF6dFNSbFh6c0E?oc=5",
+        "publisher": "CNBC",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T12:44:06+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0119",
@@ -3682,20 +4211,121 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        6,
+        8,
+        0
       ]
     },
     "distinct_story_count": 49,
     "raw_event_count": 89,
     "companies_involved": [
       "Anthropic",
+      "Google",
       "OpenAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-16",
+    "latest_detected_at": "2026-10-11",
+    "members": [
+      {
+        "event_id": "evt_2df664c20798cf24",
+        "company": "OpenAI",
+        "title": "Just say no to OpenAI and Anthropic",
+        "url": "https://micahflee.com/just-say-no-to-openai-and-anthropic/",
+        "publisher": "micahflee.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T23:03:05+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_9a6e0e4e05f2f986",
+        "company": "OpenAI",
+        "title": "Just say no to OpenAI and Anthropic",
+        "url": "https://micahflee.com/just-say-no-to-openai-and-anthropic/",
+        "publisher": "micahflee.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T23:03:05+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a76127f6649019a0",
+        "company": "Anthropic",
+        "title": "Just say no to OpenAI and Anthropic",
+        "url": "https://micahflee.com/just-say-no-to-openai-and-anthropic/",
+        "publisher": "micahflee.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T23:03:05+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_7851a784106249c6",
+        "company": "Anthropic",
+        "title": "Anthropic Is Banishing Its Model Evals From the Internet",
+        "url": "https://gizmodo.com/anthropic-is-banishing-its-model-evals-from-the-internet-2000824671",
+        "publisher": "gizmodo.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T22:52:14+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_3f06fdb6b31606bf",
+        "company": "Anthropic",
+        "title": "Investigating unintended model actions in our evaluations and internal use",
+        "url": "https://www.anthropic.com/research/investigating-unintended-model-actions",
+        "publisher": "anthropic.com",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T00:28:28+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a3806c992979a2a4",
+        "company": "Anthropic",
+        "title": "OpenAI and Anthropic Are Quietly Rehearsing for the Day After an AI Catastrophe",
+        "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxOUXc4a2RfdVJiX2R1bTAtbEtocVd6cW5sTGhjVUE1UTRmaXp3MG1teURXenNlWUlQN1hlUGdJcFcyZkNrOVVzaDhFVlFHRUtBRlpSWjl5dUZIN00zTEptaFdTeFlsWU9PT2NJT0lOR2pfT3F5ODRDV3E1SWVrMmtSLXNkaXVocWlFSU1YWTNiNUduSmVNaGRiQXk5cHF5dEdq?oc=5",
+        "publisher": "Yahoo",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T19:47:01+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_2a1cc1825f9b19bf",
+        "company": "OpenAI",
+        "title": "OpenAI and Anthropic Are Quietly Rehearsing for the Day After an AI Catastrophe",
+        "url": "https://news.google.com/rss/articles/CBMioAFBVV95cUxOUXc4a2RfdVJiX2R1bTAtbEtocVd6cW5sTGhjVUE1UTRmaXp3MG1teURXenNlWUlQN1hlUGdJcFcyZkNrOVVzaDhFVlFHRUtBRlpSWjl5dUZIN00zTEptaFdTeFlsWU9PT2NJT0lOR2pfT3F5ODRDV3E1SWVrMmtSLXNkaXVocWlFSU1YWTNiNUduSmVNaGRiQXk5cHF5dEdq?oc=5",
+        "publisher": "Yahoo",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T19:47:01+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e2e147a6268169a3",
+        "company": "Anthropic",
+        "title": "OpenAI and Anthropic Are Quietly Rehearsing for the Day After an AI Catastrophe",
+        "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxNMGpic3BWakR3cTJUMnFjTTdfbm1zQjhPNVBPRnVvLTZGN2U5QmZUTUlLQ3FFVy1qb3E0QUR3QmM2MzVwTi1BYzE4WVJGT2J2ZTJFMFk1bmRMbVMwZ1hoUlpMb1doOWhwLXQ1d2Z3aG9QMHIxRm8xR2xmdmlGRm9iN0V3?oc=5",
+        "publisher": "Decrypt News",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T19:47:01+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0155",
@@ -3704,20 +4334,123 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        3,
+        17,
+        0
       ]
     },
     "distinct_story_count": 24,
     "raw_event_count": 31,
     "companies_involved": [
+      "Google",
       "Meta",
-      "OpenAI"
+      "Microsoft",
+      "OpenAI",
+      "SpaceXAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-21",
+    "latest_detected_at": "2026-10-10",
+    "members": [
+      {
+        "event_id": "evt_9cf914ddd8a5c3ee",
+        "company": "OpenAI",
+        "title": "OpenAI\u2019s Astra model is shockingly good at robotics",
+        "url": "https://www.understandingrobots.org/p/openais-astra-model-is-shockingly",
+        "publisher": "understandingrobots.org",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T20:21:02+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_4d3db9665ae4d37f",
+        "company": "OpenAI",
+        "title": "OpenAI\u2019s Astra model is shockingly good at robotics",
+        "url": "https://www.understandingrobots.org/p/openais-astra-model-is-shockingly",
+        "publisher": "understandingrobots.org",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T20:21:02+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_1bedd425f3b6976f",
+        "company": "OpenAI",
+        "title": "Google unveils new cloud-based AI agent to compete with Meta, OpenAI",
+        "url": "https://news.google.com/rss/articles/CBMifEFVX3lxTE02R2JXc3R5SUdoNWI2bjZKZXZzM0VaRHRDTDkyaDFnd1J3dDIzaE16c0V1X0owNElaY3pmR3JWajMtSlRVNEdiN2Qwd2Jtd1k4bXhob05yNEpWSE1IY2hPTnp4TGRTMWFzbmtBWHMyUkFvODBkYVpybmwtNzI?oc=5",
+        "publisher": "Fox News",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T23:42:23+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e49ff02fdcac06cf",
+        "company": "OpenAI",
+        "title": "Trump\u2019s AI rebrand raises an awkward question for OpenAI",
+        "url": "https://news.google.com/rss/articles/CBMikgFBVV95cUxPYk1QLVdYeFZLRTFhY3lxZTN4MmVUSTkzRnF6bFFpbGpXNzZiSXJsek1MbUFnYzJZaGtGWTlfMjlfN0FuSnY0SE12LXVORjZjSlJzbGNwZm9PaEhvNFNLQkxDTktScXJQSER5bGFNeVpOSGRKdmpWNFZVeTJvMXRsSXJmdjlqMVJDVmh4R3ZEVUp0dw?oc=5",
+        "publisher": "Fast Company",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T22:55:47+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_be7198ee993b614c",
+        "company": "OpenAI",
+        "title": "Why OpenAI\u2019s revenue numbers really matter",
+        "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxQSFVuRjl0UkpKS25Hc1FGbXR6TlBXazVNYlp6bkZCYVB5NVRLQlVqaG8wODNoU0I0T3BPeF9OTllkWDBkNnBIcjJZVU9kbzZFWDVZSERGZko1bTJUYllZVnh4S3RPeTh1REV2bWM5WTMtcUhQLTZEcXJHZ2hnME93MFdfLW4?oc=5",
+        "publisher": "Financial Times",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T21:48:14+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_686c19608124a115",
+        "company": "Meta",
+        "title": "\u2018The More the Merrier\u2019 in AI. OpenAI, China & Meta\u2019s Muse. ARD #181",
+        "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTE9OeXhlQ3JHWU5LTzA3cnJaWm5NQzNkUlczeHpmcm0tSXJTeEtESHVwQ29GUUs5Z2dtdko4Mnk2Y2VLQ0Z0VldCX055MzlrSXdObHpFczVOeHB4WjBnMGxKZEpzWC1XclpPUEIta2QzdUxkazlaT3ZxTlp3?oc=5",
+        "publisher": "AI: Reset to Zero",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T20:57:33+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_6e31af8a500af198",
+        "company": "OpenAI",
+        "title": "$50B? $70B? How OpenAI\u2019s Accounting Confusion Wrecked the AI Trade",
+        "url": "https://news.google.com/rss/articles/CBMigwFBVV95cUxOR3Z6N3VvVnBGS0NKR1dtVzlOVEROUm1hSC16S2I2TF9IUVJJT0pob0wyTGFSNFFScm5SN0g5Zk9HQVh6aTFpZXFYWHBYaVpyX1Bab1VwNjB6SE9LamdpcE4zZzJWNnJwaXVMa2ZOZWtaRVBRVENSWGNBbEFVWEJvWFR1NA?oc=5",
+        "publisher": "Barron's",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T14:57:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_835875859887c702",
+        "company": "Meta",
+        "title": "As Google, OpenAI and Meta Push A.I. Agents, Enterprises Need Models That Think Less",
+        "url": "https://news.google.com/rss/articles/CBMibkFVX3lxTE1IaDZmcWp2UVZ6SUxRXzhsZ3dlTTgwQzF0OGRNcUgtR2Y3RzVMbUN2Vk1fTUJEeUdmbE94bV9XVkxhQVgzS2ZnRVV5ZXhSbDNiTXpfT3NhQUd5NzdrR0FveU9MVzFNZ0hzTFozNmhn?oc=5",
+        "publisher": "Observer",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T13:45:56+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0552",
@@ -3726,11 +4459,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
+        0,
         1,
-        2,
-        3
+        0
       ]
     },
     "distinct_story_count": 7,
@@ -3740,7 +4473,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "Meta",
       "Shopify"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-22",
+    "latest_detected_at": "2026-10-05",
+    "members": [
+      {
+        "event_id": "evt_e875244335bcce2d",
+        "company": "Meta",
+        "title": "Meta's Muse is already pulling one CEO's purchases away from Amazon",
+        "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxQdzRpS19zNzNvTlZQR3NKcFR4R1ZEVkpZU29pWURfWWwwVFBQSU5aWk5JRmxQTlZ5V3hQRmNFOWE4amloRlBWdENVRmVMWWZDZVBNQnFKU1Y3TTdkd0RlU010QWpBZzZXVUVCWTg2M2o1WGJLOXVNRmRGU0tBczVaalBKbzYwQQ?oc=5",
+        "publisher": "Yahoo Finance UK",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-05T20:28:42+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_813fda8cc7fbebc9",
+        "company": "Amazon",
+        "title": "Amazon Vs. Meta: What\u2019s Actually Behind The Decision to Block Muse",
+        "url": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxQNkFnWUZRY2RwY2c4dDFfaFBEd1ltYWZ4a1VYRmoteTJUYVpfNWFUUnhudm1feERrbTFQbWxGaFhzME5KSk5SbEpvam4zaGNVV0s5QlUzSnl6SDdPYVBya3ZKOUFXblVydk5XNjNYMTVLX0ZDczdTT3FPZGJkT3JhYlJ3WWpOMFpVN1YwTkxWSS13T1lndUNmS3NYd2tPcGM4ZlkzSkpFUVNGR1E?oc=5",
+        "publisher": "24/7 Wall St.",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-25T12:49:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_7b64d2a9279b4a4c",
+        "company": "Amazon",
+        "title": "Amazon Blocks Meta's Muse. It Could Be a Gift for Walmart and Shopify",
+        "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxPSkZzcktqYnpEU1VqVjhMTFpKVy1BbWR5czBOWDJHRnk5SmpSTW10cHVjZUY5Vk9XUnF4OVY0QkZNR0RvZ2o4bWNXbWhqTS1sVmcyeU5NRGhzY3ZxLW5ZbmtONkh1YXFsNWdoUFlsSEdSdGhGWVhCbHoxZ1cxX2FQNUY5LUR5alNfekwwRmZfVU8wdEZCN0JoQXlsNA?oc=5",
+        "publisher": "Yahoo Finance",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-24T20:05:01+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_0ce1cc2f5608a1ce",
+        "company": "Amazon",
+        "title": "Meta's standoff with Amazon over Muse could be a sign of things to come",
+        "url": "https://news.google.com/rss/articles/CBMiowFBVV95cUxNdzBob3NLdG1HOHF2bGl6cmJRcTBwZzVyT0ZPQm9GUVNFdnJWc1lTRUZXSngtTXJES052ZUwzVGxPNVhkVnc1WS0zcHo1VjA0dlktM28wZU1uem4zRUJWMmJua29sRjVWQzNDak9NX1dyd0ZWQ3hOVW5XYTRoZXZqSEdWbTM5dG0yWENnZjhGdjg3VWdjbjJjODlKcnNKYWhJWHlZ0gGoAUFVX3lxTFB3OV8wTlhFOGhWMWRSZ1VhY292c0p1Nkc3Q0dVZVB1NHhZZm1WbjROQ3dfQ0N3eXVEc0labW11SVZVV3VXUlZxWnV5TEU0aGlvSTktOTNJcGZhX3B2OGlhems3aDhXMVM0VnJVSnlzeXppWEpSRmNBckxKUHJjLV81YThyUDBKdVJhSjBlQ1VvMUdwNC14emJYM1dvTHdPYUE1YVI3VGRVRg?oc=5",
+        "publisher": "CNBC",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-23T21:04:47+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_1bd944a0907b6a5b",
+        "company": "Shopify",
+        "title": "Amazon blocked Meta's Muse. Then Shopify wired it into every store.",
+        "url": "https://thenewstack.io/amazon-meta-muse-block/",
+        "publisher": "thenewstack.io",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-23T16:39:15+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_2a19e732492b86c3",
+        "company": "Shopify",
+        "title": "Amazon blocks Meta's Muse but Shopify opens the door",
+        "url": "https://www.thestreet.com/investing/amazon-shopify-meta-muse-ai-battle",
+        "publisher": "thestreet.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-23T16:13:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e61302539ba7bb39",
+        "company": "Shopify",
+        "title": "Amazon blocks Meta\u2019s Muse, Shopify Welcomes It",
+        "url": "https://wwd.com/sourcing-journal/industry-news/amazon-artificial-intelligence-meta-muse-1239253557/",
+        "publisher": "wwd.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-22T19:26:11+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_97f0ae7546e9df14",
+        "company": "Amazon",
+        "title": "Amazon Stops Meta\u2019s Muse at the Door",
+        "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTFBfb2Q5QnlSdl82YTZ1ZzhhRDhpUTRPQVBFWFBzaWV2bHNnMGx5cnpKM2xxelY1X0NwcVRPV2FlaGNULWdpdjdDTy1hNHgwUmQ0RzZ5YWp5d0k0QmVUeGhFYkVGMDJYaWVESkJyLTZPeFlJVUgtc2cwN3BGV2VJaEE?oc=5",
+        "publisher": "WSJ",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-22T12:51:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_1017",
@@ -3749,19 +4582,121 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "cross_company_trend",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
         1,
-        2,
-        3
+        0,
+        0
       ]
     },
     "distinct_story_count": 13,
     "raw_event_count": 47,
     "companies_involved": [
+      "Anthropic",
+      "OpenAI",
       "SpaceXAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-18",
+    "latest_detected_at": "2026-09-28",
+    "members": [
+      {
+        "event_id": "evt_a3133b673c0d0702",
+        "company": "SpaceXAI",
+        "title": "OpenAI, Anthropic face first safety hearing, SpaceXAI gets subpoena",
+        "url": "https://interestingengineering.com/ai-robotics/openai-anthropic-safety-testimony-spacexai-subpoena",
+        "publisher": "interestingengineering.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-28T17:33:02+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f89b8c0a57bd9485",
+        "company": "SpaceXAI",
+        "title": "OpenAI, Anthropic, Google and SpaceXAI Hit With Antitrust Lawsuit Over Alleged AI Slowdown Pact",
+        "url": "https://news.google.com/rss/articles/CBMiowFBVV95cUxOdXlPcXEwYlg5N3A0bjFFTTFxWDZqZUdqSHFOSlA1SXJCSm04MnhsUUFFaG9KNUU0blFIOW1jQUdxcjJoQTRGSV9uRTdrSEQ0WU1fcHZ4cDBvWkxvRy1qQkQyVTFVWFNfdGZCc05QYVk0NHdnd3hHbjlaLTE2TkdQV29rbzJLZGpRZUhZTGpTVmR2bGktMURJaTViUGtKdzFzU2Fr?oc=5",
+        "publisher": "Law Commentary",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-22T00:33:05+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_7d9ddffea5025485",
+        "company": "SpaceXAI",
+        "title": "Anthropic, OpenAI, SpaceXAI, and Google are all defendants in a lawsuit alleging they illegally conspired to slow their AI progress. The four named plaintiffs, who are subscribers to ChatGPT, Claude, Grok, or Gemini, are bringing the lawsuit on behalf of a prop",
+        "url": "https://news.google.com/rss/articles/CBMikAFBVV95cUxQS1VzcmxZNjR5Z19RQXBIYWJBNnMzSEJHTVhQWWpxbXNkeWFxamtacTRYV1B6U0t3d0xtRWxWbmhBdkNLeW5mQm56dUhURUw5T3h1MXFNanpNSTBmM1lCOEk2VHI4WlhDb1RVbWlndHo0NHpFQ3p2OFo2RVl2S3V0RVVkYjZYdkdFcU5oX0tnSng?oc=5",
+        "publisher": "Yahoo Finance",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-21T18:38:55+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_883e967cab62d29e",
+        "company": "SpaceXAI",
+        "title": "Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown",
+        "url": "https://www.denver7.com/science-and-tech/artificial-intelligence/lawsuit-says-anthropic-openai-spacexai-and-google-made-illegal-agreement-on-ai-slowdown",
+        "publisher": "denver7.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-21T17:11:08+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_7c3ec96c020415a2",
+        "company": "SpaceXAI",
+        "title": "Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown",
+        "url": "https://www.denver7.com/science-and-tech/artificial-intelligence/lawsuit-says-anthropic-openai-spacexai-and-google-made-illegal-agreement-on-ai-slowdown",
+        "publisher": "denver7.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-21T17:11:08+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_bb562a2ccd7056de",
+        "company": "SpaceXAI",
+        "title": "Anthropic, OpenAI, Google, and SpaceXAI Face Antitrust Lawsuit Over AI Slowdown Pact",
+        "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxPaEZQekFDU3liQ0R6aE5fMHozdDVHOXhfWEVCem05cFk4M3h2QkZMelY3Zmt2VHM3ZnFTMFpvdGhqY3BpUHNZQk9haU1RMkZRODBFX3RkM1dDdjk4ZlRfbjFtM1lwTTg2TTNvWFNNR0FTQTZyc0JyaFkwR05wMHRCTzF1MjZfZ295dE4yRTFSR0psVlN5c0FhQ1E3RGszMjJMSEZmSC1CUmFpM0Jqd2Yyd1hZOTdYb2s?oc=5",
+        "publisher": "gHacks",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-21T14:43:09+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_b94a1fc891f35f96",
+        "company": "SpaceXAI",
+        "title": "Anthropic, OpenAI, Google, and SpaceXAI Face Antitrust Lawsuit Over AI Slowdown Pact",
+        "url": "https://www.ghacks.net/2026/09/21/anthropic-openai-google-and-spacexai-face-antitrust-lawsuit-over-ai-slowdown-pact/",
+        "publisher": "gHacks Tech News",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-21T14:43:09+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_ae17e43e1abce5da",
+        "company": "SpaceXAI",
+        "title": "Lawsuit Accuses Anthropic, OpenAI, Google, and SpaceXAI of Illegally Coordinating an AI Slowdown",
+        "url": "https://news.google.com/rss/articles/CBMixgFBVV95cUxQSUhVRjhFeV9fdFA0V2JXb3JoUnVDOVZ0enF2TGcwclJiTjNSdERWMll3VHlqMFZoOGRUN3pLYzdOUzdRNV94Zm1BbHA5YnpLX2w1ZE9oQzdJcjhKZDdMb1J4bWs2RjNBU0E0Y1NtMkRlOC1LU0lzSjVIeGE0NVdqa21MVnpyUnFuZ08zeXdfYkdPckZhSHVScFpYM3kzZG1iVE96OGlSSk9scE1ZQ3dtUmRXYTRQcEJsWngtdjYzcGttMlVUb1E?oc=5",
+        "publisher": "CDO Magazine",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-21T13:17:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0026",
@@ -3773,8 +4708,8 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "label": "building",
       "vector": [
         1,
-        2,
-        3
+        0,
+        2
       ]
     },
     "distinct_story_count": 4,
@@ -3782,7 +4717,59 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "NVIDIA"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-28",
+    "latest_detected_at": "2026-10-19",
+    "members": [
+      {
+        "event_id": "evt_dee565f5675185fc",
+        "company": "NVIDIA",
+        "title": "This Is AMD's Biggest Hurdle in an AI Sell-Off (and No, It's Not Nvidia)",
+        "url": "https://www.nasdaq.com/articles/amds-biggest-hurdle-ai-sell-and-no-its-not-nvidia",
+        "publisher": "nasdaq.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T01:20:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_577bfe038f4faf21",
+        "company": "NVIDIA",
+        "title": "NVIDIA thinks the CPU industry chased too many cores, and AI agents are bringing single-core speed back",
+        "url": "https://www.digitaltrends.com/computing/nvidia-vera-cpu-chiplet-design-agentic-ai/",
+        "publisher": "digitaltrends.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-18T21:25:13+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_21f326e7a3d124db",
+        "company": "NVIDIA",
+        "title": "AI's future runs through credit desks",
+        "url": "https://fortune.com/2026/10/18/nvidia-ai-financing-capital-markets/",
+        "publisher": "Fortune",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-18T21:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_ed5962c0278d4e7e",
+        "company": "NVIDIA",
+        "title": "How NVIDIA DSX MaxLPS Maximizes AI Factory Throughput and Efficiency",
+        "url": "https://developer.nvidia.com/blog/how-nvidia-dsx-maxlps-maximizes-ai-factory-throughput-and-efficiency/",
+        "publisher": "NVIDIA Technical Blog",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-28T01:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0042",
@@ -3791,11 +4778,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
-        1,
-        2,
-        3
+        0,
+        8,
+        0
       ]
     },
     "distinct_story_count": 9,
@@ -3803,7 +4790,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Anthropic"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-10-08",
+    "latest_detected_at": "2026-10-19",
+    "members": [
+      {
+        "event_id": "evt_acb615db080fc16d",
+        "company": "Anthropic",
+        "title": "Anthropic\u2019s Own Staff Can\u2019t Use Claude Code\u2019s \u2018Bypass Permissions\u2019 Mode, Client Code Shows",
+        "url": "https://runtimewire.com/article/anthropic-s-own-staff-can-t-use-claude-code-s-bypass-permissions-mode-client-cod",
+        "publisher": "runtimewire.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T01:03:50+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c9d1a631695f902d",
+        "company": "Anthropic",
+        "title": "Anthropic Bans Cruelty to Claude, Still Won\u2019t Say What It Protects",
+        "url": "https://rews.cc/a/anthropic-bans-cruelty-to-claude-still-won-t-say-what-it-pro-bd99f6",
+        "publisher": "rews.cc",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T00:08:31+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_9778a9199884a554",
+        "company": "Anthropic",
+        "title": "Anthropic wants you to stop bullying Claude. Cue the \u2018Terminator\u2019 memes",
+        "url": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxQS3R5NE9hcGo5enhzNG15SVhzR0VSNjlXSVkwTU5DaE1ab19wUmFXSGN2eG9KWHZsaHlCRmlYV3dNTGxmQXVpZUU1QkhfU0FHSjNQd0NvT0FVQWwtLS0zRTVuRzNEMkFxNGRSa3ItYUhfTU5NNWpTVWk0V1owaFdGd19HNVpCX3BDcjN3X0tuY2JUWTdPd1FLRXlrRFp1X05TcGZlTlMyNE4?oc=5",
+        "publisher": "Fast Company",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T20:18:59+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_40949adf88600a34",
+        "company": "Anthropic",
+        "title": "Anthropic is banning \u2018cruel behavior\u2019 toward Claude. Claude is still not a person.",
+        "url": "https://news.google.com/rss/articles/CBMirgFBVV95cUxOQVNfRnhOQ0tOVDZEYVVMTkk5LWY3dDNqUEpoQ0ZrM241bzNNck1ycUZOYTVrczN4U0lOODVzY1VMNHRYV0x0MFpsX3hpQ3puU1UwUGpMd19YYmIxRjJkSXdXd3l5UjlfeEd5YXBLdEN5c0U2TUVvMDNvXzQ4QW9ucTZNTk9RcDNfV2xhd0QyZG8xY2VKMGdWQUQ3M1plUDVTZUYyeWVaYkhGOVZYV0E?oc=5",
+        "publisher": "Reason Magazine",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T20:05:10+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_6668623d401242ce",
+        "company": "Anthropic",
+        "title": "Anthropic Just Banned Being Cruel to Claude. The Reason Should Concern Us All",
+        "url": "https://news.google.com/rss/articles/CBMitwFBVV95cUxOcGl4TVplNlRrcUw1OHQ0dDRsMGJFdlVjbVN4ejdjSmpyc2ZzUFpycjdQdGZISm5MQkdFOS1mZkY2WllkQVFFZjdhSDVuN0NxdVlYVW1aS25OZzRZeWFpblJQdzdPRjh3MlVfOVVTdUk4bTVyb1E4NjE0NElKYy1pWjZJSzYzaXBTYWZBREdzWG1SRS1Fb19xM1Nnd2UwMVJKY3BNMUthNW44bFgyMTl0cWEwUkJ1RVE?oc=5",
+        "publisher": "Inc.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T12:24:48+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c67cc91595d690a0",
+        "company": "Anthropic",
+        "title": "Anthropic asks users to stop being mean to Claude",
+        "url": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxNYm1BN01TVXF6eDVwQU81bWZXYWExX091aXN2UHRxUG1KZ2h0bEhqZUoxRHZBRXAzdTg1U0hSdjBoWjJ3MU9WSzNXSDNQUHdBQm15cndjbUZydzNiZVNGWDUwOVVrOEtLOXFQZU9GWk85VlQ2MDBCdTVBb1ExY3RXYXBObXBhbGk5bUZBckxyS3ZNTDVaOXFlUFR0UkdJdWc1Q1RHYXJfY0JCdw?oc=5",
+        "publisher": "The Register",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T10:42:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_d0ba1e5cec5d6432",
+        "company": "Anthropic",
+        "title": "Anthropic bans users from \u2018needless abusive or cruel behavior\u2019 towards Claude",
+        "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxPb2lja2Y3b2J4SGw2TDhuWUNxNmxablZvTlcwSVg4eHhuSUFwNUEzQTd0WFhOTlJMd0F5UHBDSnhxTl9nVXJlNjFrZVBSc1Zic01sZ1RuZ2tTTlQ3RVVLUEw5OFI2NDcwNzNPSVpYTUJmR1pVdmd2NWkyOUtxcTg5bC05ckRhX1pnSVRZdVhLSlQ0ckU?oc=5",
+        "publisher": "The Guardian",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T01:25:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f674cb8bee96811d",
+        "company": "Anthropic",
+        "title": "Anthropic Prohibits Being Excessively \u2018Cruel\u2019 To Claude",
+        "url": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOVFdUOVUxZWlsaklRN003RVp3LVYxYWZ6d1JiTl93UnBKcXdhTHQxSV92TElyOWpoSGZvUjdmdXlqWkFsbk1jYWJBb1U1M1FiYl94QTJWOFVubWtFeERadEJMb1RlZVE0NHZSOFd3cGV6X2NqeEcwVWdiZ2NWRWVOLUVBQkJQdmFCLXJVMUhtdEx3NUwzUWpfblN1WC1uWGI4aU9YQ3lOb0xBMGxHZ0RDcw?oc=5",
+        "publisher": "Forbes",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-08T23:16:58+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0044",
@@ -3814,9 +4901,9 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "momentum": {
       "label": "building",
       "vector": [
-        1,
-        2,
-        3
+        0,
+        3,
+        5
       ]
     },
     "distinct_story_count": 11,
@@ -3825,7 +4912,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "Google",
       "Mistral AI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-17",
+    "latest_detected_at": "2026-10-19",
+    "members": [
+      {
+        "event_id": "evt_d4e4a3cc6acb764e",
+        "company": "Mistral AI",
+        "title": "Mistral AI Releases Timestral: A 209M Forecasting Model Family That Outperforms Google\u2019s TimesFM-3",
+        "url": "https://www.marktechpost.com/2026/10/18/mistral-timestral-time-series-foundation-model/",
+        "publisher": "marktechpost.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T01:18:17+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e2d2dcc9d5beffc4",
+        "company": "Google",
+        "title": "Mistral AI Releases Timestral: A 209M Forecasting Model Family That Outperforms Google\u2019s TimesFM-3",
+        "url": "https://www.marktechpost.com/2026/10/18/mistral-timestral-time-series-foundation-model/",
+        "publisher": "marktechpost.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T01:18:17+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f9ae3779963a6109",
+        "company": "Google",
+        "title": "Mistral AI Releases Timestral: A 209M Forecasting Model Family That Outperforms Google\u2019s TimesFM-3",
+        "url": "https://www.marktechpost.com/2026/10/18/mistral-timestral-time-series-foundation-model/",
+        "publisher": "marktechpost.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-19T01:18:17+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_202ee9d4357292f0",
+        "company": "Mistral AI",
+        "title": "CERN and Mistral join forces to accelerate AI for science",
+        "url": "https://home.cern/cern-and-mistral-join-forces-to-accelerate-ai-for-science/",
+        "publisher": "Home",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-16T17:27:12+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_9f7d3c7de9fd6460",
+        "company": "Mistral AI",
+        "title": "CERN and Mistral plan an AI foundation model for particle physics",
+        "url": "https://thenextweb.com/news/cern-mistral-large-physics-model",
+        "publisher": "thenextweb.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-16T13:22:18+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_693a6e4fb6d35c59",
+        "company": "Mistral AI",
+        "title": "CERN and Mistral Plan Foundation Models for Scientific Discovery",
+        "url": "https://www.hpcwire.com/off-the-wire/cern-and-mistral-plan-foundation-models-for-scientific-discovery/",
+        "publisher": "HPCwire",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-15T20:40:17+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_044e05888343dda9",
+        "company": "Mistral AI",
+        "title": "Cern and Mistral partner to build \u2018Flare\u2019, a new AI model for physics",
+        "url": "https://www.timeslive.co.za/news/sci-tech/2026-10-15-cern-and-mistral-partner-to-build-flare-a-new-ai-model-for-physics/",
+        "publisher": "timeslive.co.za",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-15T14:20:47+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_803c6a049717b5fc",
+        "company": "Mistral AI",
+        "title": "New Material joins Mistral to design the frontier \u00b7 New Material",
+        "url": "https://newmaterial.ai/stories/newmaterial-joins-mistral",
+        "publisher": "newmaterial.ai",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-15T00:15:35+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0066",
@@ -3834,11 +5021,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
-        1,
-        2,
-        3
+        0,
+        0,
+        1
       ]
     },
     "distinct_story_count": 3,
@@ -3846,7 +5033,47 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Cloudflare"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-24",
+    "latest_detected_at": "2026-10-17",
+    "members": [
+      {
+        "event_id": "evt_d9c222af30091830",
+        "company": "Cloudflare",
+        "title": "The Cloudflare Appstore (Appflare) Malware Audit",
+        "url": "https://mainbrella.com/blog/the-cloudflare-appstore-appflare-malware-audit/",
+        "publisher": "mainbrella.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-17T07:23:16+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_af22375d7687fa40",
+        "company": "Cloudflare",
+        "title": "Cloudflare fixes Containers cross-tenant flaw exposing customer data",
+        "url": "https://www.bleepingcomputer.com/news/security/cloudflare-fixes-containers-cross-tenant-flaw-exposing-customer-data/",
+        "publisher": "bleepingcomputer.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-27T14:13:31+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_dce6e43fa1947b88",
+        "company": "Cloudflare",
+        "title": "How Cloudflare addressed a cross-tenant data exposure vulnerability in Containers",
+        "url": "https://blog.cloudflare.com/containers-cross-tenant-vulnerability/",
+        "publisher": "blog.cloudflare.com",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-09-24T15:05:44+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0068",
@@ -3855,11 +5082,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
+        0,
         1,
-        2,
-        3
+        1
       ]
     },
     "distinct_story_count": 4,
@@ -3867,7 +5094,59 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Cloudflare"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-08-25",
+    "latest_detected_at": "2026-10-16",
+    "members": [
+      {
+        "event_id": "evt_0dbc7259afa63d65",
+        "company": "Cloudflare",
+        "title": "Node.js creator ditches Deno to work on open source Cloudflare Workers",
+        "url": "https://www.theregister.com/devops/2026/10/16/nodejs-creator-ditches-deno-to-work-on-open-source-cloudflare-workers/5303662",
+        "publisher": "theregister.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-16T20:20:05+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_ed28b7498ee3dd0e",
+        "company": "Cloudflare",
+        "title": "Cloudflare acquires Node.js creator\u2019s startup that copied its serverless playbook",
+        "url": "https://thenewstack.io/cloudflare-acquires-deno-ryan-dahl/",
+        "publisher": "thenewstack.io",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T18:52:36+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e0ad9ef4a2431226",
+        "company": "Cloudflare",
+        "title": "How we rebuilt Cloudflare Workers\u2019 module registry for Node.js compatibility",
+        "url": "https://blog.cloudflare.com/workers-module-registry-nodejs/",
+        "publisher": "blog.cloudflare.com",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-09-09T13:30:53+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_1b47a410764238a2",
+        "company": "Cloudflare",
+        "title": "24 npm Packages Abuse unpkg Mirrors to Host Fake Cloudflare CAPTCHA Pages",
+        "url": "https://buaq.net/go-437593.html",
+        "publisher": "buaq.net",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-08-25 11:52:43 +0000",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0089",
@@ -3876,11 +5155,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
+        10,
         1,
-        2,
-        3
+        0
       ]
     },
     "distinct_story_count": 16,
@@ -3888,7 +5167,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Flipkart"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-17",
+    "latest_detected_at": "2026-10-09",
+    "members": [
+      {
+        "event_id": "evt_f1e6401e55dba98a",
+        "company": "Flipkart",
+        "title": "iPhone 17 Pro Price Drops To Rs 79,250 During Flipkart Big Billion Days 2026 Sale",
+        "url": "https://in.mashable.com/tech/114852/iphone-17-pro-price-drops-to-rs-79250-during-flipkart-big-billion-days-2026-sale",
+        "publisher": "in.mashable.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T17:21:58+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_ad389262afb9fa13",
+        "company": "Flipkart",
+        "title": "iPhone 17 price drops to lowest during Flipkart sale, details here",
+        "url": "https://www.indiatoday.in/visualstories/technology/iphone-17-price-drops-to-lowest-full-details-2-286546-09-10-2026",
+        "publisher": "indiatoday.in",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T13:45:04+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a4078f300e6bf76d",
+        "company": "Flipkart",
+        "title": "iPhone 16 price drops by Rs 20,000 without conditions",
+        "url": "https://www.indiatoday.in/technology/news/story/nothing-phone-4a-and-4a-pro-to-get-big-discount-in-flipkart-big-billion-days-sale-3008319-2026-10-02",
+        "publisher": "indiatoday.in",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-02T14:29:48+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_0ff0193323ca79fd",
+        "company": "Flipkart",
+        "title": "iPhone 17 Pro for Rs 80,143 on Flipkart? Here\u2019s how offers bring down the Rs 1.34 lakh price",
+        "url": "https://economictimes.indiatimes.com/news/new-updates/iphone-17-pro-for-rs-80143-on-flipkart-heres-how-offers-bring-down-the-rs-1-34-lakh-price/articleshow/134637470.cms",
+        "publisher": "economictimes.indiatimes.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-02T10:53:15+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_5cca7e3bf57a9336",
+        "company": "Flipkart",
+        "title": "iPhone 15 price in India to drop to Rs 61,599 during Flipkart Big Billion Days sale with exchange and bank offers",
+        "url": "https://news.google.com/rss/articles/CBMihgJBVV95cUxPdXBRREFrQU5fek51OEVjaHVOSXU1UFBfSkZIRFhOa2FOQk13WEtvZGpycmw3LXpKMEJ4Rms2MXA1dWs0V0NkRHF4QVh2a1hoYXk1TnRCRDJqX3ZmX0NHRGxzMjQ0d2pFNU1WZkg2eWVRYzZnZmhmcHZZdTJSNTNlX0FzaXlPUTc5VklJbmJ5ZEdrWXhkb3lnREZBdXNzM19OdWRQRkJKcU5pdEdiV1c0X1FmQTFaZG5jQjh1WkNOZ1FXT2owc1NMYWNFbUFLd3BPU1FBYVNyNVN4VVRRTlp2aFg5ZHlqQVFvWHA5bFd4bjQ4Q3M2TFlCTUNhU3FWRkZ0NFFtSFln?oc=5",
+        "publisher": "Moneycontrol.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-02T05:30:10+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_67885f67dc4fd29a",
+        "company": "Flipkart",
+        "title": "iPhone 17 at Rs 84900 in Flipkart sale: 2 reasons to buy it before price goes back to Rs 1 lakh",
+        "url": "https://news.google.com/rss/articles/CBMiigJBVV95cUxOZ2lURmtndDJrTG9oRWNfQUxxRGZoaEY4VjhJSjR4b1ViVk14b2JEZGFxek1ZY2toMHdDd294Znh2MGNCRGpqbmhybjVkYUo5ZHhMTEkwZUVoakhYelJqaExwNEl4QTNyT1cwRlBEelAtbjRTczJHZTkwdmJnVjgyRUMxMzN4Q1BWUExmbDE2dTBNTk9vTzlQYldwTzl4T2RoUWVUYm1NVGQzWXZYRWpyWUY2MlBvZ2szQUdYYWNYazVjV2pmTm1lUkpWUUZpMmxGZEJmRUpfcVNHOU94MUltM0dsV1RGMlpSMmpBbVBFM044dkVtTTNXOU9jSmd3V1Q2eEtjb3dnUDl3QdIBjwJBVV95cUxOUHlid1REUnpRRGpOY2VaZVlLVHVsdW15bHJ1N2JPRmdBNkdvaUxRc3EtZlpDNlM3ektFbFUwTjZrRGlFTzNCWTVhN3lCX0ZYZW01LXNKOGNFanloRk1jOThjQl9lVXhRQW5oUXdMUWFYSG92REo1cXFCcjhqdE1hcVRyeldQbHdLazk4SUV3YW9jbGkxaUc4SGlLMnVLSHFsVUpRQmM2aWg5dkhjaXdieENJN0drR0NxVW5SY18ya3NkZTVneXBYaHlNbGktQUEzTTFsZHhuMU5wTTh2eG9UclExZUdJYXdLcU5HckhWQlBsX3hKTHV3MDhMdndtSUo0SXBIMW9FTHl5MFAwTDlJ?oc=5",
+        "publisher": "India Today",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-01T12:04:50+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_3cb7e1a714566966",
+        "company": "Flipkart",
+        "title": "Big Billion Day Sale: Flipkart Unveils Prices Of iPhone, Google, Motorola, Oppo And Lava Phones - Full List",
+        "url": "https://news.google.com/rss/articles/CBMi4gFBVV95cUxOaWdWdEozUlZQUkt1Sy1zYnRfRTlCM0ROM1N5UjVKSVdDYVJCNTFRVC10S3Q5X3I3eUJ3OU9oOUpWYXEyMGZ3WEl3Ty1HMjBqQ05CeUpoX2ZFMUV3TFotRjRQSS0tWWNFVkZtb0k1S000RzVVV3NKZWpmUDNWTDc1R05kdWd2TVJzZm4tOE93QW95dDVzdFNSZklOMFA5NDVWT1dxRl8tTGhXMi1KMUg0SG4yOW9yRF95c19HMkpiMTlRZkJmcWd0YXNzb0d0dkphZDVNRF9WM00zVDZ2SDFBaU530gHqAUFVX3lxTFBmQVM5cFZBd2N3LUJlMWVKNWNxRzFmWVF5WjhQNko3N2lIY05ZTlBkRzZNT2VhLWJIdFNHNi01SjZldTMwOFNMYVdwcWNIRkg5dm5WOFpjc1RRVkZUNVBJME9oSTBCc3N0M3E5Vl93bE53TWxqSWJnRGpzcFZaN1NCVldRY2dLdldTdXoyUE44N3hLbVc1RGNMd0Iyb3BEYlBObjViNl9yOGYtSC1JZVZxZVYxT0QwTnpheUxYa1dVYkxLTF94RVUzcDN5RTV5bVVGUEd3Q2MwNGdlRmRYLUhqcVhRWTJOb3V2dw?oc=5",
+        "publisher": "NDTV Profit",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-01T10:10:30+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_7ead4458aba0818e",
+        "company": "Flipkart",
+        "title": "iPhone 17 At \u20b979,999 On Flipkart: Check The Offer Details",
+        "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQbGVVZGIza1RlU2hoRlp0bU1ULS1yMlJxWTN1TVM5azlMTVJ6cWc5MjFIUWVPZ1NGbTJNa3phaTVKR2lEVDVSZm56MHBaSWVQY2lwTG1zNGt6SGNnQ0Eza3N1Zk13OHFKbFQ0NFFxa3liYm1Ybkd6TGpSY3N4ZlRPY01fbkVpWEZhWDFYVklUU2ZXbnBMQUhOX1JiM3FwMkNJc2c?oc=5",
+        "publisher": "APAC Media",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T14:41:35+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0124",
@@ -3897,11 +5276,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
+        3,
         2,
-        3
+        0
       ]
     },
     "distinct_story_count": 5,
@@ -3910,7 +5289,71 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "Cloudflare",
       "Microsoft"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-10-01",
+    "latest_detected_at": "2026-10-11",
+    "members": [
+      {
+        "event_id": "evt_64019c01247d7011",
+        "company": "Cloudflare",
+        "title": "Meet Cloudflare Clef-omni: A 30B-A3B Multimodal Decision Model for Audio, Video, Image and Text",
+        "url": "https://www.marktechpost.com/2026/10/11/cloudflare-clef-omni-multimodal-decision-model/?utm_source=flipboard&utm_content=topic%2Fartificialintelligence",
+        "publisher": "marktechpost.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T23:15:52+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_072c8dbfb9c67f7e",
+        "company": "Microsoft",
+        "title": "Introducing Microsoft-Decision-1, our model for fast decision-making",
+        "url": "https://news.google.com/rss/articles/CBMieEFVX3lxTE1jQVpWd2UtQllkVWRKNDNlZm9JdzR3b09fTm5GdjNmb2FTTmRHZ1NJMHA0bDZ6S1hjdmNmNTluM01zcnZpM1d0dlRmb3JZUWgyR194NlZPSTBjNGVkeTRRUGNUZGlUbUE5UnJLU25CLXVHTGFTNnpJWA?oc=5",
+        "publisher": "Microsoft",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T18:48:17+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_bc20d9695b6775fd",
+        "company": "Cloudflare",
+        "title": "Cloudflare Releases Clef and Clef-flash: Open-Weight Decision Models That Return Typed Probabilities Instead of Text",
+        "url": "https://www.marktechpost.com/2026/10/01/cloudflare-releases-clef-and-clef-flash/",
+        "publisher": "marktechpost.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-02T01:00:41+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_94cce43658f8569e",
+        "company": "Cloudflare",
+        "title": "Cloudflare Clef: open-source decision models",
+        "url": "https://www.producthunt.com/products/cloudflare-clef",
+        "publisher": "Product Hunt",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-01T20:58:54+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_3435dbf465f2a6c6",
+        "company": "Cloudflare",
+        "title": "Introducing Clef: our open-source decision models, and new RL fine-tuning platform",
+        "url": "https://blog.cloudflare.com/clef-decision-models/",
+        "publisher": "blog.cloudflare.com",
+        "node_class": "first_party",
+        "signal_type": "news",
+        "published_at": "2026-10-01T16:18:57+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0145",
@@ -3919,11 +5362,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        4,
+        4,
+        0
       ]
     },
     "distinct_story_count": 19,
@@ -3931,7 +5374,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "OpenAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-22",
+    "latest_detected_at": "2026-10-11",
+    "members": [
+      {
+        "event_id": "evt_ebab4abecdde4521",
+        "company": "OpenAI",
+        "title": "OpenAI rolls out GPT-6 Luna with Intelligent UI to free ChatGPT users \u00bb YugaTech",
+        "url": "https://www.yugatech.com/news/openai-rolls-out-gpt-6-luna-with-intelligent-ui-to-free-chatgpt-users/",
+        "publisher": "Philippines Tech News & Reviews",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T00:06:54+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_6a3ac15383e6327f",
+        "company": "OpenAI",
+        "title": "OpenAI rolls out GPT-6 Luna with Intelligent UI to free ChatGPT users \u00bb YugaTech",
+        "url": "https://www.yugatech.com/news/openai-rolls-out-gpt-6-luna-with-intelligent-ui-to-free-chatgpt-users/",
+        "publisher": "Philippines Tech News & Reviews",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-11T00:06:54+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_997cb3a2974a67d8",
+        "company": "OpenAI",
+        "title": "Vision and voice in ChatGPT",
+        "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5HMEtkaVBxVlNoUmZNQkZOMTNzRFBzTm1ua3pqSVlqWGxpQjhZaGYyVG9DZVFseDZIa0p4VWd3bzRMbFAtY09ieDUwNU1PZ3dCUUJISzRabG1UNE9FWHhSTlFWZHQ3amozMFd0SHlNQQ?oc=5",
+        "publisher": "OpenAI",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T18:27:26+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_8dc2309c319155c8",
+        "company": "OpenAI",
+        "title": "Strategic planning with ChatGPT",
+        "url": "https://news.google.com/rss/articles/CBMidEFVX3lxTE1iR1FieTZkZlJoT0puS1RwZlVYNEJaOWVhWkNOV2tiM04xWFIxNnozMjNpa3N2Nlo0TUxCX2F1VTI4NHozRFE4a2V3SlVHX0JXVGtDNlZZam5EMXYzdldWemNEOFhVRDg2cExjaDh4MVp5SFJj?oc=5",
+        "publisher": "OpenAI",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T18:27:26+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e7309fc5fd7eca98",
+        "company": "OpenAI",
+        "title": "Asana cuts model costs 76x in browser tests with GPT-6.1 Sol",
+        "url": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE1zVEh5T3B2VWRZc25KOGxJYndILXRwa1l5YlhNb0NmeE5BQ0laTm1pRGNDUmY4SHNjeFllZHVrcmZYeklqU2JrMngtbHhQTWpfZGtwSUVOS2s?oc=5",
+        "publisher": "OpenAI",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T17:53:14+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f2e13fa59c8b123b",
+        "company": "OpenAI",
+        "title": "The Biggest ChatGPT Update Yet Gives Entrepreneurs 7 New Ways to Grow Their Business Fast",
+        "url": "https://www.entrepreneur.com/building-a-business/the-biggest-chatgpt-update-yet-gives-entrepreneurs-7-new-ways-to-grow-their-business-fast",
+        "publisher": "entrepreneur.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-03T02:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_6c305202ff122dc9",
+        "company": "OpenAI",
+        "title": "OpenAI says Moonshot users tried to extract GPT reasoning data",
+        "url": "https://www.techinasia.com/openai-to-preview-gpt-6-cyber-launch-security-product-sources",
+        "publisher": "techinasia.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-01T00:17:03+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f9272d0c769964af",
+        "company": "OpenAI",
+        "title": "OpenAI links China\u2019s Moonshot AI to attempt to extract its models\u2019 reasoning",
+        "url": "https://www.cnbc.com/2026/10/01/openai-chinas-moonshot-ai-kimi.html",
+        "publisher": "cnbc.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-01T00:04:29+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0156",
@@ -3940,19 +5483,120 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        4,
+        27,
+        0
       ]
     },
     "distinct_story_count": 32,
     "raw_event_count": 58,
     "companies_involved": [
-      "Anthropic"
+      "Anthropic",
+      "OpenAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-23",
+    "latest_detected_at": "2026-10-10",
+    "members": [
+      {
+        "event_id": "evt_ae5e6146621d65f4",
+        "company": "Anthropic",
+        "title": "White House demands transparency after Anthropic AI agents called in false Philly homicide ...",
+        "url": "https://www.inquirer.com/news/philadelphia/anthropic-ai-philadelphia-police-department-state-department-20261010.html",
+        "publisher": "inquirer.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T21:03:22+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_927f58e3b550280d",
+        "company": "Anthropic",
+        "title": "Anthropic Believes So Heartily In AI Consciousness That They Are Banning Humans From Being Cruel Toward AI Claude",
+        "url": "https://www.forbes.com/sites/lanceeliot/2026/10/10/anthropic-believes-so-heartily-in-ai-consciousness-that-they-are-banning-humans-from-being-cruel-toward-ai-claude/",
+        "publisher": "forbes.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T20:52:25+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_7cf02f053fe1d9aa",
+        "company": "Anthropic",
+        "title": "Anthropic AI model submits false homicide tip to Philadelphia police",
+        "url": "https://www.aljazeera.com/news/2026/10/10/anthropic-ai-model-submits-false-homicide-tip-to-philadelphia-police",
+        "publisher": "aljazeera.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T20:28:09+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c94b923e017322e2",
+        "company": "Anthropic",
+        "title": "Is AI conscious? Anthropic says 'maybe'",
+        "url": "https://www.machinesociety.ai/p/why-anthropic-thinks-claude-might",
+        "publisher": "machinesociety.ai",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T20:15:48+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_8ff75e9f956f6262",
+        "company": "Anthropic",
+        "title": "Philadelphia police receive false homicide tip from Anthropic AI model",
+        "url": "https://thehill.com/policy/technology/6140747-anthropic-ai-false-homicide-tip/",
+        "publisher": "thehill.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T19:31:19+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_67726e00211af364",
+        "company": "Anthropic",
+        "title": "Anthropic AI model sent fake murder tip to unsolved killings website, Philadelphia police say",
+        "url": "https://www.malaymail.com/news/world/2026/10/10/anthropic-ai-model-sent-fake-murder-tip-to-unsolved-killings-website-philadelphia-police-say/238501",
+        "publisher": "malaymail.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T01:15:24+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_2d4bf860ea86627e",
+        "company": "Anthropic",
+        "title": "Anthropic AI agents took \u2018unintended\u2019 actions on government sites",
+        "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxQZ2V1ZnA4a2RIbllCWVFuZDA0ellKck0teFdTaEZZV3lYeDZXenZVdWN4aElzZWxYNUZxcXlkWHhrUVJVN2gyY0pZOHRiS0hMQzV0QUU2bllGbDFCV3JNaVJaTFhhUTlXblQ0aG1QcEVRNzRDbW9xRDRRek5MU3dUMnpjQ2pmOFQ1SjlPOUZZdndrOGhCRGxwRTZnem9VaHBVRTdqTXczQkw5RHhWVXdKaFZZQk5qd2hnelplNGdfd1I?oc=5",
+        "publisher": "The Washington Post",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T00:55:51+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c9ec9bf35d71f39e",
+        "company": "Anthropic",
+        "title": "Anthropic AI agent sent fake murder tip to US police in testing glitch",
+        "url": "https://www.scmp.com/news/world/united-states-canada/article/3370414/anthropic-ai-model-sent-fake-murder-tip-us-police-hit-government-sites",
+        "publisher": "scmp.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T00:51:36+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0158",
@@ -3961,11 +5605,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
-        1,
-        2,
-        3
+        6,
+        4,
+        0
       ]
     },
     "distinct_story_count": 27,
@@ -3974,7 +5618,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "Hugging Face",
       "OpenAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-16",
+    "latest_detected_at": "2026-10-10",
+    "members": [
+      {
+        "event_id": "evt_7858b78086af5aae",
+        "company": "Hugging Face",
+        "title": "A timeline of developments in AI safety since the attack on Hugging Face",
+        "url": "https://abcnews.com/Technology/wireStory/timeline-developments-ai-safety-attack-hugging-face-137161979",
+        "publisher": "abcnews.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T17:54:15+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_31a95b5b28bd368d",
+        "company": "Hugging Face",
+        "title": "Controversy swirls at OpenAI over 'abrupt' firing of safety team members involved in the Hugging Face hack investigation",
+        "url": "https://fortune.com/2026/10/09/openai-fired-researchers-questions-stattements-hugging-face/",
+        "publisher": "Fortune",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T17:21:41+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_77f2816c4616ee7a",
+        "company": "OpenAI",
+        "title": "Controversy swirls over \u2018abrupt\u2019 firing of OpenAI safety team members involved in the Hugging Face hack investigation",
+        "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxONzZQeFJQRXFQcUVSOXRrUnpKZjZiUjVBZWNsU1BubjYzTlpLWW12bmRZYzNmcV9rbGFvMGxIeGJkM2hHdlFlMml0VGU3dGpSWVJlRklXV0F0Y2txZWE3M29xWkxGZXU2OTBXTjVtbmpwcmUtTzNlTDRtQTc5ajRBTXRDbmlQU3VzYzFJTTdBZGJpQW4xcVE?oc=5",
+        "publisher": "Fortune",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T17:21:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_17080998f73ef127",
+        "company": "Hugging Face",
+        "title": "Hugging Face Transformers: Leverage Open-Source AI in Python",
+        "url": "https://realpython.com/huggingface-transformers/",
+        "publisher": "Real Python",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T14:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a02ae61275dc7a22",
+        "company": "Hugging Face",
+        "title": "A timeline of developments in AI safety since the attack on Hugging Face",
+        "url": "https://www.thestar.com.my/tech/tech-news/2026/10/03/a-timeline-of-developments-in-ai-safety-since-the-attack-on-hugging-face",
+        "publisher": "thestar.com.my",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-03T09:55:06+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a4d7ec043530ad6e",
+        "company": "Hugging Face",
+        "title": "A timeline of developments in AI safety since the attack on Hugging Face",
+        "url": "https://techxplore.com/news/2026-10-timeline-ai-safety.html",
+        "publisher": "techxplore.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-01T19:40:41+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_733c15475498d852",
+        "company": "Hugging Face",
+        "title": "Rogue AI agents: A timeline of security breaches since the attack on Hugging Face",
+        "url": "https://www.fastcompany.com/91616293/ai-hacking-hugging-face-openai-anthropic",
+        "publisher": "fastcompany.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T21:17:58+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_56e02f4192d51901",
+        "company": "Hugging Face",
+        "title": "\"An AI did it\" is no defense, says nonprofit suing OpenAI over Hugging Face hack",
+        "url": "https://arstechnica.com/tech-policy/2026/09/lawsuit-demands-openai-halt-unsafe-development-that-caused-hugging-face-hack/",
+        "publisher": "arstechnica.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T18:25:04+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0173",
@@ -3983,11 +5727,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
-        1,
-        2,
-        3
+        0,
+        6,
+        0
       ]
     },
     "distinct_story_count": 9,
@@ -3995,7 +5739,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Microsoft"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-25",
+    "latest_detected_at": "2026-10-10",
+    "members": [
+      {
+        "event_id": "evt_334db0da3bdafc7e",
+        "company": "Microsoft",
+        "title": "Satya Nadella says a company's relationship with AI should have trust issues",
+        "url": "https://www.businessinsider.com/microsoft-ceo-satya-nadella-ai-threat-blog-enterprise-companies-corporations-2026-10",
+        "publisher": "businessinsider.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T21:05:46+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_b5a59e68f62aa576",
+        "company": "Microsoft",
+        "title": "Satya Nadella says a company's relationship with AI should have trust issues",
+        "url": "https://www.businessinsider.com/microsoft-ceo-satya-nadella-ai-threat-blog-enterprise-companies-corporations-2026-10",
+        "publisher": "businessinsider.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-10T21:05:46+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_eaa27a918b276668",
+        "company": "Microsoft",
+        "title": "Microsoft launches its new AI model for making decisions quickly.",
+        "url": "https://news.google.com/rss/articles/CBMikAFBVV95cUxNOGszcU9nbXgyR0dKOW5hMXJWaVRINE9rUDlFYTRUS1lXS0F2V19PRWxYd2ozUk54ckZrdE1KMmpuWVRNcnF6U3l1RE1UNnB1U1hvaVpUQTIyUFRXQjhMVGx5cEtabWRPWFo3eGZ5QjNrZ0g0Vi0xZjVVaFRlYlZla18xaXppTDhJZGJhbkhTY3Q?oc=5",
+        "publisher": "The Verge",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T22:21:19+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_ba57fb9d6e271d88",
+        "company": "Microsoft",
+        "title": "Microsoft\u2019s AI-Powered Windows Strategy: 5 Things To Know",
+        "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxQWnNWeTR0aUFsTkhINDRSZDhaeEFCMVJhN3Npd0QxX1hTaEtfbmZxSFJCNUpqZ3hpOTFQUEFWNVRPTm12b3JEMDVOYjJNSmJtbmVSTHJRSVduTkNOSWdXS1lXQlNPVHdjMzMzVnNRc3prZk1ZTFVFa3BVaFJWdS01emwxOEIybk84bVdPZFZuaEJSeFE?oc=5",
+        "publisher": "CRN",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T16:25:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_6a4bb71c849102bb",
+        "company": "Microsoft",
+        "title": "Nadella's Next Act: Can Microsoft Win the AI Race?",
+        "url": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxOTTdZSVYxZm5FamlpTV9mek4xeHdPcmpXWGdSbEtLX01NMnVFLUxYQWRGOEtsR25Kak1haWJ1eVZtaWtJTDY2cVFzZnU0a2RheC13ZUhLVi1FcmZjbUhzcjJOTHZja1I1TVZ6YmNQVXFwZDNUX25TUDJDZGpack1udFh3MWFnelVp?oc=5",
+        "publisher": "The Tech Buzz",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-05T17:10:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_7a7cb0879fd72573",
+        "company": "Microsoft",
+        "title": "Nadella's Next Act: Can Microsoft's AI Bet Match Cloud Success?",
+        "url": "https://news.google.com/rss/articles/CBMimgFBVV95cUxQTVJtakcwelBnME8xWVU2dEI5NjlCTXBsSHZPNVp5dW1IbDhlNWY1TFk4eS1WN0dQbWpINV9ER2VRc3lyempIek9XSFducUczaHptVDhVYkJVcmVEZU96Sm5qV2RRU0Z0cklUMXVpYUV6MFZaM2pMMThzbGthd3lMSzRBZm5XRVlrUHZUS3dVbmpjNEs5N0x0Q19B?oc=5",
+        "publisher": "The Tech Buzz",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-05T12:37:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_e6afaeae50e7931f",
+        "company": "Microsoft",
+        "title": "Nadella's Next Act: Can Microsoft Win the AI Revolution?",
+        "url": "https://news.google.com/rss/articles/CBMikAFBVV95cUxOelNDVW9IS2NHdl9IOXhPTU56U3FHX1EwT2ZzNTMzVGRxZXViMTl0SDN1WDIzNmdaNm9TV2xxMVhpVlZDakNnUWtoZVFCU1k4U1JCMGRrWm02TGdvUFZ6RkJaQkdwVmdIN0JTS1NPOWo4Y0d0cjdpcnlpdy02eV93REdlelgxOUJRRDlaTFVwS2g?oc=5",
+        "publisher": "The Tech Buzz",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-05T12:07:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_139226b3e819ac95",
+        "company": "Microsoft",
+        "title": "Nadella's Next Act: Can Microsoft's CEO Repeat His Cloud Magic in AI?",
+        "url": "https://news.google.com/rss/articles/CBMiogFBVV95cUxPbVJ1QTlNdkVON2kzTzYtbTdORTh0WWFDUFNOU1R5ekQyT0I0bWxuWlRVT2syRGZORnRQM3U3OS1sSlExZnRmNGVZeHR4MVpjS1NZSWFYYUhLUWZfYXJ3cnFIcVRYeUdCRjJNamRxdkxNNXpEeUZUbnQtLTNTeVdvSHlkMnBmVzFTNll1WTZVNVlBMHpwZHE5RVRKNGQtUkJ2VkE?oc=5",
+        "publisher": "The Tech Buzz",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-05T11:36:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0181",
@@ -4004,11 +5848,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
+        3,
         1,
-        2,
-        3
+        0
       ]
     },
     "distinct_story_count": 9,
@@ -4016,7 +5860,107 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "Flipkart"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-16",
+    "latest_detected_at": "2026-10-09",
+    "members": [
+      {
+        "event_id": "evt_395129b47583a42b",
+        "company": "Flipkart",
+        "title": "Flipkart draws 6.3 million concurrent users as Big Billion Days sale opens",
+        "url": "https://www.business-standard.com/companies/news/flipkart-draws-6-3-million-concurrent-users-as-big-billion-days-sale-opens-126100901253_1.html",
+        "publisher": "business-standard.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-09T14:34:17+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_68d905aabb1ab382",
+        "company": "Flipkart",
+        "title": "Flipkart Takes Big Billion Days 2026 To Bengaluru Metro With Train Illusion OOH",
+        "url": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxOcWVBcW1EUXhScVJDZVBXemRSelM4WjE2cmJ1bW95ZXRGSEFjX2F3ZDZObC1vMTYtRExhbkpqSzMwWmdCTjAzUVc3WVhUaTJTZnI5ZzloNmpvT3JKUl8tUkt6TFlhQjRkQ1RTeUtfVHZ2bFdrVVVNTFhlNWl2bnFMelNudWxucVpXdHdPQ0JSRGtrdDhYNUlQSFhEcVp2NVF3ZW0waE1laGoxREZvZWdPUWgtTzd6U093eWtyMmF3bHhQSjJXOEg0Yw?oc=5",
+        "publisher": "Everything Experiential",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-02T07:04:12+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_881dfc52a53a00d7",
+        "company": "Flipkart",
+        "title": "Flipkart Adds 900 Delivery Hubs Ahead of Big Billion Days sale",
+        "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNQXE4VkhfVzR3dG9iT1dySGVIblN0QjBVcDJrSmZHQzA1bFZfUTRVUFpTUS1ZRGRudDR1TVRkZHpnRlUtM0xDamhNeWlZV0xvR3d2c2QwWEFVbVRUZW9DTVdhdU1FempRX2hTbko2RzhjczhxdnJrb2dCVVZIT1BLd29HV3RkUWtQbEhlckREZHZKSWp1T1Zsa3hDR2xsbTZHMGloLUxJSXVnazV4YXBr?oc=5",
+        "publisher": "Apparel Resources",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T12:17:12+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_94f2b0a8df497b23",
+        "company": "Flipkart",
+        "title": "Flipkart Big Billion Days Sale 2026: Samsung Galaxy S25, Galaxy S25 FE and More Teased to Get Discounts",
+        "url": "https://news.google.com/rss/articles/CBMi0wFBVV95cUxPNTdwSmttS2g0aXpDdFZhZ0hhMWNhLTFrZE5DZE1EaDhmcWZPNU8tUVlfWVNNd09penJIZ1BvMS1HSGQzNFFDcGU5TVpYUWJQT2lSRDVBR25aNFU3Qm55ZjRmMlJtS01ra2MzdFVuLWJrYkFJR3lTRlBOaFlWeUFTOVlneFBscWxwVnRZRFJCNFlZaEFocm9BdUozc1hzVmZCaVJyVGZRN2RhaDI1MWVxMzJMMk1xX3l5UVJ5cHBXZG9xbHNrdzhTLXZuNjRkVW96cksw0gHYAUFVX3lxTE9jbE5HdlgzNWdQSU80b0s2U2tZa2tQTGdqd0NjeTFsVEI2d05NSFJBQllEOWx3dldrRENNSnpORUtMYmEyc1hDcktWejhtQ2k2b3pMYjlsZEpuVmNLT1Z3RHBsc21FNzhtNER4S2RtVXJBNm1aNVFYWTlSWWpaSUJrVlVrZmltUXlUX243TlZzeVg2akNPWEpabXluSDJXVzZ0bHlwU2piM0szS0Zkc0xvNWlnUGw0bjZPcWFUTWFXOEVzdmdqbzE0T0RGZFZ5b0E2U0h4T2FPaA?oc=5",
+        "publisher": "Gadgets 360",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T05:44:31+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_990f2f250d71f1ef",
+        "company": "Flipkart",
+        "title": "Flipkart expands warehousing space, adds 900 delivery hubs ahead of Big Billion Days sale",
+        "url": "https://news.google.com/rss/articles/CBMi7wFBVV95cUxOX0FacUZDQ24xZEF6cUM3RVoyakxMRklrcGN3bVRIUkszc3VfMGJiZ05QN2htcFJEQktHOXZ5ekhTZ3BISkh3bGFSTzRuZUZJeldLRnVpZHR5Vy1TalI1WWw1MkQ4VmVjcDNWTDhaYWdieElsWFBmSEMyRmxaM2RKeVBpbHdESnNFc3BNOEo1aUZ4cXd4dTMyS1h1dXQwVHZkNWttNEZrRTV0cjdvdVZUSUVpSEdzMjg3Qk81bmJXWmNzYzByZ0ZuNWdJRXRtdGJKdEpHUmlOZHJlMDB3R19xQnRwa2pLN1hSS0dRcGtwMNIB9AFBVV95cUxOdlBaRk43MnVydUNxaE8yb2hrV3R4cEFYVnFWZ3Q3QkVrd2NVNnp3cEgtYmxibXRKUHV3M1gxZzZBTWlrQzBCRDk4dV8tNGN5WDBRdTlSRVdMQ00zQWFKVmF1YTNxT3QycURWUVYtSGJUX2JzdUtaSnYtVGZ4cnBrSnZjaHhmMnM1b1RybExiMmRPMVFXdEV2cjRqYUpLTFRweTBISDJnbzNGbmdqekVmaWVvVENnWnVoWHJRci1nWmdNMm5BMmw1LWtKM1QyamlJQ0F4NzB4THMxUHF1UXFBdWFOakkwR1JfdEFnZ2twcVhRY3Zn?oc=5",
+        "publisher": "The Economic Times",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-29T06:38:13+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_eb7cef3aac65ed74",
+        "company": "Flipkart",
+        "title": "Flipkart Price Tracker by FlipShope Predicts Record-Breaking Big Billion Days 2026",
+        "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxPNUxmVDVMTWdwUUhadTlyYzU2SW5YYkxSendOQUJtMUMzM3dJUE9od1JpWGpTb1ZXMVFUMlJEeWtiRTh6ckd2cGxtdlhYT3BkcDZvS0tvNzN5cnNwUzlkLWtMcGVVSnE3c2lpcVBTeGR5OHZWdG9kWVVOd2pDLV91dVVRX0RpY2UwYl9oZWRHSURrMDlvQTNPSTJVa05ZTGZVU1RZM2JGTEJSVmpDcUN1WlpHdGtrdEd5YmltR0cxdm9GaGVXaWZ5ZW1CaHQ5Wnc?oc=5",
+        "publisher": "StreetInsider",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-18T14:52:08+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_d275013e6c0152bb",
+        "company": "Flipkart",
+        "title": "Flipkart announces Big Billion Days sale 2026 announced: Bank discounts, early access and more",
+        "url": "https://news.google.com/rss/articles/CBMihgJBVV95cUxQTHkyMWZxc1F1bG8zZmN6WUVLbmhZSDBLM3JicHNOaWpTekxFdVh5SEtpWE5hYzYzSXh5aU8zNFJlazZ6bUhGME5qemx2WHVBNlRHb3o2XzBzNlVOQzFER01KRGd1T3RndVpqYU9pVFZxMndHdjVyRW4tRHV6d2JqdE9ZLVVPTFJmYXZ6OElFNG13eFAtRGR0cmcyZ2VaNjNjNkRhUWh2OTBJZmlmWHFEUEdYZUUzR1JRdjFOTDR3bWpLWTRBMU40T2dOc3ZZdUZQTzRtZVlLZVJ4VmR3YXNHT2JrZElRUDVUanI0bmJJWlVHT0dOdTJNZ0tDeExwVi1xcXBkV0Fn0gGLAkFVX3lxTE1xVDRQTFJ5bzgzUTd1Y3hFYXJka21JNnNISlBTS2EzSFlNQ0JuOUZWc2pRaHM0S3ZoTjdRRTZlbWRTWnUycWtkQURyT0FiWEhNMHdkaGNjRHBxSjJZN1JqSmxUNXNvMEhlZ1FQMjFkLU94dGRrUmZmdF80SjFObHBsR0dmcHU3bWdZVFRYMk5LWDEzNWR4Z2xvcXF2T1NXUjBXRDNzWVdKT2hhV3dPRDNtVGZDc19KRjdDVlE4RUxWYWtzTXYxMFhHdjJ4UEZDSVVCX3UydjlsQlJqMV8tVnQwU2JPZHdVN0VBWUVHcmxGdE9qX3c5OFF5OS1MLVJ0T0RtSE44ZkxGNmdrOA?oc=5",
+        "publisher": "The Times of India",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-17T09:04:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_3b1b4ebdab057dd2",
+        "company": "Flipkart",
+        "title": "Flipkart Big Billion Days 2026 Starts October 9: Up to 90% Off",
+        "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPZXZsUC1Eb1UtT251aTZILUFFOGlhakZFa2FTdlJHbEVlSjNfRFFGRFQwakdFbVFKWnhHQWlWX3NKaENJTmxPQTFRVEhZYk1MWXZPSktmTzNydkprdTRmeWJKb2VhZ1RBdDRtVEt0VHRzdndrS2lsc2xxMGJaR0xhUExLcXUwM2hFak5jZ2hwaXpmMkI2MllPU2RVakJRLTDSAawBQVVfeXFMTmdxWC1fVVN5ZVRhMHBTNGpwLUppV2pKUjFzdDI5SHduR0c1c0xJdjFSX3RNUHBqVGdlckZqQ3FFNC1DYk9nLS1PSzRoc2hpWWtiYUFTUUZmNlp4Ul9xTThvMklNcVFuTmVUWlgza3BGRUJjbnFSWHhXSVU3S2Q2N2dTVGpIYjdVQ1BNeVN0bFNXZWwxTE5hbVNKLWowMEVQU3BzMGJhVGxNVmd4ZA?oc=5",
+        "publisher": "Analytics Insight",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-16T14:45:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0187",
@@ -4025,11 +5969,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
+        4,
         1,
-        2,
-        3
+        0
       ]
     },
     "distinct_story_count": 5,
@@ -4037,7 +5981,95 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "companies_involved": [
       "SpaceXAI"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-10-04",
+    "latest_detected_at": "2026-10-07",
+    "members": [
+      {
+        "event_id": "evt_4bbd4c24f960cbe4",
+        "company": "SpaceXAI",
+        "title": "'Yes, we will make that change': Elon Musk says SpaceXAI will be renamed",
+        "url": "https://www.techradar.com/ai-platforms-assistants/elon-musk-is-renaming-spacexai-to-match-trumps-new-super-intelligence-force-but-critics-say-the-white-house-body-isnt-the-answer",
+        "publisher": "but AI's 'Super Intelligence' rebrand is running ahead of the technology",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-07T21:00:00+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_03042f9d4f9c4674",
+        "company": "SpaceXAI",
+        "title": "Musk says he will rename SpaceXAI to SpaceXSI",
+        "url": "https://www.reuters.com/business/media-telecom/musk-says-he-will-rename-spacexai-spacexsi-2026-10-04/",
+        "publisher": "Reuters",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-04T20:16:42+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_ad5c14bb09cf8040",
+        "company": "SpaceXAI",
+        "title": "Musk says he will rename SpaceXAI to SpaceXSI",
+        "url": "https://www.dailymaverick.co.za/article/2026-10-04-musk-says-he-will-rename-spacexai-to-spacexsi/",
+        "publisher": "dailymaverick.co.za",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-04T19:40:33+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_ca48bd4d51f0e59d",
+        "company": "SpaceXAI",
+        "title": "Elon Musk Says SpaceXAI Will Be Renamed SpaceXSI After Trump Rebrands AI",
+        "url": "https://www.ndtvprofit.com/business/elon-musk-says-spacexai-will-be-renamed-spacexsi-after-trump-rebrands-ai-12138139",
+        "publisher": "ndtvprofit.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-04T17:18:35+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a1c8699f1e27465f",
+        "company": "SpaceXAI",
+        "title": "Musk to Change SpaceXAI\u2019s Name to SpaceXSI",
+        "url": "https://www.theinformation.com/briefings/musk-change-spacexais-name-spacexsi",
+        "publisher": "theinformation.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-04T16:47:42+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_dd5f9679fb122272",
+        "company": "SpaceXAI",
+        "title": "Elon Musk Says SpaceXAI Will Be Rebranded To SpaceXSI And Declares \"SpaceX Is A Super Intelligence Company,\" As Trump Forms A Super Intelligence Force",
+        "url": "https://wccftech.com/elon-musk-says-spacexai-will-be-rebranded-to-spacexsi-and-declares-spacex-is-a-super-intelligence-company-as-trump-forms-a-super-intelligence-force/",
+        "publisher": "wccftech.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-04T15:41:19+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_421adc8d161a0ea9",
+        "company": "SpaceXAI",
+        "title": "Musk Says SpaceXAI Will Rebrand To \u2018SpaceXSI\u2019 After Trump Pushes \u2018Super Intelligence\u2019 Name Change",
+        "url": "https://www.forbes.com/sites/conormurray/2026/10/04/musk-says-spacexai-will-rebrand-to-spacexsi-after-trump-pushes-super-intelligence-name-change/",
+        "publisher": "forbes.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-04T14:54:06+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0190",
@@ -4046,19 +6078,120 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "fading",
       "vector": [
+        3,
         1,
-        2,
-        3
+        0
       ]
     },
     "distinct_story_count": 6,
     "raw_event_count": 11,
     "companies_involved": [
+      "Ajio",
       "Snapdeal"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-23",
+    "latest_detected_at": "2026-10-05",
+    "members": [
+      {
+        "event_id": "evt_d7a9c8b0ecffa239",
+        "company": "Snapdeal",
+        "title": "Snapdeal Parent AceVector IPO Listing Today: GMP, Expected Listing Price Ahead Of Debut",
+        "url": "https://www.ndtvprofit.com/markets/snapdeal-parent-acevector-ipo-listing-today-check-gmp-expected-listing-price-ahead-of-debut-12133409",
+        "publisher": "ndtvprofit.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-05T03:05:10+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_f6c518454ea5c60f",
+        "company": "Snapdeal",
+        "title": "Snapdeal parent, AceVector IPO allotment: How to check status on BSE, NSE, MUFG Intime",
+        "url": "https://news.google.com/rss/articles/CBMiugFBVV95cUxONUJfRUtweUU4bFd3M3FLaGtHd2tES19MaWc1TmtKbHBxX0NaSlhvbFVvZU1WQ0dkRkVWZDdTT1lXaGM4aWF2U1VILV9nNjdjeTRDNk9vcURaMXZlWld4UWJzUWxESzNpeFlPTGF0ZGVJYU9yVmM3RWxlU3BaZWRuZzI2dlNteVVQX241WWZwTUNvVGpnQlhmWGpNQkxFcW8wWmlzRXNKcmVTRmRMbFJiZmQ2VVZzWFJWTXc?oc=5",
+        "publisher": "IndiaIPO",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T12:11:01+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_442a541e856c346f",
+        "company": "Snapdeal",
+        "title": "Snapdeal IPO Allotment Status: Check AceVector BSE NSE Online",
+        "url": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxQWjdxeGFFR1V0QkZicFQtT1p3WEZ0TEdkbHFUYUcxT2FlcGt0OXo0VFQ4eGFyMUVqVjc1T0JfMndDWlA0Qm1WaHhOdUdCSC11RTQzeWM1UUtORVlZT2luUFdQLUlnd2Y3cFJ3Vm1qeUJhc0hYRGN1cFVfVGFtYjAwNC1tTmZ2RjJNa0o1cHo4S0JTc0dGSnNqMURhNEhkREptVDZXY250aTVBQVBBemp0ZzNjYUVLaE5xVktyLW56VUpIeEl5LWZTLU9jSmRtVktLMU9weTlYNmNTNGs?oc=5",
+        "publisher": "HDFC Sky",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T05:00:23+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_302e61b55c16091e",
+        "company": "Snapdeal",
+        "title": "Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date",
+        "url": "https://www.ndtvprofit.com/markets/snapdeal-parent-acevector-ipo-allotment-status-today-check-status-gmp-expected-listing-price-and-listing-date-12113996#publisher=newsstand",
+        "publisher": "ndtvprofit.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T03:46:15+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_c7b8ab74b2046160",
+        "company": "Snapdeal",
+        "title": "Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date",
+        "url": "https://www.ndtvprofit.com/markets/snapdeal-parent-acevector-ipo-allotment-status-today-check-status-gmp-expected-listing-price-and-listing-date-12113996#publisher=newsstand",
+        "publisher": "ndtvprofit.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T03:46:15+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_a288e582b4de2acc",
+        "company": "Snapdeal",
+        "title": "Snapdeal-Parent AceVector IPO Allotment Status Today: Check Status, GMP, Expected Listing Price And Listing Date",
+        "url": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxQa0dVLVMybGZIVUJma2lwMFlPTGJRU010Uk5kczEyajc5MER6Q1I2MXhGbnR0eWJJRTRfWGs3cVdhbXhBdWZNSEFSVlladGRubVp4THZLNUJDdnpMYVhWVjJVUXBNUDRNYjlYYVIzZ3lYNlE2bHlENS1fQ1lqYXZlU2dPZGJfTDBWN0ZvRndMYXVsbzNlYWxoV1VKdzVnSzlid25mWU1iMG55ZUNNc0Z5d0ZwU0k0dWFjMEo2TUFGSGpDMFd5WVpVeS1DTVhpYnFnSUpXOExiY3BMNWEwZ3dmVEJkdGJsOVBq0gHwAUFVX3lxTE1sWkVUYTFfWlNKaWFwWGsxS19rREloMnVRdkVaRXczRDR6c3RPX1hIcVZGQ1EyS29IZzY5MU9uaV9wSXJyNDNKaDF6RVNlOVBFeWRHWUJHSFNjLWNibFJhd3B0RFRCTjFQVko5NUFzSUNTNV82dXdld2t1elVIdkhSOWI0MnlxMTVRR2tVMlBUMWEtT3ZtQXdickdzaEtIYXNLSnBtdDdhYjlsclJRT3RVdTg5Q2tyOUpZQVZaWF9ZeGZDTXNRVnVPTHBMUXhkU05GUTR0dURJdTJ2X0kya0hfb3VybW4wblFZMmhRR2dDVQ?oc=5",
+        "publisher": "NDTV Profit",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-30T03:33:53+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_589ab9dea40ea582",
+        "company": "Snapdeal",
+        "title": "Snapdeal Parent AceVector\u2019s IPO Was Fully Subscribed By Day 2",
+        "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxPYWpCSzBSOXdoWWlDQ1hXTE1na1ZFUHU2UXF5ak4tSFpXYjdrRVJqaDcyTm0tVlNRMFlCV0R2YUdwVzk5cWpaUlVUVzhFTjRDTTVzdkU2MkthVHMwRmZPbzU2dWR6RDllb205Nmx0TU51X2Y1VmU3aFdvZDlzT0NKTHRqMXhxNDktSTNvcHlRM1h1VUE?oc=5",
+        "publisher": "finimize.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-28T12:15:47+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_09ff84ad13af34fd",
+        "company": "Snapdeal",
+        "title": "Snapdeal parent's India IPO fully subscribed on second day",
+        "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxNaGVKa2NkRlF4NUE0bWVoZnY0SEcyejVpc1ZDOUFfaE1QUzRmZF9SSFRpZVhoOHdXbkNZVnFIa0dXb2M3eU1Iem1MVU1heUJPT3N1YjBOckpFZnM4alIzMzZGTHl2bHNfOTR3WDNZU1c5ZjQ0d09qRElCTmVYYWpHQ3RwLUh4Q29uZGdqZVVOLWNtSmZ3U2lMMk1OSEVIM2VUN0RZUg?oc=5",
+        "publisher": "Reuters",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-28T10:41:17+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   },
   {
     "cluster_id": "cluster_0195",
@@ -4067,11 +6200,11 @@ export const BASELINE_TRENDS: TrendRecord[] = [
     "cluster_type": "single_company_storyline",
     "primary_category": "Strategic Movements",
     "momentum": {
-      "label": "building",
+      "label": "too_early_to_call",
       "vector": [
         1,
-        2,
-        3
+        1,
+        0
       ]
     },
     "distinct_story_count": 5,
@@ -4081,7 +6214,71 @@ export const BASELINE_TRENDS: TrendRecord[] = [
       "Google",
       "Microsoft"
     ],
-    "relevance_score": 0.85
+    "relevance_score": 0.85,
+    "first_detected_at": "2026-09-03",
+    "latest_detected_at": "2026-10-08",
+    "members": [
+      {
+        "event_id": "evt_3d41720e16fa5d23",
+        "company": "Cloudflare",
+        "title": "Secure Swift Packages for Cloudflare\u2019s AI Gateway",
+        "url": "https://www.natashatherobot.com/p/swift-packages-for-cloudflares-ai-gateway",
+        "publisher": "natashatherobot.com",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-10-08T15:22:45+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_9f38463e01d336c1",
+        "company": "Cloudflare",
+        "title": "Adaptive application security for the AI era: how Cloudflare connects code, traffic, and intelligence to stop attacks",
+        "url": "https://buaq.net/go-445424.html",
+        "publisher": "buaq.net",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "Tue, 29 Sep 2026 13:00:00 GMT",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_8ca61b3ae382a12a",
+        "company": "Microsoft",
+        "title": "Storm-3168: Agentic-driven cloud attacks using compromised service principals",
+        "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxNM092d3lCWFRTMmMxZ09DODM4Z3hxWUNzSV93OVFoYUU3T2tYTUxudnMyc2MzR1R0QU1QSEI2ZzJQRjNfaUNVOUVRUU9LLTNSalE4SkEyM0FWcHN0MDlJb2dwcU8zNUhtbDYySjJLU3VYaVBvb1lLQUI2T2huNTduTkRiQjRYcWJ4WG9HNGpZSFNrbW5iSDVLSVdwUXpmRUdQTWt4RHVfUm5RQ1NJaDBKYWZjMDdNY0RGREpSeWZUeVlsVmd0eVJXZS1PM2xqWkU?oc=5",
+        "publisher": "Microsoft",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-25T15:35:08+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_040697de62d85587",
+        "company": "Google",
+        "title": "Advancing Private AI Compute with secure, server-side memory",
+        "url": "https://news.google.com/rss/articles/CBMikwFBVV95cUxQeEdFYzJoT3FDNm8zeG91UWJCQnBxa1pJR1dYVEpUTXpWc3MxaUwwM0UxZXNISTR2MXpGeGQzWFQ5VjBMMDMxX1Zzd2oyOGVSRW9Da3lJcTk1WlFKUTBYOTJEU2Q5Z0Z3UzM3UUtxQWFNX29mNUJoNnE1bnp5dzFlMWpudnAwdkpxTEJRT2I4OFc1VTQ?oc=5",
+        "publisher": "Google DeepMind",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-23T16:03:03+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      },
+      {
+        "event_id": "evt_db4fe6777aaf5140",
+        "company": "Cloudflare",
+        "title": "Cloudflare taps OpenAI's cyber models to find and block code flaws",
+        "url": "https://siliconangle.com/2026/09/03/cloudflare-taps-openais-cyber-models-to-find-and-block-code-flaws/",
+        "publisher": "SiliconANGLE",
+        "node_class": "third_party",
+        "signal_type": "news",
+        "published_at": "2026-09-03T23:21:23+00:00",
+        "date_precision": "second",
+        "is_sequence_eligible": true
+      }
+    ]
   }
 ];
 
