@@ -1295,17 +1295,23 @@ export interface HighImpactChangeRecord {
   id: string;
   company_name: string;
   headline: string;
-  significance_tier: "HIGH IMPACT" | "MEDIUM IMPACT" | string;
-  confidence: number;
-  potential_impact: "High" | "Medium" | "Low" | string;
-  window_days: number;
-  strategic_interpretation: string;
-  why_it_matters: string;
-  recommended_action: string;
-  corroborating_signals_count: number;
-  signals_evidence: SignalEvidenceItem[];
-  detected_at: string;
+  significance_tier?: "HIGH IMPACT" | "MEDIUM IMPACT" | string;
+  confidence?: number;
+  potential_impact?: "High" | "Medium" | "Low" | string;
+  window_days?: number;
+  strategic_interpretation?: string;
+  why_it_matters?: string;
+  recommended_action?: string;
+  corroborating_signals_count?: number;
+  signals_evidence?: SignalEvidenceItem[];
+  detected_at?: string;
   created_at?: string;
+  // Dynamic intelligence agent fields
+  change_type?: string;
+  description?: string;
+  impact_severity?: string;
+  counter_measure?: string;
+  corroboration_count?: number;
 }
 
 export interface HighImpactChangesResponse {

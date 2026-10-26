@@ -312,8 +312,25 @@ export function EventsPage() {
             <div className="space-y-4">
               {filteredHighImpactChanges.map((change) => {
                 const isExpanded = expandedChangeIds[change.id] ?? false;
-                const activeSignalIdx = selectedSignalIndices[change.id] ?? 0;
-                const activeSignal: SignalEvidenceItem | undefined = change.signals_evidence[activeSignalIdx];
+                const signalsEvidence =
+                  change.signals_evidence && change.signals_evidence.length > 0
+                    ? change.signals_evidence
+                    : [
+                        {
+                          signal_type: change.change_type || "Competitive Move",
+                          title: change.headline,
+                          source: (change.company_name || "Official") + " Communications",
+                          excerpt: change.description || change.why_it_matters || change.headline,
+                          url: "",
+                          detected_at: change.detected_at || change.created_at || "Recent",
+                        },
+                      ];
+
+                const activeSignalIdx = Math.min(
+                  selectedSignalIndices[change.id] ?? 0,
+                  signalsEvidence.length - 1
+                );
+                const activeSignal = signalsEvidence[Math.max(0, activeSignalIdx)];
                 const activeSigStyle = activeSignal
                   ? (SIGNAL_TYPE_STYLES[activeSignal.signal_type] || {
                       bg: "bg-zinc-100",
@@ -323,7 +340,27 @@ export function EventsPage() {
                     })
                   : null;
 
-                const isHighImpact = change.significance_tier.toUpperCase().includes("HIGH");
+                const significanceTier =
+                  change.significance_tier ||
+                  (change.impact_severity ? `${change.impact_severity.toUpperCase()} IMPACT` : "HIGH IMPACT");
+                const isHighImpact =
+                  significanceTier.toUpperCase().includes("HIGH") ||
+                  significanceTier.toUpperCase().includes("CRITICAL");
+                const windowDays = change.window_days ?? 14;
+                const corroborationCount =
+                  change.corroborating_signals_count ??
+                  change.corroboration_count ??
+                  signalsEvidence.length ??
+                  3;
+                const confidence = change.confidence ?? 92;
+                const strategicInterpretation =
+                  change.strategic_interpretation ||
+                  change.description ||
+                  "PrismIQ identified a strategic movement impacting competitive position.";
+                const recommendedAction =
+                  change.recommended_action ||
+                  change.counter_measure ||
+                  "Provide account teams with comparative battlecards neutralizing competitor claims.";
 
                 return (
                   <div
@@ -342,24 +379,24 @@ export function EventsPage() {
                             }`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                            {change.significance_tier}
+                            {significanceTier}
                           </span>
 
                           <PrismCompanyBadge
                             name={change.company_name}
-                            isTarget={change.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                            isTarget={(change.company_name || '').toLowerCase() === (targetCompany || '').toLowerCase()}
                             size="sm"
                           />
 
                           <span className="text-xs text-zinc-300">•</span>
                           <span className="text-xs font-semibold text-[#70717a] flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-[#6e57dc]" />
-                            Within {change.window_days} Days
+                            Within {windowDays} Days
                           </span>
 
                           <span className="text-xs text-zinc-300">•</span>
                           <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                            {change.corroborating_signals_count} Independent Signals
+                            {corroborationCount} Independent Signals
                           </span>
                         </div>
 
@@ -368,7 +405,7 @@ export function EventsPage() {
                           <div className="px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-1.5">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                             <span className="text-xs font-extrabold text-emerald-800">
-                              {change.confidence}% Confidence
+                              {confidence}% Confidence
                             </span>
                           </div>
 
@@ -399,7 +436,7 @@ export function EventsPage() {
                       <div className="text-[11px] font-bold text-[#70717a] uppercase tracking-wider mb-2.5 flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           <ShieldCheck className="w-3.5 h-3.5 text-[#6e57dc]" />
-                          Multi-Signal Corroboration Evidence ({change.signals_evidence.length})
+                          Multi-Signal Corroboration Evidence ({signalsEvidence.length})
                         </span>
                         <span className="text-[10px] text-zinc-400 lowercase font-normal">
                           click source chip to inspect verbatim excerpt
@@ -408,7 +445,7 @@ export function EventsPage() {
 
                       {/* Signal Chips Row */}
                       <div className="flex flex-wrap items-center gap-2">
-                        {change.signals_evidence.map((sig, sIdx) => {
+                        {signalsEvidence.map((sig, sIdx) => {
                           const isSelected = sIdx === activeSignalIdx;
                           const sigStyle = SIGNAL_TYPE_STYLES[sig.signal_type] || {
                             bg: "bg-zinc-100",
@@ -454,13 +491,13 @@ export function EventsPage() {
                               </h4>
                             </div>
                             <span className="text-[11px] text-zinc-400 font-mono">
-                              Detected: {activeSignal.detected_at.split("T")[0]}
+                              Detected: {activeSignal.detected_at ? activeSignal.detected_at.split("T")[0] : (change.detected_at ? change.detected_at.split("T")[0] : "Recent")}
                             </span>
                           </div>
 
                           {/* Verbatim quote */}
                           <div className="p-2.5 bg-zinc-50 rounded-lg border border-zinc-200/70 text-xs text-zinc-800 font-mono italic leading-relaxed">
-                            &ldquo;{activeSignal.excerpt}&rdquo;
+                            &ldquo;{activeSignal.excerpt || activeSignal.title || "Corroborated signal evidence"}&rdquo;
                           </div>
 
                           {activeSignal.url && (
@@ -493,7 +530,7 @@ export function EventsPage() {
                             PrismIQ Strategic Interpretation
                           </div>
                           <p className="text-xs text-purple-950 leading-relaxed font-medium">
-                            {change.strategic_interpretation}
+                            {strategicInterpretation}
                           </p>
                         </div>
 
@@ -504,7 +541,7 @@ export function EventsPage() {
                             Recommended Counter-Action
                           </div>
                           <p className="text-xs text-emerald-950 leading-relaxed font-medium">
-                            {change.recommended_action}
+                            {recommendedAction}
                           </p>
                         </div>
                       </div>

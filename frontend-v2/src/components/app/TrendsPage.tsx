@@ -839,8 +839,12 @@ export function TrendsPage() {
             ) : (
               <div className="space-y-8">
                 {filteredSequences.map((seq) => {
-                  const activeStepIdx = activeStepIndices[seq.id] ?? (seq.sequence_steps.length - 1);
-                  const activeStep: SequenceStep | undefined = seq.sequence_steps[activeStepIdx];
+                  const sequenceSteps = seq.sequence_steps || [];
+                  const activeStepIdx = Math.min(
+                    activeStepIndices[seq.id] ?? (sequenceSteps.length - 1),
+                    sequenceSteps.length - 1
+                  );
+                  const activeStep: SequenceStep | undefined = sequenceSteps[Math.max(0, activeStepIdx)];
                   const dimStyle = activeStep ? (DIMENSION_STYLES[activeStep.dimension] || {
                     bg: "bg-zinc-100",
                     text: "text-zinc-800",
@@ -869,7 +873,7 @@ export function TrendsPage() {
                             </span>
                             <span className="text-xs text-zinc-300">•</span>
                             <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100/70 text-purple-800 border border-purple-200">
-                              {seq.sequence_steps.length} Verified Milestones
+                              {sequenceSteps.length} Verified Milestones
                             </span>
                           </div>
 
@@ -912,9 +916,9 @@ export function TrendsPage() {
 
                         {/* Pipeline Node Strip */}
                         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                          {seq.sequence_steps.map((st, idx) => {
+                          {sequenceSteps.map((st, idx) => {
                             const isSelected = idx === activeStepIdx;
-                            const isLast = idx === seq.sequence_steps.length - 1;
+                            const isLast = idx === sequenceSteps.length - 1;
                             const stepDim = DIMENSION_STYLES[st.dimension] || {
                               bg: "bg-zinc-100",
                               text: "text-zinc-700",
@@ -1134,8 +1138,12 @@ export function TrendsPage() {
             ) : (
               <div className="space-y-6">
                 {filteredCorrelations.map((corr) => {
-                  const activeSigIdx = activeSignalIndices[corr.id] ?? 0;
-                  const activeSig: CorrelatedSignalNode | undefined = corr.signals_cluster[activeSigIdx];
+                  const signalsCluster = corr.signals_cluster || [];
+                  const activeSigIdx = Math.min(
+                    activeSignalIndices[corr.id] ?? 0,
+                    Math.max(0, signalsCluster.length - 1)
+                  );
+                  const activeSig: CorrelatedSignalNode | undefined = signalsCluster[activeSigIdx];
                   const catStyle = CORRELATION_CATEGORY_STYLES[corr.correlation_category] || {
                     bg: "bg-purple-50",
                     text: "text-purple-700",
@@ -1164,7 +1172,7 @@ export function TrendsPage() {
                             <span className="text-xs text-zinc-300">•</span>
                             <span className="text-xs font-semibold text-[#70717a] flex items-center gap-1">
                               <Layers className="w-3.5 h-3.5 text-[#6e57dc]" />
-                              {corr.signals_cluster.length} Correlated Signal Sources
+                              {signalsCluster.length} Correlated Signal Sources
                             </span>
                           </div>
 
@@ -1212,12 +1220,12 @@ export function TrendsPage() {
                       <div className="p-5 sm:p-6 space-y-4">
                         <div className="space-y-2">
                           <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#70717a] flex items-center justify-between">
-                            <span>Corroborating Signal Nodes ({corr.signals_cluster.length})</span>
+                            <span>Corroborating Signal Nodes ({signalsCluster.length})</span>
                             <span className="text-zinc-400 font-normal">Select node to inspect evidence proof</span>
                           </div>
 
                           <div className="flex flex-wrap gap-2">
-                            {corr.signals_cluster.map((sig, sIdx) => {
+                            {signalsCluster.map((sig, sIdx) => {
                               const isSelected = sIdx === activeSigIdx;
                               return (
                                 <button

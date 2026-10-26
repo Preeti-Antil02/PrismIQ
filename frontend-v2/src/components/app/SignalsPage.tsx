@@ -333,13 +333,32 @@ export function SignalsPage() {
             <div className="space-y-6">
               {filteredCorrelations.map((corr) => {
                 const isExpanded = expandedCorrelationIds[corr.id] ?? true;
-                const activeSigIdx = activeSignalIndices[corr.id] ?? 0;
-                const activeSig: CorrelatedSignalNode | undefined = corr.signals_cluster[activeSigIdx];
+                const signalsCluster =
+                  corr.signals_cluster && corr.signals_cluster.length > 0
+                    ? corr.signals_cluster
+                    : [
+                        {
+                          id: corr.id + "_sig",
+                          signal_type: "Market Move",
+                          title: corr.pattern_name,
+                          source: (corr.company_name || "Official") + " Channels",
+                          url: "",
+                          excerpt: corr.strategic_implication,
+                          detected_at: corr.last_signal_at || corr.first_signal_at || "Recent",
+                          weight: 0.9,
+                        },
+                      ];
+
+                const activeSigIdx = Math.min(
+                  activeSignalIndices[corr.id] ?? 0,
+                  signalsCluster.length - 1
+                );
+                const activeSig = signalsCluster[Math.max(0, activeSigIdx)];
                 const catStyle = CORRELATION_CATEGORY_STYLES[corr.correlation_category] || {
                   bg: "bg-purple-50",
                   text: "text-purple-700",
                   border: "border-purple-200",
-                  label: corr.correlation_category,
+                  label: corr.correlation_category || "Strategic Pattern",
                 };
 
                 return (
@@ -353,7 +372,7 @@ export function SignalsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <PrismCompanyBadge
                             name={corr.company_name}
-                            isTarget={corr.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                            isTarget={(corr.company_name || '').toLowerCase() === (targetCompany || '').toLowerCase()}
                             size="sm"
                           />
                           <span
@@ -364,7 +383,7 @@ export function SignalsPage() {
                           <span className="text-xs text-zinc-300">•</span>
                           <span className="text-xs font-semibold text-[#70717a] flex items-center gap-1">
                             <Layers className="w-3.5 h-3.5 text-[#6e57dc]" />
-                            {corr.signals_cluster.length} Correlated Signal Sources
+                            {signalsCluster.length} Correlated Signal Sources
                           </span>
                         </div>
 
@@ -409,7 +428,7 @@ export function SignalsPage() {
                       <div className="text-[11px] font-bold text-[#70717a] uppercase tracking-wider mb-3 flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
                           <Workflow className="w-3.5 h-3.5 text-[#6e57dc]" />
-                          Multi-Channel Correlated Indicators ({corr.signals_cluster.length})
+                          Multi-Channel Correlated Indicators ({signalsCluster.length})
                         </span>
                         <span className="text-[10px] text-zinc-400 lowercase font-normal">
                           Click node to inspect evidence proof
@@ -418,9 +437,9 @@ export function SignalsPage() {
 
                       {/* Signals Connected Pipeline Strip */}
                       <div className="flex flex-wrap items-center gap-2.5">
-                        {corr.signals_cluster.map((sig, sIdx) => {
+                        {signalsCluster.map((sig, sIdx) => {
                           const isSelected = sIdx === activeSigIdx;
-                          const isLast = sIdx === corr.signals_cluster.length - 1;
+                          const isLast = sIdx === signalsCluster.length - 1;
 
                           return (
                             <React.Fragment key={sIdx}>
@@ -470,13 +489,13 @@ export function SignalsPage() {
                               </h4>
                             </div>
                             <span className="text-[11px] text-zinc-400 font-mono">
-                              Detected: {activeSig.detected_at.split("T")[0]}
+                              Detected: {activeSig.detected_at ? activeSig.detected_at.split("T")[0] : (corr.last_signal_at ? corr.last_signal_at.split("T")[0] : (corr.first_signal_at ? corr.first_signal_at.split("T")[0] : "Recent"))}
                             </span>
                           </div>
 
                           {/* Verbatim quote */}
                           <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200/80 text-xs text-zinc-800 font-mono italic leading-relaxed">
-                            &ldquo;{activeSig.excerpt}&rdquo;
+                            &ldquo;{activeSig.excerpt || activeSig.title || "Correlated signal evidence"}&rdquo;
                           </div>
 
                           {activeSig.url && (

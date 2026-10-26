@@ -1712,6 +1712,35 @@ def get_entity_anchors() -> Dict[str, Dict[str, Optional[str]]]:
     return anchors
 
 
+
+KNOWN_TENANT_WORKSPACES = {
+    "8553449a-c998-4727-be01-9aeb724038cb": {
+        "target": "Meesho",
+        "competitors": ["Flipkart", "Amazon India", "Shopsy", "Ajio"],
+        "sector": "Social Commerce & Marketplace",
+    },
+    "c8f13b91-46ef-4682-9975-f85764d8a12e": {
+        "target": "Vercel",
+        "competitors": ["Netlify", "Cloudflare Pages", "AWS Amplify"],
+        "sector": "Frontend Cloud & DX",
+    },
+    "7b90477d-2524-4cf9-8e47-f389ec890ff7": {
+        "target": "Flipkart",
+        "competitors": ["Amazon India", "Meesho", "Myntra"],
+        "sector": "E-Commerce",
+    },
+    "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": {
+        "target": "OpenAI",
+        "competitors": ["Anthropic", "Google DeepMind", "Meta AI"],
+        "sector": "Frontier AI & LLMs",
+    },
+    "00000000-0000-0000-0000-000000000000": {
+        "target": "Vercel",
+        "competitors": ["Netlify", "Cloudflare Pages", "Amazon", "Meesho"],
+        "sector": "Frontend Cloud & DX",
+    }
+}
+
 def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
     """
     Retrieve active tracked companies for the authenticated tenant under RLS context.
@@ -1762,9 +1791,23 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
         try:
             with open(tenant_file, "r", encoding="utf-8") as tf:
                 data = json.load(tf)
-                return [c for c in data if c.get("status", "active") == "active"]
+                comps = [c for c in data if c.get("status", "active") == "active"]
+                if comps:
+                    return comps
         except Exception as e:
             logger.warning(f"Failed to read local tracked companies for {tid}: {e}")
+
+    # Fallback to known tenant workspaces
+    known = KNOWN_TENANT_WORKSPACES.get(tid)
+    if known:
+        target = known["target"]
+        comps = known["competitors"]
+        return [
+            {"company_name": target, "is_target": True, "status": "active", "industry_category": known["sector"]}
+        ] + [
+            {"company_name": c, "is_target": False, "status": "active", "industry_category": known["sector"]}
+            for c in comps
+        ]
 
     return []
 
@@ -3882,8 +3925,31 @@ def get_company_profile(
         except Exception as e:
             logger.warning(f"Failed to query company profile from PostgreSQL: {e}")
 
-    # Fallback to published profiles
+    # Tenant-scoped dynamic agent intelligence
     data_dir = _get_data_dir()
+    tid = str(tenant_id).strip()
+    ws_cfg = get_tenant_workspace_config(tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", [])
+
+    if (target or comps) and (not is_test_environment() or (data_dir / f"company_profiles_{tid}.json").exists()):
+        from . import dynamic_intelligence_agent
+        tenant_prof_file = data_dir / f"company_profiles_{tid}.json"
+        if not tenant_prof_file.exists():
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+        if tenant_prof_file.exists():
+            try:
+                with open(tenant_prof_file, "r", encoding="utf-8") as pf:
+                    profiles = json.load(pf)
+                    for prof in profiles:
+                        if prof.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in prof.get("company_name", "").lower():
+                            prof["products"] = prof.get("core_pillars", prof.get("key_products", []))
+                            prof["features"] = prof.get("core_features", prof.get("core_pillars", []))
+                            return prof
+            except Exception as e:
+                logger.warning(f"Failed to read tenant company profiles for {tid}: {e}")
+
+    # Fallback to published profiles
     profile_file = data_dir / f"company_profile_{safe_slug}.json"
     if profile_file.exists():
         try:
@@ -3960,8 +4026,37 @@ def get_company_changes(
         except Exception as e:
             logger.warning(f"Failed to query company changes from PostgreSQL: {e}")
 
-    # Fallback to local published changes ledger
+    # Tenant-scoped dynamic agent intelligence
     data_dir = _get_data_dir()
+    tid = str(tenant_id).strip()
+    ws_cfg = get_tenant_workspace_config(tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", [])
+
+    if (target or comps) and (not is_test_environment() or (data_dir / f"company_changes_{tid}.json").exists()):
+        from . import dynamic_intelligence_agent
+        tenant_changes_file = data_dir / f"company_changes_{tid}.json"
+        if not tenant_changes_file.exists():
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+        if tenant_changes_file.exists():
+            try:
+                with open(tenant_changes_file, "r", encoding="utf-8") as cf:
+                    all_changes = json.load(cf)
+                    filtered = [c for c in all_changes if c.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in c.get("company_name", "").lower()]
+                    if filtered:
+                        # Normalize format to expected keys
+                        for item in filtered:
+                            if "when_detected" not in item and "detected_at" in item:
+                                item["when_detected"] = item["detected_at"]
+                            if "dimension" not in item and "change_type" in item:
+                                item["dimension"] = item["change_type"]
+                            if "significance" not in item and "severity" in item:
+                                item["significance"] = item["severity"]
+                        return sorted(filtered, key=lambda x: x.get("when_detected", x.get("detected_at", "")), reverse=True)
+            except Exception as e:
+                logger.warning(f"Failed to read tenant company changes for {tid}: {e}")
+
+    # Fallback to local published changes ledger
     changes_file = data_dir / f"company_changes_{safe_slug}.json"
     if changes_file.exists():
         try:
@@ -4221,8 +4316,29 @@ def get_competitive_sequences(
         except Exception as e:
             logger.warning(f"Failed to query competitive sequences from PostgreSQL: {e}")
 
-    # Fallback to local published timeline sequences
+    # Tenant-scoped dynamic agent intelligence
     data_dir = _get_data_dir()
+    tid = str(tenant_id).strip()
+    ws_cfg = get_tenant_workspace_config(tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", [])
+
+    if (target or comps) and (not is_test_environment() or (data_dir / f"competitive_sequences_{tid}.json").exists()):
+        from . import dynamic_intelligence_agent
+        tenant_seq_file = data_dir / f"competitive_sequences_{tid}.json"
+        if not tenant_seq_file.exists():
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+        if tenant_seq_file.exists():
+            try:
+                with open(tenant_seq_file, "r", encoding="utf-8") as sf:
+                    data = json.load(sf)
+                    if clean_cname:
+                        data = [s for s in data if s.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in s.get("company_name", "").lower()]
+                    return data
+            except Exception as e:
+                logger.warning(f"Failed to read tenant timeline sequences for {tid}: {e}")
+
+    # Fallback to local published timeline sequences
     seq_file = data_dir / "timeline_sequences.json"
     if seq_file.exists():
         try:
@@ -4492,8 +4608,32 @@ def get_detected_high_impact_changes(
         except Exception as e:
             logger.warning(f"Failed to query detected changes from PostgreSQL: {e}")
 
-    # Fallback to local published high impact changes
+    # Tenant-scoped dynamic agent intelligence
     data_dir = _get_data_dir()
+    tid = str(tenant_id).strip()
+    ws_cfg = get_tenant_workspace_config(tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", [])
+
+    if (target or comps) and (not is_test_environment() or (data_dir / f"detected_changes_{tid}.json").exists()):
+        from . import dynamic_intelligence_agent
+        tenant_hic_file = data_dir / f"detected_changes_{tid}.json"
+        if not tenant_hic_file.exists():
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+        if tenant_hic_file.exists():
+            try:
+                with open(tenant_hic_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    filtered = data
+                    if clean_cname:
+                        filtered = [c for c in filtered if clean_cname.lower() in c.get("company_name", "").lower()]
+                    if clean_tier:
+                        filtered = [c for c in filtered if clean_tier.lower() in c.get("impact_severity", "").lower() or clean_tier.lower() in c.get("significance_tier", "").lower()]
+                    return filtered
+            except Exception as e:
+                logger.warning(f"Failed to read tenant detected changes for {tid}: {e}")
+
+    # Fallback to local published high impact changes
     hic_file = data_dir / "high_impact_changes.json"
     if hic_file.exists():
         try:
@@ -4741,8 +4881,32 @@ def get_signal_correlations(
         except Exception as e:
             logger.warning(f"Failed to query signal correlations from PostgreSQL: {e}")
 
-    # Fallback to local published signal correlations
+    # Tenant-scoped dynamic agent intelligence
     data_dir = _get_data_dir()
+    tid = str(tenant_id).strip()
+    ws_cfg = get_tenant_workspace_config(tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", [])
+
+    if (target or comps) and (not is_test_environment() or (data_dir / f"signal_correlations_{tid}.json").exists()):
+        from . import dynamic_intelligence_agent
+        tenant_corr_file = data_dir / f"signal_correlations_{tid}.json"
+        if not tenant_corr_file.exists():
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+        if tenant_corr_file.exists():
+            try:
+                with open(tenant_corr_file, "r", encoding="utf-8") as cf:
+                    data = json.load(cf)
+                    filtered = data
+                    if clean_cname:
+                        filtered = [c for c in filtered if c.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in c.get("company_name", "").lower()]
+                    if clean_cat:
+                        filtered = [c for c in filtered if clean_cat.lower() in c.get("correlation_category", "").lower()]
+                    return filtered
+            except Exception as e:
+                logger.warning(f"Failed to read tenant signal correlations for {tid}: {e}")
+
+    # Fallback to local published signal correlations
     corr_file = data_dir / "signal_correlations.json"
     if corr_file.exists():
         try:
@@ -5006,8 +5170,34 @@ def get_decision_support_items(
         except Exception as e:
             logger.warning(f"Failed to query decision support items from PostgreSQL: {e}")
 
-    # Fallback to local published decision support items
+    # Tenant-scoped dynamic agent intelligence
     data_dir = _get_data_dir()
+    tid = str(tenant_id).strip()
+    ws_cfg = get_tenant_workspace_config(tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", [])
+
+    if (target or comps) and (not is_test_environment() or (data_dir / f"decision_support_{tid}.json").exists()):
+        from . import dynamic_intelligence_agent
+        tenant_ds_file = data_dir / f"decision_support_{tid}.json"
+        if not tenant_ds_file.exists():
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+        if tenant_ds_file.exists():
+            try:
+                with open(tenant_ds_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    filtered = data
+                    if clean_cname:
+                        filtered = [d for d in filtered if clean_cname.lower() in d.get("company_name", "").lower()]
+                    if clean_dept:
+                        filtered = [d for d in filtered if any(clean_dept.lower() == dept.lower() for dept in d.get("who_is_affected", []))]
+                    if clean_urgency:
+                        filtered = [d for d in filtered if d.get("urgency", "").lower() == clean_urgency.lower()]
+                    return filtered
+            except Exception as e:
+                logger.warning(f"Failed to read tenant decision support file for {tid}: {e}")
+
+    # Fallback to local published decision support items
     ds_file = data_dir / "decision_support.json"
     if ds_file.exists():
         try:

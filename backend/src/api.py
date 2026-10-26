@@ -1126,6 +1126,22 @@ def add_tracked_company_endpoint(
         company_name=comp,
         is_target=req.is_target,
     )
+    try:
+        from . import dynamic_intelligence_agent
+        cfg = storage.get_tenant_workspace_config(tenant_id)
+        target = cfg.get("target_company") or (comp if req.is_target else "Target Entity")
+        comps = cfg.get("competitors", [])
+        if comp not in comps and not req.is_target:
+            comps.append(comp)
+        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
+            tenant_id=tenant_id,
+            target_company=target,
+            competitors=comps,
+            force_refresh=True,
+        )
+    except Exception as e:
+        logger.warning(f"Error updating dynamic intelligence on watchlist add for {comp}: {e}")
+
     return {"status": "tracked", "company": tracked_entry}
 
 
@@ -1676,6 +1692,18 @@ def onboard_confirm_candidates(
                 json.dump(tracked, tf, indent=2)
         except Exception:
             pass
+
+    # Dynamic Agent Intelligence: immediately synthesize all 5 points for new target and competitors
+    try:
+        from . import dynamic_intelligence_agent
+        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
+            tenant_id=tenant_id,
+            target_company=target,
+            competitors=req.confirmed_competitors,
+            force_refresh=True,
+        )
+    except Exception as e:
+        logger.warning(f"Error populating dynamic intelligence for {target} ({tenant_id}): {e}")
 
     return {
         "status": "confirmed",

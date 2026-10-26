@@ -174,28 +174,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, token, logout, isLoading: authLoading } = useAuth();
 
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = React.useState(false);
-  const [activeTenantId, setActiveTenantId] = React.useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("prismiq_active_tenant_id");
-      if (stored && isValidUuid(stored)) return stored;
-    }
-    return DEFAULT_TENANT_ID;
-  });
+  const sidebarRef = React.useRef<HTMLElement>(null);
 
+  React.useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+
+    // A tall sidebar travels with the page until its last card is visible.
+    // A shorter sidebar stays directly below the 4rem context header.
+    const updateSidebarHeight = () => {
+      sidebar.style.setProperty("--app-sidebar-height", `${sidebar.getBoundingClientRect().height}px`);
+    };
+    updateSidebarHeight();
+    const observer = new ResizeObserver(updateSidebarHeight);
+    observer.observe(sidebar);
+    return () => observer.disconnect();
+  }, []);
+
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = React.useState(false);
+  const [activeTenantId, setActiveTenantId] = React.useState<string>(DEFAULT_TENANT_ID);
   const [customWorkspaces, setCustomWorkspaces] = React.useState<
     Array<{ tenant_id: string; name: string; target: string; sector: string }>
-  >(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("prismiq_custom_workspaces");
-        if (raw) return JSON.parse(raw);
-      } catch {
-        // ignore
+  >([]);
+
+  // Synchronize client-side tenant & custom workspaces after initial hydration to eliminate SSR mismatches
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("prismiq_active_tenant_id");
+      if (stored && isValidUuid(stored)) {
+        setActiveTenantId(stored);
       }
+      const raw = localStorage.getItem("prismiq_custom_workspaces");
+      if (raw) {
+        setCustomWorkspaces(JSON.parse(raw));
+      }
+    } catch {
+      // ignore
     }
-    return [];
-  });
+  }, []);
 
   // Combine built-in workspaces with custom user-created workspaces
   const allWorkspaces = React.useMemo(() => {
@@ -526,7 +542,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Body Container */}
           <div className="flex-1 flex min-h-0">
             {/* Desktop Persistent Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 border-r border-[rgba(20,20,30,0.08)] bg-white/70 backdrop-blur-md p-4 shrink-0 overflow-y-auto">
+            <aside
+              ref={sidebarRef}
+              style={{ top: "min(4rem, calc(100dvh - var(--app-sidebar-height, 0px)))" }}
+              className="sticky hidden md:flex self-start flex-col w-64 border-r border-[rgba(20,20,30,0.08)] bg-white/70 backdrop-blur-md p-4 shrink-0"
+            >
               <nav className="space-y-6">
                 {NAV_SECTIONS.map((section) => (
                   <div key={section.title}>
@@ -565,13 +585,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </nav>
 
               {/* Bottom Target Information Card */}
-              <div className="mt-auto pt-6">
+              <div className="pt-6">
                 <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50/80 via-white to-blue-50/50 border border-purple-100 text-xs">
                   <div className="flex items-center gap-1.5 font-bold text-[#6e57dc] mb-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Workspace Active</span>
                   </div>
-                  <div className="font-extrabold text-[#17171b] truncate">
+                  <div className="font-extrabold text-[#17171b] truncate" suppressHydrationWarning>
                     {targetCompany}
                   </div>
                   <div className="text-[11px] text-[#70717a] mt-0.5">
