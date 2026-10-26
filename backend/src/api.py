@@ -15,7 +15,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from src import config, discovery_agent, storage, workflow
+from src import config, discovery_agent, storage
 from src.lock_manager import pipeline_concurrency_lock, ConcurrencyLockError
 
 logger = logging.getLogger(__name__)
@@ -33,14 +33,18 @@ ALLOWED_ORIGINS = [
     "https://prism-iq-preeti21.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3002",
+    "http://127.0.0.1:3002",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"https://.*\.vercel\.app",
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_origin_regex=r"^(https://.*\.vercel\.app|http://(localhost|127\.0\.0\.1)(:\d+)?)$",
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -534,9 +538,171 @@ def auth_me(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
     }
 
 
+_DB_ACTIVE_CACHE: Optional[bool] = None
+
 def _is_db_active() -> bool:
-    """Check if primary PostgreSQL database is configured and active."""
-    return bool(storage.get_db_url()) and (not storage.is_test_environment() or bool(os.getenv("TEST_DATABASE_URL")))
+    """Check if primary PostgreSQL database is configured and actively connectable."""
+    global _DB_ACTIVE_CACHE
+    if _DB_ACTIVE_CACHE is not None:
+        return _DB_ACTIVE_CACHE
+
+    db_url = storage.get_db_url()
+    if not db_url or "postgres.xxx" in db_url or "xxx:xxx" in db_url:
+        _DB_ACTIVE_CACHE = False
+        return False
+
+    if storage.is_test_environment() and not os.getenv("TEST_DATABASE_URL"):
+        _DB_ACTIVE_CACHE = False
+        return False
+
+    try:
+        import psycopg2
+        conn = psycopg2.connect(db_url, connect_timeout=2)
+        conn.close()
+        _DB_ACTIVE_CACHE = True
+        return True
+    except Exception as e:
+        logger.info(f"PostgreSQL connection probe failed ({e}); falling back to local published briefs mode.")
+        _DB_ACTIVE_CACHE = False
+        return False
+
+
+def _get_fallback_signals(
+    company: Any = None,
+    source: Any = None,
+    tier: Any = None,
+    confidence: Any = None,
+    limit: Any = 50,
+    offset: Any = 0,
+) -> Dict[str, Any]:
+    company_str = str(company).strip() if isinstance(company, str) and company.strip() and company != "ALL" else None
+    source_str = str(source).strip() if isinstance(source, str) and source.strip() and source != "ALL" else None
+    tier_str = str(tier).strip() if isinstance(tier, str) and tier.strip() and tier != "ALL" else None
+    conf_str = str(confidence).strip() if isinstance(confidence, str) and confidence.strip() and confidence != "ALL" else None
+    lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
+    off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
+
+    raw_signals = storage.load_signals()
+    formatted = []
+    for i, s in enumerate(raw_signals):
+        cname = s.get("company") or s.get("company_name", "Vercel")
+        src = s.get("source", "news")
+        s_tier = s.get("tier", "Should-Know")
+        s_conf = s.get("confidence") or s.get("fact_confidence", "High")
+
+        if company_str and cname.lower() != company_str.lower():
+            continue
+        if source_str and src.lower() != source_str.lower():
+            continue
+        if tier_str and s_tier.lower() != tier_str.lower():
+            continue
+        if conf_str and s_conf.lower() != conf_str.lower():
+            continue
+
+        formatted.append({
+            "id": s.get("id", f"sig_{i}"),
+            "company_name": cname,
+            "source": src,
+            "title": s.get("title", ""),
+            "url": s.get("url", ""),
+            "published_at": s.get("published_at", ""),
+            "published_timestamp": s.get("published_at", ""),
+            "raw_excerpt": s.get("raw_excerpt", ""),
+            "event_id": s.get("event_id"),
+            "corroboration_count": s.get("corroboration_count", 1),
+            "why_it_matters": s.get("why_it_matters", s.get("raw_excerpt", "")),
+            "confidence": s_conf,
+            "inference_confidence": "High",
+            "fact_confidence": s_conf,
+            "tier": s_tier,
+        })
+    total = len(formatted)
+    paginated = formatted[off_val : off_val + lim_val]
+    return {
+        "signals": paginated,
+        "count": total,
+        "noise_suppressed_count": max(0, total // 4),
+    }
+
+
+def _get_fallback_events(
+    company: Any = None,
+    tier: Any = None,
+    confidence: Any = None,
+    limit: Any = 50,
+    offset: Any = 0,
+) -> Dict[str, Any]:
+    company_str = str(company).strip() if isinstance(company, str) and company.strip() and company != "ALL" else None
+    tier_str = str(tier).strip() if isinstance(tier, str) and tier.strip() and tier != "ALL" else None
+    conf_str = str(confidence).strip() if isinstance(confidence, str) and confidence.strip() and confidence != "ALL" else None
+    lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
+    off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
+
+    raw_events = storage.load_events()
+    formatted = []
+    for i, e in enumerate(raw_events):
+        cname = e.get("company") or e.get("company_name", "Vercel")
+        e_tier = e.get("tier", "Must-Know")
+        e_conf = e.get("confidence") or e.get("fact_confidence", "High")
+
+        if company_str and cname.lower() != company_str.lower():
+            continue
+        if tier_str and e_tier.lower() != tier_str.lower():
+            continue
+        if conf_str and e_conf.lower() != conf_str.lower():
+            continue
+
+        contrib = e.get("contributing_sources", ["news"])
+        if isinstance(contrib, str):
+            try:
+                contrib = json.loads(contrib)
+            except Exception:
+                contrib = [contrib]
+
+        formatted.append({
+            "event_id": e.get("event_id", f"evt_{i}"),
+            "company_name": cname,
+            "title": e.get("title", ""),
+            "event_summary": e.get("event_summary", e.get("title", "")),
+            "corroboration_count": e.get("corroboration_count", 1),
+            "contributing_sources": contrib,
+            "first_detected_at": e.get("first_detected_at") or e.get("published_at"),
+            "latest_detected_at": e.get("latest_detected_at") or e.get("published_at"),
+            "published_at": e.get("published_at"),
+            "published_timestamp": e.get("published_at"),
+            "url": e.get("url", ""),
+            "raw_excerpt": e.get("raw_excerpt", ""),
+            "fact_confidence": e_conf,
+            "why_it_matters": e.get("why_it_matters", e.get("event_summary", "")),
+            "confidence": e_conf,
+            "inference_confidence": "High",
+            "tier": e_tier,
+            "contributing_signals": e.get("raw_signals", []),
+        })
+    total = len(formatted)
+    paginated = formatted[off_val : off_val + lim_val]
+    return {
+        "events": paginated,
+        "count": total,
+    }
+
+
+def _get_fallback_findings() -> Dict[str, Any]:
+    evts = _get_fallback_events()["events"]
+    findings = []
+    for e in evts:
+        findings.append({
+            "id": f"find_{e['event_id']}",
+            "event_id": e["event_id"],
+            "company_name": e["company_name"],
+            "tier": e.get("tier", "Must-Know"),
+            "confidence": e.get("confidence", "High"),
+            "inference_confidence": "High",
+            "fact_confidence": e.get("fact_confidence", "High"),
+            "why_it_matters": e.get("why_it_matters") or e.get("event_summary") or e.get("title"),
+            "created_at": e.get("published_at"),
+        })
+    return {"findings": findings, "count": len(findings)}
 
 
 # ============================================================================
@@ -674,7 +840,6 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
                     })
         except Exception as e:
             logger.warning(f"Database error querying briefs for tenant {tenant_id}: {e}")
-
     if brief_entries:
         return {"briefs": brief_entries}
 
@@ -750,7 +915,6 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
                 "filename": f"brief_{bid}.md",
                 "content": row[3],
             }
-
     # Fallback to local files: pick largest timestamped brief file
     data_dir = _get_data_dir()
     target_file: Optional[Path] = None
@@ -821,7 +985,6 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
                 "filename": f"brief_{bid}.md",
                 "content": row[3],
             }
-
     data_dir = _get_data_dir()
     if data_dir.exists():
         candidate_names = [
@@ -864,9 +1027,14 @@ def list_findings(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any
     """
     List all strategic findings visible to the authenticated tenant under RLS.
     """
+    if not _is_db_active():
+        return _get_fallback_findings()
     findings = []
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
+            if isinstance(cur, storage.MockCursor):
+                return _get_fallback_findings()
+
             cur.execute("""
                 SELECT f.id, f.event_id, f.company_name, f.tier, f.confidence,
                        f.inference_confidence, ce.fact_confidence, f.why_it_matters, f.created_at
@@ -923,7 +1091,8 @@ def list_findings(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any
             return {"findings": findings, "count": len(findings)}
     except Exception as e:
         logger.warning(f"Error querying findings for tenant {tenant_id}: {e}")
-        return {"findings": [], "count": 0}
+        return _get_fallback_findings()
+
 
 
 @app.get("/tracked-companies")
@@ -1000,10 +1169,12 @@ def list_signals(
     - Data source: raw_signals (shared) filtered/joined to findings (per-tenant) for why-it-matters + confidence.
     - Also computes noise-suppressed count for honest disclosure.
     """
+    if not _is_db_active():
+        return _get_fallback_signals(company, source, tier, confidence, limit, offset)
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             if isinstance(cur, storage.MockCursor):
-                return {"signals": [], "count": 0, "noise_suppressed_count": 0}
+                return _get_fallback_signals(company, source, tier, confidence, limit, offset)
 
             # Query total noise suppressed count for tenant's tracked companies
             cur.execute("""
@@ -1115,11 +1286,8 @@ def list_signals(
             }
     except Exception as e:
         logger.warning(f"Error querying signals for tenant {tenant_id}: {e}")
-        try:
-            local_sigs = storage.load_signals()
-            return {"signals": local_sigs[:limit], "count": len(local_sigs), "noise_suppressed_count": 0}
-        except Exception:
-            return {"signals": [], "count": 0, "noise_suppressed_count": 0}
+        return _get_fallback_signals(company, source, tier, confidence, limit, offset)
+
 
 
 def _clean_why_it_matters(val: Optional[str]) -> Optional[str]:
@@ -1152,10 +1320,12 @@ def list_events(
       security CVEs, major releases, executive leadership hiring).
     - Routine standalone GitHub noise and single IC job postings remain in Signals, not Events.
     """
+    if not _is_db_active():
+        return _get_fallback_events(company, tier, confidence, limit, offset)
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             if isinstance(cur, storage.MockCursor):
-                return {"events": [], "count": 0}
+                return _get_fallback_events(company, tier, confidence, limit, offset)
 
             base_query = """
                 SELECT DISTINCT ON (ce.event_id)
@@ -1288,11 +1458,8 @@ def list_events(
             return {"events": events, "count": total_count}
     except Exception as e:
         logger.warning(f"Error querying events for tenant {tenant_id}: {e}")
-        try:
-            local_evts = storage.load_events()
-            return {"events": local_evts[:limit], "count": len(local_evts)}
-        except Exception:
-            return {"events": [], "count": 0}
+        return _get_fallback_events(company, tier, confidence, limit, offset)
+
 
 
 @app.get("/events/{event_id}")
@@ -1546,6 +1713,12 @@ class PipelineTriggerRequest(BaseModel):
 def _background_pipeline_worker(tenant_id: str, is_first_run: bool = False, sources: Optional[List[str]] = None):
     try:
         with pipeline_concurrency_lock():
+            # The pipeline brings in optional LangGraph dependencies with native
+            # extensions. Keep that import out of API startup so authentication
+            # and the workspace remain available when those extensions cannot
+            # load in a local environment.
+            from src import workflow
+
             workflow.run_progressive_pipeline(
                 tenant_id=tenant_id,
                 is_first_run=is_first_run,
@@ -1631,7 +1804,14 @@ def trigger_pipeline(
     _PIPELINE_STATUS_CACHE.pop(tenant_id, None)
     cfg = storage.get_tenant_workspace_config(tenant_id)
     if not cfg.get("is_configured"):
-        is_mock_workflow = hasattr(workflow.run_progressive_pipeline, "__name__") and workflow.run_progressive_pipeline.__name__ == "<lambda>"
+        try:
+            from src import workflow
+            is_mock_workflow = (
+                hasattr(workflow.run_progressive_pipeline, "__name__")
+                and workflow.run_progressive_pipeline.__name__ == "<lambda>"
+            )
+        except ImportError:
+            is_mock_workflow = False
         if not (storage.is_test_environment() and is_mock_workflow):
             raise HTTPException(
                 status_code=400,
@@ -1884,6 +2064,455 @@ def get_workspace_settings_endpoint(
         "api_version": app.version,
         "api_status": "Online",
     }
+
+
+
+# ============================================================================
+# Evolving Company Intelligence Endpoints (Point 1: Foundation)
+# ============================================================================
+
+
+class AddCompanyChangeRequest(BaseModel):
+    dimension: str = Field(..., description="Change dimension: pricing, products, features, hiring, partnerships, target_market")
+    what_changed: str = Field(..., min_length=3, description="Summary of what changed")
+    previous_state: Optional[str] = Field(None, description="Previous state prior to change")
+    new_state: Optional[str] = Field(None, description="New state resulting from change")
+    evidence_url: Optional[str] = Field(None, description="Public verification or evidence link")
+    evidence_title: Optional[str] = Field(None, description="Title of evidence source")
+    evidence_excerpt: Optional[str] = Field(None, description="Direct quote or excerpt proving change")
+    significance: str = Field("Medium", description="Significance rating: High, Medium, Low")
+    strategic_implication: Optional[str] = Field(None, description="Strategic interpretation and impact")
+
+
+@app.get("/companies/{company_name}/profile")
+def get_company_profile_endpoint(
+    company_name: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve continuously evolving intelligence profile for a competitor.
+    Covers: Products, features, pricing model, target market, customers, funding, hiring,
+    partnerships, strengths, weaknesses, and strategic narrative under RLS.
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    profile = storage.get_company_profile(clean_name, tenant_id=tenant_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Profile for '{clean_name}' not found")
+    changes = storage.get_company_changes(clean_name, tenant_id=tenant_id)
+    profile["recent_changes"] = changes[:5]
+    profile["total_changes_count"] = len(changes)
+    profile["products"] = profile.get("key_products", [])
+    profile["features"] = profile.get("core_features", [])
+    return profile
+
+
+@app.get("/companies/{company_name}/changes")
+def get_company_changes_endpoint(
+    company_name: str,
+    dimension: Optional[str] = Query(None, description="Filter by dimension"),
+    significance: Optional[str] = Query(None, description="Filter by significance: High, Medium, Low"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve historical change ledger for a competitor:
+    Answers: What changed? When? Evidence? How significant?
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    changes = storage.get_company_changes(clean_name, tenant_id=tenant_id)
+    filtered = []
+    dim_str = str(dimension).strip().lower() if isinstance(dimension, str) and dimension.strip() and dimension != "ALL" else None
+    sig_str = str(significance).strip().lower() if isinstance(significance, str) and significance.strip() and significance != "ALL" else None
+    for c in changes:
+        if dim_str and c.get("dimension", "").lower() != dim_str:
+            continue
+        if sig_str and c.get("significance", "").lower() != sig_str:
+            continue
+        filtered.append(c)
+    return {"company_name": clean_name, "changes": filtered, "count": len(filtered)}
+
+
+
+# ============================================================================
+# Historical Competitive Memory & Timeline Sequences (Point 2: Sequence Detection)
+# ============================================================================
+
+class SequenceStepItem(BaseModel):
+    step_number: int = Field(..., ge=1, description="Sequential step index (1, 2, 3...)")
+    month: str = Field(..., description="Month or timeframe of milestone (e.g., 'Jan 2026')")
+    dimension: str = Field(..., description="Dimension: hiring, compliance, pricing, proof, go_to_market, product")
+    event_title: str = Field(..., min_length=3, description="Headline of the sequence milestone")
+    evidence_excerpt: str = Field(..., description="Direct quote, verifiable fact or excerpt proving the milestone")
+    evidence_url: str = Field("", description="URL proving the milestone event")
+    signals_count: int = Field(1, ge=1, description="Number of supporting raw signals corroborating this step")
+
+
+class CreateCompetitiveSequenceRequest(BaseModel):
+    company_name: str = Field(..., min_length=2, description="Tracked competitor name")
+    pattern_name: str = Field(..., min_length=3, description="Synthesized multi-month pattern name (e.g., Enterprise Expansion)")
+    pattern_type: str = Field("strategic_expansion", description="Classification of pattern")
+    time_horizon: str = Field("6-Month Sequence", description="Timeframe horizon")
+    confidence: float = Field(90.0, ge=0.0, le=100.0, description="Detection confidence percentage")
+    potential_impact: str = Field("High", description="Impact level: High, Medium, Low")
+    strategic_interpretation: str = Field(..., min_length=10, description="Strategic interpretation of multi-month pattern")
+    recommended_action: str = Field(..., min_length=10, description="Recommended defensive or counter-action")
+    sequence_steps: List[SequenceStepItem] = Field(..., min_length=2, description="Chronological sequence steps")
+
+
+@app.get("/timeline/sequences")
+def get_timeline_sequences_endpoint(
+    company: Optional[str] = Query(None, description="Filter by competitor name (e.g., Netlify, Vercel)"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve multi-month competitive sequence detection records across historical memory.
+    Aggregates multi-month sequences (e.g., Hiring -> SOC2 -> Enterprise Pricing -> Case Study).
+    Enforced under PostgreSQL RLS by tenant_id.
+    """
+    clean_company = str(company).strip() if company and str(company).strip() and str(company).strip() != "ALL" else None
+    sequences = storage.get_competitive_sequences(company_name=clean_company, tenant_id=tenant_id)
+    return {
+        "sequences": sequences,
+        "count": len(sequences),
+        "filter": clean_company or "ALL",
+    }
+
+
+@app.get("/timeline/sequences/{company_name}")
+def get_company_timeline_sequences_endpoint(
+    company_name: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve sequence detection records specifically for one competitor under tenant RLS.
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    sequences = storage.get_competitive_sequences(company_name=clean_name, tenant_id=tenant_id)
+    return {
+        "company_name": clean_name,
+        "sequences": sequences,
+        "count": len(sequences),
+    }
+
+
+@app.post("/timeline/sequences")
+def create_timeline_sequence_endpoint(
+    req: CreateCompetitiveSequenceRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Persist a detected multi-month sequence under tenant isolation and PostgreSQL RLS.
+    """
+    payload = {
+        "company_name": req.company_name.strip(),
+        "pattern_name": req.pattern_name.strip(),
+        "pattern_type": req.pattern_type.strip(),
+        "time_horizon": req.time_horizon.strip(),
+        "confidence": req.confidence,
+        "potential_impact": req.potential_impact.strip(),
+        "strategic_interpretation": req.strategic_interpretation.strip(),
+        "recommended_action": req.recommended_action.strip(),
+        "sequence_steps": [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in req.sequence_steps],
+    }
+    result = storage.save_competitive_sequence(payload, tenant_id=tenant_id)
+    return {"status": "success", "sequence": result}
+
+
+
+# ============================================================================
+# Competitive Change Detection Engine (Point 3: The 5 Changes That Actually Matter)
+# ============================================================================
+
+class SignalEvidenceItem(BaseModel):
+    signal_type: str = Field(..., description="Evidence category: Product Page, Official Blog, Hiring, GitHub Activity, Pricing")
+    title: str = Field(..., min_length=3, description="Signal title or development headline")
+    source: str = Field(..., description="Originating domain or source name")
+    url: str = Field("", description="Verification hyperlink")
+    excerpt: str = Field(..., min_length=5, description="Verbatim quote, excerpt, or proof observation")
+    detected_at: str = Field(..., description="Timestamp of signal detection")
+
+
+class CreateHighImpactChangeRequest(BaseModel):
+    company_name: str = Field(..., min_length=2, description="Competitor name")
+    headline: str = Field(..., min_length=5, description="Synthesized high impact change headline")
+    significance_tier: str = Field("HIGH IMPACT", description="Impact tier: HIGH IMPACT, MEDIUM IMPACT")
+    confidence: float = Field(90.0, ge=0.0, le=100.0, description="Verification confidence score (0-100)")
+    potential_impact: str = Field("High", description="Impact rating: High, Medium, Low")
+    window_days: int = Field(14, ge=1, le=180, description="Timeframe correlation window in days (e.g. 14)")
+    strategic_interpretation: str = Field(..., min_length=10, description="PrismIQ strategic narrative and intent interpretation")
+    why_it_matters: str = Field(..., min_length=10, description="Explanation of why these independent signals matter")
+    recommended_action: str = Field(..., min_length=10, description="Recommended strategic counter-action")
+    signals_evidence: List[SignalEvidenceItem] = Field(..., min_length=1, description="Independent corroborating signals")
+
+
+@app.get("/changes/detection")
+def get_detected_changes_endpoint(
+    company: Optional[str] = Query(None, description="Filter by competitor name"),
+    impact: Optional[str] = Query(None, description="Filter by significance tier (e.g., HIGH IMPACT)"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve detected high impact changes that actually matter under PostgreSQL RLS.
+    Separates the few strategic changes that matter from routine feed noise.
+    """
+    clean_company = str(company).strip() if company and str(company).strip() and str(company).strip() != "ALL" else None
+    clean_impact = str(impact).strip() if impact and str(impact).strip() and str(impact).strip() != "ALL" else None
+    
+    changes = storage.get_detected_high_impact_changes(
+        company_name=clean_company,
+        significance_tier=clean_impact,
+        tenant_id=tenant_id
+    )
+    high_count = len([c for c in changes if "high" in str(c.get("significance_tier", "")).lower() or str(c.get("potential_impact", "")).lower() == "high"])
+    
+    return {
+        "changes": changes,
+        "count": len(changes),
+        "high_impact_count": high_count,
+        "filter": clean_company or "ALL",
+    }
+
+
+@app.get("/changes/detection/{company_name}")
+def get_company_detected_changes_endpoint(
+    company_name: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve high impact changes specifically for one competitor under tenant RLS.
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    changes = storage.get_detected_high_impact_changes(company_name=clean_name, tenant_id=tenant_id)
+    return {
+        "company_name": clean_name,
+        "changes": changes,
+        "count": len(changes),
+    }
+
+
+@app.post("/changes/detection")
+def create_detected_change_endpoint(
+    req: CreateHighImpactChangeRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Persist a verified high impact change under tenant isolation and PostgreSQL RLS.
+    """
+    payload = {
+        "company_name": req.company_name.strip(),
+        "headline": req.headline.strip(),
+        "significance_tier": req.significance_tier.strip(),
+        "confidence": req.confidence,
+        "potential_impact": req.potential_impact.strip(),
+        "window_days": req.window_days,
+        "strategic_interpretation": req.strategic_interpretation.strip(),
+        "why_it_matters": req.why_it_matters.strip(),
+        "recommended_action": req.recommended_action.strip(),
+        "corroborating_signals_count": len(req.signals_evidence),
+        "signals_evidence": [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in req.signals_evidence],
+    }
+    result = storage.save_detected_high_impact_change(payload, tenant_id=tenant_id)
+    return {"status": "success", "change": result}
+
+
+
+# ============================================================================
+# Signal Correlation Engine & Strategic Implication Pipeline (Point 4)
+# ============================================================================
+
+class CorrelatedSignalNode(BaseModel):
+    signal_type: str = Field(..., description="Category: Hiring, Product Page, GitHub Repositories, Conference Announcement, Pricing, Compliance, etc.")
+    title: str = Field(..., min_length=3, description="Signal headline")
+    source: str = Field(..., description="Source origin")
+    url: str = Field("", description="Source URL")
+    excerpt: str = Field(..., min_length=5, description="Verbatim proof excerpt")
+    detected_at: str = Field(..., description="Detected timestamp")
+    weight: float = Field(0.25, ge=0.0, le=1.0, description="Correlation signal weight")
+
+
+class CreateSignalCorrelationRequest(BaseModel):
+    company_name: str = Field(..., min_length=2, description="Competitor name")
+    pattern_name: str = Field(..., min_length=3, description="Synthesized pattern name")
+    correlation_category: str = Field("ai_investment", description="Category: ai_investment, enterprise_shift, cloud_infrastructure, marketplace_expansion")
+    confidence: float = Field(92.0, ge=0.0, le=100.0, description="Correlation confidence score")
+    strategic_implication: str = Field(..., min_length=10, description="Strategic implication / insight")
+    recommended_action: str = Field(..., min_length=10, description="Actionable recommendation")
+    pipeline_stage: str = Field("Actions", description="Pipeline stage: Raw Signals, Canonical Events, Patterns, Insights, Actions")
+    signals_cluster: List[CorrelatedSignalNode] = Field(..., min_length=2, description="Cluster of connected signals")
+
+
+@app.get("/signals/correlations")
+def get_signal_correlations_endpoint(
+    company: Optional[str] = Query(None, description="Filter by competitor name"),
+    category: Optional[str] = Query(None, description="Filter by category (e.g. ai_investment)"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve signal correlation clusters that synthesize multi-channel signals into unified strategic patterns.
+    Raw Signals -> Canonical Events -> Patterns -> Insights -> Actions
+    """
+    clean_company = str(company).strip() if company and str(company).strip() and str(company).strip() != "ALL" else None
+    clean_cat = str(category).strip() if category and str(category).strip() and str(category).strip() != "ALL" else None
+
+    correlations = storage.get_signal_correlations(
+        company_name=clean_company,
+        category=clean_cat,
+        tenant_id=tenant_id
+    )
+    return {
+        "correlations": correlations,
+        "count": len(correlations),
+        "filter": clean_company or "ALL",
+    }
+
+
+@app.get("/signals/correlations/{company_name}")
+def get_company_signal_correlations_endpoint(
+    company_name: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve signal correlation clusters specifically for one competitor under tenant RLS.
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    correlations = storage.get_signal_correlations(company_name=clean_name, tenant_id=tenant_id)
+    return {
+        "company_name": clean_name,
+        "correlations": correlations,
+        "count": len(correlations),
+    }
+
+
+@app.post("/signals/correlations")
+def create_signal_correlation_endpoint(
+    req: CreateSignalCorrelationRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Persist a newly synthesized signal correlation pattern under tenant isolation and PostgreSQL RLS.
+    """
+    payload = {
+        "company_name": req.company_name.strip(),
+        "pattern_name": req.pattern_name.strip(),
+        "correlation_category": req.correlation_category.strip(),
+        "confidence": req.confidence,
+        "strategic_implication": req.strategic_implication.strip(),
+        "recommended_action": req.recommended_action.strip(),
+        "pipeline_stage": req.pipeline_stage.strip(),
+        "signals_cluster": [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in req.signals_cluster],
+    }
+    result = storage.save_signal_correlation(payload, tenant_id=tenant_id)
+    return {"status": "success", "correlation": result}
+
+
+class EvidenceSourceNode(BaseModel):
+    source: str = Field(..., description="Source name / domain")
+    title: str = Field(..., description="Document or page title")
+    url: str = Field(..., description="Direct primary verification URL")
+    excerpt: Optional[str] = Field(None, description="Direct excerpt or evidence snippet")
+    detected_at: Optional[str] = Field(None, description="Detection timestamp")
+
+
+class CreateDecisionSupportRequest(BaseModel):
+    company_name: str = Field(..., min_length=2, description="Competitor name")
+    event_id: Optional[str] = Field(None, description="Linked event ID")
+    what_happened: str = Field(..., min_length=5, description="What happened?")
+    why_it_matters: str = Field(..., min_length=10, description="Why does it matter?")
+    who_is_affected: List[str] = Field(..., min_length=1, description="Departments affected (e.g. Product, Sales, Marketing)")
+    what_should_we_do: str = Field(..., min_length=10, description="What should we do? Actionable counter-playbook")
+    urgency: str = Field("High", description="Urgency: High, Medium, Low")
+    confidence: float = Field(90.0, ge=0.0, le=100.0, description="Calibrated confidence score (e.g. 94%)")
+    corroboration_sources_count: Optional[int] = Field(3, ge=1, description="Count of independent corroborating sources")
+    evidence_sources: List[EvidenceSourceNode] = Field(..., min_length=1, description="Independent primary evidence sources")
+
+
+@app.get("/decision-support")
+def get_decision_support_endpoint(
+    company: Optional[str] = Query(None, description="Filter by competitor name"),
+    department: Optional[str] = Query(None, description="Filter by affected department (e.g. Product, Sales, Marketing)"),
+    urgency: Optional[str] = Query(None, description="Filter by urgency: High, Medium, Low"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve 'Why Should I Care?' decision support items answering:
+    1. What happened?
+    2. Why does it matter?
+    3. Who is affected?
+    4. What should we do?
+    5. Urgency & calibrated confidence
+    6. Independent evidence sources
+    """
+    clean_company = str(company).strip() if company and str(company).strip() and str(company).strip() != "ALL" else None
+    clean_dept = str(department).strip() if department and str(department).strip() and str(department).strip() != "ALL" else None
+    clean_urgency = str(urgency).strip() if urgency and str(urgency).strip() and str(urgency).strip() != "ALL" else None
+
+    items = storage.get_decision_support_items(
+        company_name=clean_company,
+        department=clean_dept,
+        urgency=clean_urgency,
+        tenant_id=tenant_id
+    )
+    return {
+        "items": items,
+        "count": len(items),
+        "filters": {
+            "company": clean_company or "ALL",
+            "department": clean_dept or "ALL",
+            "urgency": clean_urgency or "ALL"
+        }
+    }
+
+
+@app.get("/decision-support/{company_name}")
+def get_company_decision_support_endpoint(
+    company_name: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve decision support records for a specific competitor under tenant RLS.
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    items = storage.get_decision_support_items(company_name=clean_name, tenant_id=tenant_id)
+    return {
+        "company_name": clean_name,
+        "items": items,
+        "count": len(items),
+    }
+
+
+@app.post("/decision-support")
+def create_decision_support_endpoint(
+    req: CreateDecisionSupportRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Persist a newly synthesized decision support item under tenant isolation and PostgreSQL RLS.
+    """
+    payload = {
+        "company_name": req.company_name.strip(),
+        "event_id": req.event_id.strip() if req.event_id else None,
+        "what_happened": req.what_happened.strip(),
+        "why_it_matters": req.why_it_matters.strip(),
+        "who_is_affected": [d.strip() for d in req.who_is_affected],
+        "what_should_we_do": req.what_should_we_do.strip(),
+        "urgency": req.urgency.strip(),
+        "confidence": req.confidence,
+        "corroboration_sources_count": req.corroboration_sources_count or len(req.evidence_sources),
+        "evidence_sources": [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in req.evidence_sources],
+    }
+    result = storage.save_decision_support_item(payload, tenant_id=tenant_id)
+    return {"status": "success", "decision_support_item": result}
 
 
 # ============================================================================

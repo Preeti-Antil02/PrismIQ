@@ -435,3 +435,212 @@ CREATE POLICY tenant_isolation_all ON pipeline_run_progress FOR ALL TO authentic
     WITH CHECK (tenant_id = (SELECT auth.uid()) OR tenant_id IS NULL);
 
 
+
+
+-- ============================================================================
+-- ============================================================================
+-- Migration 005: Evolving Company Intelligence Layer (RLS-enforced)
+-- Foundation: Continuously evolving competitor profiles + Historical change ledger
+-- ============================================================================
+
+-- 1. Company Profiles Table (Per-Tenant / Shared Evolving State)
+CREATE TABLE IF NOT EXISTS company_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL REFERENCES companies(name) ON UPDATE CASCADE ON DELETE RESTRICT,
+    summary TEXT,
+    products JSONB NOT NULL DEFAULT '[]'::jsonb,
+    features JSONB NOT NULL DEFAULT '[]'::jsonb,
+    pricing_model JSONB NOT NULL DEFAULT '{}'::jsonb,
+    target_market TEXT,
+    customers JSONB NOT NULL DEFAULT '[]'::jsonb,
+    funding JSONB NOT NULL DEFAULT '{}'::jsonb,
+    hiring JSONB NOT NULL DEFAULT '{}'::jsonb,
+    partnerships JSONB NOT NULL DEFAULT '[]'::jsonb,
+    strengths JSONB NOT NULL DEFAULT '[]'::jsonb,
+    weaknesses JSONB NOT NULL DEFAULT '[]'::jsonb,
+    strategic_narrative TEXT,
+    confidence VARCHAR(20) NOT NULL DEFAULT 'High',
+    last_updated TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_company_profile_tenant UNIQUE (tenant_id, company_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_company_profiles_tenant ON company_profiles(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_company_profiles_company ON company_profiles(company_name);
+
+-- 2. Company Changes Ledger Table (What changed? When? Evidence? How significant?)
+CREATE TABLE IF NOT EXISTS company_changes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL REFERENCES companies(name) ON UPDATE CASCADE ON DELETE RESTRICT,
+    dimension VARCHAR(50) NOT NULL, -- 'pricing', 'products', 'features', 'hiring', 'partnerships', 'target_market'
+    what_changed TEXT NOT NULL,
+    previous_state TEXT,
+    new_state TEXT,
+    when_detected TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    evidence_url TEXT,
+    evidence_title TEXT,
+    evidence_excerpt TEXT,
+    significance VARCHAR(20) NOT NULL DEFAULT 'Medium', -- 'High', 'Medium', 'Low'
+    strategic_implication TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_company_changes_tenant ON company_changes(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_company_changes_company ON company_changes(company_name);
+CREATE INDEX IF NOT EXISTS idx_company_changes_dimension ON company_changes(dimension);
+CREATE INDEX IF NOT EXISTS idx_company_changes_when ON company_changes(when_detected DESC);
+CREATE INDEX IF NOT EXISTS idx_company_changes_significance ON company_changes(significance);
+
+-- 3. Row Level Security (RLS) Policies
+ALTER TABLE company_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_changes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON company_profiles;
+CREATE POLICY tenant_isolation_all ON company_profiles FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON company_changes;
+CREATE POLICY tenant_isolation_all ON company_changes FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+
+-- ============================================================================
+-- ============================================================================
+-- Migration 006: Historical Competitive Memory & Timeline Sequence Detection
+-- Section 2: Multi-month sequence detection (Hiring -> SOC2 -> Pricing -> Case Study -> Expansion)
+-- ============================================================================
+
+-- 1. Competitive Sequences & Pattern Detection Table
+CREATE TABLE IF NOT EXISTS competitive_sequences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL REFERENCES companies(name) ON UPDATE CASCADE ON DELETE RESTRICT,
+    pattern_name VARCHAR(255) NOT NULL,
+    pattern_type VARCHAR(100) NOT NULL, -- 'enterprise_expansion', 'ai_pivot', 'pricing_shift', 'ecosystem_lockin', 'infrastructure_scaling'
+    time_horizon VARCHAR(100) NOT NULL, -- e.g. '6 months (Jan 2026 - Jun 2026)'
+    confidence NUMERIC(5, 2) NOT NULL DEFAULT 91.0,
+    potential_impact VARCHAR(20) NOT NULL DEFAULT 'High', -- 'High', 'Medium', 'Low'
+    strategic_interpretation TEXT NOT NULL,
+    recommended_action TEXT NOT NULL,
+    sequence_steps JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comp_sequences_tenant ON competitive_sequences(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_comp_sequences_company ON competitive_sequences(company_name);
+CREATE INDEX IF NOT EXISTS idx_comp_sequences_type ON competitive_sequences(pattern_type);
+CREATE INDEX IF NOT EXISTS idx_comp_sequences_created ON competitive_sequences(created_at DESC);
+
+-- 2. Row Level Security (RLS) Policy
+ALTER TABLE competitive_sequences ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON competitive_sequences;
+CREATE POLICY tenant_isolation_all ON competitive_sequences FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+
+-- ============================================================================
+-- Migration 007: Competitive Change Detection Engine (Point 3)
+-- Section 3: The 5 Changes That Actually Matter
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS detected_high_impact_changes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL,
+    headline VARCHAR(500) NOT NULL,
+    significance_tier VARCHAR(50) NOT NULL DEFAULT 'HIGH IMPACT',
+    confidence NUMERIC(5, 2) NOT NULL DEFAULT 90.00,
+    potential_impact VARCHAR(50) NOT NULL DEFAULT 'High',
+    window_days INTEGER NOT NULL DEFAULT 14,
+    strategic_interpretation TEXT NOT NULL,
+    why_it_matters TEXT NOT NULL,
+    recommended_action TEXT NOT NULL,
+    corroborating_signals_count INTEGER NOT NULL DEFAULT 3,
+    signals_evidence JSONB NOT NULL DEFAULT '[]'::jsonb,
+    detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE detected_high_impact_changes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON detected_high_impact_changes;
+CREATE POLICY tenant_isolation_all ON detected_high_impact_changes FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+CREATE INDEX IF NOT EXISTS idx_high_impact_changes_tenant_company 
+    ON detected_high_impact_changes (tenant_id, company_name);
+
+CREATE INDEX IF NOT EXISTS idx_high_impact_changes_detected_at 
+    ON detected_high_impact_changes (detected_at DESC);
+
+
+-- ============================================================================
+-- Migration 008: Signal Correlation Engine & Strategic Implication Pipeline (Point 4)
+-- Section 4: Raw Signals -> Canonical Events -> Patterns -> Insights -> Actions
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS signal_correlations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL,
+    pattern_name VARCHAR(255) NOT NULL,
+    correlation_category VARCHAR(100) NOT NULL DEFAULT 'ai_investment',
+    confidence NUMERIC(5, 2) NOT NULL DEFAULT 92.00,
+    strategic_implication TEXT NOT NULL,
+    recommended_action TEXT NOT NULL,
+    pipeline_stage VARCHAR(50) NOT NULL DEFAULT 'Insights',
+    signals_cluster JSONB NOT NULL DEFAULT '[]'::jsonb,
+    first_signal_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_signal_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE signal_correlations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON signal_correlations;
+CREATE POLICY tenant_isolation_all ON signal_correlations FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+CREATE INDEX IF NOT EXISTS idx_signal_correlations_tenant_company 
+    ON signal_correlations (tenant_id, company_name);
+
+CREATE INDEX IF NOT EXISTS idx_signal_correlations_created 
+    ON signal_correlations (created_at DESC);
+
+
+-- ============================================================================
+-- Migration 009: "Why Should I Care?" Decision Support System (Point 5)
+-- Section 5: Decision Support - What happened, Why it matters, Who is affected, What to do, Urgency, Evidence
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS decision_support_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL,
+    event_id VARCHAR(255),
+    what_happened TEXT NOT NULL,
+    why_it_matters TEXT NOT NULL,
+    who_is_affected TEXT[] NOT NULL DEFAULT '{}',
+    what_should_we_do TEXT NOT NULL,
+    urgency VARCHAR(50) NOT NULL DEFAULT 'High',
+    confidence NUMERIC(5, 2) NOT NULL DEFAULT 89.00,
+    corroboration_sources_count INTEGER NOT NULL DEFAULT 3,
+    evidence_sources JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE decision_support_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON decision_support_items;
+CREATE POLICY tenant_isolation_all ON decision_support_items FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+CREATE INDEX IF NOT EXISTS idx_decision_support_tenant_company 
+    ON decision_support_items (tenant_id, company_name);
+
+CREATE INDEX IF NOT EXISTS idx_decision_support_urgency_created 
+    ON decision_support_items (urgency, created_at DESC);
