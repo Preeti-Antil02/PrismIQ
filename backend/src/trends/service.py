@@ -394,13 +394,18 @@ def get_trend_detail(tenant_id: str, trend_id: str) -> Optional[Dict[str, Any]]:
     timeline.sort(key=lambda x: str(x.get("published_at") or ""))
 
     # Audited absences
-    tracked = ["Cloudflare", "Vercel", "Netlify", "Stripe"]
+    tracked = []
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-            cur.execute("SELECT company_name FROM tenant_tracked_companies WHERE status = 'active';")
+            cur.execute(
+                "SELECT company_name FROM tenant_tracked_companies WHERE status = 'active' AND (tenant_id = %s::uuid OR tenant_id IS NULL);",
+                (str(tenant_id),)
+            )
             tracked = [r[0] for r in cur.fetchall()]
     except Exception:
         pass
+    if not tracked:
+        tracked = [c["company_name"] for c in storage.get_tenant_tracked_companies(tenant_id)]
 
     companies_in = set(target.get("companies_involved", []))
     absences = []
