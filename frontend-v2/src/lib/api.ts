@@ -1231,26 +1231,35 @@ export async function fetchTrendDetail(trendId: string): Promise<TrendDetailReco
     // Fallback
   }
 
-  const baseTrend = BASELINE_TRENDS.find((t) => t.cluster_id === trendId) || BASELINE_TRENDS[0];
+  const baseTrend = (BASELINE_TRENDS as any[]).find((t) => t.cluster_id === trendId) || (BASELINE_TRENDS as any[])[0];
+  const members = Array.isArray(baseTrend?.members) ? baseTrend.members : [];
+  const timeline: TimelineNode[] = members.map((m: any) => ({
+    member_id: m.event_id,
+    event_id: m.event_id,
+    company: m.company,
+    title: m.title,
+    source_url: m.url,
+    signal_type: m.signal_type || "news",
+    node_class: m.node_class || "third_party",
+    published_at: m.published_at || baseTrend?.latest_detected_at || "2026-10-04T12:00:00Z",
+    date_precision: m.date_precision || "day",
+    is_sequence_eligible: Boolean(m.is_sequence_eligible),
+  }));
+
+  const trackedCompanies = BASELINE_TRACKED_COMPANIES.map((c) => c.company_name);
+  const companiesIn = new Set(baseTrend?.companies_involved || []);
+  const auditedAbsences: AuditedAbsence[] = trackedCompanies
+    .filter((comp) => !companiesIn.has(comp))
+    .map((comp) => ({
+      company: comp,
+      status: "absent",
+      audit_note: "Audited: 0 events detected across tracked window",
+    }));
+
   return {
     ...baseTrend,
-    timeline: [
-      {
-        company: baseTrend.companies_involved[0] || "meesho",
-        title: baseTrend.representative_title || baseTrend.trend_name,
-        source_url: "https://economictimes.indiatimes.com",
-        signal_type: "news",
-        node_class: "third_party",
-        published_at: baseTrend.latest_detected_at || "2026-10-04T12:00:00Z",
-      },
-    ],
-    audited_absences: [
-      {
-        company: "Snapdeal",
-        status: "absent",
-        audit_note: "No initiatives observed in this operational domain during this analysis window.",
-      },
-    ],
+    timeline,
+    audited_absences: auditedAbsences,
     lineage: [],
   };
 }
