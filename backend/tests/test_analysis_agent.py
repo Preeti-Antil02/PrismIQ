@@ -179,3 +179,76 @@ def test_analysis_agent_batched_execution():
             assert f["inference_confidence"] == "Medium"
             assert f["confidence"] == "High"
 
+
+def test_groq_models_reverted_to_verified_trio():
+    """Verify that GROQ_MODELS contains the three verified models."""
+    assert analysis_agent.GROQ_MODELS == [
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-20b",
+    ]
+    assert analysis_agent.DEFAULT_GROQ_MODEL == "openai/gpt-oss-120b"
+
+
+def test_groq_model_availability_probe():
+    """Verify check_groq_model_availability returns True on 200 and False on 404/error."""
+    mock_ok = MagicMock()
+    mock_ok.status_code = 200
+
+    mock_fail = MagicMock()
+    mock_fail.status_code = 404
+    mock_fail.text = "Model not found"
+
+    with patch("requests.post", return_value=mock_ok):
+        assert analysis_agent.check_groq_model_availability("openai/gpt-oss-120b", "gsk_test") is True
+
+    with patch("requests.post", return_value=mock_fail):
+        assert analysis_agent.check_groq_model_availability("custom/unavailable-model", "gsk_test") is False
+
+
+def test_groq_model_probe_status_codes():
+    """Test individual status code handling: 404/400/403 drop model, 429/5xx retain as available."""
+    # 400 Decommissioned/Invalid: drops model (False)
+    mock_400 = MagicMock(status_code=400, text="Model is decommissioned")
+    with patch("requests.post", return_value=mock_400):
+        assert analysis_agent.check_groq_model_availability("old-model", "gsk_test", max_retries=0) is False
+
+    # 403 Permission denied: drops model (False)
+    mock_403 = MagicMock(status_code=403, text="Permission denied for model")
+    with patch("requests.post", return_value=mock_403):
+        assert analysis_agent.check_groq_model_availability("private-model", "gsk_test", max_retries=0) is False
+
+    # 429 Rate limited: retries with backoff and retains as available (True)
+    mock_429 = MagicMock(status_code=429, text="Rate limit exceeded")
+    with patch("requests.post", return_value=mock_429), patch("time.sleep"):
+        assert analysis_agent.check_groq_model_availability("busy-model", "gsk_test", max_retries=1, backoff_factor=0.01) is True
+
+    # 500 / 503 Server error: retries with backoff and retains as available (True)
+    mock_503 = MagicMock(status_code=503, text="Service Unavailable")
+    with patch("requests.post", return_value=mock_503), patch("time.sleep"):
+        assert analysis_agent.check_groq_model_availability("transient-model", "gsk_test", max_retries=1, backoff_factor=0.01) is True
+
+
+def test_verify_groq_cascade_availability_drops_unavailable_model():
+    """Verify that verify_groq_cascade_availability drops unavailable models and retains healthy ones."""
+    def fake_probe(model, key, timeout=10.0):
+        # qwen/qwen3.8-27b fails with 404, others succeed
+        return model != "qwen/qwen3.8-27b"
+
+    with patch("src.analysis_agent.check_groq_model_availability", side_effect=fake_probe):
+        active = analysis_agent.verify_groq_cascade_availability("gsk_test")
+        assert "openai/gpt-oss-120b" in active
+        assert "openai/gpt-oss-20b" in active
+        assert "qwen/qwen3.8-27b" not in active
+        assert len(active) == 2
+
+
+def test_verify_groq_cascade_all_fail_aborts_red():
+    """Verify that when all cascade models fail the probe, a fatal RuntimeError is raised."""
+    with patch("src.analysis_agent.check_groq_model_availability", return_value=False):
+        import pytest
+        with pytest.raises(RuntimeError, match="All Groq cascade models.*failed availability probe"):
+            analysis_agent.verify_groq_cascade_availability("gsk_test")
+
+
+

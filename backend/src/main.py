@@ -1,9 +1,11 @@
+import time
 import logging
 import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
 
 # Ensure UTF-8 stdout on Windows
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -37,6 +39,15 @@ def _get_data_dir() -> Path:
     return backend_root / "data"
 
 
+_LAST_RUN_SUMMARY: Dict[str, Any] = {}
+
+
+def get_pipeline_summary_metrics() -> Dict[str, Any]:
+    """Retrieve structured metrics dictionary from the last pipeline execution."""
+    global _LAST_RUN_SUMMARY
+    return dict(_LAST_RUN_SUMMARY)
+
+
 def run_pipeline(
     output_report_path: Optional[Union[str, Path]] = None,
     signals_storage_path: Optional[Union[str, Path]] = None,
@@ -45,44 +56,29 @@ def run_pipeline(
     sources: Optional[List[str]] = None,
     tenants: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
-    """
-    Execute the Multi-Tenant Competitive Intelligence Pipeline via LangGraph State Machine:
-    Phase 1 (Global Shared):
-      1. supervisor: Evaluates per-cycle run policies and skip conditions (e.g. 24h pricing cadence).
-      2. monitoring: Gathers signals across distinct union of all tracked companies.
-      3. noise_suppression: Upstream filtering of bot/CI noise with audit decisions.
-      4. event_consolidation: Clusters signals into events with canonical fact_confidence.
-    Phase 2 (Per-Tenant Scoped):
-      5. per_tenant_processing: Runs Analysis, Synthesis, Report, and Delivery per active tenant.
-    
-    Returns:
-      The primary/owner tenant's markdown intelligence brief content.
-    """
-    from src.workflow import create_pipeline_graph
-
-    tracked_companies = companies or storage.get_all_tracked_companies()
-    active_tenants = tenants or storage.get_active_tenants()
-
-    logger.info(f"Starting PrismIQ Multi-Tenant Pipeline across {len(tracked_companies)} distinct companies: {tracked_companies}")
-    logger.info(f"Active Tenants ({len(active_tenants)}): {[t.get('tenant_id') for t in active_tenants]}")
-    logger.info(f"Configured Sources: {sources or config.SOURCES}")
-
-    app = create_pipeline_graph()
-    initial_state = {
-        "target_company": config.TARGET_COMPANY,
-        "competitors": list(config.COMPETITORS),
-        "configured_sources": sources or list(config.SOURCES),
-        "companies": tracked_companies,
-        "tenants": active_tenants,
-        "output_report_path": output_report_path,
-        "signals_storage_path": signals_storage_path,
-        "events_storage_path": events_storage_path,
+    """Execute pipeline via run_pipeline_with_status and return primary markdown report."""
+    global _LAST_RUN_SUMMARY
+    from src.workflow import run_pipeline_with_status
+    start_m = time.monotonic()
+    result = run_pipeline_with_status(
+        output_report_path=output_report_path,
+        signals_storage_path=signals_storage_path,
+        events_storage_path=events_storage_path,
+        companies=companies,
+        sources=sources,
+        tenants=tenants,
+        process_start_monotonic=start_m,
+    )
+    _LAST_RUN_SUMMARY = result.get("metrics_summary") or {
+        "status": result.get("status"),
+        "duration_seconds": round(time.monotonic() - start_m, 2),
+        "phase_timing": result.get("phase_timing", {}),
     }
+    if result.get("status") == "failed" and result.get("is_owner_fatal"):
+        errors = result.get("errors", [])
+        raise RuntimeError(f"Owner pipeline execution failed: {'; '.join(errors)}")
+    return result.get("report_content", "")
 
-    final_state = app.invoke(initial_state)
-    report_content = final_state.get("report_content", "")
-
-    return report_content
 
 
 def run_multi_tenant_pipeline(

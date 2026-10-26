@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import re
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -487,10 +488,14 @@ def consolidate_signals(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def run(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Entrypoint for Event Consolidator."""
+    t0 = time.monotonic()
     logger.info(f"Starting Event Consolidation on {len(signals)} raw signals...")
     events = consolidate_signals(signals)
     multi_corroborated = [e for e in events if e.get("corroboration_count", 1) > 1]
+    dur = time.monotonic() - t0
     logger.info(
+        f"[TIMING] event_consolidator.run completed in {dur:.3f}s: "
         f"Consolidated {len(signals)} raw signals into {len(events)} Events ({len(multi_corroborated)} multi-source corroborated events)."
     )
     return events
+

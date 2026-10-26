@@ -25,8 +25,15 @@ import {
   ArrowUpRight,
   Workflow,
   Calendar,
+  BarChart2,
+  PieChart,
 } from "lucide-react";
 import { useWorkspace, useAppEvidence } from "./AppShell";
+import {
+  PrismDonutChart,
+  PrismHorizontalBarChart,
+  PrismStackedBarChart,
+} from "@/components/ui/VisualCharts";
 import {
   PrismCard,
   PrismTierBadge,
@@ -189,6 +196,82 @@ export function OverviewPage() {
       .slice(0, 5);
   }, [events]);
 
+  // Visual Analytics Aggregations (from actual live signals, events, and summaries)
+  const sourceDistribution = React.useMemo(() => {
+    const counts: Record<string, number> = { news: 0, github: 0, jobs: 0, pricing: 0, research: 0, other: 0 };
+    signals.forEach((s) => {
+      const src = (s.source || "").toLowerCase();
+      if (src.includes("news")) counts.news++;
+      else if (src.includes("git")) counts.github++;
+      else if (src.includes("job") || src.includes("career")) counts.jobs++;
+      else if (src.includes("pric")) counts.pricing++;
+      else if (src.includes("research") || src.includes("arxiv")) counts.research++;
+      else counts.other++;
+    });
+
+    return [
+      { label: "News & Media", value: counts.news, color: "#0ea5e9" },
+      { label: "Research & Patents", value: counts.research, color: "#8b5cf6" },
+      { label: "Code Repositories", value: counts.github, color: "#10b981" },
+      { label: "Hiring & Roles", value: counts.jobs, color: "#f59e0b" },
+      { label: "Pricing & Plans", value: counts.pricing, color: "#ec4899" },
+      ...(counts.other > 0 ? [{ label: "Other Sources", value: counts.other, color: "#64748b" }] : []),
+    ].filter((d) => d.value > 0);
+  }, [signals]);
+
+  const tierDistribution = React.useMemo(() => {
+    let must = 0;
+    let should = 0;
+    let nice = 0;
+    events.forEach((e) => {
+      const t = (e.tier || "").toLowerCase();
+      if (t.includes("must")) must++;
+      else if (t.includes("should")) should++;
+      else nice++;
+    });
+    return [
+      { label: "Must-Know", value: must, color: "#f43f5e" },
+      { label: "Should-Know", value: should, color: "#f59e0b" },
+      { label: "Nice-to-Know", value: nice, color: "#94a3b8" },
+    ].filter((d) => d.value > 0);
+  }, [events]);
+
+  const competitorActivityBars = React.useMemo(() => {
+    return [...competitorSummaries]
+      .filter((c) => c.total_signals > 0 || c.total_events > 0)
+      .sort((a, b) => b.total_signals + b.total_events * 2 - (a.total_signals + a.total_events * 2))
+      .slice(0, 6)
+      .map((c) => ({
+        label: c.company_name,
+        value: c.total_signals + c.total_events,
+        badge: c.is_target ? "Target" : undefined,
+        secondaryText: `${c.total_events} ev / ${c.total_signals} sig`,
+        color: c.is_target ? "#6e57dc" : "#3b82f6",
+      }));
+  }, [competitorSummaries]);
+
+  const competitorTierStackedRows = React.useMemo(() => {
+    return [...competitorSummaries]
+      .filter((c) => c.total_events > 0)
+      .sort((a, b) => b.total_events - a.total_events)
+      .slice(0, 5)
+      .map((c) => {
+        const must = c.must_know_count || 0;
+        const should = c.should_know_count || 0;
+        const nice = Math.max(0, c.total_events - must - should);
+        return {
+          label: c.company_name,
+          isTarget: c.is_target,
+          totalLabel: `${c.total_events} events`,
+          segments: [
+            { label: "Must-Know", value: must, color: "#f43f5e" },
+            { label: "Should-Know", value: should, color: "#f59e0b" },
+            { label: "Nice-to-Know", value: nice, color: "#cbd5e1" },
+          ],
+        };
+      });
+  }, [competitorSummaries]);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -315,6 +398,120 @@ export function OverviewPage() {
             </Link>
           </div>
         </PrismCard>
+      </div>
+
+      {/* Visual Analytics & Intelligence Charts Section */}
+      <div className="space-y-4">
+        <PrismSectionHeader
+          title="Intelligence Distribution & Visual Analytics"
+          subtitle="Real-time graphical breakdown of verified signals across sources, event impact tiers, and competitor activity share."
+          eyebrow="Visual Decision Cockpit"
+          action={
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#70717a]">
+              <PieChart className="w-3.5 h-3.5 text-[#6e57dc]" />
+              <span>Multi-Source Corroboration</span>
+            </div>
+          }
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Chart 1: Multi-Source Signal Distribution */}
+          <PrismCard className="p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-[#17171b]">Multi-Channel Signal Footprint</h3>
+                <p className="text-[11px] text-[#70717a] mt-0.5">Corroborated atomic signals across 5 monitored dimensions</p>
+              </div>
+              <span className="app-pill bg-sky-50 text-sky-700 text-[10px] font-bold">
+                {signals.length} Raw Signals
+              </span>
+            </div>
+
+            {sourceDistribution.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#9ca3af]">No signal distribution data available</div>
+            ) : (
+              <PrismDonutChart
+                data={sourceDistribution}
+                centerLabel="Signals"
+                centerValue={signals.length}
+                size={180}
+                thickness={22}
+              />
+            )}
+          </PrismCard>
+
+          {/* Chart 2: Event Severity & Impact Tiers */}
+          <PrismCard className="p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-[#17171b]">Event Severity & Impact Tiers</h3>
+                <p className="text-[11px] text-[#70717a] mt-0.5">Categorized by strategic urgency and operational impact</p>
+              </div>
+              <span className="app-pill bg-rose-50 text-rose-700 text-[10px] font-bold">
+                {events.length} Validated Events
+              </span>
+            </div>
+
+            {tierDistribution.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#9ca3af]">No validated event tier data available</div>
+            ) : (
+              <PrismDonutChart
+                data={tierDistribution}
+                centerLabel="Events"
+                centerValue={events.length}
+                size={180}
+                thickness={22}
+              />
+            )}
+          </PrismCard>
+
+          {/* Chart 3: Competitor Activity Share */}
+          <PrismCard className="p-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-[#17171b]">Competitor Activity Share</h3>
+                <p className="text-[11px] text-[#70717a] mt-0.5">Relative volume of signals & validated events across active competitors</p>
+              </div>
+              <Link href="/app/competitors" className="text-xs font-semibold text-[#6e57dc] hover:underline flex items-center gap-1">
+                View all <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {competitorActivityBars.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#9ca3af]">No competitor activity detected</div>
+            ) : (
+              <PrismHorizontalBarChart
+                items={competitorActivityBars}
+              />
+            )}
+          </PrismCard>
+
+          {/* Chart 4: Competitor Event Severity Profiles */}
+          <PrismCard className="p-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-[#17171b]">Event Severity Profiles by Competitor</h3>
+                <p className="text-[11px] text-[#70717a] mt-0.5">Must-Know (red) vs Should-Know (amber) vs Nice-to-Know (zinc)</p>
+              </div>
+              <Link href="/app/events" className="text-xs font-semibold text-[#6e57dc] hover:underline flex items-center gap-1">
+                Timeline <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {competitorTierStackedRows.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#9ca3af]">No event severity profiles available</div>
+            ) : (
+              <PrismStackedBarChart
+                rows={competitorTierStackedRows}
+                legend={[
+                  { label: "Must-Know", color: "#f43f5e" },
+                  { label: "Should-Know", color: "#f59e0b" },
+                  { label: "Nice-to-Know", color: "#cbd5e1" },
+                ]}
+              />
+            )}
+          </PrismCard>
+        </div>
       </div>
 
       {/* 2. "Why Should I Care?" Decision Support System Cockpit (Point 5) */}
@@ -791,7 +988,7 @@ export function OverviewPage() {
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <PrismCompanyBadge
                       name={seq.company_name}
-                      isTarget={seq.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                      isTarget={(seq.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                       size="sm"
                     />
                     <span className="text-xs text-[#70717a] flex items-center gap-1 font-semibold">
@@ -974,7 +1171,54 @@ export function OverviewPage() {
         )}
       </div>
 
-      {/* 5. Recent Verified Canonical Events Table */}
+      {/* 4. Research Radar Field */}
+      {topics.length > 0 && (
+        <div>
+          <PrismSectionHeader
+            title="Emerging Research Radar"
+            subtitle="Configured topics monitored across academic, technical, and patent disclosures."
+            eyebrow="Field Radar"
+            action={
+              <Link href="/app/research-radar" className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1">
+                Explore Radar <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            }
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {topics.slice(0, 3).map((topic) => (
+              <PrismCard key={topic.id} solid className="p-4 sm:p-5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-lg bg-cyan-50 border border-cyan-200 flex items-center justify-center text-cyan-700">
+                      <Radio className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-bold text-xs text-[#17171b]">{topic.topic_label}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {(Array.isArray(topic.keywords) ? topic.keywords : []).slice(0, 3).map((kw, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-[10px] font-medium text-[#595a63]"
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="pt-3 mt-3 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between text-[11px] text-[#9ca3af]">
+                  <span>Active Monitoring</span>
+                  <Link href="/app/research-radar" className="text-[#6e57dc] font-semibold hover:underline">
+                    View posture →
+                  </Link>
+                </div>
+              </PrismCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 5. Recent Canonical Events */}
       <div>
         <PrismSectionHeader
           title="Recent Canonical Events"
@@ -1023,7 +1267,7 @@ export function OverviewPage() {
                   <td className="whitespace-nowrap font-bold">
                     <PrismCompanyBadge
                       name={ev.company_name}
-                      isTarget={ev.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                      isTarget={(ev.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                       size="sm"
                     />
                   </td>

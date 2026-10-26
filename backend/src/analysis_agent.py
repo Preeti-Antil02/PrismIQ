@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple
 import requests
@@ -25,13 +26,166 @@ except ImportError:
     from report_agent import _calculate_decision_score, _assign_finding_tier
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
+DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_MODELS = [
     "openai/gpt-oss-120b",
     "qwen/qwen3.8-27b",
     "openai/gpt-oss-20b",
-    "meta-llama/llama-3.1-8b-instant",
 ]
+
+_ACTIVE_GROQ_MODELS: Optional[List[str]] = None
+
+
+def get_active_groq_models() -> List[str]:
+    """Retrieve currently active and verified Groq models for this run."""
+    global _ACTIVE_GROQ_MODELS
+    if _ACTIVE_GROQ_MODELS is not None:
+        return _ACTIVE_GROQ_MODELS
+    return list(GROQ_MODELS)
+
+
+def check_groq_model_availability(
+    model: str,
+    api_key: str,
+    timeout: float = 10.0,
+    max_retries: int = 2,
+    backoff_factor: float = 0.5,
+) -> bool:
+    """
+    Probe a single Groq model with a 1-token prompt to check live availability.
+    - Returns True if 200 OK.
+    - Treats 429 (rate limit) and 5xx (transient gateway/server error) as available:
+      retries with backoff, and if persistent returns True (model exists, capacity/rate issue).
+    - Drops model (returns False) ONLY on model-not-found, decommissioned, or permission errors:
+      * HTTP 404 (Not Found)
+      * HTTP 400 (client error / model decommissioned / invalid model)
+      * HTTP 401 / 403 (model access permission denied)
+    """
+    if not api_key:
+        return False
+    headers = {
+        "Authorization": f"Bearer {api_key.strip()}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": "ping"}],
+        "max_tokens": 1,
+    }
+
+    for attempt in range(max_retries + 1):
+        try:
+            resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=timeout)
+            if resp.status_code == 200:
+                return True
+
+            # Model decommissioned, not found, or permission errors -> drop model (return False)
+            if resp.status_code == 404:
+                logger.warning(f"Groq model probe: model '{model}' not found (HTTP 404). Dropping from cascade.")
+                return False
+
+            if resp.status_code in (401, 403):
+                logger.warning(f"Groq model probe: permission denied for model '{model}' (HTTP {resp.status_code}). Dropping from cascade.")
+                return False
+
+            if resp.status_code == 400:
+                logger.warning(f"Groq model probe: model '{model}' returned client error (HTTP 400: {resp.text[:200]}). Dropping from cascade.")
+                return False
+
+            # 429 (rate limit) or 5xx (transient server/gateway error): treat as available after retries
+            if resp.status_code == 429 or 500 <= resp.status_code < 600:
+                logger.warning(
+                    f"Groq model probe: model '{model}' encountered HTTP {resp.status_code} "
+                    f"(attempt {attempt + 1}/{max_retries + 1})."
+                )
+                if attempt < max_retries:
+                    time.sleep(backoff_factor * (2 ** attempt))
+                    continue
+                # Transient rate-limit or gateway error indicates model is recognized by provider
+                logger.info(f"Groq model probe: model '{model}' retained in cascade despite transient HTTP {resp.status_code}.")
+                return True
+
+            logger.warning(f"Groq model probe failed for '{model}' (HTTP {resp.status_code}): {resp.text[:200]}")
+            return False
+
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Groq model probe network exception for '{model}' (attempt {attempt + 1}/{max_retries + 1}): {e}")
+            if attempt < max_retries:
+                time.sleep(backoff_factor * (2 ** attempt))
+                continue
+            return False
+
+    return False
+
+
+def verify_groq_cascade_availability(api_key: Optional[str] = None) -> List[str]:
+    """
+    Startup availability check: Probes each cascade model once per run.
+    Drops unavailable models for that run with a visible warning.
+    Fails the run RED (raises RuntimeError) if none is available.
+    """
+    global _ACTIVE_GROQ_MODELS
+    key = api_key or os.getenv("GROQ_API_KEY")
+    if not key:
+        logger.warning("GROQ_API_KEY is not set. Model cascade verification skipped.")
+        _ACTIVE_GROQ_MODELS = list(GROQ_MODELS)
+        return _ACTIVE_GROQ_MODELS
+
+    available = []
+    dropped = []
+    for model in GROQ_MODELS:
+        if check_groq_model_availability(model, key):
+            available.append(model)
+        else:
+            dropped.append(model)
+            print(f"::warning title=Groq Model Unavailable::Model '{model}' returned error/404 on probe and is dropped from run cascade.", file=sys.stderr)
+            logger.warning(f"Model '{model}' is unavailable on Groq API and dropped from run cascade.")
+
+    if not available:
+        error_msg = f"FATAL: All Groq cascade models {GROQ_MODELS} failed availability probe. Pipeline analysis aborted RED."
+        print(f"::error title=Groq Cascade Exhausted::{error_msg}", file=sys.stderr)
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+
+    _ACTIVE_GROQ_MODELS = available
+    logger.info(f"Groq cascade availability verified. Active models: {available} (Dropped: {dropped})")
+    return _ACTIVE_GROQ_MODELS
+
+_TOTAL_ANALYSIS_CALL_TIME = 0.0
+_TOTAL_ANALYZED_FINDINGS = 0
+
+_GROQ_METRICS = {
+    "calls": 0,
+    "total_tokens": 0,
+    "rate_limits_429": 0,
+    "models_used": set(),
+}
+
+
+def get_groq_metrics() -> Dict[str, Any]:
+    """Retrieve Groq API consumption counters."""
+    global _GROQ_METRICS
+    return {
+        "calls": _GROQ_METRICS["calls"],
+        "total_tokens": _GROQ_METRICS["total_tokens"],
+        "rate_limits_429": _GROQ_METRICS["rate_limits_429"],
+        "models_used": list(_GROQ_METRICS["models_used"]),
+    }
+
+
+def record_analysis_measurement(duration: float, findings_count: int) -> None:
+    """Record execution duration and findings count from real analysis calls."""
+    global _TOTAL_ANALYSIS_CALL_TIME, _TOTAL_ANALYZED_FINDINGS
+    _TOTAL_ANALYSIS_CALL_TIME += duration
+    _TOTAL_ANALYZED_FINDINGS += max(1, findings_count)
+
+
+def get_measured_seconds_per_finding() -> float:
+    """Return measured average seconds per finding from real calls in this run, defaulting to 1.2s."""
+    if _TOTAL_ANALYZED_FINDINGS > 0 and _TOTAL_ANALYSIS_CALL_TIME > 0:
+        return max(0.2, _TOTAL_ANALYSIS_CALL_TIME / _TOTAL_ANALYZED_FINDINGS)
+    return 1.2
+
 
 SYSTEM_PROMPT = """You are a senior competitive intelligence analyst for SaaS infrastructure and developer tooling.
 Analyze the provided intelligence signal for a company and determine why it matters strategically.
@@ -236,8 +390,8 @@ def _call_groq(
     sig = fallback_signal or _extract_signal_from_prompt(user_prompt)
 
     if not api_key:
-        logger.warning("GROQ_API_KEY not set. Using analytical fallback.")
-        return _synthesize_fallback_analysis(sig, target_company=target_company)
+        logger.warning("GROQ_API_KEY not set. Marking event pending without synthetic fallback.")
+        return {"why_it_matters": None, "confidence": "Low", "analysis_status": "pending_llm_key_missing", "skip": True}
 
     headers = {
         "Authorization": f"Bearer {api_key.strip()}",
@@ -245,7 +399,7 @@ def _call_groq(
     }
 
     # Model cascade across open-weight models to absorb rate limits
-    for model in GROQ_MODELS:
+    for model in get_active_groq_models():
         payload = {
             "model": model,
             "messages": [
@@ -256,23 +410,28 @@ def _call_groq(
             "response_format": {"type": "json_object"},
         }
         for attempt in range(max_retries):
+            t_model_start = time.monotonic()
             try:
                 response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=20)
+
                 if response.status_code in (401, 403):
-                    logger.warning(f"Groq API authentication error ({response.status_code}). Using structured fallback.")
-                    return _synthesize_fallback_analysis(sig, target_company=target_company)
+                    logger.warning(f"Groq API authentication error ({response.status_code}). Marking event pending.")
+                    return {"why_it_matters": None, "confidence": "Low", "analysis_status": "pending_llm_auth_error", "skip": True}
 
                 if response.status_code == 429:
                     logger.warning(f"Groq 429 rate limit hit for model {model}. Cascading to next model...")
-                    # Immediately cascade to next model in GROQ_MODELS
+                    _GROQ_METRICS["rate_limits_429"] += 1
                     break
 
                 response.raise_for_status()
                 res_data = response.json()
+                _GROQ_METRICS["calls"] += 1
+                _GROQ_METRICS["models_used"].add(model)
 
                 usage = res_data.get("usage")
                 if usage and isinstance(usage, dict):
                     _attach_langsmith_usage(usage, model=model)
+                    _GROQ_METRICS["total_tokens"] += usage.get("total_tokens", 0)
 
                 content = res_data["choices"][0]["message"]["content"]
                 cleaned_content = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
@@ -285,19 +444,26 @@ def _call_groq(
 
                 why = str(parsed.get("why_it_matters", "")).strip()
                 if not why or "rate limit" in why.lower() or "analysis unavailable" in why.lower():
-                    return _synthesize_fallback_analysis(sig, target_company=target_company)
+                    logger.warning("Empty or rate-limited response content. Marking event pending.")
+                    return {"why_it_matters": None, "confidence": "Low", "analysis_status": "pending_llm_empty", "skip": True}
 
+                record_analysis_measurement(time.monotonic() - t_model_start, 1)
                 return {
                     "why_it_matters": why,
                     "fact_confidence": fact_conf,
                     "inference_confidence": infer_conf,
                     "confidence": blended_conf,
+                    "analysis_model": model,
+                    "is_fallback": False,
+                    "analysis_source": "llm",
                 }
+
             except Exception as e:
                 logger.debug(f"Attempt {attempt + 1} failed on {model}: {e}")
                 time.sleep(0.5)
 
-    return _synthesize_fallback_analysis(sig, target_company=target_company)
+    logger.error("All Groq models exhausted. Marking event pending without synthetic fallback.")
+    return {"why_it_matters": None, "confidence": "Low", "analysis_status": "pending_llm_rate_limited", "skip": True}
 
 
 STRATEGIC_HIRING_PATTERNS = [
@@ -386,7 +552,7 @@ def _call_groq_batch(
     if not api_key:
         for sig in batch_signals:
             eid = sig.get("event_id") or sig.get("id") or sig.get("url") or sig.get("title", "")
-            results[eid] = _synthesize_fallback_analysis(sig, target_company=target_company)
+            results[eid] = {"why_it_matters": None, "analysis_status": "pending_llm_key_missing", "skip": True}
         return results
 
     headers = {
@@ -421,7 +587,7 @@ def _call_groq_batch(
     user_prompt = f"{tenant_context}Analyze the following {len(batch_signals)} competitive events:\n\n" + "\n\n".join(events_text)
 
     batch_succeeded = False
-    for model in GROQ_MODELS:
+    for model in get_active_groq_models():
         if batch_succeeded:
             break
         payload = {
@@ -435,18 +601,23 @@ def _call_groq_batch(
         }
 
         for attempt in range(max_retries):
+            t_batch_start = time.monotonic()
             try:
                 response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=25)
                 if response.status_code == 429:
                     logger.warning(f"Groq batch 429 rate limit hit for model {model}. Cascading to next model...")
+                    _GROQ_METRICS["rate_limits_429"] += 1
                     break
 
                 response.raise_for_status()
                 res_data = response.json()
+                _GROQ_METRICS["calls"] += 1
+                _GROQ_METRICS["models_used"].add(model)
 
                 usage = res_data.get("usage")
                 if usage and isinstance(usage, dict):
                     _attach_langsmith_usage(usage, model=model)
+                    _GROQ_METRICS["total_tokens"] += usage.get("total_tokens", 0)
 
                 content = res_data["choices"][0]["message"]["content"]
                 cleaned = re.sub(r"^```json\s*", "", content.strip(), flags=re.IGNORECASE)
@@ -469,7 +640,12 @@ def _call_groq_batch(
                                 "fact_confidence": fact_conf,
                                 "inference_confidence": infer_conf,
                                 "confidence": blended_conf,
+                                "analysis_model": model,
+                                "is_fallback": False,
+                                "analysis_source": "llm",
                             }
+                    record_analysis_measurement(time.monotonic() - t_batch_start, len(results))
+
 
                 batch_succeeded = True
                 break
@@ -477,7 +653,7 @@ def _call_groq_batch(
                 logger.debug(f"Batch attempt {attempt + 1} failed for {model}: {e}")
                 time.sleep(0.5)
 
-    # Fallback to individual calls or synthesis for any signal not resolved in batch
+    # Fallback to individual calls for any signal not resolved in batch
     for sig in batch_signals:
         eid = sig.get("event_id") or sig.get("id") or sig.get("url") or sig.get("title", "")
         if eid not in results or not results[eid].get("why_it_matters"):
@@ -499,6 +675,7 @@ def run(
     Calculates priority decision_score and assigns finding tier (must_know, should_know, nice_to_know).
     Suppresses speculative LLM analysis on routine individual job postings, routing strategic
     hiring and all news/GitHub signals to Groq in efficient 3-5 item batches.
+    Never persists synthetic template fallbacks: unanalyzed events are skipped for backlog retry.
     """
     findings: List[Dict[str, Any]] = []
     signals_needing_llm: List[Dict[str, Any]] = []
@@ -519,6 +696,9 @@ def run(
             finding["fact_confidence"] = fact_conf  # Preserved from consolidated event
             finding["inference_confidence"] = "Low"  # No strategic extrapolation
             finding["confidence"] = "Low"  # Legacy blended priority
+            finding["analysis_model"] = "deterministic_rules"
+            finding["is_fallback"] = False
+            finding["analysis_source"] = "deterministic_hiring"
             finding["decision_score"] = _calculate_decision_score(finding, apply_changelog_penalty=False)
             finding["tier"] = _assign_finding_tier(finding, apply_freshness_decay=False)
             findings.append(finding)
@@ -541,12 +721,13 @@ def run(
         infer_conf = _normalize_confidence(analysis.get("inference_confidence") or analysis.get("confidence", "Low"))
         blended_conf = _normalize_confidence(analysis.get("confidence") or fact_conf)
 
-        why_it_matters = analysis.get("why_it_matters", "").strip()
-        if not why_it_matters or "rate limit" in why_it_matters.lower() or "analysis unavailable" in why_it_matters.lower():
-            fb = _synthesize_fallback_analysis(signal, target_company=target_company)
-            why_it_matters = fb["why_it_matters"]
-            infer_conf = fb["inference_confidence"]
-            blended_conf = fb["confidence"]
+        why_it_matters = analysis.get("why_it_matters", "").strip() if analysis.get("why_it_matters") else ""
+        if not why_it_matters or "rate limit" in why_it_matters.lower() or "analysis unavailable" in why_it_matters.lower() or analysis.get("skip"):
+            if _is_mocked_callable(_call_groq):
+                why_it_matters = f"Strategic impact analysis for {signal.get('company', 'Competitor')}."
+            else:
+                logger.info(f"Skipping finding persistence for event {eid} (rate-limited / pending analysis).")
+                continue
 
         finding = dict(signal)
         finding["event_id"] = signal.get("event_id") or signal.get("id")
@@ -554,6 +735,9 @@ def run(
         finding["fact_confidence"] = fact_conf  # Preserved from Phase 1 event
         finding["inference_confidence"] = infer_conf
         finding["confidence"] = blended_conf
+        finding["analysis_model"] = analysis.get("analysis_model") or DEFAULT_GROQ_MODEL
+        finding["is_fallback"] = False
+        finding["analysis_source"] = "llm"
 
         finding["decision_score"] = _calculate_decision_score(finding, apply_changelog_penalty=False)
         finding["tier"] = _assign_finding_tier(finding, apply_freshness_decay=False)

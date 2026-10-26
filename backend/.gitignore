@@ -1,6 +1,8 @@
 # Secrets & Environment Variables
 .env
 *.env
+.env*
+.env.readonly
 !.env.example
 .env.*.local
 
@@ -11,6 +13,7 @@ __pycache__/
 venv/
 .venv/
 env/
+.env.example
 *.sqlite
 *.sqlite3
 
@@ -24,3 +27,5 @@ data/*.db
 published_briefs/*.json
 published_briefs/*.md
 !published_briefs/.gitkeep
+!published_briefs/trends_clusters.json
+!published_briefs/brief.md

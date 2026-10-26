@@ -1,0 +1,101 @@
+name: Security Checks & Pre-Merge Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-and-isolation-gate:
+    name: Secret Scanning & Database Isolation Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "backend/requirements.txt"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Run Pre-Merge Security & Isolation Check CLI
+        run: |
+          python backend/scripts/security_check.py
+
+  dependency-and-static-security-scan:
+    name: Dependency Audit & Static Security Analysis (Bandit / pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install audit and security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit bandit
+
+      - name: Scan dependencies for known CVEs (pip-audit)
+        run: |
+          pip-audit -r backend/requirements.txt
+
+      - name: Run Static Security Analysis (Bandit)
+        run: |
+          bandit -r backend/src -ll -s B101,B104
+
+  unit-test-suite-regression-gate:
+    name: Full Isolated Unit Test Suite Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "backend/requirements.txt"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest
+
+      - name: Run Full Isolated Unit Test Suite (Excluding Live Integration)
+        env:
+          PYTHONPATH: backend
+          PRISMIQ_ENV: "test"
+          ALLOW_LIVE_WRITE: "false"
+        run: |
+          pytest backend/tests/ -m "not integration"

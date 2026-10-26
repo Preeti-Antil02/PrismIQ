@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
 
 # Ensure backend root is on sys.path
@@ -11,7 +11,7 @@ backend_path = Path(__file__).resolve().parent.parent
 if str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
 
-from src import workflow, monitoring_agent, pricing_extractor, report_agent, storage
+from src import workflow, monitoring_agent, pricing_extractor, report_agent, storage, delivery_agent
 
 
 def test_langgraph_workflow_graph_compilation():
@@ -203,4 +203,101 @@ def test_progressive_pipeline_per_company_persistence():
         assert progress["completed_companies"] == 2
         assert "CompanyAlpha" in progress["completed_company_names"]
         assert "CompanyBeta" in progress["completed_company_names"]
+
+
+def test_canonical_company_keys_isolation():
+    """
+    Verify canonical company keys isolation (A1.h):
+    No substring or parenthetical alias merges distinct entities (Amazon vs Amazon (India)).
+    """
+    # 1. Amazon vs Amazon (India)
+    assert not workflow.is_event_tracked_by_tenant("Amazon (India)", ["Amazon"])
+    assert not workflow.is_event_tracked_by_tenant("Amazon", ["Amazon (India)"])
+
+    # 2. Google vs Google Cloud
+    assert not workflow.is_event_tracked_by_tenant("Google Cloud", ["Google"])
+    assert not workflow.is_event_tracked_by_tenant("Google", ["Google Cloud"])
+
+    # 3. Microsoft vs Microsoft Japan
+    assert not workflow.is_event_tracked_by_tenant("Microsoft Japan", ["Microsoft"])
+
+    # 4. Valid canonical matches (corporate suffix stripping only)
+    assert workflow.is_event_tracked_by_tenant("Amazon, Inc.", ["Amazon"])
+    assert workflow.is_event_tracked_by_tenant("Stripe LLC", ["Stripe"])
+    assert workflow.is_event_tracked_by_tenant("Cloudflare Corp.", ["Cloudflare"])
+
+
+def test_dry_run_zero_writes_and_delivery_simulation(monkeypatch):
+    """
+    Verify DRY_RUN isolation (A1.b, A1.c):
+    DRY_RUN performs zero DB writes across all save_* functions and zero Slack posts in delivery.
+    """
+    monkeypatch.setenv("DRY_RUN", "true")
+    assert storage.is_dry_run()
+    assert not storage.is_live_write_permitted()
+
+    # 1. Delivery Agent: zero HTTP requests
+    with patch("requests.post") as mock_post:
+        res = delivery_agent.post_slack_digest("Test digest", webhook_url="https://hooks.slack.com/dummy")
+        assert res["status"] == "dry_run_simulated"
+        mock_post.assert_not_called()
+
+    # 2. Storage write methods perform zero database writes
+    with patch("src.storage.get_db_cursor") as mock_cur:
+        # None of these should invoke get_db_cursor for DB writes in dry-run
+        storage.save_findings([{"company": "Vercel", "why_it_matters": "test"}], tenant_id="test_tenant")
+        storage.save_noise_decisions([{"id": "sig_1", "action": "keep"}])
+        storage.save_radar_evaluations([{"topic": "ai", "status": "active"}], tenant_id="test_tenant")
+        mock_cur.assert_not_called()
+
+
+def test_owner_fatal_failure_fails_red():
+    """
+    Verify owner failure reporting (A1.e):
+    Pipeline fails RED (status='failed', is_owner_fatal=True) at the end if the owner's brief or delivery failed.
+    """
+    owner_id = workflow.resolve_owner_tenant_id()
+    mock_final_state = {
+        "report_content": "",  # Empty owner report
+        "saved_brief_path": "",
+        "delivery_status": {"status": "failed", "error": "Webhook rejected"},
+        "tenant_results": {
+            owner_id: {
+                "report_content": "",
+                "delivery_status": {"status": "failed", "error": "Webhook rejected"},
+            }
+        },
+        "pipeline_errors": ["Owner delivery failed: Webhook rejected"],
+        "phase_timing": {},
+    }
+
+    mock_app = MagicMock()
+    mock_app.invoke.return_value = mock_final_state
+
+    with patch("src.workflow.create_pipeline_graph", return_value=mock_app), \
+         patch("src.storage.get_active_tenants", return_value=[{"tenant_id": owner_id, "target_company": "Vercel", "competitors": ["Netlify"]}]), \
+         patch("src.storage.get_all_tracked_companies", return_value=["Vercel", "Netlify"]):
+        res = workflow.run_pipeline_with_status()
+        assert res["status"] == "failed"
+        assert res["is_owner_fatal"] is True
+        assert len(res["errors"]) > 0
+
+
+def test_groq_cascade_exhaustion_in_analysis_node_fails_red(monkeypatch):
+    """
+    Verify startup availability check (Item 1):
+    If all Groq models in the cascade fail the availability probe, analysis_node raises RuntimeError,
+    failing the pipeline RED.
+    """
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
+    state = {
+        "tenants": [{"tenant_id": "t1", "target_company": "CompA", "competitors": []}],
+        "primary_findings": [],
+    }
+    with patch("src.analysis_agent.check_groq_model_availability", return_value=False):
+        import pytest
+        with pytest.raises(RuntimeError, match="All Groq cascade models.*failed availability probe"):
+            workflow.analysis_node(state)
+
+
 

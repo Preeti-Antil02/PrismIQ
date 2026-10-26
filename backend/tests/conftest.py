@@ -15,3 +15,15 @@ def enforce_test_isolation_guard():
     yield
     if prod_url:
         os.environ["SUPABASE_DB_URL"] = prod_url
+
+
+@pytest.fixture(autouse=True)
+def isolate_test_data_dir(tmp_path, monkeypatch):
+    """
+    Ensure all tests run with isolated temporary DATA_DIR to prevent
+    polluting git-tracked published_briefs or backend/data.
+    """
+    test_dir = tmp_path / "test_isolated_data"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("DATA_DIR", str(test_dir))
+

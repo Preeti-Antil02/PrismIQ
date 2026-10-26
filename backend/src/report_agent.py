@@ -481,6 +481,9 @@ def run(
             elif st == "recovered":
                 att = hdata.get("attempts", 2)
                 status_notes.append(f"- 🔄 **Source Recovery**: `{src_name}` source recovered after {att} attempts.")
+            elif st == "pending":
+                msg = hdata.get("message", f"{src_name} pending analysis")
+                status_notes.append(f"- ⏳ **Pending Backlog**: {msg}.")
 
     if supervisor_decisions:
         for src_name, dec in supervisor_decisions.items():

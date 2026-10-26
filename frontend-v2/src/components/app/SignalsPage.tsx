@@ -152,7 +152,9 @@ export function SignalsPage() {
       if (selectedSource !== "ALL" && (sig.source || "").toLowerCase() !== selectedSource.toLowerCase()) {
         return false;
       }
-      if (selectedCompany !== "ALL" && sig.company_name.toLowerCase() !== selectedCompany.toLowerCase()) {
+      // Company match
+      if (selectedCompany !== "ALL" && (sig.company_name || "").toLowerCase() !== selectedCompany.toLowerCase()) {
+
         return false;
       }
       if (selectedConfidence !== "ALL") {
@@ -161,7 +163,7 @@ export function SignalsPage() {
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const text = `${sig.title} ${sig.raw_excerpt || ""} ${sig.why_it_matters || ""} ${sig.company_name}`.toLowerCase();
+        const text = `${sig.title || ""} ${sig.raw_excerpt || ""} ${sig.why_it_matters || ""} ${sig.company_name || ""}`.toLowerCase();
         if (!text.includes(q)) return false;
       }
       return true;
@@ -211,6 +213,7 @@ export function SignalsPage() {
           <span>Refresh Signals</span>
         </PrismButton>
       </div>
+
 
       {loading ? (
         <PrismLoadingSkeleton count={4} />
@@ -688,7 +691,7 @@ export function SignalsPage() {
                         <div className="flex items-center gap-2">
                           <PrismCompanyBadge
                             name={sig.company_name}
-                            isTarget={sig.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                            isTarget={(sig.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                             size="sm"
                           />
                           <span className="app-badge-gray flex items-center gap-1 text-[11px]">

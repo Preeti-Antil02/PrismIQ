@@ -2,12 +2,15 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env across possible run directories
+# Load environment variables from .env and .env.readonly across possible run directories
 _backend_root = Path(__file__).resolve().parent.parent
 _candidate_envs = [
     Path.cwd() / ".env",
+    Path.cwd() / ".env.readonly",
     Path.cwd() / "backend" / ".env",
+    Path.cwd() / "backend" / ".env.readonly",
     _backend_root / ".env",
+    _backend_root / ".env.readonly",
 ]
 for _env_path in _candidate_envs:
     if _env_path.exists():

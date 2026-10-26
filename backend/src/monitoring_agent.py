@@ -783,8 +783,14 @@ def _query_arxiv_with_resilience(
     """
     last_error: Optional[str] = None
     for attempt in range(max_retries):
+        t_http = time.monotonic()
         try:
             response = requests.get(url, headers=headers, timeout=timeout)
+            dur_http = time.monotonic() - t_http
+            logger.info(
+                f"[TIMING] arXiv HTTP call attempt {attempt + 1}/{max_retries} for '{context_label}': "
+                f"status={response.status_code}, duration={dur_http:.2f}s"
+            )
             if response.status_code == 429:
                 retry_header = response.headers.get("retry-after", "")
                 try:
@@ -817,7 +823,12 @@ def _query_arxiv_with_resilience(
             return response.text
 
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            dur_http = time.monotonic() - t_http
             last_error = f"{type(e).__name__}: {e}"
+            logger.info(
+                f"[TIMING] arXiv HTTP call attempt {attempt + 1}/{max_retries} for '{context_label}' "
+                f"failed after {dur_http:.2f}s: {last_error}"
+            )
             if attempt < max_retries - 1:
                 backoff = 3.0 * (attempt + 1)
                 logger.warning(
@@ -831,8 +842,10 @@ def _query_arxiv_with_resilience(
                 )
                 return None
         except Exception as e:
-            logger.error(f"Unexpected error querying arXiv API for '{context_label}': {e}")
+            dur_http = time.monotonic() - t_http
+            logger.error(f"[TIMING] Unexpected error querying arXiv API for '{context_label}' after {dur_http:.2f}s: {e}")
             return None
+
 
     if last_error:
         logger.error(f"arXiv query exhausted {max_retries} attempts for '{context_label}': {last_error}")
@@ -1013,11 +1026,15 @@ def _fetch_blog_feed(
     if seen_urls is not None:
         seen.update(_normalize_canonical_url(u) for u in list(seen) if u)
 
+    t_http = time.monotonic()
     try:
         response = requests.get(feed_url, headers=headers, timeout=10)
+        dur_http = time.monotonic() - t_http
+        logger.info(f"[TIMING] HTTP blog feed call for '{company}' from '{feed_url}': status={response.status_code}, duration={dur_http:.2f}s")
         if response.status_code != 200:
             logger.warning(f"Blog feed returned status {response.status_code} for URL '{feed_url}'")
             return []
+
 
         root = ET.fromstring(response.text)
         signals: List[Dict[str, Any]] = []
@@ -1362,9 +1379,11 @@ def fetch_topic_research_items(
     """
     Ingest domain-scoped research items across configured topics (arXiv & industry engineering feeds).
     Applies canonical URL deduplication globally and persists shared research items.
+    Tracks total and per-topic execution with monotonic timing logs.
     """
     from . import storage
 
+    t_all = time.monotonic()
     if topics is None:
         topics = storage.get_all_active_research_topics()
 
@@ -1378,6 +1397,7 @@ def fetch_topic_research_items(
     aggregated_items: Dict[str, Dict[str, Any]] = {}
 
     for t in topics:
+        t_topic = time.monotonic()
         label = t.get("topic_label", "").strip()
         if not label:
             continue
@@ -1405,6 +1425,9 @@ def fetch_topic_research_items(
                 aggregated_items[can] = it
                 global_seen_urls.add(can)
 
+        dur_top = time.monotonic() - t_topic
+        logger.info(f"[TIMING] Topic '{label}': {dur_top:.2f}s (arXiv items: {len(arxiv_items)}, industry items: {len(industry_items)})")
+
     # Strict fail-closed validation: ensure no placeholder or malformed URLs enter research_items
     final_items = [
         it for it in aggregated_items.values()
@@ -1414,7 +1437,10 @@ def fetch_topic_research_items(
         storage.save_research_items(final_items)
         logger.info(f"Field Research Radar: Ingested {len(final_items)} shared research items across {len(topics)} topics.")
 
+    dur_all = time.monotonic() - t_all
+    logger.info(f"[TIMING] fetch_topic_research_items total: {dur_all:.2f}s across {len(topics)} topics ({len(final_items)} items ingested)")
     return final_items
+
 
 
 def fetch_source_with_retry(

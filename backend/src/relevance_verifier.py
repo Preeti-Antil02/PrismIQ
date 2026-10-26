@@ -19,7 +19,45 @@ Design Principles:
 """
 
 import re
+import time
+import logging
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+logger = logging.getLogger(__name__)
+
+# Global in-memory cache for bulk-preloaded entity anchors (eliminates DB network roundtrips)
+_ANCHOR_CACHE: Dict[str, Dict[str, Any]] = {}
+_DB_METRICS: Dict[str, Any] = {
+    "db_lookups": 0,
+    "db_lookup_duration_s": 0.0,
+    "cache_hits": 0,
+}
+
+
+def get_relevance_verifier_metrics() -> Dict[str, Any]:
+    """Return metrics for database lookups and cache hits during relevance verification."""
+    return dict(_DB_METRICS)
+
+
+def reset_relevance_verifier_metrics() -> None:
+    """Reset database lookup counters."""
+    _DB_METRICS["db_lookups"] = 0
+    _DB_METRICS["db_lookup_duration_s"] = 0.0
+    _DB_METRICS["cache_hits"] = 0
+
+
+def preload_entity_anchors(anchors: Optional[Dict[str, Dict[str, Any]]] = None) -> None:
+    """Preload entity anchors into module-level memory cache to eliminate per-signal DB lookups."""
+    global _ANCHOR_CACHE
+    if anchors is not None:
+        _ANCHOR_CACHE = dict(anchors)
+    else:
+        try:
+            from . import storage
+            _ANCHOR_CACHE = storage.get_all_entity_anchors()
+        except Exception as e:
+            logger.debug(f"Preloading entity anchors skipped or failed: {e}")
+            _ANCHOR_CACHE = {}
 
 
 # Canonical Company Profiles Registry
@@ -456,6 +494,7 @@ def _init_dictionary_corpora() -> None:
     global _WORDNET_AVAILABLE, _NLTK_WORDS_AVAILABLE, _WORDNET_CORPUS, _NLTK_WORDS_CORPUS
     if _WORDNET_AVAILABLE is not None:
         return
+    t0 = time.monotonic()
     try:
         from nltk.corpus import wordnet
         _ = wordnet.synsets("test")
@@ -485,6 +524,9 @@ def _init_dictionary_corpora() -> None:
             _NLTK_WORDS_AVAILABLE = True
         except Exception:
             _NLTK_WORDS_AVAILABLE = False
+    dur = time.monotonic() - t0
+    logger.info(f"[TIMING] NLTK corpora init/download took {dur:.3f}s (WordNet: {_WORDNET_AVAILABLE}, Words: {_NLTK_WORDS_AVAILABLE})")
+
 
 
 def is_dictionary_word(name: str) -> bool:
@@ -570,15 +612,30 @@ def verify_news_relevance(
 
     comp_clean = comp.strip()
 
-    # Look up primary_domain from storage if not already attached to signal
+    # Look up primary_domain from in-memory cache or storage if not already attached to signal
     if not primary_domain and comp_clean:
-        try:
-            from . import storage
-            anchor = storage.get_entity_anchor(comp_clean)
+        comp_key = comp_clean.lower()
+        if comp_key in _ANCHOR_CACHE:
+            _DB_METRICS["cache_hits"] += 1
+            anchor = _ANCHOR_CACHE[comp_key]
             if anchor and anchor.get("primary_domain"):
                 primary_domain = anchor["primary_domain"]
-        except Exception:
-            pass
+        else:
+            t_db0 = time.monotonic()
+            try:
+                from . import storage
+                anchor = storage.get_entity_anchor(comp_clean)
+                dur_db = time.monotonic() - t_db0
+                _DB_METRICS["db_lookups"] += 1
+                _DB_METRICS["db_lookup_duration_s"] += dur_db
+                if anchor:
+                    _ANCHOR_CACHE[comp_key] = anchor
+                    if anchor.get("primary_domain"):
+                        primary_domain = anchor["primary_domain"]
+            except Exception:
+                dur_db = time.monotonic() - t_db0
+                _DB_METRICS["db_lookups"] += 1
+                _DB_METRICS["db_lookup_duration_s"] += dur_db
 
     full_text = f"{t} {e} {u} {source_url} {source_name}".lower()
 

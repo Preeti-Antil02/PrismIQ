@@ -26,8 +26,15 @@ import {
   Tag,
   ArrowUpRight,
   Award,
+  BarChart2,
+  PieChart,
 } from "lucide-react";
 import { useWorkspace, useAppEvidence } from "./AppShell";
+import {
+  PrismDonutChart,
+  PrismHorizontalBarChart,
+  PrismStackedBarChart,
+} from "@/components/ui/VisualCharts";
 import {
   PrismCard,
   PrismButton,
@@ -144,23 +151,105 @@ export function CompetitorsPage() {
   }, [companies, signals, events, findings, radarEvals]);
 
   const targetSummary = React.useMemo(() => {
-    return summaries.find((s) => s.is_target) || summaries.find((s) => s.company_name.toLowerCase() === targetCompany.toLowerCase());
+    return (
+      summaries.find((s) => s.is_target) ||
+      summaries.find(
+        (s) =>
+          (s.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()
+      )
+    );
   }, [summaries, targetCompany]);
 
   const competitorSummaries = React.useMemo(() => {
-    return summaries.filter((s) => !s.is_target && s.company_name.toLowerCase() !== targetCompany.toLowerCase());
+    return summaries.filter(
+      (s) =>
+        !s.is_target &&
+        (s.company_name || "").toLowerCase() !== (targetCompany || "").toLowerCase()
+    );
   }, [summaries, targetCompany]);
 
   const filteredCompetitors = React.useMemo(() => {
     if (!searchQuery.trim()) return competitorSummaries;
     const q = searchQuery.toLowerCase();
-    return competitorSummaries.filter((c) => c.company_name.toLowerCase().includes(q));
+    return competitorSummaries.filter((c) =>
+      (c.company_name || "").toLowerCase().includes(q)
+    );
   }, [competitorSummaries, searchQuery]);
 
   const filteredProfileChanges = React.useMemo(() => {
     if (dimensionFilter === "ALL") return profileChanges;
     return profileChanges.filter((ch) => ch.dimension.toLowerCase() === dimensionFilter.toLowerCase());
   }, [profileChanges, dimensionFilter]);
+
+  // Competitor Visual Benchmark Aggregations (from actual summaries, signals, events)
+  const competitorActivityBars = React.useMemo(() => {
+    return [...summaries]
+      .filter((s) => s.total_signals > 0 || s.total_events > 0)
+      .sort((a, b) => b.total_signals + b.total_events * 2 - (a.total_signals + a.total_events * 2))
+      .slice(0, 8)
+      .map((s) => ({
+        label: s.company_name,
+        value: s.total_signals + s.total_events,
+        badge: s.is_target ? "Target" : undefined,
+        secondaryText: `${s.total_events} events · ${s.total_signals} signals`,
+        color: s.is_target ? "#6e57dc" : "#0284c7",
+      }));
+  }, [summaries]);
+
+  const competitorSourceStackedRows = React.useMemo(() => {
+    return [...summaries]
+      .filter((s) => s.total_signals > 0)
+      .sort((a, b) => b.total_signals - a.total_signals)
+      .slice(0, 6)
+      .map((s) => ({
+        label: s.company_name,
+        isTarget: s.is_target,
+        totalLabel: `${s.total_signals} signals`,
+        segments: [
+          { label: "News", value: s.signals_by_source?.news || 0, color: "#0ea5e9" },
+          { label: "Research", value: s.signals_by_source?.research || 0, color: "#8b5cf6" },
+          { label: "GitHub", value: s.signals_by_source?.github || 0, color: "#10b981" },
+          { label: "Hiring", value: s.signals_by_source?.jobs || 0, color: "#f59e0b" },
+          { label: "Pricing", value: s.signals_by_source?.pricing || 0, color: "#ec4899" },
+        ],
+      }));
+  }, [summaries]);
+
+  const landscapeTierDistribution = React.useMemo(() => {
+    let must = 0;
+    let should = 0;
+    let nice = 0;
+    events.forEach((e) => {
+      const t = (e.tier || "").toLowerCase();
+      if (t.includes("must")) must++;
+      else if (t.includes("should")) should++;
+      else nice++;
+    });
+    return [
+      { label: "Must-Know", value: must, color: "#f43f5e" },
+      { label: "Should-Know", value: should, color: "#f59e0b" },
+      { label: "Nice-to-Know", value: nice, color: "#94a3b8" },
+    ].filter((d) => d.value > 0);
+  }, [events]);
+
+  const landscapeSourceDistribution = React.useMemo(() => {
+    const counts: Record<string, number> = { news: 0, research: 0, github: 0, jobs: 0, pricing: 0 };
+    signals.forEach((s) => {
+      const src = (s.source || "").toLowerCase();
+      if (src.includes("news")) counts.news++;
+      else if (src.includes("research") || src.includes("arxiv")) counts.research++;
+      else if (src.includes("git")) counts.github++;
+      else if (src.includes("job") || src.includes("career")) counts.jobs++;
+      else if (src.includes("pric")) counts.pricing++;
+    });
+    return [
+      { label: "News & Media", value: counts.news, color: "#0ea5e9" },
+      { label: "Research & Patents", value: counts.research, color: "#8b5cf6" },
+      { label: "GitHub Repositories", value: counts.github, color: "#10b981" },
+      { label: "Hiring & Headcount", value: counts.jobs, color: "#f59e0b" },
+      { label: "Pricing & Packaging", value: counts.pricing, color: "#ec4899" },
+    ].filter((d) => d.value > 0);
+  }, [signals]);
 
   return (
     <div className="space-y-10 pb-16">
@@ -279,6 +368,120 @@ export function CompetitorsPage() {
               </div>
             </div>
           )}
+
+          {/* Competitive Intelligence Visual Benchmark */}
+          <div className="space-y-4">
+            <PrismSectionHeader
+              title="Competitive Intelligence Visual Benchmark"
+              subtitle="Comparative graphical representation of rival activity volume, source footprints, and threat severity."
+              eyebrow="Rival Visual Analytics"
+              action={
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#70717a]">
+                  <BarChart2 className="w-3.5 h-3.5 text-[#6e57dc]" />
+                  <span>Market Footprint Comparison</span>
+                </div>
+              }
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Chart 1: Activity Volume Benchmark */}
+              <PrismCard className="p-5">
+                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#17171b]">Overall Market Activity Benchmark</h3>
+                    <p className="text-[11px] text-[#70717a] mt-0.5">Ranked by combined verified signals and corroborated events</p>
+                  </div>
+                  <span className="app-pill bg-purple-50 text-[#6e57dc] text-[10px] font-bold">
+                    Top Active Competitors
+                  </span>
+                </div>
+
+                {competitorActivityBars.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-[#9ca3af]">No competitor activity detected</div>
+                ) : (
+                  <PrismHorizontalBarChart items={competitorActivityBars} />
+                )}
+              </PrismCard>
+
+              {/* Chart 2: Competitor Multi-Channel Footprint */}
+              <PrismCard className="p-5">
+                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#17171b]">Multi-Channel Intelligence Footprint</h3>
+                    <p className="text-[11px] text-[#70717a] mt-0.5">Channel mix: News, Research, GitHub, Hiring, Pricing</p>
+                  </div>
+                  <span className="app-pill bg-blue-50 text-blue-700 text-[10px] font-bold">
+                    Signal Channel Mix
+                  </span>
+                </div>
+
+                {competitorSourceStackedRows.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-[#9ca3af]">No multi-channel signals available</div>
+                ) : (
+                  <PrismStackedBarChart
+                    rows={competitorSourceStackedRows}
+                    legend={[
+                      { label: "News", color: "#0ea5e9" },
+                      { label: "Research", color: "#8b5cf6" },
+                      { label: "GitHub", color: "#10b981" },
+                      { label: "Hiring", color: "#f59e0b" },
+                      { label: "Pricing", color: "#ec4899" },
+                    ]}
+                  />
+                )}
+              </PrismCard>
+
+              {/* Chart 3: Landscape Event Severity Donut */}
+              <PrismCard className="p-5 flex flex-col justify-between">
+                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#17171b]">Landscape Event Severity Split</h3>
+                    <p className="text-[11px] text-[#70717a] mt-0.5">Critical Must-Know shifts vs Tactical & Operational developments</p>
+                  </div>
+                  <span className="app-pill bg-rose-50 text-rose-700 text-[10px] font-bold">
+                    {events.length} Events Total
+                  </span>
+                </div>
+
+                {landscapeTierDistribution.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-[#9ca3af]">No event severity data</div>
+                ) : (
+                  <PrismDonutChart
+                    data={landscapeTierDistribution}
+                    centerLabel="Events"
+                    centerValue={events.length}
+                    size={180}
+                    thickness={22}
+                  />
+                )}
+              </PrismCard>
+
+              {/* Chart 4: Landscape Multi-Source Signal Donut */}
+              <PrismCard className="p-5 flex flex-col justify-between">
+                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#17171b]">Channel Source Share</h3>
+                    <p className="text-[11px] text-[#70717a] mt-0.5">Distribution across external evidence channels</p>
+                  </div>
+                  <span className="app-pill bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                    {signals.length} Signals Total
+                  </span>
+                </div>
+
+                {landscapeSourceDistribution.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-[#9ca3af]">No signal source data</div>
+                ) : (
+                  <PrismDonutChart
+                    data={landscapeSourceDistribution}
+                    centerLabel="Signals"
+                    centerValue={signals.length}
+                    size={180}
+                    thickness={22}
+                  />
+                )}
+              </PrismCard>
+            </div>
+          </div>
 
           {/* 2. Tracked Competitors Section */}
           <div className="space-y-4">

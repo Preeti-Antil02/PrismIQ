@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock
 from src import discovery_agent
 
 
+@pytest.mark.integration
 def test_meesho_discovery_pipeline_counts_and_exclusion():
     """Verify that Meesho returns complete valid competitor candidates without false positive title fragments."""
     # Run discovery on Meesho with live/grounded retrieval
@@ -31,6 +32,7 @@ def test_meesho_discovery_pipeline_counts_and_exclusion():
         assert c.get("rationale"), f"Candidate {c['name']} missing rationale"
 
 
+@pytest.mark.integration
 def test_flipkart_discovery_pipeline_candidates():
     """Verify Flipkart discovers real e-commerce competitors and excludes itself."""
     res = discovery_agent.run_with_meta("Flipkart")
@@ -42,6 +44,7 @@ def test_flipkart_discovery_pipeline_candidates():
     assert len(candidates) >= 4, f"Expected >= 4 candidates, got {len(candidates)}: {names}"
 
 
+@pytest.mark.integration
 def test_openai_discovery_pipeline_candidates():
     """Verify OpenAI discovers AI competitors and excludes itself."""
     res = discovery_agent.run_with_meta("OpenAI")

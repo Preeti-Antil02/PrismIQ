@@ -18,6 +18,8 @@ services:
         value: openai/gpt-oss-120b
       - key: SUPABASE_DB_URL
         sync: false
+      - key: SUPABASE_READONLY_DB_URL
+        sync: false
       - key: ALLOW_LIVE_WRITE
         value: "true"
       - key: OWNER_TENANT_ID

@@ -22,6 +22,7 @@ env/
 *.env
 !.env.example
 backend/.env
+backend/.env.readonly
 backend/.env.*.local
 frontend/.env.local
 frontend-v2/.env.local
@@ -36,7 +37,15 @@ backend/published_briefs/*.json
 backend/published_briefs/*.md
 !backend/data/.gitkeep
 !backend/published_briefs/.gitkeep
+!backend/published_briefs/trends_clusters.json
+!backend/published_briefs/brief.md
 data/*.json
 # Scratch / Local Verification Artifacts
 scratch/
-docs/
+scratch/evidence/
+*.patch
+*.diff
+docs/*
+!docs/OWNER_RUNBOOK.md
+!docs/trend_evolution/
+!docs/trend_evolution/**

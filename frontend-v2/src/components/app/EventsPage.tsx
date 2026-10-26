@@ -188,7 +188,8 @@ export function EventsPage() {
   // Client-side filtering for granular archive
   const filteredEvents = React.useMemo(() => {
     return events.filter((ev) => {
-      if (selectedCompany !== "ALL" && ev.company_name.toLowerCase() !== selectedCompany.toLowerCase()) {
+      // Company match
+      if (selectedCompany !== "ALL" && (ev.company_name || "").toLowerCase() !== selectedCompany.toLowerCase()) {
         return false;
       }
       if (selectedTier !== "ALL") {
@@ -201,7 +202,7 @@ export function EventsPage() {
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const text = `${ev.title} ${ev.event_summary || ""} ${ev.why_it_matters || ""} ${ev.company_name}`.toLowerCase();
+        const text = `${ev.title || ""} ${ev.event_summary || ""} ${ev.why_it_matters || ""} ${ev.company_name || ""}`.toLowerCase();
         if (!text.includes(q)) return false;
       }
       return true;
@@ -657,7 +658,7 @@ export function EventsPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <PrismCompanyBadge
                           name={ev.company_name}
-                          isTarget={ev.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                          isTarget={(ev.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
                           size="sm"
                         />
                         <PrismTierBadge tier={ev.tier} />
