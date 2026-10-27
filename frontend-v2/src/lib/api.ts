@@ -366,6 +366,9 @@ export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
+  const baseline = getTenantBaselineData(tenantId);
+  const targetComp = baseline.targetCompany.toLowerCase();
+
   try {
     const res = await fetch(url.toString(), {
       headers: {
@@ -378,14 +381,21 @@ export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.briefs) && data.briefs.length > 0) {
-        return data.briefs;
+        const relevant = data.briefs.filter((b: BriefEntry) => {
+          const txt = `${b.title || ""} ${b.preview || ""} ${b.filename || ""}`.toLowerCase();
+          return (
+            txt.includes(targetComp) ||
+            baseline.competitors.some((c) => txt.includes(c.toLowerCase()))
+          );
+        });
+        if (relevant.length > 0) return relevant;
       }
     }
   } catch {
     // Fallback
   }
 
-  return getTenantBaselineData(tenantId).briefs;
+  return baseline.briefs;
 }
 
 export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> {
@@ -394,6 +404,9 @@ export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> 
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
+  const baseline = getTenantBaselineData(tenantId);
+  const targetComp = baseline.targetCompany.toLowerCase();
+
   try {
     const res = await fetch(url.toString(), {
       headers: {
@@ -405,15 +418,21 @@ export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> 
 
     if (res.ok) {
       const data = await res.json();
-      if (data && data.content && data.content.length > 100) {
-        return data;
+      if (data && typeof data.content === "string" && data.content.length > 100) {
+        const lower = data.content.toLowerCase();
+        const isMatch =
+          lower.includes(targetComp) ||
+          baseline.competitors.some((c) => lower.includes(c.toLowerCase()));
+        if (isMatch) {
+          return data;
+        }
       }
     }
   } catch {
     // Fallback
   }
 
-  return getTenantBaselineData(tenantId).latestBrief;
+  return baseline.latestBrief;
 }
 
 export async function fetchBriefById(briefId: string, tenantId?: string): Promise<BriefDetail> {
@@ -422,6 +441,14 @@ export async function fetchBriefById(briefId: string, tenantId?: string): Promis
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
+  const baseline = getTenantBaselineData(tenantId);
+  const targetComp = baseline.targetCompany.toLowerCase();
+
+  // If the briefId is known baseline ID, return immediately
+  if (briefId === baseline.latestBrief.id) {
+    return baseline.latestBrief;
+  }
+
   try {
     const res = await fetch(url.toString(), {
       headers: {
@@ -433,16 +460,23 @@ export async function fetchBriefById(briefId: string, tenantId?: string): Promis
 
     if (res.ok) {
       const data = await res.json();
-      if (data && data.content && data.content.length > 100) {
-        return data;
+      if (data && typeof data.content === "string" && data.content.length > 100) {
+        const lower = data.content.toLowerCase();
+        const isMatch =
+          lower.includes(targetComp) ||
+          baseline.competitors.some((c) => lower.includes(c.toLowerCase()));
+        if (isMatch) {
+          return data;
+        }
       }
     }
   } catch {
     // Fallback
   }
 
-  return getTenantBaselineData(tenantId).latestBrief;
+  return baseline.latestBrief;
 }
+
 
 export interface RadarEvidenceSignal {
   signal_id: string;
