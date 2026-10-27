@@ -13,6 +13,7 @@ import {
   BASELINE_LATEST_BRIEF,
   BASELINE_BRIEFS,
 } from "./baselineData";
+import { getTenantBaselineData } from "./tenantBaselines";
 
 export interface SignalRecord {
   id: string;
@@ -64,8 +65,10 @@ function getFilteredBaselineSignals(params?: {
   confidence?: string;
   limit?: number;
   offset?: number;
+  tenantId?: string;
 }): SignalsApiResponse {
-  let list = [...BASELINE_SIGNALS];
+  const baseline = getTenantBaselineData(params?.tenantId);
+  let list = [...baseline.signals];
   if (params?.company && params.company !== "ALL") {
     const compLower = params.company.toLowerCase();
     list = list.filter((s) => (s.company_name || "").toLowerCase() === compLower);
@@ -88,7 +91,7 @@ function getFilteredBaselineSignals(params?: {
   return {
     signals: paged,
     count: list.length,
-    noise_suppressed_count: 445,
+    noise_suppressed_count: baseline.workspaceSettings?.noise_suppressed_count || 0,
   };
 }
 
@@ -100,16 +103,20 @@ export async function fetchSignals(params?: {
   limit?: number;
   offset?: number;
   forceFailure?: boolean;
+  tenantId?: string;
 }): Promise<SignalsApiResponse> {
   // Check forced dev failure state if requested
   if (params?.forceFailure) {
     throw new Error("Simulated network disconnection for verification of error state.");
   }
 
-  const token = getClientAuthToken();
+  const token = getClientAuthToken(params?.tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/signals" : `${API_BASE_URL}/signals`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
 
+  if (params?.tenantId) {
+    url.searchParams.set("tenant_id", params.tenantId);
+  }
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
   }
@@ -193,13 +200,15 @@ function getFilteredBaselineEvents(params?: {
   confidence?: string;
   limit?: number;
   offset?: number;
+  tenantId?: string;
 }): EventsApiResponse {
-  let list = [...BASELINE_EVENTS];
+  const baseline = getTenantBaselineData(params?.tenantId);
+  let list = [...baseline.events];
   if (params?.company && params.company !== "ALL") {
     const compLower = params.company.toLowerCase();
     list = list.filter(
       (e) =>
-        (e.company_name || "").toLowerCase() === compLower ||
+        (e.company_name || (e as any).company || "").toLowerCase() === compLower ||
         (e.title || "").toLowerCase().includes(compLower)
     );
   }
@@ -227,15 +236,19 @@ export async function fetchEvents(params?: {
   limit?: number;
   offset?: number;
   forceFailure?: boolean;
+  tenantId?: string;
 }): Promise<EventsApiResponse> {
   if (params?.forceFailure) {
     throw new Error("Simulated network disconnection for verification of error state.");
   }
 
-  const token = getClientAuthToken();
+  const token = getClientAuthToken(params?.tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/events" : `${API_BASE_URL}/events`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
 
+  if (params?.tenantId) {
+    url.searchParams.set("tenant_id", params.tenantId);
+  }
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
   }
@@ -274,10 +287,11 @@ export async function fetchEvents(params?: {
   return getFilteredBaselineEvents(params);
 }
 
-export async function fetchEventDetail(eventId: string): Promise<ConsolidatedEventRecord> {
-  const token = getClientAuthToken();
+export async function fetchEventDetail(eventId: string, tenantId?: string): Promise<ConsolidatedEventRecord> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/events/${eventId}` : `${API_BASE_URL}/events/${eventId}`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
     const res = await fetch(url.toString(), {
@@ -296,16 +310,20 @@ export async function fetchEventDetail(eventId: string): Promise<ConsolidatedEve
     // Fallback
   }
 
-  const match = BASELINE_EVENTS.find((e) => e.event_id === eventId);
+  const baseline = getTenantBaselineData(tenantId);
+  const match = baseline.events.find((e) => e.event_id === eventId);
   if (match) return match;
-  return BASELINE_EVENTS[0];
+  return baseline.events[0] || BASELINE_EVENTS[0];
 }
 
-export async function fetchTrackedCompanies(): Promise<TrackedCompany[]> {
-  const token = getClientAuthToken();
+export async function fetchTrackedCompanies(tenantId?: string): Promise<TrackedCompany[]> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/tracked-companies" : `${API_BASE_URL}/tracked-companies`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -323,7 +341,7 @@ export async function fetchTrackedCompanies(): Promise<TrackedCompany[]> {
     // Fallback
   }
 
-  return BASELINE_TRACKED_COMPANIES;
+  return getTenantBaselineData(tenantId).trackedCompanies;
 }
 
 
@@ -342,11 +360,14 @@ export interface BriefDetail {
   content: string;
 }
 
-export async function fetchBriefs(): Promise<BriefEntry[]> {
-  const token = getClientAuthToken();
+export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/briefs" : `${API_BASE_URL}/briefs`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -364,14 +385,17 @@ export async function fetchBriefs(): Promise<BriefEntry[]> {
     // Fallback
   }
 
-  return BASELINE_BRIEFS;
+  return getTenantBaselineData(tenantId).briefs;
 }
 
-export async function fetchLatestBrief(): Promise<BriefDetail> {
-  const token = getClientAuthToken();
+export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/briefs/latest" : `${API_BASE_URL}/briefs/latest`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -389,14 +413,17 @@ export async function fetchLatestBrief(): Promise<BriefDetail> {
     // Fallback
   }
 
-  return BASELINE_LATEST_BRIEF;
+  return getTenantBaselineData(tenantId).latestBrief;
 }
 
-export async function fetchBriefById(briefId: string): Promise<BriefDetail> {
-  const token = getClientAuthToken();
+export async function fetchBriefById(briefId: string, tenantId?: string): Promise<BriefDetail> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/briefs/${briefId}` : `${API_BASE_URL}/briefs/${briefId}`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -414,7 +441,7 @@ export async function fetchBriefById(briefId: string): Promise<BriefDetail> {
     // Fallback
   }
 
-  return BASELINE_LATEST_BRIEF;
+  return getTenantBaselineData(tenantId).latestBrief;
 }
 
 export interface RadarEvidenceSignal {
@@ -450,11 +477,14 @@ export interface RadarApiResponse {
   count: number;
 }
 
-export async function fetchLatestRadar(): Promise<RadarApiResponse> {
-  const token = getClientAuthToken();
+export async function fetchLatestRadar(tenantId?: string): Promise<RadarApiResponse> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/research-radar/latest" : `${API_BASE_URL}/research-radar/latest`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -472,9 +502,10 @@ export async function fetchLatestRadar(): Promise<RadarApiResponse> {
     // Fallback
   }
 
+  const baseline = getTenantBaselineData(tenantId);
   return {
-    evaluations: BASELINE_RADAR_EVALUATIONS as unknown as RadarEvaluation[],
-    count: BASELINE_RADAR_EVALUATIONS.length,
+    evaluations: baseline.radarEvaluations,
+    count: baseline.radarEvaluations.length,
   };
 }
 
@@ -500,11 +531,14 @@ export interface FindingsApiResponse {
   count: number;
 }
 
-export async function fetchFindings(): Promise<FindingsApiResponse> {
-  const token = getClientAuthToken();
+export async function fetchFindings(tenantId?: string): Promise<FindingsApiResponse> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/findings" : `${API_BASE_URL}/findings`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -522,9 +556,10 @@ export async function fetchFindings(): Promise<FindingsApiResponse> {
     // Fallback
   }
 
+  const baseline = getTenantBaselineData(tenantId);
   return {
-    findings: BASELINE_FINDINGS,
-    count: BASELINE_FINDINGS.length,
+    findings: baseline.findings,
+    count: baseline.findings.length,
   };
 }
 
@@ -763,11 +798,14 @@ export interface DiscoveryResponse {
   token_budget?: GroqTokenBudgetStatus | null;
 }
 
-export async function fetchWorkspaceTopics(includePaused: boolean = true): Promise<ResearchTopic[]> {
-  const token = getClientAuthToken();
+export async function fetchWorkspaceTopics(includePaused: boolean = true, tenantId?: string): Promise<ResearchTopic[]> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/workspace/topics?include_paused=${includePaused}` : `${API_BASE_URL}/research-radar/topics?include_paused=${includePaused}`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       cache: "no-store",
     });
@@ -780,7 +818,7 @@ export async function fetchWorkspaceTopics(includePaused: boolean = true): Promi
   } catch {
     // Fallback
   }
-  return BASELINE_TOPICS;
+  return getTenantBaselineData(tenantId).topics;
 }
 
 export async function createWorkspaceTopic(topicLabel: string, keywords: string[]): Promise<ResearchTopic> {
@@ -944,19 +982,24 @@ export async function confirmCompetitors(targetCompany: string, competitors: str
   return res.json();
 }
 
-export async function fetchDeliveryConfig(): Promise<DeliveryConfig | null> {
-  const token = getClientAuthToken();
+export async function fetchDeliveryConfig(tenantId?: string): Promise<DeliveryConfig | null> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/delivery" : `${API_BASE_URL}/workspace/delivery`;
-  const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Failed to fetch delivery config (${res.status}): ${errText}`);
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return null;
+    }
+    const data = await res.json();
+    return data.delivery_config || null;
+  } catch {
+    return null;
   }
-  const data = await res.json();
-  return data.delivery_config || null;
 }
 
 export async function saveDeliveryConfig(payload: {
@@ -979,11 +1022,13 @@ export async function saveDeliveryConfig(payload: {
   return data.delivery_config;
 }
 
-export async function fetchWorkspaceSettings(): Promise<WorkspaceSettings> {
-  const token = getClientAuthToken();
+export async function fetchWorkspaceSettings(tenantId?: string): Promise<WorkspaceSettings> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/settings" : `${API_BASE_URL}/workspace/settings`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       cache: "no-store",
     });
@@ -993,7 +1038,7 @@ export async function fetchWorkspaceSettings(): Promise<WorkspaceSettings> {
   } catch {
     // Fallback
   }
-  return BASELINE_WORKSPACE_SETTINGS as any;
+  return getTenantBaselineData(tenantId).workspaceSettings;
 }
 
 export interface WorkspaceConfig {
@@ -1015,11 +1060,13 @@ export interface WorkspaceConfig {
   onboarding_complete: boolean;
 }
 
-export async function fetchWorkspaceConfig(): Promise<WorkspaceConfig> {
-  const token = getClientAuthToken();
+export async function fetchWorkspaceConfig(tenantId?: string): Promise<WorkspaceConfig> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/config" : `${API_BASE_URL}/workspace/config`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       cache: "no-store",
     });
@@ -1032,7 +1079,7 @@ export async function fetchWorkspaceConfig(): Promise<WorkspaceConfig> {
   } catch {
     // Fallback
   }
-  return BASELINE_WORKSPACE_CONFIG;
+  return getTenantBaselineData(tenantId).workspaceConfig;
 }
 
 export interface PipelineProgress {
@@ -1060,8 +1107,8 @@ export interface PipelineProgress {
   needs_resweep?: boolean;
 }
 
-export async function fetchPipelineStatus(): Promise<PipelineProgress> {
-  const token = getClientAuthToken();
+export async function fetchPipelineStatus(tenantId?: string): Promise<PipelineProgress> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/pipeline/status" : `${API_BASE_URL}/api/pipeline/status`;
   try {
     const res = await fetch(baseUrl, {
@@ -1095,9 +1142,10 @@ export async function fetchPipelineStatus(): Promise<PipelineProgress> {
 
 export async function triggerPipelineRun(
   isFirstRun: boolean = false,
-  sources?: string[]
+  sources?: string[],
+  tenantId?: string
 ): Promise<{ status: string; message: string }> {
-  const token = getClientAuthToken();
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/pipeline/trigger" : `${API_BASE_URL}/api/pipeline/trigger`;
   const res = await fetch(baseUrl, {
     method: "POST",
@@ -1166,9 +1214,11 @@ export async function fetchTrends(params?: {
   company?: string;
   momentum?: string;
   trend_type?: string;
+  tenantId?: string;
 }): Promise<{ trends: TrendRecord[]; total_count: number; has_more: boolean; next_cursor?: string }> {
-  const token = getClientAuthToken();
+  const token = getClientAuthToken(params?.tenantId);
   const q = new URLSearchParams();
+  if (params?.tenantId) q.set("tenant_id", params.tenantId);
   if (params?.limit) q.set("limit", String(params.limit));
   if (params?.cursor) q.set("cursor", params.cursor);
   if (params?.company) q.set("company", params.company);
@@ -1193,8 +1243,9 @@ export async function fetchTrends(params?: {
     // Fallback
   }
 
-  // Filter baseline trends
-  let filtered = [...BASELINE_TRENDS];
+  // Filter baseline trends for this tenant
+  const baseline = getTenantBaselineData(params?.tenantId);
+  let filtered = [...baseline.trends];
   if (params?.company && params.company !== "all" && params.company !== "ALL") {
     const cLower = params.company.toLowerCase();
     filtered = filtered.filter((t) =>
@@ -1215,12 +1266,14 @@ export async function fetchTrends(params?: {
   };
 }
 
-export async function fetchTrendDetail(trendId: string): Promise<TrendDetailRecord> {
-  const token = getClientAuthToken();
+export async function fetchTrendDetail(trendId: string, tenantId?: string): Promise<TrendDetailRecord> {
+  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/trends/${trendId}` : `${API_BASE_URL}/trends/${trendId}`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
-    const res = await fetch(baseUrl, {
+    const res = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
@@ -1231,7 +1284,8 @@ export async function fetchTrendDetail(trendId: string): Promise<TrendDetailReco
     // Fallback
   }
 
-  const baseTrend = (BASELINE_TRENDS as any[]).find((t) => t.cluster_id === trendId) || (BASELINE_TRENDS as any[])[0];
+  const baseline = getTenantBaselineData(tenantId);
+  const baseTrend = (baseline.trends as any[]).find((t) => t.cluster_id === trendId) || (baseline.trends as any[])[0] || (BASELINE_TRENDS as any[])[0];
   const members = Array.isArray(baseTrend?.members) ? baseTrend.members : [];
   const timeline: TimelineNode[] = members.map((m: any) => ({
     member_id: m.event_id,
@@ -1246,7 +1300,7 @@ export async function fetchTrendDetail(trendId: string): Promise<TrendDetailReco
     is_sequence_eligible: Boolean(m.is_sequence_eligible),
   }));
 
-  const trackedCompanies = BASELINE_TRACKED_COMPANIES.map((c) => c.company_name);
+  const trackedCompanies = baseline.trackedCompanies.map((c) => c.company_name);
   const companiesIn = new Set(baseTrend?.companies_involved || []);
   const auditedAbsences: AuditedAbsence[] = trackedCompanies
     .filter((comp) => !companiesIn.has(comp))
