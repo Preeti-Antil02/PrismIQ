@@ -160,16 +160,16 @@ export function BriefPage() {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchBriefs();
+      const list = await fetchBriefs(tenantId);
       setBriefList(list);
 
       if (list.length > 0) {
-        const latest = await fetchLatestBrief();
+        const latest = await fetchLatestBrief(tenantId);
         setSelectedBrief(latest);
         setParsed(parseBriefMarkdown(latest.content));
       } else {
         try {
-          const latest = await fetchLatestBrief();
+          const latest = await fetchLatestBrief(tenantId);
           setSelectedBrief(latest);
           setParsed(parseBriefMarkdown(latest.content));
         } catch {
@@ -191,7 +191,7 @@ export function BriefPage() {
   const handleSelectBrief = async (briefId: string) => {
     setLoading(true);
     try {
-      const b = await fetchBriefById(briefId);
+      const b = await fetchBriefById(briefId, tenantId);
       setSelectedBrief(b);
       setParsed(parseBriefMarkdown(b.content));
     } catch (err: any) {
