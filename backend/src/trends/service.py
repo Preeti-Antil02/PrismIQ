@@ -60,8 +60,8 @@ def _get_fallback_clusters(tenant_id: str) -> List[Dict[str, Any]]:
             )
             tracked = [r[0] for r in cur.fetchall()]
     except Exception:
-        # Default watchlist for development / testing
-        tracked = ["Cloudflare", "Vercel", "Netlify", "Stripe", "OpenAI", "Anthropic", "Microsoft", "Meta", "Google"]
+        # Fallback to tenant-specific tracked companies
+        tracked = [c.get("company_name", "") for c in storage.get_tenant_tracked_companies(tenant_id)]
 
     tracked_set = set([c.lower() for c in tracked])
 
