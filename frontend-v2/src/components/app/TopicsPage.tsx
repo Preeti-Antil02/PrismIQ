@@ -30,7 +30,7 @@ import {
 } from "@/lib/api";
 
 export function TopicsPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [topics, setTopics] = React.useState<ResearchTopic[]>([]);
@@ -46,14 +46,14 @@ export function TopicsPage() {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchWorkspaceTopics(true);
+      const list = await fetchWorkspaceTopics(true, tenantId);
       setTopics(list || []);
     } catch (err: any) {
       setError(err.message || "Failed to load topics");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadTopics();
