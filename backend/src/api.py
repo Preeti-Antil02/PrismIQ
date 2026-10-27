@@ -751,17 +751,43 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
                 "content": row[3],
             }
 
-    # Fallback to local files: pick largest timestamped brief file
+    # Fallback to local files: prioritize tenant-specific brief, then target-company matching brief
     data_dir = _get_data_dir()
     target_file: Optional[Path] = None
-    timestamped_files = sorted(data_dir.glob("brief_*.md"), reverse=True)
-    for tf in timestamped_files:
+
+    # 1. Check for exact tenant UUID brief (e.g. brief_6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f.md)
+    tenant_brief = data_dir / f"brief_{tenant_id}.md"
+    if tenant_brief.exists() and tenant_brief.stat().st_size > 500:
+        target_file = tenant_brief
+
+    # 2. Company-specific brief matching the tenant's configured target company
+    if not target_file:
         try:
-            if tf.stat().st_size > 1000:
-                target_file = tf
-                break
+            cfg = storage.get_tenant_workspace_config(tenant_id)
+            target_comp = (cfg.get("target_company") or "").lower()
+            if target_comp:
+                for candidate in sorted(data_dir.glob("brief_*.md"), reverse=True):
+                    try:
+                        if candidate.stat().st_size > 1000:
+                            content_sample = candidate.read_text(encoding="utf-8", errors="ignore")[:4000].lower()
+                            if target_comp in content_sample:
+                                target_file = candidate
+                                break
+                    except Exception:
+                        pass
         except Exception:
             pass
+
+    # 3. Fallback to largest timestamped brief file
+    if not target_file:
+        timestamped_files = sorted(data_dir.glob("brief_*.md"), reverse=True)
+        for tf in timestamped_files:
+            try:
+                if tf.stat().st_size > 1000:
+                    target_file = tf
+                    break
+            except Exception:
+                pass
 
     if not target_file:
         latest_file = data_dir / "brief.md"
@@ -1102,8 +1128,15 @@ def list_signals(
 
             if total_count == 0:
                 try:
-                    local_sigs = storage.load_signals()
+                    local_sigs = storage.load_signals(tenant_id=tenant_id)
                     if local_sigs:
+                        tracked_comps = {c["company_name"].lower() for c in storage.get_tenant_tracked_companies(tenant_id)}
+                        if company_val:
+                            local_sigs = [s for s in local_sigs if (s.get("company") or s.get("company_name", "")).lower() == company_val.lower()]
+                        elif tracked_comps:
+                            filtered = [s for s in local_sigs if (s.get("company") or s.get("company_name", "")).lower() in tracked_comps]
+                            if filtered:
+                                local_sigs = filtered
                         return {"signals": local_sigs[:lim_val], "count": len(local_sigs), "noise_suppressed_count": noise_suppressed_count}
                 except Exception:
                     pass
@@ -1116,7 +1149,12 @@ def list_signals(
     except Exception as e:
         logger.warning(f"Error querying signals for tenant {tenant_id}: {e}")
         try:
-            local_sigs = storage.load_signals()
+            local_sigs = storage.load_signals(tenant_id=tenant_id)
+            tracked_comps = {c["company_name"].lower() for c in storage.get_tenant_tracked_companies(tenant_id)}
+            if tracked_comps:
+                filtered = [s for s in local_sigs if (s.get("company") or s.get("company_name", "")).lower() in tracked_comps]
+                if filtered:
+                    local_sigs = filtered
             return {"signals": local_sigs[:limit], "count": len(local_sigs), "noise_suppressed_count": 0}
         except Exception:
             return {"signals": [], "count": 0, "noise_suppressed_count": 0}
@@ -1279,8 +1317,15 @@ def list_events(
 
             if total_count == 0:
                 try:
-                    local_evts = storage.load_events()
+                    local_evts = storage.load_events(tenant_id=tenant_id)
                     if local_evts:
+                        tracked_comps = {c["company_name"].lower() for c in storage.get_tenant_tracked_companies(tenant_id)}
+                        if company_val:
+                            local_evts = [e for e in local_evts if (e.get("company") or e.get("company_name", "")).lower() == company_val.lower()]
+                        elif tracked_comps:
+                            filtered = [e for e in local_evts if (e.get("company") or e.get("company_name", "")).lower() in tracked_comps]
+                            if filtered:
+                                local_evts = filtered
                         return {"events": local_evts[:lim_val], "count": len(local_evts)}
                 except Exception:
                     pass
@@ -1289,7 +1334,12 @@ def list_events(
     except Exception as e:
         logger.warning(f"Error querying events for tenant {tenant_id}: {e}")
         try:
-            local_evts = storage.load_events()
+            local_evts = storage.load_events(tenant_id=tenant_id)
+            tracked_comps = {c["company_name"].lower() for c in storage.get_tenant_tracked_companies(tenant_id)}
+            if tracked_comps:
+                filtered = [e for e in local_evts if (e.get("company") or e.get("company_name", "")).lower() in tracked_comps]
+                if filtered:
+                    local_evts = filtered
             return {"events": local_evts[:limit], "count": len(local_evts)}
         except Exception:
             return {"events": [], "count": 0}
