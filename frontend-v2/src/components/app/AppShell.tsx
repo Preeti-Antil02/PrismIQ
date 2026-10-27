@@ -386,7 +386,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <EvidenceContext.Provider value={{ openEvidence, closeEvidence }}>
         <div className="prismiq-app-root min-h-screen flex flex-col antialiased text-[#17171b]">
           {/* Top Context Header Bar */}
-          <header className="sticky top-0 z-30 h-16 border-b border-[rgba(20,20,30,0.08)] bg-white/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between">
+          <header className="sticky top-0 z-30 h-16 border-b border-[rgba(20,20,30,0.08)] bg-white/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-6">
               {/* Mobile menu trigger */}
               <button
