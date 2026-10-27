@@ -5,6 +5,7 @@
  * high-fidelity signals, events, trends, and competitor intelligence.
  */
 import type { SignalRecord, ConsolidatedEventRecord, TrackedCompany, FindingRecord, TrendRecord, ResearchTopic, BriefDetail, BriefEntry, WorkspaceConfig } from "./api";
+export { getTenantBaselineData, type TenantBaselineData, KNOWN_TENANT_IDS } from "./tenantBaselines";
 
 export const BASELINE_TRACKED_COMPANIES: TrackedCompany[] = [
   {
