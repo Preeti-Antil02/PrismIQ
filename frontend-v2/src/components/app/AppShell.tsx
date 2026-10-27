@@ -228,12 +228,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Fetch workspace configuration & target company
   const refreshConfig = React.useCallback(async () => {
     try {
-      const cfg = await fetchWorkspaceConfig();
+      const cfg = await fetchWorkspaceConfig(activeTenantId);
       setConfig(cfg);
     } catch {
       // Graceful fallback
     }
-  }, []);
+  }, [activeTenantId]);
 
   // Auto-record active workspace if missing from list
   React.useEffect(() => {
@@ -264,14 +264,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (isCheckingRef.current) return;
     isCheckingRef.current = true;
     try {
-      const p = await fetchPipelineStatus();
+      const p = await fetchPipelineStatus(activeTenantId);
       setPipeline(p);
     } catch {
       // Graceful fallback
     } finally {
       isCheckingRef.current = false;
     }
-  }, []);
+  }, [activeTenantId]);
 
   React.useEffect(() => {
     refreshConfig();
@@ -280,11 +280,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [activeTenantId, refreshConfig, checkPipeline]);
 
-  // Target company name
+  // Target company name - prioritize workspace configuration and known/custom workspace registry
   const targetCompany = React.useMemo(() => {
-    if (config?.target_company) return config.target_company;
     const match = allWorkspaces.find((w) => w.tenant_id === activeTenantId);
-    return match ? match.target : "Meesho";
+    if (match) return match.target;
+    if (config?.target_company) return config.target_company;
+    return "Workspace";
   }, [config, activeTenantId, allWorkspaces]);
 
   // Switch workspace
@@ -343,14 +344,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const triggerSweep = React.useCallback(async () => {
     setIsSweeping(true);
     try {
-      await triggerPipelineRun(false);
+      await triggerPipelineRun(false, undefined, activeTenantId);
       await checkPipeline();
     } catch (err: any) {
       alert(`Sweep trigger error: ${err.message}`);
     } finally {
       setIsSweeping(false);
     }
-  }, [checkPipeline]);
+  }, [checkPipeline, activeTenantId]);
 
   return (
     <WorkspaceContext.Provider
