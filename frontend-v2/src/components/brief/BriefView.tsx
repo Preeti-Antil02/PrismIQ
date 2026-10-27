@@ -77,7 +77,7 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
     fetchTrackedCompanies(user?.tenant_id)
       .then((data) => setTrackedCompanies(data))
       .catch(() => {});
-    fetchWorkspaceTopics(user?.tenant_id)
+    fetchWorkspaceTopics(true, user?.tenant_id)
       .then((data) => setTopics(data))
       .catch(() => {});
   }, [user?.tenant_id]);
