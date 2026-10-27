@@ -148,7 +148,7 @@ function SignalMixBar({ breakdown }: { breakdown?: Record<string, number> }) {
 // Main TrendsPage Component
 // ============================================================================
 export function TrendsPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -170,8 +170,8 @@ export function TrendsPage() {
     setError(null);
     try {
       const [trendsRes, compsRes] = await Promise.all([
-        fetchTrends({ limit: 50 }),
-        fetchTrackedCompanies(),
+        fetchTrends({ limit: 50, tenantId }),
+        fetchTrackedCompanies(tenantId),
       ]);
       const list = trendsRes.trends || [];
       setTrends(list);
@@ -185,7 +185,7 @@ export function TrendsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTrendId]);
+  }, [selectedTrendId, tenantId]);
 
   React.useEffect(() => {
     loadTrends();
@@ -200,7 +200,7 @@ export function TrendsPage() {
     let isCancelled = false;
     setLoadingDetail(true);
 
-    fetchTrendDetail(selectedTrendId)
+    fetchTrendDetail(selectedTrendId, tenantId)
       .then((detail) => {
         if (!isCancelled) {
           setTrendDetail(detail);
@@ -216,7 +216,7 @@ export function TrendsPage() {
     return () => {
       isCancelled = true;
     };
-  }, [selectedTrendId]);
+  }, [selectedTrendId, tenantId]);
 
   // Filter trends list
   const filteredTrends = React.useMemo(() => {
