@@ -29,6 +29,7 @@ import {
   type ConfidenceLevel,
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/components/app/AppShell";
 import {
   ArrowLeft,
   Crown,
@@ -95,6 +96,7 @@ const CATEGORIES: CategoryConfig[] = [
 export default function CompetitorProfilePage() {
   const params = useParams();
   const companyId = decodeURIComponent((params?.companyId as string) || "");
+  const { tenantId } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -110,11 +112,11 @@ export default function CompetitorProfilePage() {
     setError(null);
     try {
       const [companies, signalsRes, eventsRes, findingsRes, radarRes] = await Promise.all([
-        fetchTrackedCompanies(),
-        fetchSignals({ company: companyId, limit: 200 }),
-        fetchEvents({ company: companyId, limit: 200 }),
-        fetchFindings(),
-        fetchLatestRadar(),
+        fetchTrackedCompanies(tenantId),
+        fetchSignals({ company: companyId, limit: 200, tenantId }),
+        fetchEvents({ company: companyId, limit: 200, tenantId }),
+        fetchFindings(tenantId),
+        fetchLatestRadar(tenantId),
       ]);
 
       // Verify company is tracked
@@ -145,7 +147,7 @@ export default function CompetitorProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [companyId, tenantId]);
 
   React.useEffect(() => {
     loadData();
