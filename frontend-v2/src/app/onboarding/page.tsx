@@ -216,7 +216,8 @@ export default function OnboardingPage() {
           return;
         }
 
-        const cfg = await fetchWorkspaceConfig();
+        const activeTid = (typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") : null) || user?.tenant_id;
+        const cfg = await fetchWorkspaceConfig(activeTid || undefined);
 
         if (cfg.onboarding_complete) {
           setExistingTarget(cfg.target_company || "configured");
