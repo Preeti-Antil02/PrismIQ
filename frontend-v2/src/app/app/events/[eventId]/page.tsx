@@ -38,6 +38,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/components/app/AppShell";
 
 function getSourceMeta(src?: string): {
   label: string;
@@ -63,6 +64,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const eventId = params?.eventId as string;
   const { openDrawer } = useEvidenceDrawer();
+  const { tenantId } = useWorkspace();
 
   const [event, setEvent] = React.useState<ConsolidatedEventRecord | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -74,14 +76,14 @@ export default function EventDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchEventDetail(eventId);
+      const data = await fetchEventDetail(eventId, tenantId);
       setEvent(data);
     } catch (err: any) {
       setError(err.message || "Failed to load event consolidation tree.");
     } finally {
       setLoading(false);
     }
-  }, [eventId]);
+  }, [eventId, tenantId]);
 
   React.useEffect(() => {
     loadEvent();
