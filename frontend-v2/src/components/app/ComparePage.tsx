@@ -44,7 +44,7 @@ export function ComparePage() {
   const searchParams = useSearchParams();
   const initialComp = searchParams.get("comp");
 
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -62,11 +62,11 @@ export function ComparePage() {
     try {
       const [compsRes, eventsRes, signalsRes, findingsRes, radarRes] =
         await Promise.allSettled([
-          fetchTrackedCompanies(),
-          fetchEvents({ limit: 150 }),
-          fetchSignals({ limit: 300 }),
-          fetchFindings(),
-          fetchLatestRadar(),
+          fetchTrackedCompanies(tenantId),
+          fetchEvents({ limit: 150, tenantId }),
+          fetchSignals({ limit: 300, tenantId }),
+          fetchFindings(tenantId),
+          fetchLatestRadar(tenantId),
         ]);
 
       if (compsRes.status === "fulfilled") {
@@ -91,7 +91,7 @@ export function ComparePage() {
     } finally {
       setLoading(false);
     }
-  }, [targetCompany, initialComp]);
+  }, [targetCompany, initialComp, tenantId]);
 
   React.useEffect(() => {
     loadData();
