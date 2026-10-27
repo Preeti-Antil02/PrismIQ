@@ -27,12 +27,14 @@ import {
   RotateCw,
   AlertCircle,
 } from "lucide-react";
+import { useWorkspace } from "@/components/app/AppShell";
 import { cn } from "@/lib/utils";
 
 export default function SingleTopicDetailPage() {
   const params = useParams();
   const router = useRouter();
   const topicParam = (params.topicId as string) || "";
+  const { tenantId } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function SingleTopicDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchLatestRadar();
+      const res = await fetchLatestRadar(tenantId);
       const evals = res.evaluations || [];
       // Match by topic_id or slugified/matching topic_label
       const found = evals.find(
@@ -63,7 +65,7 @@ export default function SingleTopicDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [topicParam]);
+  }, [topicParam, tenantId]);
 
   React.useEffect(() => {
     loadData();
