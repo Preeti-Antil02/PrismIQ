@@ -680,17 +680,37 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
 
     # Fallback to local files if database returned no entries
     data_dir = _get_data_dir()
-    if data_dir.exists():
-        timestamped_files = sorted(data_dir.glob("brief_*.md"), reverse=True)
+    pub_dir = Path(__file__).resolve().parent.parent / "published_briefs"
+    candidate_dirs = [data_dir]
+    if pub_dir.exists() and pub_dir != data_dir:
+        candidate_dirs.append(pub_dir)
+
+    cfg = storage.get_tenant_workspace_config(tenant_id)
+    target_comp = (cfg.get("target_company") or "").lower()
+    competitors = [c.lower() for c in cfg.get("competitors", [])]
+
+    seen_filenames = set()
+    for cdir in candidate_dirs:
+        if not cdir.exists():
+            continue
+        timestamped_files = sorted(cdir.glob("brief_*.md"), reverse=True)
         for file_path in timestamped_files:
             filename = file_path.name
-            bid = _get_brief_id(filename)
-            date_str = _parse_date(filename, file_path)
+            if filename in seen_filenames:
+                continue
             try:
                 content = file_path.read_text(encoding="utf-8")
             except Exception:
                 content = ""
 
+            content_lower = content.lower()
+            # Strict tenant boundary: only include if brief matches tenant's company or competitors
+            if target_comp and target_comp not in content_lower and not any(comp in content_lower for comp in competitors):
+                continue
+
+            seen_filenames.add(filename)
+            bid = _get_brief_id(filename)
+            date_str = _parse_date(filename, file_path)
             preview = _extract_preview(content)
             brief_entries.append({
                 "id": bid,
@@ -699,20 +719,23 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
                 "preview": preview,
             })
 
-        latest_path = data_dir / "brief.md"
-        if latest_path.exists() and not timestamped_files:
-            date_str = _parse_date("brief.md", latest_path)
+        latest_path = cdir / "brief.md"
+        if latest_path.exists() and "brief.md" not in seen_filenames:
             try:
                 content = latest_path.read_text(encoding="utf-8")
             except Exception:
                 content = ""
-            preview = _extract_preview(content)
-            brief_entries.append({
-                "id": "latest",
-                "date": date_str,
-                "filename": "brief.md",
-                "preview": preview,
-            })
+            content_lower = content.lower()
+            if not target_comp or target_comp in content_lower or any(comp in content_lower for comp in competitors):
+                seen_filenames.add("brief.md")
+                date_str = _parse_date("brief.md", latest_path)
+                preview = _extract_preview(content)
+                brief_entries.append({
+                    "id": "latest",
+                    "date": date_str,
+                    "filename": "brief.md",
+                    "preview": preview,
+                })
 
     brief_entries.sort(key=lambda x: x["date"], reverse=True)
     return {"briefs": brief_entries}
@@ -753,53 +776,65 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
 
     # Fallback to local files: prioritize tenant-specific brief, then target-company matching brief
     data_dir = _get_data_dir()
+    pub_dir = Path(__file__).resolve().parent.parent / "published_briefs"
+    search_dirs = [data_dir]
+    if pub_dir.exists() and pub_dir != data_dir:
+        search_dirs.append(pub_dir)
+
     target_file: Optional[Path] = None
 
     # 1. Check for exact tenant UUID brief (e.g. brief_6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f.md)
-    tenant_brief = data_dir / f"brief_{tenant_id}.md"
-    if tenant_brief.exists() and tenant_brief.stat().st_size > 500:
-        target_file = tenant_brief
+    for sdir in search_dirs:
+        if not sdir.exists():
+            continue
+        tenant_brief = sdir / f"brief_{tenant_id}.md"
+        if tenant_brief.exists() and tenant_brief.stat().st_size > 500:
+            target_file = tenant_brief
+            break
 
     # 2. Company-specific brief matching the tenant's configured target company
-    if not target_file:
+    cfg = storage.get_tenant_workspace_config(tenant_id)
+    target_comp = (cfg.get("target_company") or "").lower()
+    competitors = [c.lower() for c in cfg.get("competitors", [])]
+
+    if not target_file and target_comp:
+        for sdir in search_dirs:
+            if not sdir.exists():
+                continue
+            for candidate in sorted(sdir.glob("brief*.md"), reverse=True):
+                try:
+                    if candidate.stat().st_size > 1000:
+                        content_sample = candidate.read_text(encoding="utf-8", errors="ignore")[:4000].lower()
+                        if target_comp in content_sample or any(comp in content_sample for comp in competitors):
+                            target_file = candidate
+                            break
+                except Exception:
+                    pass
+            if target_file:
+                break
+
+    # 3. Attempt synthesis from validated events if still no file found
+    if not target_file and _is_db_active():
         try:
-            cfg = storage.get_tenant_workspace_config(tenant_id)
-            target_comp = (cfg.get("target_company") or "").lower()
-            if target_comp:
-                for candidate in sorted(data_dir.glob("brief_*.md"), reverse=True):
-                    try:
-                        if candidate.stat().st_size > 1000:
-                            content_sample = candidate.read_text(encoding="utf-8", errors="ignore")[:4000].lower()
-                            if target_comp in content_sample:
-                                target_file = candidate
-                                break
-                    except Exception:
-                        pass
+            synth = _auto_synthesize_brief_for_tenant(tenant_id)
+            if synth and synth.get("content"):
+                pub_dt = synth.get("published_at")
+                date_str = pub_dt.isoformat() if isinstance(pub_dt, datetime) else str(pub_dt or datetime.now(timezone.utc).isoformat())
+                return {
+                    "id": synth.get("id", "latest"),
+                    "date": date_str,
+                    "filename": f"brief_{tenant_id}.md",
+                    "content": synth["content"],
+                }
         except Exception:
             pass
 
-    # 3. Fallback to largest timestamped brief file
+    # 4. Strict isolation: NEVER fall back to a brief that belongs to another company!
     if not target_file:
-        timestamped_files = sorted(data_dir.glob("brief_*.md"), reverse=True)
-        for tf in timestamped_files:
-            try:
-                if tf.stat().st_size > 1000:
-                    target_file = tf
-                    break
-            except Exception:
-                pass
-
-    if not target_file:
-        latest_file = data_dir / "brief.md"
-        if latest_file.exists() and latest_file.stat().st_size > 1000:
-            target_file = latest_file
-        elif timestamped_files:
-            target_file = timestamped_files[0]
-        elif latest_file.exists():
-            target_file = latest_file
-
-    if not target_file or not target_file.exists():
-        raise HTTPException(status_code=404, detail="No competitive briefs available.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No competitive intelligence briefs available for tenant {tenant_id} ({target_comp or 'unconfigured'})."
+        )
 
     try:
         content = target_file.read_text(encoding="utf-8")
@@ -849,29 +884,50 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
             }
 
     data_dir = _get_data_dir()
-    if data_dir.exists():
-        candidate_names = [
-            f"brief_{brief_id}.md",
-            f"{brief_id}.md" if not brief_id.endswith(".md") else brief_id,
-            brief_id,
-        ]
-        target_file: Optional[Path] = None
+    pub_dir = Path(__file__).resolve().parent.parent / "published_briefs"
+    search_dirs = [data_dir]
+    if pub_dir.exists() and pub_dir != data_dir:
+        search_dirs.append(pub_dir)
+
+    cfg = storage.get_tenant_workspace_config(tenant_id)
+    target_comp = (cfg.get("target_company") or "").lower()
+    competitors = [c.lower() for c in cfg.get("competitors", [])]
+
+    target_file: Optional[Path] = None
+    candidate_names = [
+        f"brief_{brief_id}.md",
+        f"{brief_id}.md" if not brief_id.endswith(".md") else brief_id,
+        brief_id,
+    ]
+    for sdir in search_dirs:
+        if not sdir.exists():
+            continue
         for name in candidate_names:
-            candidate_path = data_dir / name
+            candidate_path = sdir / name
             if candidate_path.exists() and candidate_path.is_file():
                 target_file = candidate_path
                 break
+        if target_file:
+            break
 
-        if not target_file:
-            clean_id = brief_id.replace("-", "").replace("T", "_").replace("Z", "").replace(":", "")
-            for file_path in data_dir.glob("brief_*.md"):
+    if not target_file:
+        clean_id = brief_id.replace("-", "").replace("T", "_").replace("Z", "").replace(":", "")
+        for sdir in search_dirs:
+            if not sdir.exists():
+                continue
+            for file_path in sdir.glob("brief_*.md"):
                 if clean_id in file_path.name or brief_id in file_path.name:
                     target_file = file_path
                     break
+            if target_file:
+                break
 
-        if target_file and target_file.exists():
-            try:
-                content = target_file.read_text(encoding="utf-8")
+    if target_file and target_file.exists():
+        try:
+            content = target_file.read_text(encoding="utf-8")
+            content_lower = content.lower()
+            # Enforce company boundary
+            if not target_comp or target_comp in content_lower or any(comp in content_lower for comp in competitors):
                 date_str = _parse_date(target_file.name, target_file)
                 return {
                     "id": _get_brief_id(target_file.name),
@@ -879,10 +935,11 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
                     "filename": target_file.name,
                     "content": content,
                 }
-            except Exception:
-                pass
+        except Exception:
+            pass
 
     raise HTTPException(status_code=404, detail=f"Brief '{brief_id}' not found.")
+
 
 
 @app.get("/findings")
