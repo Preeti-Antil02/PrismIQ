@@ -49,7 +49,7 @@ import {
 } from "@/lib/api";
 
 export function CompetitorsPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -67,11 +67,11 @@ export function CompetitorsPage() {
     try {
       const [compsRes, eventsRes, signalsRes, findingsRes, radarRes] =
         await Promise.allSettled([
-          fetchTrackedCompanies(),
-          fetchEvents({ limit: 150 }),
-          fetchSignals({ limit: 300 }),
-          fetchFindings(),
-          fetchLatestRadar(),
+          fetchTrackedCompanies(tenantId),
+          fetchEvents({ limit: 150, tenantId }),
+          fetchSignals({ limit: 300, tenantId }),
+          fetchFindings(tenantId),
+          fetchLatestRadar(tenantId),
         ]);
 
       if (compsRes.status === "fulfilled") setCompanies(compsRes.value || []);
@@ -84,7 +84,7 @@ export function CompetitorsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadData();
