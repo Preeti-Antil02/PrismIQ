@@ -37,7 +37,7 @@ import {
 } from "@/lib/api";
 
 export function WatchlistPage() {
-  const { targetCompany, refreshConfig } = useWorkspace();
+  const { targetCompany, tenantId, refreshConfig } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [companies, setCompanies] = React.useState<TrackedCompany[]>([]);
@@ -57,14 +57,14 @@ export function WatchlistPage() {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchTrackedCompanies();
+      const list = await fetchTrackedCompanies(tenantId);
       setCompanies(list || []);
     } catch (err: any) {
       setError(err.message || "Failed to load watchlist");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadCompanies();
