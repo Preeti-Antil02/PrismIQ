@@ -34,7 +34,7 @@ import {
 } from "@/lib/api";
 
 export function ResearchRadarPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -47,8 +47,8 @@ export function ResearchRadarPage() {
     setError(null);
     try {
       const [topicsRes, radarRes] = await Promise.all([
-        fetchWorkspaceTopics(),
-        fetchLatestRadar(),
+        fetchWorkspaceTopics(true, tenantId),
+        fetchLatestRadar(tenantId),
       ]);
       setTopics(topicsRes || []);
       setRadarEvals(radarRes.evaluations || []);
@@ -57,7 +57,7 @@ export function ResearchRadarPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadData();
