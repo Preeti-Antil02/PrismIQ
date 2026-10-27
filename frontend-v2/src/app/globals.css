@@ -282,3 +282,14 @@ nextjs-portal,
 [data-nextjs-route-announcer] {
   display: none !important;
 }
+
+/* Utility to completely hide scrollbars while maintaining scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
