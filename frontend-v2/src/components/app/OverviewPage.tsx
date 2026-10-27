@@ -71,12 +71,12 @@ export function OverviewPage() {
     try {
       const [compsRes, eventsRes, signalsRes, findingsRes, radarRes, topicsRes] =
         await Promise.allSettled([
-          fetchTrackedCompanies(),
-          fetchEvents({ limit: 100 }),
-          fetchSignals({ limit: 200 }),
-          fetchFindings(),
-          fetchLatestRadar(),
-          fetchWorkspaceTopics(),
+          fetchTrackedCompanies(tenantId),
+          fetchEvents({ limit: 100, tenantId }),
+          fetchSignals({ limit: 200, tenantId }),
+          fetchFindings(tenantId),
+          fetchLatestRadar(tenantId),
+          fetchWorkspaceTopics(true, tenantId),
         ]);
 
       if (compsRes.status === "fulfilled") setTrackedCompanies(compsRes.value || []);
