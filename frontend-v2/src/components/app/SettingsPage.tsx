@@ -44,14 +44,14 @@ export function SettingsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchWorkspaceSettings();
+      const data = await fetchWorkspaceSettings(tenantId);
       setSettings(data);
     } catch (err: any) {
       setError(err.message || "Failed to load workspace settings");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadSettings();
