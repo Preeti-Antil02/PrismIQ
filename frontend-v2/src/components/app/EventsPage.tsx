@@ -50,8 +50,8 @@ export function EventsPage() {
     setError(null);
     try {
       const [eventsRes, compsRes] = await Promise.all([
-        fetchEvents({ limit: 200 }),
-        fetchTrackedCompanies(),
+        fetchEvents({ limit: 200, tenantId }),
+        fetchTrackedCompanies(tenantId),
       ]);
       setEvents(eventsRes.events || []);
       setCompanies(compsRes || []);
@@ -69,7 +69,7 @@ export function EventsPage() {
   // When a specific company filter is selected, ensure all events for that company are fetched and merged
   React.useEffect(() => {
     if (selectedCompany !== "ALL") {
-      fetchEvents({ company: selectedCompany, limit: 100 })
+      fetchEvents({ company: selectedCompany, limit: 100, tenantId })
         .then((res) => {
           if (res.events && res.events.length > 0) {
             setEvents((prev) => {
@@ -81,7 +81,7 @@ export function EventsPage() {
         })
         .catch(() => {});
     }
-  }, [selectedCompany]);
+  }, [selectedCompany, tenantId]);
 
   // Combined list of companies from tracked companies and events
   const allCompanyNames = React.useMemo(() => {
