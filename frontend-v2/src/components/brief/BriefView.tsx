@@ -71,13 +71,13 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
   const [archivesOpen, setArchivesOpen] = React.useState<boolean>(false);
 
   React.useEffect(() => {
-    fetchBriefs()
+    fetchBriefs(user?.tenant_id)
       .then((data) => setBriefs(data))
       .catch(() => {});
-    fetchTrackedCompanies()
+    fetchTrackedCompanies(user?.tenant_id)
       .then((data) => setTrackedCompanies(data))
       .catch(() => {});
-    fetchWorkspaceTopics()
+    fetchWorkspaceTopics(user?.tenant_id)
       .then((data) => setTopics(data))
       .catch(() => {});
   }, [user?.tenant_id]);
@@ -85,8 +85,8 @@ export function BriefView({ initialBriefId }: BriefViewProps) {
   React.useEffect(() => {
     setLoading(true);
     const fetcher = initialBriefId && initialBriefId !== "latest"
-      ? fetchBriefById(initialBriefId)
-      : fetchLatestBrief();
+      ? fetchBriefById(initialBriefId, user?.tenant_id)
+      : fetchLatestBrief(user?.tenant_id);
 
     fetcher
       .then((data) => setActiveBrief(data))
