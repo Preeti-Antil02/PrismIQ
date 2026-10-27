@@ -27,7 +27,7 @@ import {
 } from "@/lib/api";
 
 export function DeliveryPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [config, setConfig] = React.useState<DeliveryConfig | null>(null);
@@ -44,7 +44,7 @@ export function DeliveryPage() {
     setLoading(true);
     setError(null);
     try {
-      const cfg = await fetchDeliveryConfig();
+      const cfg = await fetchDeliveryConfig(tenantId);
       if (cfg) {
         setConfig(cfg);
         setWebhookUrl(cfg.slack_webhook_url || "");
@@ -57,7 +57,7 @@ export function DeliveryPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadDelivery();
