@@ -35,7 +35,7 @@ import {
 } from "@/lib/api";
 
 export function SignalsPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -55,8 +55,8 @@ export function SignalsPage() {
     setError(null);
     try {
       const [signalsRes, compsRes] = await Promise.all([
-        fetchSignals({ limit: 200 }),
-        fetchTrackedCompanies(),
+        fetchSignals({ limit: 200, tenantId }),
+        fetchTrackedCompanies(tenantId),
       ]);
       setSignals(signalsRes.signals || []);
       setNoiseCount(signalsRes.noise_suppressed_count || 0);
@@ -66,7 +66,7 @@ export function SignalsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadData();
