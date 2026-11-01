@@ -217,11 +217,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const allWorkspaces = React.useMemo(() => {
     const combined = [...AVAILABLE_WORKSPACES];
     for (const cw of customWorkspaces) {
-      if (!combined.some((w) => w.tenant_id === cw.tenant_id)) {
+      if (!combined.some((w) => w.tenant_id === cw.tenant_id || (w.target && cw.target && w.target.toLowerCase() === cw.target.toLowerCase()))) {
         combined.push(cw);
       }
     }
-    return combined;
+    // Deduplicate by target name as well
+    const seen = new Set<string>();
+    return combined.filter((w) => {
+      const key = (w.target || "").toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [customWorkspaces]);
 
   const [config, setConfig] = React.useState<WorkspaceConfig | null>(null);
@@ -325,8 +332,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })
         );
         setWorkspaceMenuOpen(false);
-        // Refresh page to reset all memory caches
-        window.location.reload();
+        // Navigate directly to overview so the selected target company opens and loads
+        window.location.href = "/app/overview";
       }
     },
     [allWorkspaces]
@@ -442,49 +449,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
                 {/* Workspace Dropdown */}
                 {workspaceMenuOpen && (
-                  <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-white border border-[rgba(20,20,30,0.09)] shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-2 border-b border-zinc-100">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
-                        Select Active Workspace
+                  <>
+                    {/* Backdrop to close on click outside */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setWorkspaceMenuOpen(false)}
+                    />
+                    <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-white border border-[rgba(20,20,30,0.09)] shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-3 py-2 border-b border-zinc-100">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
+                          Select Active Workspace
+                        </div>
+                        <div className="text-xs text-[#70717a]">
+                          Click company to open and load workspace
+                        </div>
                       </div>
-                      <div className="text-xs text-[#70717a]">
-                        Strict Tenant-Isolated State
+                      <div className="py-1 space-y-1 max-h-64 overflow-y-auto">
+                        {allWorkspaces.map((ws) => (
+                          <button
+                            key={ws.tenant_id}
+                            onClick={() => switchWorkspace(ws.tenant_id)}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                              activeTenantId === ws.tenant_id
+                                ? "bg-purple-50 font-bold text-[#6e57dc] border border-purple-200/60"
+                                : "hover:bg-zinc-50 text-[#374151]"
+                            }`}
+                          >
+                            <div>
+                              <div className="font-bold text-sm text-[#17171b]">{ws.target}</div>
+                              <div className="text-[11px] text-[#9ca3af]">{ws.sector}</div>
+                            </div>
+                            {activeTenantId === ws.tenant_id && (
+                              <CheckCircle2 className="w-4 h-4 text-[#6e57dc]" />
+                            )}
+                          </button>
+                        ))}
                       </div>
-                    </div>
-                    <div className="py-1 space-y-1 max-h-64 overflow-y-auto">
-                      {allWorkspaces.map((ws) => (
-                        <button
-                          key={ws.tenant_id}
-                          onClick={() => switchWorkspace(ws.tenant_id)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${
-                            activeTenantId === ws.tenant_id
-                              ? "bg-purple-50 font-bold text-[#6e57dc]"
-                              : "hover:bg-zinc-50 text-[#374151]"
-                          }`}
-                        >
-                          <div>
-                            <div className="font-bold">{ws.target}</div>
-                            <div className="text-[11px] text-[#9ca3af]">{ws.sector}</div>
-                          </div>
-                          {activeTenantId === ws.tenant_id && (
-                            <CheckCircle2 className="w-4 h-4 text-[#6e57dc]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
 
-                    {/* Action to Onboard a New Company */}
-                    <div className="pt-2 mt-1 border-t border-zinc-100">
-                      <button
-                        type="button"
-                        onClick={startNewCompanyOnboarding}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50/80 hover:bg-purple-100 transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Set Up Another Company</span>
-                      </button>
+                      {/* Action to Onboard a New Company */}
+                      <div className="pt-2 mt-1 border-t border-zinc-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWorkspaceMenuOpen(false);
+                            startNewCompanyOnboarding();
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50/80 hover:bg-purple-100 transition-colors flex items-center gap-2 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Set Up Another Company</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>

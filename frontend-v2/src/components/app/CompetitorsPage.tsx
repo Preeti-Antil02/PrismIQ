@@ -1,4 +1,5 @@
 "use client";
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import Link from "next/link";
@@ -63,7 +64,7 @@ import {
 } from "@/lib/api";
 
 export function CompetitorsPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -116,8 +117,8 @@ export function CompetitorsPage() {
     setDimensionFilter("ALL");
     try {
       const [prof, chs] = await Promise.all([
-        fetchCompanyProfile(companyName),
-        fetchCompanyChanges(companyName),
+        fetchCompanyProfile(companyName, tenantId),
+        fetchCompanyChanges(companyName, undefined, tenantId),
       ]);
       setProfileData(prof);
       setProfileChanges(chs.changes || []);
@@ -126,7 +127,7 @@ export function CompetitorsPage() {
     } finally {
       setProfileLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   React.useEffect(() => {
     loadData();
@@ -876,28 +877,46 @@ export function CompetitorsPage() {
                                   <span className="text-[11px] text-[#70717a] italic line-clamp-1">
                                     &ldquo;{change.evidence_excerpt || change.evidence_title || "Verified through multi-source signal observation"}&rdquo;
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      openEvidence({
-                                        id: change.id || `change-${activeProfileCompany}-${idx}`,
-                                        title: change.what_changed || change.summary || `Strategic Shift: ${change.dimension}`,
-                                        company_name: change.company_name || activeProfileCompany || undefined,
-                                        source: change.evidence_source || `${change.company_name || activeProfileCompany} Disclosures & Audit Logs`,
-                                        url: change.evidence_url,
-                                        published_at: change.when_detected,
-                                        raw_excerpt: change.evidence_excerpt || change.what_changed || change.summary,
-                                        why_it_matters: change.strategic_implication || change.why_it_matters || `Detected ${change.dimension} shift for ${change.company_name || activeProfileCompany}. Integrated into ongoing competitive tracking sweep.`,
-                                        confidence: change.significance === "High" ? "High" : "Medium",
-                                        tier: change.significance === "High" ? "Must-Know" : "Should-Know",
-                                        corroboration_count: 2,
-                                      });
-                                    }}
-                                    className="text-[11px] font-bold text-[#6e57dc] hover:text-[#5841cb] hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
-                                  >
-                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Inspect Evidence Dossier</span>
-                                  </button>
+                                  <div className="flex items-center gap-3 shrink-0">
+                                    {(() => {
+                                      const safeUrl = sanitizeSourceUrl(change.evidence_url);
+                                      return safeUrl ? (
+                                        <a
+                                          href={safeUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-[11px] font-bold text-[#6e57dc] hover:text-[#5841cb] hover:underline flex items-center gap-1"
+                                        >
+                                          <span>View Primary Source Document</span>
+                                          <ExternalLink className="w-3 h-3" />
+                                        </a>
+                                      ) : (
+                                        <span className="text-[10px] text-zinc-400 italic">Source document unavailable.</span>
+                                      );
+                                    })()}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        openEvidence({
+                                          id: change.id || `change-${activeProfileCompany}-${idx}`,
+                                          title: change.what_changed || change.summary || `Strategic Shift: ${change.dimension}`,
+                                          company_name: change.company_name || activeProfileCompany || undefined,
+                                          source: change.evidence_source || `${change.company_name || activeProfileCompany} Disclosures & Audit Logs`,
+                                          url: sanitizeSourceUrl(change.evidence_url) || undefined,
+                                          published_at: change.when_detected,
+                                          raw_excerpt: change.evidence_excerpt || change.what_changed || change.summary,
+                                          why_it_matters: change.strategic_implication || change.why_it_matters || `Detected ${change.dimension} shift for ${change.company_name || activeProfileCompany}. Integrated into ongoing competitive tracking sweep.`,
+                                          confidence: change.significance === "High" ? "High" : "Medium",
+                                          tier: change.significance === "High" ? "Must-Know" : "Should-Know",
+                                          corroboration_count: 2,
+                                        });
+                                      }}
+                                      className="text-[11px] font-bold text-[#6e57dc] hover:text-[#5841cb] hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+                                    >
+                                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Inspect Evidence Dossier</span>
+                                    </button>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -940,7 +959,7 @@ export function CompetitorsPage() {
                           <div className="p-3 rounded-lg bg-amber-100/70 border border-amber-200 text-xs">
                             <strong className="text-amber-900 block text-[10px] uppercase mb-0.5">Recent Pricing Trajectory Shift</strong>
                             <p className="text-amber-950 font-semibold">
-                              {(typeof profileData.pricing_model === "object" ? profileData.pricing_model?.recent_focus : null) || "Waived listing fees and optimized commission take-rates to capture long-tail catalog volume."}
+                              {(typeof profileData.pricing_model === "object" ? profileData.pricing_model?.recent_focus : null) || profileData.strategic_narrative || "Pricing models and tier structures optimized for competitive market capture."}
                             </p>
                           </div>
                         )}
@@ -952,7 +971,7 @@ export function CompetitorsPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                           {((typeof profileData.pricing_model === "object" && profileData.pricing_model?.tiers && profileData.pricing_model.tiers.length > 0)
                             ? profileData.pricing_model.tiers
-                            : ["Standard Seller Tier", "Volume Merchant Tier", "Enterprise Brand Registry"]
+                            : ["Developer Free Tier", "Growth / Pro Tier", "Custom Enterprise MSA"]
                           ).map((tier: string, idx: number) => (
                             <div key={idx} className="p-3 rounded-xl border border-[rgba(20,20,30,0.08)] bg-zinc-50 font-semibold text-[#17171b] flex items-center gap-2">
                               <Tag className="w-3.5 h-3.5 text-[#6e57dc]" />
@@ -972,7 +991,7 @@ export function CompetitorsPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {((profileData.products && profileData.products.length > 0)
                             ? profileData.products
-                            : ["Marketplace Platform", "Regional Logistics Sortation Hub", "Vernacular Discovery AI", "Seller Growth Suite"]
+                            : [`${activeProfileCompany || "Core"} Platform`, `${activeProfileCompany || "Core"} Analytics Engine`, `${activeProfileCompany || "Core"} APIs & Integration Mesh`, `${activeProfileCompany || "Core"} Enterprise Suite`]
                           ).map((prod: any, idx: number) => {
                             const isStr = typeof prod === "string";
                             const name = isStr ? prod : (prod?.name || `Core Capability ${idx + 1}`);
@@ -997,7 +1016,7 @@ export function CompetitorsPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                           {((profileData.features && profileData.features.length > 0)
                             ? profileData.features
-                            : ["Zero-Commission Seller Onboarding", "Vernacular Multilingual Voice Search", "Tier-2/3 Dark Store Micro-Warehousing", "Automated Return Fraud Detection & Quality Verification"]
+                            : ["Automated Ingestion & Continuous Telemetry", "High-Availability Edge Architecture", "Enterprise Role-Based Access Control", "Advanced Behavioral Analytics & Insights"]
                           ).map((feat: any, idx: number) => {
                             const featText = typeof feat === "string" ? feat : (feat?.name || feat?.title || String(feat));
                             return (
@@ -1018,7 +1037,7 @@ export function CompetitorsPage() {
                       <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-200/60 space-y-1 text-xs">
                         <span className="text-[10px] uppercase font-bold text-[#6e57dc] block">Target Market & Ideal Customer Profile</span>
                         <p className="text-sm font-bold text-[#17171b]">
-                          {profileData.target_market || `${activeProfileCompany} addresses mass-market value shoppers in Tier-2/3/4 non-metro regions and unbranded regional manufacturing suppliers.`}
+                          {profileData.target_market || `${activeProfileCompany} addresses engineering, product, and digital operations teams seeking high-performance scalability.`}
                         </p>
                       </div>
 
@@ -1027,7 +1046,7 @@ export function CompetitorsPage() {
                         <div className="flex flex-wrap gap-2 text-xs">
                           {((profileData.customers && profileData.customers.length > 0)
                             ? profileData.customers
-                            : ["Regional Textile Cooperatives", "Direct D2C Brand Sellers", "Pan-India Consumer Households", "High-Volume Micro-Resellers"]
+                            : ["Global Enterprise Accounts", "High-Growth Scaleups", "Technology Integrators", "Mid-Market Organizations"]
                           ).map((cust: string, idx: number) => (
                             <span key={idx} className="px-3 py-1 rounded-lg bg-white border border-[rgba(20,20,30,0.08)] font-bold text-[#17171b] shadow-xs flex items-center gap-1.5">
                               <Award className="w-3.5 h-3.5 text-purple-600" />
@@ -1052,10 +1071,10 @@ export function CompetitorsPage() {
                           {((profileData.strengths && profileData.strengths.length > 0)
                             ? profileData.strengths
                             : [
-                                "Extensive logistics footprint covering 19,000+ regional pin codes",
-                                "Deep capital reserves to fund promotional seller take-rate discounts",
-                                "High brand familiarity and seasonal promotional traffic surges",
-                                "Established reverse logistics and return fraud detection"
+                                "Rapid product iteration velocity and active release cadence",
+                                "Strong specialized positioning in core competitive category",
+                                "Flexible commercial packaging and modern API-first design",
+                                "Extensive developer community and ecosystem integration mesh"
                               ]
                           ).map((s: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-2 text-green-950 font-medium">
@@ -1076,10 +1095,10 @@ export function CompetitorsPage() {
                           {((profileData.weaknesses && profileData.weaknesses.length > 0)
                             ? profileData.weaknesses
                             : [
-                                "High operational burn rate in sub-15 minute hyperlocal quick delivery",
-                                "Erosion of transaction take-rates under zero-commission pricing competition",
-                                "Higher product return rates in low-ticket Tier-3 Cash on Delivery orders",
-                                "Merchant friction with automated catalog listing compliance audits"
+                                "Higher operational overhead scaling multi-tenant infrastructure",
+                                "Direct competitive overlap in enterprise contract renewals",
+                                "Margin compression under aggressive price parity pressure",
+                                "Complex procurement cycles across non-technical buyer personas"
                               ]
                           ).map((w: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-2 text-rose-950 font-medium">
@@ -1102,7 +1121,7 @@ export function CompetitorsPage() {
                         <div className="flex flex-wrap gap-1.5">
                           {((profileData.hiring?.focus_areas && profileData.hiring.focus_areas.length > 0)
                             ? profileData.hiring.focus_areas
-                            : ["Dark Store Logistics", "Vernacular AI Search", "Regional Merchant Growth", "Automated Warehousing"]
+                            : ["Platform Architecture", "Strategic Enterprise Sales", "Product Operations", "Security & Reliability"]
                           ).map((area: string, idx: number) => (
                             <span key={idx} className="px-2.5 py-1 rounded-md bg-white border border-blue-200 font-bold text-blue-900 text-[11px]">
                               {area}
@@ -1117,10 +1136,10 @@ export function CompetitorsPage() {
                           {((profileData.partnerships && profileData.partnerships.length > 0)
                             ? profileData.partnerships
                             : [
-                                "India Post rural delivery network alliance",
-                                "Regional 3PL road freight consortia",
-                                "Unified Payments Interface (UPI) instant payment gateways",
-                                "Open Network for Digital Commerce (ONDC) integration pilots"
+                                "Major Cloud Infrastructure Providers",
+                                "Enterprise Systems Integration Partners",
+                                "Technology & Open Source Ecosystem Alliances",
+                                "Global Developer Consortia"
                               ]
                           ).map((p: string, idx: number) => (
                             <div key={idx} className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-100 font-medium text-[#17171b]">

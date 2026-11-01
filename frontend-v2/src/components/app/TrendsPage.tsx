@@ -1,4 +1,5 @@
 "use client";
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import {
@@ -250,7 +251,7 @@ function SignalMixBar({ breakdown }: { breakdown?: Record<string, number> }) {
 // Main TrendsPage Component
 // ============================================================================
 export function TrendsPage() {
-  const { targetCompany } = useWorkspace();
+  const { targetCompany, tenantId } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -280,8 +281,8 @@ export function TrendsPage() {
       const [trendsRes, compsRes, seqRes, corrRes] = await Promise.all([
         fetchTrends({ limit: 50 }),
         fetchTrackedCompanies(),
-        fetchCompetitiveSequences().catch(() => ({ sequences: [], count: 0, filter: "ALL" })),
-        fetchSignalCorrelations().catch(() => ({ correlations: [], count: 0, filter: "ALL" })),
+        fetchCompetitiveSequences(undefined, tenantId).catch(() => ({ sequences: [], count: 0, filter: "ALL" })),
+        fetchSignalCorrelations(undefined, undefined, tenantId).catch(() => ({ correlations: [], count: 0, filter: "ALL" })),
       ]);
       const list = trendsRes.trends || [];
       setTrends(list);
@@ -310,7 +311,7 @@ export function TrendsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTrendId]);
+  }, [selectedTrendId, tenantId]);
 
   React.useEffect(() => {
     loadTrends();
@@ -1025,23 +1026,48 @@ export function TrendsPage() {
                               </p>
                             </div>
 
-                            {/* Primary proof link */}
-                            {activeStep.evidence_url && (
-                              <div className="flex items-center justify-between pt-1 text-xs">
-                                <a
-                                  href={activeStep.evidence_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 font-bold text-[#6e57dc] hover:text-[#5841cb] hover:underline"
-                                >
-                                  <span>Verify Primary Source</span>
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                                <span className="text-[11px] text-zinc-400">
-                                  Corroborated by PrismIQ Verification Engine
-                                </span>
-                              </div>
-                            )}
+                            {/* Evidence Action Row */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs border-t border-zinc-200/60">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openEvidence({
+                                    id: `seq_step_${activeStep.step_number}`,
+                                    title: activeStep.event_title,
+                                    company_name: seq.company_name,
+                                    source: activeStep.dimension,
+                                    url: activeStep.evidence_url ? (activeStep.evidence_url.startsWith("http") ? activeStep.evidence_url : `https://${activeStep.evidence_url}`) : undefined,
+                                    published_at: activeStep.month,
+                                    raw_excerpt: activeStep.evidence_excerpt,
+                                    why_it_matters: seq.strategic_interpretation,
+                                    confidence: `${seq.confidence}%`,
+                                    tier: "Must-Know",
+                                    corroboration_count: activeStep.signals_count,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1.5 font-bold text-[#6e57dc] hover:text-[#5841cb] hover:underline cursor-pointer"
+                              >
+                                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                                <span>Inspect Evidence Dossier ({activeStep.signals_count} signals)</span>
+                              </button>
+
+                              {(() => {
+                                const safeUrl = sanitizeSourceUrl(activeStep.evidence_url);
+                                return safeUrl ? (
+                                  <a
+                                    href={safeUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 font-bold text-zinc-600 hover:text-[#6e57dc] hover:underline text-[11px]"
+                                  >
+                                    <span>Open Primary Source</span>
+                                    <ExternalLink className="w-3 h-3 text-zinc-400" />
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-zinc-400 italic">Source document unavailable.</span>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -1262,16 +1288,21 @@ export function TrendsPage() {
                                 &ldquo;{activeSig.excerpt}&rdquo;
                               </blockquote>
                             )}
-                            {activeSig.url && (
-                              <a
-                                href={activeSig.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 font-bold text-[#6e57dc] hover:underline"
-                              >
-                                View Primary Source Document <ExternalLink className="w-3 h-3" />
-                              </a>
-                            )}
+                            {(() => {
+                              const safeUrl = sanitizeSourceUrl(activeSig.url);
+                              return safeUrl ? (
+                                <a
+                                  href={safeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 font-bold text-[#6e57dc] hover:underline"
+                                >
+                                  View Primary Source Document <ExternalLink className="w-3 h-3" />
+                                </a>
+                              ) : (
+                                <span className="text-xs text-[#9ca3af] italic">Source document unavailable.</span>
+                              );
+                            })()}
                           </div>
                         )}
 

@@ -1,4 +1,5 @@
 "use client";
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import Link from "next/link";
@@ -449,19 +450,26 @@ export function PrismEvidenceDrawer({
                 </span>
               </div>
             )}
-            {data.url && (
-              <div className="pt-2 border-t border-[rgba(20,20,30,0.06)]">
-                <a
-                  href={data.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6e57dc] hover:underline break-all"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  View Original Source
-                </a>
-              </div>
-            )}
+            <div className="pt-2 border-t border-[rgba(20,20,30,0.06)]">
+              {(() => {
+                const safeUrl = sanitizeSourceUrl(data.url);
+                return safeUrl ? (
+                  <a
+                    href={safeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6e57dc] hover:underline break-all"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                    View Primary Source Document
+                  </a>
+                ) : (
+                  <span className="text-xs text-[#9ca3af] italic">
+                    Source document unavailable.
+                  </span>
+                );
+              })()}
+            </div>
           </div>
 
           {/* Contributing Signals (if event consolidated from multiple) */}
@@ -480,16 +488,23 @@ export function PrismEvidenceDrawer({
                       <span className="font-bold text-[#17171b] uppercase text-[10px]">
                         {sig.source}
                       </span>
-                      {sig.url && (
-                        <a
-                          href={sig.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#6e57dc] hover:underline text-[10px]"
-                        >
-                          View Link
-                        </a>
-                      )}
+                      {(() => {
+                        const safeUrl = sanitizeSourceUrl(sig.url);
+                        return safeUrl ? (
+                          <a
+                            href={safeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#6e57dc] hover:underline text-[10px] font-semibold"
+                          >
+                            View Link
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-zinc-400 italic">
+                            Source document unavailable.
+                          </span>
+                        );
+                      })()}
                     </div>
                     {sig.title && <div className="font-medium text-[#374151] mb-1">{sig.title}</div>}
                     {sig.raw_excerpt && (

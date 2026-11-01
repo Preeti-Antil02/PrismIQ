@@ -11,21 +11,25 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const company = searchParams.get("company");
   const impact = searchParams.get("impact");
+  const category = searchParams.get("category");
 
   const query = new URLSearchParams();
   if (company) query.set("company", company);
   if (impact) query.set("impact", impact);
+  if (category) query.set("category", category);
 
   const qs = query.toString() ? `?${query.toString()}` : "";
   const backendUrl = `${BACKEND_BASE}/changes/detection${qs}`;
 
   const incomingAuth = req.headers.get("authorization");
   const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
+  const incomingTenant = req.headers.get("x-tenant-id");
 
   try {
     const res = await fetch(backendUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
+        ...(incomingTenant ? { "X-Tenant-ID": incomingTenant } : {}),
       },
       cache: "no-store",
     });

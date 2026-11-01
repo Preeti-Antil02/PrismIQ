@@ -1,4 +1,5 @@
 "use client";
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import {
@@ -116,6 +117,8 @@ export function EventsPage() {
 
   // Change Detection Filter States
   const [changeFilterCompany, setChangeFilterCompany] = React.useState<string>("ALL");
+  const [changeFilterImpact, setChangeFilterImpact] = React.useState<string>("ALL");
+  const [changeFilterCategory, setChangeFilterCategory] = React.useState<string>("ALL");
   const [selectedSignalIndices, setSelectedSignalIndices] = React.useState<Record<string, number>>({});
   const [expandedChangeIds, setExpandedChangeIds] = React.useState<Record<string, boolean>>({});
 
@@ -132,7 +135,7 @@ export function EventsPage() {
       const [eventsRes, compsRes, changesRes] = await Promise.all([
         fetchEvents({ limit: 200 }),
         fetchTrackedCompanies(),
-        fetchHighImpactChanges().catch(() => ({ changes: [], count: 0, high_impact_count: 0, filter: "ALL" })),
+        fetchHighImpactChanges(undefined, undefined, tenantId).catch(() => ({ changes: [], count: 0, high_impact_count: 0, filter: "ALL" })),
       ]);
       setEvents(eventsRes.events || []);
       setCompanies(compsRes || []);
@@ -177,13 +180,35 @@ export function EventsPage() {
     return Array.from(set);
   }, [highImpactChanges]);
 
+  const availableCategories = React.useMemo(() => {
+    const set = new Set<string>();
+    highImpactChanges.forEach((c) => {
+      if (c.event_category) set.add(c.event_category);
+      else if (c.dimension) set.add(c.dimension);
+    });
+    return Array.from(set).sort();
+  }, [highImpactChanges]);
+
   // Filtered high-impact changes based on selection
   const filteredHighImpactChanges = React.useMemo(() => {
-    if (changeFilterCompany === "ALL") return highImpactChanges;
-    return highImpactChanges.filter(
-      (c) => c.company_name.toLowerCase() === changeFilterCompany.toLowerCase()
-    );
-  }, [highImpactChanges, changeFilterCompany]);
+    return highImpactChanges.filter((c) => {
+      if (changeFilterCompany !== "ALL" && c.company_name.toLowerCase() !== changeFilterCompany.toLowerCase()) {
+        return false;
+      }
+      if (changeFilterImpact !== "ALL") {
+        const tier = (c.significance_tier || "").toUpperCase();
+        if (changeFilterImpact === "CRITICAL INFLECTION" && !tier.includes("CRITICAL")) return false;
+        if (changeFilterImpact === "HIGH IMPACT" && tier !== "HIGH IMPACT" && tier !== "HIGH") return false;
+        if (changeFilterImpact === "MEDIUM IMPACT" && tier !== "MEDIUM IMPACT" && tier !== "MEDIUM") return false;
+        if (!tier.includes(changeFilterImpact.toUpperCase())) return false;
+      }
+      if (changeFilterCategory !== "ALL") {
+        const cat = c.event_category || c.dimension || "";
+        if (cat.toLowerCase() !== changeFilterCategory.toLowerCase()) return false;
+      }
+      return true;
+    });
+  }, [highImpactChanges, changeFilterCompany, changeFilterImpact, changeFilterCategory]);
 
   // Client-side filtering for granular archive
   const filteredEvents = React.useMemo(() => {
@@ -308,14 +333,62 @@ export function EventsPage() {
               </div>
             </div>
 
+            {/* Significance Tier & Category Filter Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-zinc-50 rounded-xl border border-zinc-200/80 text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-[#70717a] mr-1 flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-[#9ca3af]" />
+                  Significance Tier:
+                </span>
+                {[
+                  { id: "ALL", label: "All Inflections" },
+                  { id: "CRITICAL INFLECTION", label: "Critical Inflections" },
+                  { id: "HIGH IMPACT", label: "High Impact" },
+                  { id: "MEDIUM IMPACT", label: "Medium Impact" },
+                ].map(({ id, label }) => {
+                  const active = changeFilterImpact === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setChangeFilterImpact(id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        active
+                          ? "bg-amber-600 text-white shadow-xs"
+                          : "bg-white text-[#70717a] border border-zinc-200 hover:bg-zinc-100 hover:text-[#17171b]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {availableCategories.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[#70717a] font-bold text-[11px]">Category:</span>
+                  <select
+                    value={changeFilterCategory}
+                    onChange={(e) => setChangeFilterCategory(e.target.value)}
+                    className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-zinc-200 bg-white text-zinc-800 focus:outline-hidden focus:ring-1 focus:ring-[#6e57dc]"
+                  >
+                    <option value="ALL">All Categories</option>
+                    {availableCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
             {/* Change Detection Cards */}
             <div className="space-y-4">
               {filteredHighImpactChanges.map((change) => {
                 const isExpanded = expandedChangeIds[change.id] ?? false;
-                const signalsEvidence =
-                  change.signals_evidence && change.signals_evidence.length > 0
-                    ? change.signals_evidence
-                    : [
+                const rawSignals = (change.signals_evidence && change.signals_evidence.length > 0)
+                  ? change.signals_evidence
+                  : (change.signals && change.signals.length > 0 ? change.signals : null);
+                const signalsEvidence = rawSignals || [
                         {
                           signal_type: change.change_type || "Competitive Move",
                           title: change.headline,
@@ -343,24 +416,29 @@ export function EventsPage() {
                 const significanceTier =
                   change.significance_tier ||
                   (change.impact_severity ? `${change.impact_severity.toUpperCase()} IMPACT` : "HIGH IMPACT");
+                const isCritical = significanceTier.toUpperCase().includes("CRITICAL");
                 const isHighImpact =
-                  significanceTier.toUpperCase().includes("HIGH") ||
-                  significanceTier.toUpperCase().includes("CRITICAL");
+                  significanceTier.toUpperCase().includes("HIGH") || isCritical;
+                const category = change.event_category || change.dimension || "Strategic Inflection";
+                const score = change.impact_score;
+                const affectedTeams = change.affected_business_teams || change.who_is_affected || [];
                 const windowDays = change.window_days ?? 14;
                 const corroborationCount =
                   change.corroborating_signals_count ??
                   change.corroboration_count ??
                   signalsEvidence.length ??
-                  3;
+                  1;
                 const confidence = change.confidence ?? 92;
                 const strategicInterpretation =
                   change.strategic_interpretation ||
+                  change.event_description ||
                   change.description ||
-                  "PrismIQ identified a strategic movement impacting competitive position.";
+                  "Insufficient evidence";
                 const recommendedAction =
                   change.recommended_action ||
                   change.counter_measure ||
-                  "Provide account teams with comparative battlecards neutralizing competitor claims.";
+                  "Insufficient evidence";
+                const whyItMatters = change.why_it_matters || "Insufficient evidence";
 
                 return (
                   <div
@@ -373,14 +451,32 @@ export function EventsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold ${
-                              isHighImpact
+                              isCritical
                                 ? "bg-rose-100/90 text-rose-800 border border-rose-300 animate-pulse"
-                                : "bg-amber-100 text-amber-800 border border-amber-300"
+                                : isHighImpact
+                                ? "bg-amber-100 text-amber-800 border border-amber-300"
+                                : "bg-blue-100 text-blue-800 border border-blue-300"
                             }`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-current" />
                             {significanceTier}
                           </span>
+
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {category}
+                          </span>
+
+                          {score !== undefined && score !== null && (
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-zinc-100 text-zinc-800 border border-zinc-200">
+                              Score: {score}/100
+                            </span>
+                          )}
+
+                          {change.is_demo_data && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-600 border border-dashed border-zinc-300">
+                              Demo Scenario
+                            </span>
+                          )}
 
                           <PrismCompanyBadge
                             name={change.company_name}
@@ -427,8 +523,19 @@ export function EventsPage() {
 
                       {/* Corroboration Why-it-matters */}
                       <p className="text-xs text-[#70717a] mt-1.5 leading-relaxed font-medium">
-                        <strong className="text-zinc-800">Why it matters:</strong> {change.why_it_matters}
+                        <strong className="text-zinc-800">Why it matters:</strong> {whyItMatters}
                       </p>
+
+                      {affectedTeams.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                          <span className="text-[10px] font-bold text-[#70717a] uppercase tracking-wider">Affected Teams:</span>
+                          {affectedTeams.map((team, idx) => (
+                            <span key={idx} className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                              {team}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Multi-Signal Evidence Strip */}
@@ -500,22 +607,49 @@ export function EventsPage() {
                             &ldquo;{activeSignal.excerpt || activeSignal.title || "Corroborated signal evidence"}&rdquo;
                           </div>
 
-                          {activeSignal.url && (
-                            <div className="flex items-center justify-between pt-0.5 text-xs">
-                              <a
-                                href={activeSignal.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[#6e57dc] hover:text-[#5841cb] font-bold hover:underline"
-                              >
-                                <span>Verify Primary Source</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                              <span className="text-[10px] text-zinc-400">
-                                Verified by PrismIQ Evidence Crawler
-                              </span>
-                            </div>
-                          )}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs border-t border-zinc-100">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openEvidence({
+                                  id: `hic_${change.id}_${activeSignalIdx}`,
+                                  title: activeSignal?.title || change.headline,
+                                  company_name: change.company_name,
+                                  source: activeSignal?.source || activeSignal?.signal_type || "Official",
+                                  url: activeSignal?.url ? (activeSignal.url.startsWith("http") ? activeSignal.url : `https://${activeSignal.url}`) : undefined,
+                                  published_at: activeSignal?.detected_at || change.detected_at || "Recent",
+                                  raw_excerpt: activeSignal?.excerpt || change.strategic_interpretation,
+                                  why_it_matters: change.why_it_matters,
+                                  confidence: `${confidence}%`,
+                                  tier: isHighImpact ? "Must-Know" : "Should-Know",
+                                  corroboration_count: corroborationCount,
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 font-bold text-[#6e57dc] hover:text-[#5841cb] hover:underline cursor-pointer self-start"
+                            >
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                              <span>Inspect Evidence Dossier ({corroborationCount} signals)</span>
+                            </button>
+
+                            {(() => {
+                              const safeUrl = sanitizeSourceUrl(activeSignal.url);
+                              return safeUrl ? (
+                                <a
+                                  href={safeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 font-bold text-zinc-600 hover:text-[#6e57dc] hover:underline text-[11px]"
+                                >
+                                  <span>Verify Primary Source</span>
+                                  <ExternalLink className="w-3 h-3 text-zinc-400" />
+                                </a>
+                              ) : (
+                                <span className="text-[11px] text-zinc-400 italic">
+                                  Source document unavailable.
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -17,9 +17,11 @@ export async function GET(req: NextRequest) {
   const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 
   try {
+    const incomingTenant = req.headers.get("x-tenant-id");
     const res = await fetch(backendUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
+        ...(incomingTenant ? { "X-Tenant-ID": incomingTenant } : {}),
       },
       cache: "no-store",
     });

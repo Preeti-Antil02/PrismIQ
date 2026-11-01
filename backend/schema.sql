@@ -552,13 +552,20 @@ CREATE TABLE IF NOT EXISTS detected_high_impact_changes (
     tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     company_name VARCHAR(255) NOT NULL,
     headline VARCHAR(500) NOT NULL,
+    event_category VARCHAR(100) NOT NULL DEFAULT 'Enterprise Strategy',
+    event_description TEXT NOT NULL DEFAULT '',
     significance_tier VARCHAR(50) NOT NULL DEFAULT 'HIGH IMPACT',
+    impact_score NUMERIC(5, 2) NOT NULL DEFAULT 75.00,
     confidence NUMERIC(5, 2) NOT NULL DEFAULT 90.00,
     potential_impact VARCHAR(50) NOT NULL DEFAULT 'High',
     window_days INTEGER NOT NULL DEFAULT 14,
     strategic_interpretation TEXT NOT NULL,
     why_it_matters TEXT NOT NULL,
     recommended_action TEXT NOT NULL,
+    affected_business_teams JSONB NOT NULL DEFAULT '[]'::jsonb,
+    related_event_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    verification_status VARCHAR(50) NOT NULL DEFAULT 'corroborated',
+    is_demo_data BOOLEAN NOT NULL DEFAULT FALSE,
     corroborating_signals_count INTEGER NOT NULL DEFAULT 3,
     signals_evidence JSONB NOT NULL DEFAULT '[]'::jsonb,
     detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -621,13 +628,23 @@ CREATE TABLE IF NOT EXISTS decision_support_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     company_name VARCHAR(255) NOT NULL,
+    target_company VARCHAR(255) DEFAULT 'Our Company',
     event_id VARCHAR(255),
+    impact_category VARCHAR(100) DEFAULT 'Product Capability Threat',
     what_happened TEXT NOT NULL,
     why_it_matters TEXT NOT NULL,
     who_is_affected TEXT[] NOT NULL DEFAULT '{}',
     what_should_we_do TEXT NOT NULL,
     urgency VARCHAR(50) NOT NULL DEFAULT 'High',
+    time_horizon VARCHAR(50) DEFAULT 'Immediate (<7d)',
+    deadline_at TIMESTAMPTZ,
+    response_deadline_label VARCHAR(150) DEFAULT 'No fixed response deadline established',
     confidence NUMERIC(5, 2) NOT NULL DEFAULT 89.00,
+    confidence_breakdown JSONB NOT NULL DEFAULT '{}'::jsonb,
+    department_reasons JSONB NOT NULL DEFAULT '{}'::jsonb,
+    action_checklist JSONB NOT NULL DEFAULT '[]'::jsonb,
+    execution_progress JSONB NOT NULL DEFAULT '{"total": 0, "accepted": 0, "in_progress": 0, "completed": 0, "dismissed": 0, "percent_complete": 0}'::jsonb,
+    insufficient_evidence BOOLEAN DEFAULT FALSE,
     corroboration_sources_count INTEGER NOT NULL DEFAULT 3,
     evidence_sources JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -644,3 +661,35 @@ CREATE INDEX IF NOT EXISTS idx_decision_support_tenant_company
 
 CREATE INDEX IF NOT EXISTS idx_decision_support_urgency_created 
     ON decision_support_items (urgency, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_decision_support_impact_category
+    ON decision_support_items (impact_category);
+
+CREATE INDEX IF NOT EXISTS idx_decision_support_deadline
+    ON decision_support_items (deadline_at ASC NULLS LAST);
+
+-- Dedicated action execution audit log table
+CREATE TABLE IF NOT EXISTS decision_support_action_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    decision_item_id VARCHAR(255) NOT NULL,
+    action_id VARCHAR(255) NOT NULL,
+    company_name VARCHAR(255) NOT NULL,
+    previous_status VARCHAR(50) DEFAULT 'Pending',
+    new_status VARCHAR(50) NOT NULL,
+    notes TEXT,
+    updated_by VARCHAR(255) DEFAULT 'analyst',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE decision_support_action_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_history_all ON decision_support_action_history;
+CREATE POLICY tenant_isolation_history_all ON decision_support_action_history FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+CREATE INDEX IF NOT EXISTS idx_ds_action_history_tenant_item
+    ON decision_support_action_history (tenant_id, decision_item_id, action_id);
+
+CREATE INDEX IF NOT EXISTS idx_ds_action_history_created
+    ON decision_support_action_history (created_at DESC);

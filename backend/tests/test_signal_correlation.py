@@ -131,3 +131,94 @@ def test_signal_correlation_security_unauthenticated():
 
     res_post = client.post("/signals/correlations", json={"company_name": "Intruder"})
     assert res_post.status_code == 401
+
+
+def test_meesho_tenant_four_distinct_channels_and_no_placeholders():
+    """Verify Point 1: 4 distinct channels and bespoke signals for Meesho competitors."""
+    token = _create_jwt_token("8553449a-c998-4727-be01-9aeb724038cb", "analyst@meesho.dev")
+    res = client.get("/signals/correlations?tenant_id=8553449a-c998-4727-be01-9aeb724038cb", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    data = res.json()
+    correlations = data["correlations"]
+    assert len(correlations) >= 4
+
+    comp_names = {c["company_name"] for c in correlations}
+    assert "Flipkart" in comp_names
+    assert "Amazon India" in comp_names
+    assert "Shopsy" in comp_names
+    assert "Ajio" in comp_names
+
+    required_channels = {"github", "careers", "news", "pricing"}
+
+    for corr in correlations:
+        # Check no synthetic placeholder titles or descriptions
+        assert "Cross-Channel Strategic Acceleration" not in corr["pattern_name"]
+        assert "siphoning early-adopter velocity away" not in corr["strategic_implication"]
+        assert len(corr["pattern_name"]) > 10
+        assert len(corr["strategic_implication"]) > 20
+        assert len(corr["recommended_action"]) > 20
+        assert corr["pipeline_stage"] == "Actions"
+        assert corr["confidence"] >= 90.0
+
+        cluster = corr["signals_cluster"]
+        assert len(cluster) == 4
+
+        channels_present = {s.get("channel") for s in cluster}
+        assert required_channels.issubset(channels_present), f"Missing channels for {corr['company_name']}: {channels_present}"
+
+        # Verify authentic URLs and excerpts
+        for sig in cluster:
+            assert sig["url"].startswith("http")
+            assert len(sig["excerpt"]) >= 15
+            assert sig["weight"] == 0.25
+            assert sig["confidence"] >= 90.0
+
+
+def test_signal_correlation_channel_filtering():
+    """Verify Point 4: Channel filtering support (GitHub, Careers, News, Pricing)."""
+    token = _create_jwt_token("8553449a-c998-4727-be01-9aeb724038cb", "analyst@meesho.dev")
+
+    for ch in ["github", "careers", "news", "pricing"]:
+        res = client.get(
+            f"/signals/correlations?channel={ch}&tenant_id=8553449a-c998-4727-be01-9aeb724038cb",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["channel_filter"] == ch
+        assert len(data["correlations"]) >= 4
+        # Every returned cluster has at least one signal in the channel
+        for c in data["correlations"]:
+            assert any(s.get("channel") == ch for s in c["signals_cluster"])
+
+
+def test_signal_correlation_tenant_isolation_and_uuid_validation():
+    """Verify Point 4: Strict tenant isolation and UUID validation."""
+    token = _create_jwt_token("8553449a-c998-4727-be01-9aeb724038cb", "analyst@meesho.dev")
+
+    # 1. Invalid UUID in query param should return 400
+    res_bad = client.get(
+        "/signals/correlations?tenant_id=invalid-not-a-uuid",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert res_bad.status_code == 400
+    assert "Invalid tenant ID format" in res_bad.json()["detail"]
+
+    # 2. Invalid UUID in header should return 400
+    res_bad_header = client.get(
+        "/signals/correlations",
+        headers={"Authorization": f"Bearer {token}", "X-Tenant-ID": "hacker-uuid-format"}
+    )
+    assert res_bad_header.status_code == 400
+    assert "Invalid tenant ID format" in res_bad_header.json()["detail"]
+
+    # 3. Valid X-Tenant-ID header is honored
+    res_header = client.get(
+        "/signals/correlations",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "X-Tenant-ID": "8553449a-c998-4727-be01-9aeb724038cb"
+        }
+    )
+    assert res_header.status_code == 200
+    assert res_header.json()["tenant_id"] == "8553449a-c998-4727-be01-9aeb724038cb"
