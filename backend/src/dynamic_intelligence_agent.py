@@ -927,11 +927,19 @@ SECTOR_TEMPLATES = {
 
 def _detect_sector(target_company: str, competitor_name: str) -> Dict[str, Any]:
     """Identify the matching sector template based on company name and brand cues."""
-    text = f"{target_company} {competitor_name}".lower()
+    comp_text = competitor_name.lower().strip()
+    # Check competitor specific cues first to avoid cross-contaminating competitor with target's industry
     for sector_key, template in SECTOR_TEMPLATES.items():
         if sector_key == "general-enterprise":
             continue
-        if any(kw in text for kw in template["keywords"]):
+        if any(kw in comp_text for kw in template["keywords"]):
+            return template
+    # Fallback to checking target company
+    target_text = target_company.lower().strip()
+    for sector_key, template in SECTOR_TEMPLATES.items():
+        if sector_key == "general-enterprise":
+            continue
+        if any(kw in target_text for kw in template["keywords"]):
             return template
     return SECTOR_TEMPLATES["general-enterprise"]
 
