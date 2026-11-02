@@ -5587,7 +5587,7 @@ def _infer_channel_key(sig_type: str, source: str) -> str:
     return "news"
 
 
-def _normalize_correlation_item(c: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_correlation_item(c: Dict[str, Any], target_company: str = "Our Company") -> Dict[str, Any]:
     """Ensure consistent structure across dynamic agents, DB, and published briefs."""
     from . import signal_correlation_engine as sce
 
@@ -5667,19 +5667,45 @@ def _normalize_correlation_item(c: Dict[str, Any]) -> Dict[str, Any]:
     # Implication and Counter-Action
     strat = c.get("strategic_implication")
     strat_details = c.get("strategic_implication_details")
-    if not strat:
-        strat_details = sce.generate_strategic_implication(cname, cat, "Our Company", norm_cluster)
-        strat = strat_details["summary_text"]
-    elif not strat_details:
-        strat_details = sce.generate_strategic_implication(cname, cat, "Our Company", norm_cluster)
+
+    # Detect generic boilerplate strings that must be replaced
+    is_boilerplate_strat = False
+    if strat:
+        s_low = str(strat).lower()
+        if "consolidating market positioning against" in s_low or "synchronized capability releases" in s_low:
+            is_boilerplate_strat = True
+    elif strat_details and isinstance(strat_details, dict):
+        s_low = str(strat_details.get("strategic_direction") or "").lower()
+        if "consolidating market positioning against" in s_low or "synchronized capability releases" in s_low:
+            is_boilerplate_strat = True
+
+    is_boilerplate_rec = False
+    if rec := c.get("recommended_action"):
+        r_low = str(rec).lower()
+        if "deploy updated battlecards to direct sales" in r_low or ("audit" in r_low and "feature roadmap against" in r_low):
+            is_boilerplate_rec = True
+    elif rec_details := c.get("recommended_action_details"):
+        if isinstance(rec_details, dict):
+            r_low = str(rec_details.get("suggested_next_step") or "").lower()
+            if "deploy updated battlecards to direct sales" in r_low or ("audit" in r_low and "feature roadmap against" in r_low):
+                is_boilerplate_rec = True
 
     rec = c.get("recommended_action")
     rec_details = c.get("recommended_action_details")
-    if not rec:
-        rec_details = sce.generate_recommended_counter_action(cname, cat, "Our Company", norm_cluster)
+
+    if not strat or is_boilerplate_strat:
+        strat_details = sce.generate_strategic_implication(cname, cat, target_company, signals=norm_cluster)
+        strat = strat_details["summary_text"]
+    elif not strat_details:
+        strat_details = sce.generate_strategic_implication(cname, cat, target_company, signals=norm_cluster)
+        strat_details["summary_text"] = strat
+
+    if not rec or is_boilerplate_rec:
+        rec_details = sce.generate_recommended_counter_action(cname, cat, target_company, signals=norm_cluster)
         rec = rec_details["summary_text"]
     elif not rec_details:
-        rec_details = sce.generate_recommended_counter_action(cname, cat, "Our Company", norm_cluster)
+        rec_details = sce.generate_recommended_counter_action(cname, cat, target_company, signals=norm_cluster)
+        rec_details["summary_text"] = rec
 
     indep_count = c.get("independent_sources_count") or len({s.get("source", "").lower() for s in norm_cluster if s.get("source")}) or 1
     chan_count = c.get("distinct_channels_count") or len({s.get("channel", "").lower() for s in norm_cluster if s.get("channel")}) or 1
@@ -5819,8 +5845,15 @@ def get_signal_correlations(
     if not raw_results:
         raw_results = _get_baseline_signal_correlations()
 
-    # Normalize all items
-    normalized = [_normalize_correlation_item(c) for c in raw_results]
+    # Determine target company for dyadic intelligence
+    ws_target = "Our Company"
+    if tid:
+        ws_cfg = get_tenant_workspace_config(str(tid).strip())
+        if ws_cfg.get("target_company"):
+            ws_target = ws_cfg.get("target_company")
+
+    # Normalize all items with target_company context
+    normalized = [_normalize_correlation_item(c, target_company=ws_target) for c in raw_results]
 
     # Apply filters
     filtered = normalized

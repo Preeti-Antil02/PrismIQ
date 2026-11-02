@@ -1411,6 +1411,7 @@ export interface StrategicImplicationDetails {
   affected_business_area?: string;
   competitive_implication?: string;
   strategic_uncertainty?: string;
+  key_uncertainty?: string;
   summary_text?: string;
 }
 

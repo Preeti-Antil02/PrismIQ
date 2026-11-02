@@ -29,6 +29,7 @@ import {
   Flame,
   Search,
   PieChart,
+  Radio,
 } from "lucide-react";
 import { useWorkspace, useAppEvidence } from "./AppShell";
 import {
@@ -49,7 +50,6 @@ import {
   fetchTrendDetail,
   fetchTrackedCompanies,
   fetchCompetitiveSequences,
-  fetchSignalCorrelations,
   type TrendRecord,
   type TrendDetailRecord,
   type TimelineNode,
@@ -58,8 +58,6 @@ import {
   type TrackedCompany,
   type CompetitiveSequenceRecord,
   type SequenceStep,
-  type SignalCorrelationRecord,
-  type CorrelatedSignalNode,
 } from "@/lib/api";
 
 const DIMENSION_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -263,9 +261,6 @@ export function TrendsPage() {
   const [sequences, setSequences] = React.useState<CompetitiveSequenceRecord[]>([]);
   const [selectedSequenceCompany, setSelectedSequenceCompany] = React.useState<string>("ALL");
   const [activeStepIndices, setActiveStepIndices] = React.useState<Record<string, number>>({});
-  const [correlations, setCorrelations] = React.useState<SignalCorrelationRecord[]>([]);
-  const [selectedCorrelationCompany, setSelectedCorrelationCompany] = React.useState<string>("ALL");
-  const [activeSignalIndices, setActiveSignalIndices] = React.useState<Record<string, number>>({});
   const [error, setError] = React.useState<string | null>(null);
 
   // Filters
@@ -278,23 +273,15 @@ export function TrendsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [trendsRes, compsRes, seqRes, corrRes] = await Promise.all([
+      const [trendsRes, compsRes, seqRes] = await Promise.all([
         fetchTrends({ limit: 50 }),
         fetchTrackedCompanies(),
         fetchCompetitiveSequences(undefined, tenantId).catch(() => ({ sequences: [], count: 0, filter: "ALL" })),
-        fetchSignalCorrelations(undefined, undefined, tenantId).catch(() => ({ correlations: [], count: 0, filter: "ALL" })),
       ]);
       const list = trendsRes.trends || [];
       setTrends(list);
       setCompanies(compsRes || []);
       setSequences(seqRes.sequences || []);
-      setCorrelations(corrRes.correlations || []);
-
-      const initialSignalMap: Record<string, number> = {};
-      (corrRes.correlations || []).forEach((c) => {
-        initialSignalMap[c.id] = 0;
-      });
-      setActiveSignalIndices(initialSignalMap);
 
       // Default active step to the final step of each sequence
       const initialStepMap: Record<string, number> = {};
@@ -572,18 +559,6 @@ export function TrendsPage() {
     );
   }, [sequences, selectedSequenceCompany]);
 
-  const correlationCompanies = React.useMemo(() => {
-    const set = new Set<string>();
-    correlations.forEach((c) => set.add(c.company_name));
-    return Array.from(set).sort();
-  }, [correlations]);
-
-  const filteredCorrelations = React.useMemo(() => {
-    if (selectedCorrelationCompany === "ALL") return correlations;
-    return correlations.filter(
-      (c) => c.company_name.toLowerCase() === selectedCorrelationCompany.toLowerCase()
-    );
-  }, [correlations, selectedCorrelationCompany]);
 
   return (
     <div className="space-y-8 pb-16">
@@ -1102,238 +1077,37 @@ export function TrendsPage() {
           </section>
 
           {/* ========================================================================= */}
-          {/* POINT 4: SIGNAL CORRELATION ENGINE & 5-STAGE STRATEGIC IMPLICATION PIPELINE */}
+          {/* CROSS-CHANNEL SIGNAL CORRELATIONS BRIDGE */}
           {/* ========================================================================= */}
-          <section className="space-y-5 pt-6 border-t border-[rgba(20,20,30,0.07)]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
-                    <Layers className="w-3.5 h-3.5" />
-                    Point 4 • 5-Stage Synthesis Pipeline
-                  </span>
-                  <span className="text-xs text-[#70717a]">•</span>
-                  <span className="text-xs text-[#70717a] font-medium">
-                    {correlations.length} Correlated Signal Chains
-                  </span>
+          <section className="pt-2">
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-50/80 via-indigo-50/50 to-blue-50/60 border border-purple-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/10 flex items-center justify-center text-[#6e57dc] border border-purple-200 shrink-0">
+                  <Radio className="w-5 h-5" />
                 </div>
-                <h2 className="text-xl font-bold text-[#17171b] tracking-tight mt-1">
-                  Signal Correlation Engine & Strategic Implication Pipeline
-                </h2>
-                <p className="text-xs text-[#70717a] mt-0.5">
-                  Raw telemetry clustered across sources into high-confidence patterns and competitive counter-actions.
-                </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-900 bg-white/90 px-2.5 py-0.5 rounded-full border border-purple-200">
+                      Point 4 • Signals &amp; Correlations
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-[#17171b] tracking-tight mt-1">
+                    Multi-Channel Signal Correlation Engine &amp; 5-Stage Pipeline
+                  </h3>
+                  <p className="text-xs text-[#70717a] mt-0.5 max-w-xl">
+                    Explore GitHub commits, engineering careers, pricing shifts, and PR releases correlated into high-confidence patterns and defensive counter-playbooks.
+                  </p>
+                </div>
               </div>
 
-              {/* Correlation competitor filter */}
-              <div className="flex items-center gap-1.5 p-1 bg-zinc-100/90 rounded-lg border border-zinc-200/80 self-start sm:self-auto text-xs">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCorrelationCompany("ALL")}
-                  className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
-                    selectedCorrelationCompany === "ALL"
-                      ? "bg-white text-[#17171b] shadow-sm font-bold"
-                      : "text-[#70717a] hover:text-[#17171b]"
-                  }`}
-                >
-                  All ({correlations.length})
-                </button>
-                {correlationCompanies.map((cname) => (
-                  <button
-                    key={cname}
-                    type="button"
-                    onClick={() => setSelectedCorrelationCompany(cname)}
-                    className={`px-3 py-1.5 rounded-md font-semibold transition-all ${
-                      selectedCorrelationCompany === cname
-                        ? "bg-white text-[#6e57dc] shadow-sm font-bold"
-                        : "text-[#70717a] hover:text-[#17171b]"
-                    }`}
-                  >
-                    {cname}
-                  </button>
-                ))}
-              </div>
+              <a
+                href="/app/signals"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-black text-xs font-bold text-white shadow-xs transition-all whitespace-nowrap self-start sm:self-auto group"
+              >
+                <span>View Signals &amp; Playbooks</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform text-purple-300" />
+              </a>
             </div>
-
-            {/* Correlation Cards */}
-            {filteredCorrelations.length === 0 ? (
-              <div className="p-8 text-center bg-zinc-50 border border-zinc-200 rounded-xl">
-                <Layers className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-zinc-700">No signal correlations match this filter</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {filteredCorrelations.map((corr) => {
-                  const signalsCluster = corr.signals_cluster || [];
-                  const activeSigIdx = Math.min(
-                    activeSignalIndices[corr.id] ?? 0,
-                    Math.max(0, signalsCluster.length - 1)
-                  );
-                  const activeSig: CorrelatedSignalNode | undefined = signalsCluster[activeSigIdx];
-                  const catStyle = CORRELATION_CATEGORY_STYLES[corr.correlation_category] || {
-                    bg: "bg-purple-50",
-                    text: "text-purple-700",
-                    border: "border-purple-200",
-                    label: corr.correlation_category,
-                  };
-
-                  return (
-                    <div
-                      key={corr.id}
-                      className="rounded-2xl border border-[rgba(20,20,30,0.1)] bg-white shadow-xs overflow-hidden transition-all hover:shadow-md"
-                    >
-                      {/* Card Header */}
-                      <div className="p-5 sm:p-6 bg-gradient-to-r from-zinc-50 via-white to-purple-50/20 border-b border-zinc-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <PrismCompanyBadge
-                              name={corr.company_name}
-                              isTarget={corr.company_name.toLowerCase() === targetCompany.toLowerCase()}
-                              size="sm"
-                            />
-                            <span className="text-xs text-zinc-300">•</span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}>
-                              {catStyle.label}
-                            </span>
-                            <span className="text-xs text-zinc-300">•</span>
-                            <span className="text-xs font-semibold text-[#70717a] flex items-center gap-1">
-                              <Layers className="w-3.5 h-3.5 text-[#6e57dc]" />
-                              {signalsCluster.length} Correlated Signal Sources
-                            </span>
-                          </div>
-
-                          <h3 className="text-lg sm:text-xl font-extrabold text-[#17171b] tracking-tight pt-1">
-                            {corr.pattern_name}
-                          </h3>
-                        </div>
-
-                        <div className="flex items-center gap-2.5 self-start md:self-auto">
-                          <div className="px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200/80 flex items-center gap-2">
-                            <Sparkles className="w-3.5 h-3.5 text-[#6e57dc]" />
-                            <span className="text-xs font-extrabold text-purple-900">
-                              {corr.confidence}% Calibrated
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 5-Stage Synthesis Progression Strip */}
-                      <div className="px-5 sm:px-6 py-3 bg-zinc-50/80 border-b border-zinc-100 flex items-center gap-2 flex-wrap text-xs">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mr-2">
-                          Pipeline Stage:
-                        </span>
-                        {["Raw Signals", "Events", "Patterns", "Insights", "Actions"].map((stage, sIdx) => {
-                          const isComplete = true;
-                          return (
-                            <React.Fragment key={stage}>
-                              <span
-                                className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1.5 ${
-                                  stage === "Actions"
-                                    ? "bg-zinc-900 text-white shadow-xs"
-                                    : "bg-white text-[#17171b] border border-zinc-200"
-                                }`}
-                              >
-                                <span className={`w-1.5 h-1.5 rounded-full ${stage === "Actions" ? "bg-green-400" : "bg-[#6e57dc]"}`} />
-                                {stage}
-                              </span>
-                              {sIdx < 4 && <ArrowRight className="w-3 h-3 text-zinc-400" />}
-                            </React.Fragment>
-                          );
-                        })}
-                      </div>
-
-                      {/* Connected Signals Strip */}
-                      <div className="p-5 sm:p-6 space-y-4">
-                        <div className="space-y-2">
-                          <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#70717a] flex items-center justify-between">
-                            <span>Corroborating Signal Nodes ({signalsCluster.length})</span>
-                            <span className="text-zinc-400 font-normal">Select node to inspect evidence proof</span>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            {signalsCluster.map((sig, sIdx) => {
-                              const isSelected = sIdx === activeSigIdx;
-                              return (
-                                <button
-                                  key={sIdx}
-                                  type="button"
-                                  onClick={() => setActiveSignalIndices((prev) => ({ ...prev, [corr.id]: sIdx }))}
-                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                                    isSelected
-                                      ? "bg-[#6e57dc] text-white shadow-xs"
-                                      : "bg-zinc-100 hover:bg-zinc-200 text-[#374151]"
-                                  }`}
-                                >
-                                  <span>{sig.signal_type || sig.source}</span>
-                                  {sig.weight && (
-                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-zinc-200 text-[#70717a]"}`}>
-                                      {Math.round(sig.weight * 100)}%
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Active Signal Inspector */}
-                        {activeSig && (
-                          <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2 text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-extrabold text-[#17171b]">{activeSig.title}</span>
-                              <span className="text-[#70717a] text-[11px]">{activeSig.source}</span>
-                            </div>
-                            {activeSig.excerpt && (
-                              <blockquote className="p-2.5 rounded-lg bg-white border border-zinc-200 text-[#4b5563] italic">
-                                &ldquo;{activeSig.excerpt}&rdquo;
-                              </blockquote>
-                            )}
-                            {(() => {
-                              const safeUrl = sanitizeSourceUrl(activeSig.url);
-                              return safeUrl ? (
-                                <a
-                                  href={safeUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 font-bold text-[#6e57dc] hover:underline"
-                                >
-                                  View Primary Source Document <ExternalLink className="w-3 h-3" />
-                                </a>
-                              ) : (
-                                <span className="text-xs text-[#9ca3af] italic">Source document unavailable.</span>
-                              );
-                            })()}
-                          </div>
-                        )}
-
-                        {/* Strategic Implication & Recommended Action */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                          <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100 space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
-                              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                              Strategic Implication
-                            </div>
-                            <p className="text-xs text-purple-950 font-medium leading-relaxed">
-                              {corr.strategic_implication}
-                            </p>
-                          </div>
-
-                          <div className="p-4 rounded-xl bg-zinc-900 text-white space-y-1.5">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                              Recommended Action
-                            </div>
-                            <p className="text-xs text-zinc-200 font-medium leading-relaxed">
-                              {corr.recommended_action}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </section>
 
           {/* ========================================================================= */}

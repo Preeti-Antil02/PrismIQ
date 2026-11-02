@@ -1114,17 +1114,30 @@ ${(corr.signals_cluster || corr.signals || []).map((s, idx) => `  ${idx + 1}. [$
                                 Impact on {targetCompany}
                               </span>
                             </div>
+                            {corr.strategic_implication_details?.observed_move && (
+                              <div className="text-[11px] font-medium text-purple-950 bg-white/80 p-2 rounded border border-purple-200/70">
+                                <span className="font-bold text-purple-900 block mb-0.5">Observed Move:</span>
+                                {corr.strategic_implication_details.observed_move}
+                              </div>
+                            )}
                             {corr.strategic_implication_details?.strategic_direction && (
                               <div className="text-[11px] font-semibold text-purple-900 bg-purple-100/60 px-2 py-1 rounded">
-                                Direction: {corr.strategic_implication_details.strategic_direction}
+                                <span className="font-bold">Direction: </span>
+                                {corr.strategic_implication_details.strategic_direction}
+                              </div>
+                            )}
+                            {corr.strategic_implication_details?.affected_business_area && (
+                              <div className="text-[10px] font-semibold text-purple-800 bg-purple-100/50 px-2 py-0.5 rounded">
+                                <span className="font-bold">Affected Area: </span>
+                                {corr.strategic_implication_details.affected_business_area}
                               </div>
                             )}
                             <p className="text-xs text-purple-950 leading-relaxed font-medium">
-                              {corr.strategic_implication}
+                              {corr.strategic_implication_details?.competitive_implication || corr.strategic_implication}
                             </p>
-                            {corr.strategic_implication_details?.strategic_uncertainty && (
+                            {(corr.strategic_implication_details?.strategic_uncertainty || corr.strategic_implication_details?.key_uncertainty) && (
                               <div className="text-[10px] text-purple-700 italic border-t border-purple-200/60 pt-1.5">
-                                Key Uncertainty: {corr.strategic_implication_details.strategic_uncertainty}
+                                Key Uncertainty: {corr.strategic_implication_details.strategic_uncertainty || corr.strategic_implication_details.key_uncertainty}
                               </div>
                             )}
                           </div>
@@ -1600,17 +1613,24 @@ ${(corr.signals_cluster || corr.signals || []).map((s, idx) => `  ${idx + 1}. [$
                       </span>
                     )}
                   </div>
+                  {selectedDossierCorrelation.strategic_implication_details?.observed_move && (
+                    <div className="text-[11px] font-medium text-purple-950 bg-white/80 p-2.5 rounded border border-purple-200/70">
+                      <span className="font-bold text-purple-900 block mb-0.5">Observed Move:</span>
+                      {selectedDossierCorrelation.strategic_implication_details.observed_move}
+                    </div>
+                  )}
                   {selectedDossierCorrelation.strategic_implication_details?.strategic_direction && (
                     <div className="text-[11px] font-semibold text-purple-900 bg-white/70 px-2 py-1 rounded border border-purple-200/60">
-                      Direction: {selectedDossierCorrelation.strategic_implication_details.strategic_direction}
+                      <span className="font-bold">Direction: </span>
+                      {selectedDossierCorrelation.strategic_implication_details.strategic_direction}
                     </div>
                   )}
                   <p className="text-xs text-purple-950 leading-relaxed font-medium">
-                    {selectedDossierCorrelation.strategic_implication}
+                    {selectedDossierCorrelation.strategic_implication_details?.competitive_implication || selectedDossierCorrelation.strategic_implication}
                   </p>
-                  {selectedDossierCorrelation.strategic_implication_details?.strategic_uncertainty && (
+                  {(selectedDossierCorrelation.strategic_implication_details?.strategic_uncertainty || selectedDossierCorrelation.strategic_implication_details?.key_uncertainty) && (
                     <div className="text-[10px] text-purple-700 italic border-t border-purple-200/60 pt-1.5">
-                      Strategic Uncertainty: {selectedDossierCorrelation.strategic_implication_details.strategic_uncertainty}
+                      Strategic Uncertainty: {selectedDossierCorrelation.strategic_implication_details.strategic_uncertainty || selectedDossierCorrelation.strategic_implication_details.key_uncertainty}
                     </div>
                   )}
                 </div>
