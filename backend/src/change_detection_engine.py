@@ -859,7 +859,7 @@ def detect_duplicates_and_merge(
 
             cat = classify_event_category(canonical_headline, signals=combined_evidence)
             canonical_events.append({
-                "id": sig_i.get("id") or f"evt_{cname.lower().replace(' ', '_')}_{hashlib.md5(canonical_headline.encode()).hexdigest()[:8]}",
+                "id": sig_i.get("id") or f"evt_{cname.lower().replace(' ', '_')}_{hashlib.md5(canonical_headline.encode(), usedforsecurity=False).hexdigest()[:8]}",
                 "company_name": cname,
                 "headline": canonical_headline,
                 "category": cat,

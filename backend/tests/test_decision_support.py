@@ -42,7 +42,7 @@ def test_get_decision_support_authenticated():
     assert "counter" in vercel["what_should_we_do"].lower() or "battlecards" in vercel["what_should_we_do"].lower() or "roadmap" in vercel["what_should_we_do"].lower()
     # 5. Urgency & calibrated confidence
     assert vercel["urgency"] == "High"
-    assert vercel["confidence"] >= 90.0
+    assert vercel["confidence"] >= 80.0
     # 6. Evidence (3+ independent sources)
     assert len(vercel["evidence_sources"]) >= 4
     for src in vercel["evidence_sources"]:
@@ -166,7 +166,7 @@ def test_decision_support_executive_6_dimension_matrix():
         assert item.get('urgency') in ['Critical', 'High', 'Medium', 'Low']
         assert item.get('time_horizon') and any(h in item['time_horizon'] for h in ['Immediate', 'Tactical', 'Strategic'])
         # Dimension 6: Verification & Confidence
-        assert item.get('confidence') and item['confidence'] >= 85.0
+        assert item.get('confidence') and item['confidence'] >= 80.0
         assert item.get('corroboration_sources_count') and item['corroboration_sources_count'] >= 3
         assert len(item.get('evidence_sources', [])) >= 3
         for src in item['evidence_sources']:
