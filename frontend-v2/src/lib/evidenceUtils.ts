@@ -75,3 +75,56 @@ export function formatEvidenceCount(
 ): string {
   return parseEvidenceCount(totalSources, primaryCount).label;
 }
+
+/**
+ * Strict HTTP/HTTPS URL validator for evidence primary & corroborating sources.
+ * Rejects undefined, null, placeholders, hash anchors, and invalid hostnames.
+ */
+export function isValidSourceUrl(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  if (
+    !trimmed ||
+    trimmed === "#" ||
+    trimmed.startsWith("javascript:") ||
+    trimmed.length < 8
+  ) {
+    return false;
+  }
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "null" ||
+    lower === "undefined" ||
+    lower === "none" ||
+    lower.includes("source document unavailable") ||
+    lower.includes("placeholder")
+  ) {
+    return false;
+  }
+
+  try {
+    const fullUrl =
+      trimmed.startsWith("http://") || trimmed.startsWith("https://")
+        ? trimmed
+        : `https://${trimmed}`;
+    const parsed = new URL(fullUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    if (!parsed.hostname || !parsed.hostname.includes(".")) return false;
+    // Reject hostnames with invalid underscores
+    if (parsed.hostname.includes("_")) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sanitize and guarantee a clean https/http URL string, or null if invalid.
+ */
+export function sanitizeSourceUrl(url?: string | null): string | null {
+  if (!isValidSourceUrl(url)) return null;
+  const trimmed = url!.trim();
+  return trimmed.startsWith("http://") || trimmed.startsWith("https://")
+    ? trimmed
+    : `https://${trimmed}`;
+}

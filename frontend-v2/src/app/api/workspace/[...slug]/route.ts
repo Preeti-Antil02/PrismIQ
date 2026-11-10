@@ -18,7 +18,8 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
     let tenantId = DEFAULT_TENANT_ID;
     if (token && token.includes(".")) {
       try {
-        const payloadJson = Buffer.from(token.split(".")[1], "base64url").toString("utf-8");
+        const parts = token.split(".");
+        const payloadJson = parts.length > 1 ? Buffer.from(parts[1], "base64url").toString("utf-8") : "{}";
         const payload = JSON.parse(payloadJson);
         if (payload.sub) {
           tenantId = payload.sub;
@@ -82,7 +83,8 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
       let tenantId = DEFAULT_TENANT_ID;
       if (token && token.includes(".")) {
         try {
-          const payloadJson = Buffer.from(token.split(".")[1], "base64url").toString("utf-8");
+          const parts = token.split(".");
+        const payloadJson = parts.length > 1 ? Buffer.from(parts[1], "base64url").toString("utf-8") : "{}";
           const payload = JSON.parse(payloadJson);
           if (payload.sub) {
             tenantId = payload.sub;

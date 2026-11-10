@@ -1,9 +1,11 @@
 "use client";
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import Link from "next/link";
 import {
   Sparkles,
+  Flame,
   ArrowRight,
   TrendingUp,
   FileText,
@@ -27,6 +29,10 @@ import {
   Calendar,
   BarChart2,
   PieChart,
+  Activity,
+  TrendingDown,
+  RotateCcw,
+  Check,
 } from "lucide-react";
 import { useWorkspace, useAppEvidence } from "./AppShell";
 import {
@@ -53,8 +59,7 @@ import {
   fetchWorkspaceTopics,
   buildCompetitorSummaries,
   fetchDecisionSupportItems,
-  fetchCompetitiveSequences,
-  fetchHighImpactChanges,
+  updateDecisionSupportActionStatus,
   type TrackedCompany,
   type ConsolidatedEventRecord,
   type SignalRecord,
@@ -64,19 +69,39 @@ import {
   type CompetitorActivitySummary,
   type DecisionSupportRecord,
   type DecisionSupportEvidence,
-  type CompetitiveSequenceRecord,
-  type SequenceStep,
-  type HighImpactChangeRecord,
 } from "@/lib/api";
 
 function getDepartmentBadgeClass(dept: string): string {
   const d = dept.toLowerCase();
   if (d.includes("product")) return "bg-blue-50 text-blue-700 border-blue-200";
   if (d.includes("sales")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (d.includes("market")) return "bg-violet-50 text-violet-700 border-violet-200";
-  if (d.includes("engineer")) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (d.includes("market") || d.includes("growth")) return "bg-violet-50 text-violet-700 border-violet-200";
+  if (d.includes("engineer") || d.includes("devrel")) return "bg-amber-50 text-amber-700 border-amber-200";
   if (d.includes("leader") || d.includes("exec")) return "bg-rose-50 text-rose-700 border-rose-200";
+  if (d.includes("research") || d.includes("ai")) return "bg-cyan-50 text-cyan-700 border-cyan-200";
+  if (d.includes("finance")) return "bg-teal-50 text-teal-700 border-teal-200";
+  if (d.includes("security") || d.includes("legal")) return "bg-slate-100 text-slate-700 border-slate-300";
+  if (d.includes("partner")) return "bg-indigo-50 text-indigo-700 border-indigo-200";
+  if (d.includes("success") || d.includes("support")) return "bg-orange-50 text-orange-700 border-orange-200";
+  if (d.includes("operation")) return "bg-zinc-100 text-zinc-700 border-zinc-200";
   return "bg-purple-50 text-[#6e57dc] border-purple-200";
+}
+
+function getThreatTypeBadgeClass(threatType?: string): string {
+  const tt = (threatType || "").toLowerCase();
+  if (tt.includes("direct")) return "bg-rose-50 text-rose-700 border-rose-200";
+  if (tt.includes("indirect") || tt.includes("operational")) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (tt.includes("technology")) return "bg-purple-50 text-[#6e57dc] border-purple-200";
+  if (tt.includes("opportunity") || tt.includes("market")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  return "bg-zinc-100 text-zinc-700 border-zinc-200";
+}
+
+function getPriorityBadgeClass(priority?: string): string {
+  const p = (priority || "").toLowerCase();
+  if (p.includes("crit")) return "bg-rose-950/60 text-rose-300 border-rose-800/80";
+  if (p.includes("high")) return "bg-amber-950/60 text-amber-300 border-amber-800/80";
+  if (p.includes("med")) return "bg-blue-950/60 text-blue-300 border-blue-800/80";
+  return "bg-zinc-800 text-zinc-400 border-zinc-700";
 }
 
 function getUrgencyBadgeConfig(urgency: string): { bg: string; text: string; border: string; dot: string } {
@@ -99,6 +124,314 @@ const DIMENSION_STYLES: Record<string, { bg: string; text: string; border: strin
   margin_disruption: { bg: "bg-rose-50/80", text: "text-rose-700", border: "border-rose-200", label: "Disruption Vector" },
 };
 
+
+const DEPT_ROUTING_MAP: Record<string, string[]> = {
+  product: ["product", "category management", "merchandising", "catalog", "pricing"],
+  sales: ["sales", "commercial", "merchant growth", "seller growth", "monetization"],
+  marketing: ["marketing", "growth", "community operations", "community", "brand"],
+  engineering: ["engineering", "infrastructure", "security", "platform", "technology", "logistics"],
+  leadership: ["leadership", "executive", "executive leadership", "strategy", "founders"]
+};
+
+function matchesDepartmentRouting(whoIsAffected: string[] = [], selectedDept: string): boolean {
+  if (!selectedDept || selectedDept === "ALL") return true;
+  const s = selectedDept.toLowerCase().trim();
+  const allowed = DEPT_ROUTING_MAP[s] || [s];
+  return whoIsAffected.some((dept) => {
+    const d = dept.toLowerCase().trim();
+    if (d === s) return true;
+    return allowed.some((term) => d.includes(term) || term.includes(d));
+  });
+}
+
+function DecisionCardCountdown({ item }: { item: DecisionSupportRecord }) {
+  const [timeLeft, setTimeLeft] = React.useState<string>(() => {
+    if (!item.deadline_at) {
+      return item.response_deadline_label || "No fixed response deadline established";
+    }
+    return "";
+  });
+
+  React.useEffect(() => {
+    if (!item.deadline_at) {
+      setTimeLeft(item.response_deadline_label || "No fixed response deadline established");
+      return;
+    }
+
+    function compute() {
+      const targetTime = new Date(item.deadline_at!).getTime();
+      const now = Date.now();
+      const diff = targetTime - now;
+
+      if (diff <= 0) {
+        setTimeLeft("Cycle Review Due");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeLeft(`${days}d ${hours}h ${minutes}m`);
+    }
+
+    compute();
+    const interval = setInterval(compute, 60000);
+    return () => clearInterval(interval);
+  }, [item.deadline_at, item.response_deadline_label]);
+
+  return <span>{timeLeft}</span>;
+}
+
+function getEffectiveActionChecklist(item: DecisionSupportRecord) {
+  if (item.action_checklist && item.action_checklist.length > 0) {
+    return item.action_checklist;
+  }
+  return [];
+}
+
+function ActionablePlaybookChecklist({
+  itemId,
+  actions,
+  companyName,
+  tenantId
+}: {
+  itemId: string;
+  actions: any[];
+  companyName: string;
+  tenantId?: string;
+}) {
+  const storageKey = `prismiq_ds_checklist_${itemId}`;
+  const [statuses, setStatuses] = React.useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const a of actions) {
+      if (a.status && a.status !== "Pending") {
+        initial[a.id] = a.status;
+      }
+    }
+    return initial;
+  });
+  const [syncState, setSyncState] = React.useState<"idle" | "saving" | "synced">("idle");
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setStatuses((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      // Ignore
+    }
+  }, [storageKey]);
+
+  if (actions.length === 0) {
+    return (
+      <div className="mt-3 pt-3 border-t border-zinc-800">
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 text-xs text-zinc-400">
+          <Activity className="w-4 h-4 text-cyan-400 shrink-0 animate-pulse" />
+          <span>Continuous surveillance active on official endpoints. Action playbook triggers automatically on verified inflection.</span>
+        </div>
+      </div>
+    );
+  }
+
+  const updateStatus = async (actionId: string, newStatus: string) => {
+    let nextStatus = newStatus;
+    if (statuses[actionId] === newStatus) {
+      nextStatus = "Pending";
+    }
+
+    setStatuses((prev) => {
+      const next = { ...prev };
+      if (nextStatus === "Pending") {
+        delete next[actionId];
+      } else {
+        next[actionId] = nextStatus;
+      }
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        // LocalStorage quota/access handling
+      }
+      return next;
+    });
+
+    setSyncState("saving");
+    try {
+      await updateDecisionSupportActionStatus(itemId, actionId, nextStatus, undefined, tenantId);
+      setSyncState("synced");
+      setTimeout(() => setSyncState("idle"), 2500);
+    } catch (e) {
+      console.warn("Could not sync action status to backend DB:", e);
+      setSyncState("idle");
+    }
+  };
+
+  const acceptedCount = actions.filter((a) => statuses[a.id] === "Accepted").length;
+  const inProgressCount = actions.filter((a) => statuses[a.id] === "In Progress").length;
+  const completedCount = actions.filter((a) => statuses[a.id] === "Completed").length;
+  const dismissedCount = actions.filter((a) => statuses[a.id] === "Dismissed").length;
+  const totalExecuted = acceptedCount + completedCount;
+  const percentComplete = actions.length > 0 ? Math.round((totalExecuted / actions.length) * 100) : 0;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-zinc-800 space-y-2.5">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-300">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Interactive Counter-Playbook Checklist</span>
+          {syncState === "saving" && (
+            <span className="text-[10px] text-zinc-400 animate-pulse font-normal">
+              (Saving...)
+            </span>
+          )}
+          {syncState === "synced" && (
+            <span className="text-[10px] text-emerald-400 font-normal">
+              ✓ Saved to DB
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-[10px]">
+          <span className="text-zinc-400 font-medium">
+            {completedCount > 0 && `${completedCount} Done • `}
+            {acceptedCount} Accepted
+            {inProgressCount > 0 && ` • ${inProgressCount} In Progress`}
+          </span>
+          <span className="px-1.5 py-0.5 rounded font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+            {percentComplete}% Executed
+          </span>
+        </div>
+      </div>
+
+      {/* Progress track */}
+      <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden flex">
+        <div 
+          className="bg-emerald-500 transition-all duration-300" 
+          style={{ width: `${(completedCount / actions.length) * 100}%` }} 
+        />
+        <div 
+          className="bg-teal-400 transition-all duration-300" 
+          style={{ width: `${(acceptedCount / actions.length) * 100}%` }} 
+        />
+        <div 
+          className="bg-amber-400 transition-all duration-300" 
+          style={{ width: `${(inProgressCount / actions.length) * 100}%` }} 
+        />
+      </div>
+
+      {/* Actions list */}
+      <div className="space-y-2">
+        {actions.map((act) => {
+          const status = statuses[act.id];
+          const priority = act.priority || "High";
+          return (
+            <div
+              key={act.id}
+              className={`p-2.5 rounded-lg border transition-all text-xs flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 ${
+                status === "Completed"
+                  ? "bg-emerald-950/50 border-emerald-500/50 text-emerald-100"
+                  : status === "Accepted"
+                  ? "bg-teal-950/40 border-teal-500/40 text-teal-100"
+                  : status === "In Progress"
+                  ? "bg-amber-950/40 border-amber-500/40 text-amber-100"
+                  : status === "Dismissed"
+                  ? "bg-zinc-800/40 border-zinc-700 text-zinc-500 line-through"
+                  : "bg-zinc-800/70 border-zinc-700/70 text-zinc-200 hover:border-zinc-600"
+              }`}
+            >
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {act.department && (
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-zinc-700/80 text-zinc-300 border border-zinc-600">
+                      {act.department}
+                    </span>
+                  )}
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider border ${getPriorityBadgeClass(priority)}`}>
+                    {priority}
+                  </span>
+                  {act.suggested_deadline && (
+                    <span className="text-[10px] text-zinc-400 font-medium">
+                      ⏱ {act.suggested_deadline}
+                    </span>
+                  )}
+                </div>
+                <div className="font-medium leading-snug">{act.title || act.text}</div>
+                {act.suggested_next_step && (
+                  <div className="text-[11px] text-purple-300 font-normal">
+                    <span className="font-bold text-purple-200">Next:</span> {act.suggested_next_step}
+                  </div>
+                )}
+              </div>
+
+              {/* Status selector buttons */}
+              <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto not-italic flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => updateStatus(act.id, "In Progress")}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    status === "In Progress"
+                      ? "bg-amber-500 text-black shadow-xs font-black"
+                      : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-amber-200"
+                  }`}
+                  title="Mark action In Progress"
+                >
+                  In Progress
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateStatus(act.id, "Accepted")}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    status === "Accepted"
+                      ? "bg-teal-500 text-black shadow-xs font-black"
+                      : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-teal-200"
+                  }`}
+                  title="Mark action Accepted"
+                >
+                  Accepted
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateStatus(act.id, "Completed")}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    status === "Completed"
+                      ? "bg-emerald-500 text-black shadow-xs font-black"
+                      : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-emerald-200"
+                  }`}
+                  title="Mark action Completed"
+                >
+                  Completed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateStatus(act.id, "Dismissed")}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    status === "Dismissed"
+                      ? "bg-zinc-600 text-white font-black"
+                      : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-zinc-200"
+                  }`}
+                  title="Mark action Dismissed"
+                >
+                  Dismiss
+                </button>
+                {status && status !== "Pending" && (
+                  <button
+                    type="button"
+                    onClick={() => updateStatus(act.id, "Pending")}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-700/40 hover:bg-zinc-600 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                    title="Reset to Pending"
+                  >
+                    Reopen
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function OverviewPage() {
   const { targetCompany, tenantId, triggerSweep, isSweeping } = useWorkspace();
   const { openEvidence } = useAppEvidence();
@@ -111,11 +444,9 @@ export function OverviewPage() {
   const [radarEvals, setRadarEvals] = React.useState<RadarEvaluation[]>([]);
   const [topics, setTopics] = React.useState<ResearchTopic[]>([]);
   const [decisionItems, setDecisionItems] = React.useState<DecisionSupportRecord[]>([]);
-  const [sequences, setSequences] = React.useState<CompetitiveSequenceRecord[]>([]);
-  const [highImpactChanges, setHighImpactChanges] = React.useState<HighImpactChangeRecord[]>([]);
-  const [selectedImpactFilter, setSelectedImpactFilter] = React.useState<string>("ALL");
   const [selectedDept, setSelectedDept] = React.useState<string>("ALL");
   const [selectedUrgency, setSelectedUrgency] = React.useState<string>("ALL");
+  const [expandedWhyMatters, setExpandedWhyMatters] = React.useState<Record<string, boolean>>({});
   const [activeEvidenceItem, setActiveEvidenceItem] = React.useState<DecisionSupportRecord | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -123,7 +454,7 @@ export function OverviewPage() {
     setLoading(true);
     setError(null);
     try {
-      const [compsRes, eventsRes, signalsRes, findingsRes, radarRes, topicsRes, decisionRes, sequencesRes, changesRes] =
+      const [compsRes, eventsRes, signalsRes, findingsRes, radarRes, topicsRes, decisionRes] =
         await Promise.allSettled([
           fetchTrackedCompanies(),
           fetchEvents({ limit: 100 }),
@@ -131,9 +462,7 @@ export function OverviewPage() {
           fetchFindings(),
           fetchLatestRadar(),
           fetchWorkspaceTopics(),
-          fetchDecisionSupportItems(),
-          fetchCompetitiveSequences(),
-          fetchHighImpactChanges(),
+          fetchDecisionSupportItems(undefined, tenantId),
         ]);
 
       if (compsRes.status === "fulfilled") setTrackedCompanies(compsRes.value || []);
@@ -143,8 +472,6 @@ export function OverviewPage() {
       if (radarRes.status === "fulfilled") setRadarEvals(radarRes.value?.evaluations || []);
       if (topicsRes.status === "fulfilled") setTopics(topicsRes.value || []);
       if (decisionRes.status === "fulfilled") setDecisionItems(decisionRes.value?.items || []);
-      if (sequencesRes.status === "fulfilled") setSequences(sequencesRes.value?.sequences || []);
-      if (changesRes.status === "fulfilled") setHighImpactChanges(changesRes.value?.changes || []);
     } catch (err: any) {
       setError(err.message || "Failed to load intelligence");
     } finally {
@@ -162,25 +489,69 @@ export function OverviewPage() {
     return buildCompetitorSummaries(trackedCompanies, signals, events, findings, radarEvals);
   }, [trackedCompanies, signals, events, findings, radarEvals]);
 
-  // Filtered Point 3 High-Impact Changes
-  const filteredHighImpactChanges = React.useMemo(() => {
-    if (selectedImpactFilter === "ALL") return highImpactChanges;
-    return highImpactChanges.filter(
-      (c) => (c.significance_tier || "").toUpperCase() === selectedImpactFilter.toUpperCase()
-    );
-  }, [highImpactChanges, selectedImpactFilter]);
+  // Real-time Department counts for Point 5 filter tabs (12 canonical departments)
+  const canonicalDepartments = React.useMemo(() => [
+    "Product", "Sales", "Marketing", "Engineering", "Leadership",
+    "Research", "Finance", "Security", "Legal", "Partnerships", "Customer Success", "Operations"
+  ], []);
 
-  // Filtered Decision Support Items
+  const departmentCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {
+      ALL: decisionItems.length,
+    };
+    canonicalDepartments.forEach((dept) => {
+      counts[dept] = 0;
+    });
+    decisionItems.forEach((item) => {
+      canonicalDepartments.forEach((dept) => {
+        if (matchesDepartmentRouting(item.who_is_affected, dept)) {
+          counts[dept] = (counts[dept] || 0) + 1;
+        }
+      });
+    });
+    return counts;
+  }, [decisionItems, canonicalDepartments]);
+
+  const activeDepartmentTabs = React.useMemo(() => {
+    const primary = ["Product", "Sales", "Marketing", "Engineering", "Leadership"];
+    const extra = canonicalDepartments.filter(
+      (dept) => !primary.includes(dept) && (departmentCounts[dept] || 0) > 0
+    );
+    return ["ALL", ...primary, ...extra];
+  }, [canonicalDepartments, departmentCounts]);
+
+  // Real-time Urgency counts for Point 5 filter tabs
+  const urgencyCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {
+      ALL: decisionItems.length,
+      Critical: 0,
+      High: 0,
+      Medium: 0,
+      Low: 0,
+    };
+    decisionItems.forEach((item) => {
+      const u = (item.urgency || "High").toLowerCase();
+      if (u.includes("crit")) counts.Critical = (counts.Critical || 0) + 1;
+      else if (u.includes("high")) counts.High = (counts.High || 0) + 1;
+      else if (u.includes("med")) counts.Medium = (counts.Medium || 0) + 1;
+      else counts.Low = (counts.Low || 0) + 1;
+    });
+    return counts;
+  }, [decisionItems]);
+
+  // Filtered Decision Support Items with Executive Semantic Routing
   const filteredDecisionItems = React.useMemo(() => {
     return decisionItems.filter((item) => {
-      const matchDept =
-        selectedDept === "ALL" ||
-        (item.who_is_affected || []).some(
-          (d) => d.toLowerCase() === selectedDept.toLowerCase()
-        );
+      const matchDept = matchesDepartmentRouting(item.who_is_affected, selectedDept);
+      const itemUrg = (item.urgency || "High").toLowerCase();
+      const selUrg = selectedUrgency.toLowerCase();
       const matchUrgency =
         selectedUrgency === "ALL" ||
-        (item.urgency || "").toLowerCase() === selectedUrgency.toLowerCase();
+        itemUrg === selUrg ||
+        (selUrg === "critical" && itemUrg.includes("crit")) ||
+        (selUrg === "high" && (itemUrg.includes("high") || itemUrg.includes("crit"))) ||
+        (selUrg === "medium" && itemUrg.includes("med")) ||
+        (selUrg === "low" && itemUrg.includes("low"));
       return matchDept && matchUrgency;
     });
   }, [decisionItems, selectedDept, selectedUrgency]);
@@ -388,13 +759,13 @@ export function OverviewPage() {
 
         <PrismCard>
           <div className="text-[10px] font-extrabold tracking-wider uppercase text-[#9ca3af] mb-1">
-            Timeline Sequences
+            Competitor Evolution
           </div>
-          <div className="text-2xl font-extrabold text-[#17171b]">{sequences.length}</div>
+          <div className="text-2xl font-extrabold text-[#17171b]">{trackedCompanies.length}</div>
           <div className="text-[11px] text-[#70717a] mt-1 flex items-center justify-between">
-            <span>{sequences.reduce((acc, s) => acc + (s.sequence_steps?.length || 0), 0)} Milestones</span>
-            <Link href="/app/trends" className="text-[#6e57dc] font-semibold hover:underline">
-              Point 2 Live
+            <span>Unified Profiles &amp; Arcs</span>
+            <Link href="/app/competitors" className="text-[#6e57dc] font-semibold hover:underline">
+              Points 1, 2 &amp; 3 Live
             </Link>
           </div>
         </PrismCard>
@@ -518,64 +889,84 @@ export function OverviewPage() {
       <div className="space-y-4">
         <PrismSectionHeader
           title="Why Should I Care? Decision Support Cockpit"
-          subtitle="Executive synthesis answering 6 core dimensions: What happened, why it matters, who is affected, what to do, urgency, and independent multi-source verification."
+          subtitle="Executive 6-Dimension Decision Engine: What happened, why it matters, department routing, prescriptive counter-action playbook, urgency horizon with rapid countdown, and multi-source verification."
           eyebrow="Point 5 • Decision Support System"
           action={
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-50 text-[#6e57dc] border border-purple-200">
                 {filteredDecisionItems.length} Actionable Items
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                {decisionItems.filter((d) => (d.urgency || "").toLowerCase().includes("crit") || (d.urgency || "").toLowerCase().includes("high")).length} Immediate Priority
               </span>
             </div>
           }
         />
 
         {/* Filter Pills Toolbar */}
-        <div className="p-3.5 bg-white rounded-xl border border-[rgba(20,20,30,0.08)] shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          {/* Department Filter */}
+        <div className="p-3.5 bg-white rounded-xl border border-[rgba(20,20,30,0.08)] shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          {/* Department Filter with Real-Time Counts */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-bold text-[#70717a] mr-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-[#9ca3af]" />
               Department:
             </span>
-            {["ALL", "Product", "Sales", "Marketing", "Engineering", "Leadership"].map((dept) => {
+            {activeDepartmentTabs.map((dept) => {
               const active = selectedDept === dept;
+              const count = departmentCounts[dept] || 0;
               return (
                 <button
                   key={dept}
                   type="button"
                   onClick={() => setSelectedDept(dept)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     active
                       ? "bg-[#6e57dc] text-white shadow-xs"
                       : "bg-zinc-100/80 text-[#70717a] hover:bg-zinc-200/70 hover:text-[#17171b]"
                   }`}
                 >
-                  {dept === "ALL" ? "All Departments" : dept}
+                  <span>{dept === "ALL" ? "All Departments" : dept}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      active ? "bg-white/25 text-white" : "bg-zinc-200/80 text-[#70717a]"
+                    }`}
+                  >
+                    {count}
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Urgency Filter */}
+          {/* Urgency Filter with Real-Time Counts */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-bold text-[#70717a] mr-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-[#9ca3af]" />
               Urgency:
             </span>
-            {["ALL", "High", "Medium", "Low"].map((urg) => {
+            {["ALL", "Critical", "High", "Medium", "Low"].map((urg) => {
               const active = selectedUrgency === urg;
+              const count = urgencyCounts[urg] || 0;
               return (
                 <button
                   key={urg}
                   type="button"
                   onClick={() => setSelectedUrgency(urg)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     active
                       ? "bg-[#17171b] text-white shadow-xs"
                       : "bg-zinc-100/80 text-[#70717a] hover:bg-zinc-200/70 hover:text-[#17171b]"
                   }`}
                 >
-                  {urg === "ALL" ? "All Urgencies" : urg}
+                  <span>{urg === "ALL" ? "All Urgencies" : urg}</span>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                      active ? "bg-white/25 text-white" : "bg-zinc-200/80 text-[#70717a]"
+                    }`}
+                  >
+                    {count}
+                  </span>
                 </button>
               );
             })}
@@ -597,17 +988,46 @@ export function OverviewPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {filteredDecisionItems.map((item) => {
               const urgConfig = getUrgencyBadgeConfig(item.urgency);
-              const sourceCount = item.corroboration_sources_count || item.evidence_sources?.length || 3;
+              const sourceCount = item.corroboration_sources_count || item.evidence_sources?.length || 4;
+              const isHighUrgency =
+                (item.urgency || "").toLowerCase().includes("crit") ||
+                (item.urgency || "").toLowerCase().includes("high");
+              const effectiveHorizon =
+                item.time_horizon ||
+                (isHighUrgency ? "Immediate (<7d)" : (item.urgency === "Medium" ? "Tactical (<30d)" : "Strategic (90d+)"));
 
               return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl border border-[rgba(20,20,30,0.10)] p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+                  className={`bg-white rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between border ${
+                    isHighUrgency
+                      ? "border-rose-300 ring-1 ring-rose-200/70 bg-gradient-to-b from-rose-50/15 via-white to-white"
+                      : "border-[rgba(20,20,30,0.10)]"
+                  }`}
                 >
-                  <div className="space-y-3.5">
-                    {/* Top Bar: Company Badge + Urgency + Calibrated Confidence */}
+                  <div className="space-y-4">
+                    {/* High-Urgency Alert Banner & Counter-Strategy Countdown */}
+                    {isHighUrgency && item.deadline_at && (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/5 border border-rose-200/90 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+                          </span>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-rose-700">
+                            ⚡ Critical Counter-Window
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-black text-rose-800 bg-white/90 px-2.5 py-0.5 rounded-lg border border-rose-200 shadow-2xs">
+                          <Clock className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
+                          <span>Window: <DecisionCardCountdown item={item} /></span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Top Bar: Company Badge + Urgency + Threat Type + Calibrated Confidence */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <PrismCompanyBadge
                           name={item.company_name}
                           isTarget={item.company_name.toLowerCase() === targetCompany.toLowerCase()}
@@ -619,73 +1039,218 @@ export function OverviewPage() {
                           <span className={`w-1.5 h-1.5 rounded-full ${urgConfig.dot}`} />
                           {item.urgency} Urgency
                         </span>
+                        {item.threat_type && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getThreatTypeBadgeClass(item.threat_type)}`}
+                          >
+                            {item.threat_type}
+                          </span>
+                        )}
+                        {item.dimension && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
+                            {item.dimension}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
                           {item.confidence}% Calibrated Confidence
                         </span>
                       </div>
                     </div>
 
-                    {/* Dimension 1: What Happened? */}
+                    {/* Target Company Affected Products Exposure */}
+                    {item.affected_products && item.affected_products.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap text-[11px] p-2 rounded-lg bg-zinc-50 border border-zinc-200/60">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500">
+                          Exposed Target Products:
+                        </span>
+                        {item.affected_products.map((prod) => (
+                          <span key={prod} className="px-2 py-0.5 rounded bg-white text-zinc-800 font-semibold border border-zinc-300 text-[10px] shadow-2xs">
+                            {prod}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Dimension 1: What Happened (Factual Grounded Inflection Summary) */}
                     <div>
-                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#6e57dc]" />
-                        1. What Happened?
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#6e57dc]" />
+                          1. What Happened (Factual Grounded Inflection)
+                        </span>
+                        {item.inflection_summary_details?.publication_date && (
+                          <span className="text-[10px] text-zinc-400 font-medium">
+                            Published: {item.inflection_summary_details.publication_date}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm font-bold text-[#17171b] leading-snug">
                         {item.what_happened}
                       </p>
                     </div>
 
-                    {/* Dimension 2: Why Does It Matter? */}
-                    <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-100/90">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] mb-1 flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        2. Why It Matters
+                    {/* Dimension 2: Why It Matters (Independent Dyadic Assessment & 6-Question Matrix) */}
+                    <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-100/90 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#6e57dc]" />
+                          2. Why It Matters (Independent Dyadic Assessment)
+                        </div>
+                        {item.revenue_margin_exposure && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100/80 text-amber-900 border border-amber-200 flex items-center gap-1">
+                            <TrendingDown className="w-3 h-3 text-amber-700" />
+                            {item.revenue_margin_exposure.length > 60 ? item.revenue_margin_exposure.slice(0, 58) + "..." : item.revenue_margin_exposure}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-[#374151] leading-relaxed">
+
+                      <p className="text-xs text-[#374151] leading-relaxed font-normal">
                         {item.why_it_matters}
                       </p>
+
+                      {/* Structured 6-Question Breakdown Accordion */}
+                      {item.structured_why_it_matters && (
+                        <div className="pt-2 border-t border-purple-200/60">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedWhyMatters((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                            className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] hover:text-[#533ab7] flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <span>{expandedWhyMatters[item.id] ? "▾ Hide 6-Question Strategic Matrix" : "▸ Inspect 6-Question Strategic Matrix"}</span>
+                          </button>
+
+                          {expandedWhyMatters[item.id] && (
+                            <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-white/90 p-3 rounded-lg border border-purple-100 shadow-2xs">
+                              <div>
+                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">1. Affected Products:</span>
+                                <span className="text-zinc-600 font-medium">
+                                  {(item.structured_why_it_matters.q1_affected_products || []).join(", ") || "None specified"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">2. Overlapping Segments:</span>
+                                <span className="text-zinc-600 font-medium">
+                                  {(item.structured_why_it_matters.q2_overlapping_customer_segments || []).join(", ") || "None specified"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">3. Competitor Advantage:</span>
+                                <span className="text-zinc-600 font-medium">
+                                  {item.structured_why_it_matters.q3_competitor_advantage || "None verified"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">4. Business Risk / Opportunity:</span>
+                                <span className="text-zinc-600 font-medium">
+                                  {item.structured_why_it_matters.q4_business_risk_or_opportunity || item.why_it_matters}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">5. Supporting Evidence:</span>
+                                <span className="text-zinc-600 font-medium">
+                                  {item.structured_why_it_matters.q5_supporting_evidence_summary || `${item.corroboration_sources_count} primary sources`}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">6. Uncertain Assumptions:</span>
+                                <span className="text-zinc-600 font-medium">
+                                  {item.structured_why_it_matters.q6_uncertain_assumptions || "None stated"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Dimension 3: Who Is Affected? */}
+                    {/* Dimension 3: Who Is Affected (Dynamic Department Routing) */}
                     <div>
-                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1.5 flex items-center gap-1">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1.5 flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-[#9ca3af]" />
-                        3. Who Is Affected:
+                        3. Who Is Affected (Executive Department Routing across 12 Departments):
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {(item.who_is_affected || []).map((dept) => (
-                          <span
-                            key={dept}
-                            className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${getDepartmentBadgeClass(dept)}`}
-                          >
-                            {dept}
-                          </span>
-                        ))}
+                        {(item.who_is_affected || []).map((dept) => {
+                          const reason = item.department_reasons ? item.department_reasons[dept] : undefined;
+                          return (
+                            <span
+                              key={dept}
+                              title={reason || `${dept} strategic execution`}
+                              className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold border ${getDepartmentBadgeClass(dept)} cursor-help`}
+                            >
+                              {dept}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Dimension 4: What Should We Do? */}
-                    <div className="p-3.5 rounded-xl bg-zinc-900 text-white shadow-xs">
-                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 mb-1 flex items-center gap-1">
+                    {/* Dimension 4: What Should We Do (Prescriptive Counter-Action Playbook) & Checklist */}
+                    <div className="p-4 rounded-xl bg-zinc-900 text-white shadow-xs">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 mb-1 flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                        4. Actionable Counter-Playbook: What Should We Do?
+                        4. What Should We Do (Prescriptive Counter-Action Playbook)
                       </div>
                       <p className="text-xs text-zinc-200 leading-relaxed font-medium">
                         {item.what_should_we_do}
                       </p>
+
+                      {/* Interactive Counter-Playbook Checklist */}
+                      <ActionablePlaybookChecklist
+                        itemId={item.id}
+                        actions={getEffectiveActionChecklist(item)}
+                        companyName={item.company_name}
+                        tenantId={tenantId}
+                      />
+                    </div>
+
+                    {/* Dimension 5: Urgency & Time Horizon */}
+                    <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div>
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#70717a] mb-1 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-[#6e57dc]" />
+                          5. Urgency & Time Horizon
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex items-center gap-1.5 ${urgConfig.bg} ${urgConfig.text} ${urgConfig.border}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${urgConfig.dot}`} />
+                            {item.urgency} Urgency
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-200/80 text-zinc-800 border border-zinc-300">
+                            Horizon: {effectiveHorizon}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="sm:text-right">
+                        <div className="text-[10px] font-bold text-[#9ca3af]">Counter-Strategy Countdown</div>
+                        <div className="text-xs font-black text-[#17171b] flex items-center gap-1 sm:justify-end mt-0.5">
+                          <Clock className="w-3 h-3 text-[#6e57dc]" />
+                          <DecisionCardCountdown item={item} />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Dimension 5 & 6 Footer: Urgency & Evidence */}
+                  {/* Dimension 6: Verification & Confidence Footer */}
                   <div className="mt-4 pt-3.5 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between flex-wrap gap-2 text-xs">
-                    <span className="text-[11px] text-[#9ca3af] flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {item.created_at ? new Date(item.created_at).toLocaleDateString() : "Active Intelligence"}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        6. Verification & Confidence:
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {sourceCount} Verified Primary Sources
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
+                        {item.confidence}% Calibrated
+                      </span>
+                    </div>
 
                     <button
                       type="button"
@@ -784,18 +1349,18 @@ export function OverviewPage() {
                     >
                       <div className="flex items-start justify-between gap-3 mb-1.5">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-100 text-[#17171b] border border-zinc-200">
-                          {src.source}
+                          {src.source || (src as any).source_name || "Primary Corroboration"}
                         </span>
-                        {src.detected_at && (
+                        {(src.detected_at || (src as any).verified_at) && (
                           <span className="text-[10px] text-[#9ca3af] flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(src.detected_at).toLocaleDateString()}
+                            {new Date(src.detected_at || (src as any).verified_at).toLocaleDateString()}
                           </span>
                         )}
                       </div>
 
                       <h4 className="text-xs sm:text-sm font-bold text-[#17171b] mb-1">
-                        {src.title}
+                        {src.title || (src as any).source_type || "Verified Corroboration Finding"}
                       </h4>
 
                       {src.excerpt && (
@@ -804,17 +1369,24 @@ export function OverviewPage() {
                         </blockquote>
                       )}
 
-                      {src.url && (
-                        <a
-                          href={src.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] font-bold text-[#6e57dc] hover:underline inline-flex items-center gap-1 mt-1"
-                        >
-                          Verify Source URL
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+                      {(() => {
+                        const safeUrl = sanitizeSourceUrl(src.url);
+                        return safeUrl ? (
+                          <a
+                            href={safeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-bold text-[#6e57dc] hover:underline inline-flex items-center gap-1 mt-1"
+                          >
+                            <span>Verify Source URL</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-[#9ca3af] italic mt-1 block">
+                            Source document unavailable.
+                          </span>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
@@ -838,262 +1410,33 @@ export function OverviewPage() {
         </div>
       )}
 
-      {/* POINT 3: COMPETITIVE CHANGE DETECTION ENGINE ("THE 5 CHANGES THAT ACTUALLY MATTER") */}
-      <div className="space-y-4">
-        <PrismSectionHeader
-          title="High-Impact Change Detection: The 5 Changes That Matter"
-          subtitle="Curated detection of strategic inflection points: Pricing overhauls, Enterprise pivots, Executive hiring, Deprecations, and Strategic partnerships."
-          eyebrow="Point 3 • High-Impact Change Detection"
-          action={
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                {highImpactChanges.filter((c) => c.significance_tier === "HIGH IMPACT").length} Critical Inflections
+      {/* 3. Merged Competitor Evolution & Timeline Hub Bridge (Points 1, 2 & 3) */}
+      <div className="p-6 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/60 rounded-2xl border border-[rgba(20,20,30,0.10)] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="flex items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#6e57dc] to-[#35a9c2] flex items-center justify-center font-extrabold text-white text-lg shadow-xs shrink-0">
+            <Layers className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-extrabold text-[#17171b]">
+                Competitor Evolution &amp; Timeline Hub
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 text-[#6e57dc] border border-purple-200">
+                Merged Points 1, 2 &amp; 3
               </span>
             </div>
-          }
-        />
-
-        {/* Change Filter Pills */}
-        <div className="p-3 bg-white rounded-xl border border-[rgba(20,20,30,0.08)] shadow-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold text-[#70717a] mr-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#9ca3af]" />
-              Significance Tier:
-            </span>
-            {["ALL", "HIGH IMPACT", "MEDIUM IMPACT"].map((tier) => {
-              const active = selectedImpactFilter === tier;
-              return (
-                <button
-                  key={tier}
-                  type="button"
-                  onClick={() => setSelectedImpactFilter(tier)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    active
-                      ? "bg-amber-600 text-white shadow-xs"
-                      : "bg-zinc-100/80 text-[#70717a] hover:bg-zinc-200/70 hover:text-[#17171b]"
-                  }`}
-                >
-                  {tier === "ALL" ? "All Inflections" : tier}
-                </button>
-              );
-            })}
+            <p className="text-xs text-[#70717a] mt-1 max-w-2xl leading-relaxed">
+              Consolidated intelligence layer: explore acute strategic inflections, multi-month sequence roadmaps, and complete historical change ledgers per competitor in one unified place.
+            </p>
           </div>
-
-          <Link href="/app/events" className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1">
-            Canonical Event Ledger <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
-
-        {/* High Impact Cards */}
-        {filteredHighImpactChanges.length === 0 ? (
-          <PrismCard className="p-6 text-center text-xs text-[#70717a]">
-            <p className="font-bold text-[#17171b]">No high-impact shifts match filter</p>
-          </PrismCard>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredHighImpactChanges.map((change) => {
-              const isHigh = change.significance_tier === "HIGH IMPACT";
-              return (
-                <div
-                  key={change.id}
-                  className="bg-white rounded-2xl border border-[rgba(20,20,30,0.10)] p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-3.5"
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <PrismCompanyBadge
-                          name={change.company_name}
-                          isTarget={change.company_name.toLowerCase() === targetCompany.toLowerCase()}
-                          size="sm"
-                        />
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex items-center gap-1 ${
-                            isHigh
-                              ? "bg-amber-50 text-amber-800 border-amber-200"
-                              : "bg-blue-50 text-blue-700 border-blue-200"
-                          }`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${isHigh ? "bg-amber-500 animate-pulse" : "bg-blue-500"}`} />
-                          {change.significance_tier}
-                        </span>
-                      </div>
-
-                      <span className="text-[11px] font-bold text-[#70717a] flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#9ca3af]" />
-                        {change.window_days}-day emergence window
-                      </span>
-                    </div>
-
-                    <h4 className="text-sm sm:text-base font-extrabold text-[#17171b] leading-snug">
-                      {change.headline}
-                    </h4>
-
-                    <p className="text-xs text-[#4b5563] leading-relaxed">
-                      {change.strategic_interpretation}
-                    </p>
-
-                    <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100/90 text-xs text-amber-950 font-medium">
-                      <strong className="text-amber-900 block mb-0.5 font-bold">Why it matters:</strong>
-                      {change.why_it_matters}
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between text-xs">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-100 text-[#17171b] border border-zinc-200">
-                      {change.corroborating_signals_count} corroborated source{change.corroborating_signals_count !== 1 ? "s" : ""}
-                    </span>
-
-                    <span className="text-[11px] font-bold text-[#6e57dc]">
-                      {change.confidence}% Calibrated Confidence
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* POINT 2: Historical Competitive Memory & Multi-Month Sequence Detection */}
-      <div className="space-y-4">
-        <PrismSectionHeader
-          title="Historical Competitive Memory & Multi-Month Sequences"
-          subtitle="Connecting isolated milestones across months into unified competitor intent (e.g., Hiring → Compliance → Enterprise Pricing → Case Study → Market Expansion)."
-          eyebrow="Point 2 • Sequence Detection & Memory"
-          action={
-            <Link
-              href="/app/trends"
-              className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1.5"
-            >
-              Full Interactive Trends Timeline <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          }
-        />
-
-        {sequences.length === 0 ? (
-          <PrismCard className="p-6 text-center text-xs text-[#70717a]">
-            <Workflow className="w-7 h-7 text-[#9ca3af] mx-auto mb-2 opacity-60" />
-            <p className="font-bold text-[#17171b]">No multi-month milestone sequence active</p>
-            <p className="text-[#70717a] mt-0.5">Milestones will correlate automatically once multi-period signals are captured.</p>
-          </PrismCard>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {sequences.slice(0, 3).map((seq) => (
-              <div
-                key={seq.id}
-                className="bg-white rounded-2xl border border-[rgba(20,20,30,0.10)] p-5 shadow-xs hover:shadow-md transition-all space-y-4"
-              >
-                {/* Sequence Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[rgba(20,20,30,0.06)]">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <PrismCompanyBadge
-                      name={seq.company_name}
-                      isTarget={(seq.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
-                      size="sm"
-                    />
-                    <span className="text-xs text-[#70717a] flex items-center gap-1 font-semibold">
-                      <Calendar className="w-3.5 h-3.5 text-[#6e57dc]" />
-                      {seq.time_horizon}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-50 text-[#6e57dc] border border-purple-200 flex items-center gap-1">
-                      <Workflow className="w-3 h-3" />
-                      {seq.sequence_steps?.length || 0} Corroborated Steps
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      {seq.confidence}% Confidence
-                    </span>
-                  </div>
-                </div>
-
-                {/* Pattern Name & Strategic Interpretation */}
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#6e57dc]" />
-                    Detected Multi-Month Pattern
-                  </div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-[#17171b]">
-                    {seq.pattern_name}
-                  </h3>
-                  <p className="text-xs text-[#4b5563] mt-1 leading-relaxed">
-                    {seq.strategic_interpretation}
-                  </p>
-                </div>
-
-                {/* Milestone Timeline Stepper */}
-                <div className="pt-1">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#70717a] mb-2.5">
-                    Chronological Milestone Progression:
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                    {(seq.sequence_steps || []).map((step, sIdx) => {
-                      const dStyle = DIMENSION_STYLES[step.dimension] || {
-                        bg: "bg-zinc-100",
-                        text: "text-zinc-800",
-                        border: "border-zinc-200",
-                        label: step.dimension,
-                      };
-                      return (
-                        <div
-                          key={sIdx}
-                          className="p-3 rounded-xl bg-zinc-50/80 border border-zinc-200/80 hover:bg-white hover:border-[#6e57dc]/40 transition-colors flex flex-col justify-between space-y-2"
-                        >
-                          <div>
-                            <div className="flex items-center justify-between text-[10px] mb-1">
-                              <span className="font-extrabold text-[#6e57dc]">
-                                Step {step.step_number || sIdx + 1}
-                              </span>
-                              <span className="font-semibold text-[#70717a]">
-                                {step.month}
-                              </span>
-                            </div>
-                            <span
-                              className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border mb-1.5 ${dStyle.bg} ${dStyle.text} ${dStyle.border}`}
-                            >
-                              {dStyle.label}
-                            </span>
-                            <h4 className="text-xs font-bold text-[#17171b] leading-tight line-clamp-2">
-                              {step.event_title}
-                            </h4>
-                          </div>
-
-                          <div className="pt-1.5 border-t border-zinc-200/60 flex items-center justify-between text-[10px] text-[#70717a]">
-                            <span>Corroboration:</span>
-                            <span className="font-bold text-[#17171b]">
-                              {step.signals_count} signal{step.signals_count !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Actionable Counter-Playbook */}
-                <div className="p-3.5 rounded-xl bg-zinc-900 text-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 mb-0.5 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                      Recommended Counter-Action:
-                    </div>
-                    <p className="text-xs text-zinc-200 font-medium leading-relaxed">
-                      {seq.recommended_action}
-                    </p>
-                  </div>
-                  <Link
-                    href="/app/trends"
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#6e57dc] hover:bg-[#5b45c6] text-white shrink-0 self-start sm:self-auto transition-colors flex items-center gap-1"
-                  >
-                    Drill Down <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Link
+          href="/app/competitors"
+          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#6e57dc] hover:bg-[#5b45c6] text-white shadow-xs transition-colors flex items-center gap-2 shrink-0 self-start md:self-auto cursor-pointer"
+        >
+          <span>Open Competitor Evolution</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* 4. Competitive Movement Strip */}
@@ -1142,26 +1485,28 @@ export function OverviewPage() {
                   </div>
                 </div>
 
-                {comp.recent_events.length > 0 && (
+                {(comp.recent_events || []).length > 0 && (
                   <div className="pt-2.5 border-t border-[rgba(20,20,30,0.06)]">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af] mb-1">
                       Latest Activity
                     </div>
                     <div
                       className="text-xs font-semibold text-[#17171b] truncate hover:text-[#6e57dc] cursor-pointer"
-                      onClick={() =>
-                        openEvidence({
-                          id: comp.recent_events[0].event_id,
-                          title: comp.recent_events[0].title,
-                          company_name: comp.company_name,
-                          why_it_matters: comp.recent_events[0].why_it_matters,
-                          url: comp.recent_events[0].url,
-                          raw_excerpt: comp.recent_events[0].raw_excerpt,
-                          tier: comp.recent_events[0].tier,
-                        })
-                      }
+                      onClick={() => {
+                        if (comp.recent_events && comp.recent_events[0]) {
+                          openEvidence({
+                            id: comp.recent_events[0].event_id,
+                            title: comp.recent_events[0].title,
+                            company_name: comp.company_name,
+                            why_it_matters: comp.recent_events[0].why_it_matters,
+                            url: comp.recent_events[0].url,
+                            raw_excerpt: comp.recent_events[0].raw_excerpt,
+                            tier: comp.recent_events[0].tier,
+                          });
+                        }
+                      }}
                     >
-                      {comp.recent_events[0].title}
+                      {comp.recent_events?.[0]?.title || "Recent Event"}
                     </div>
                   </div>
                 )}

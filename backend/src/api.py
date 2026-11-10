@@ -1126,6 +1126,22 @@ def add_tracked_company_endpoint(
         company_name=comp,
         is_target=req.is_target,
     )
+    try:
+        from . import dynamic_intelligence_agent
+        cfg = storage.get_tenant_workspace_config(tenant_id)
+        target = cfg.get("target_company") or (comp if req.is_target else "Target Entity")
+        comps = cfg.get("competitors", [])
+        if comp not in comps and not req.is_target:
+            comps.append(comp)
+        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
+            tenant_id=tenant_id,
+            target_company=target,
+            competitors=comps,
+            force_refresh=True,
+        )
+    except Exception as e:
+        logger.warning(f"Error updating dynamic intelligence on watchlist add for {comp}: {e}")
+
     return {"status": "tracked", "company": tracked_entry}
 
 
@@ -1677,6 +1693,18 @@ def onboard_confirm_candidates(
         except Exception:
             pass
 
+    # Dynamic Agent Intelligence: immediately synthesize all 5 points for new target and competitors
+    try:
+        from . import dynamic_intelligence_agent
+        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
+            tenant_id=tenant_id,
+            target_company=target,
+            competitors=req.confirmed_competitors,
+            force_refresh=True,
+        )
+    except Exception as e:
+        logger.warning(f"Error populating dynamic intelligence for {target} ({tenant_id}): {e}")
+
     return {
         "status": "confirmed",
         "tenant_id": tenant_id,
@@ -2083,6 +2111,33 @@ class AddCompanyChangeRequest(BaseModel):
     significance: str = Field("Medium", description="Significance rating: High, Medium, Low")
     strategic_implication: Optional[str] = Field(None, description="Strategic interpretation and impact")
 
+@app.get("/companies/{company_name}/evolution")
+def get_competitor_evolution_endpoint(
+    company_name: str,
+    include_sequences: bool = Query(True, description="Include multi-month sequence arcs (Point 2)"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Pillar 1: Unified Competitor Evolution & Timeline endpoint (Merges Points 1, 2 & 3).
+
+    Returns a single payload with:
+      - profile:             Continuously evolving competitor profile (Point 1 baseline)
+      - all_changes:         Complete chronological change ledger with impact enrichment (Point 1 micro)
+      - high_impact_changes: Top 5 high-impact inflections derived from the ledger (Point 3 acute)
+      - sequences:           Multi-month milestone sequence arcs (Point 2 macro)
+
+    Frontend can replace 3 separate calls (/profile, /changes, /timeline/sequences)
+    with this single endpoint. All existing individual endpoints remain for backward compat.
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    return storage.get_competitor_evolution_timeline(
+        clean_name,
+        tenant_id=tenant_id,
+        include_sequences=include_sequences,
+    )
+
 
 @app.get("/companies/{company_name}/profile")
 def get_company_profile_endpoint(
@@ -2240,20 +2295,28 @@ class SignalEvidenceItem(BaseModel):
 class CreateHighImpactChangeRequest(BaseModel):
     company_name: str = Field(..., min_length=2, description="Competitor name")
     headline: str = Field(..., min_length=5, description="Synthesized high impact change headline")
-    significance_tier: str = Field("HIGH IMPACT", description="Impact tier: HIGH IMPACT, MEDIUM IMPACT")
+    significance_tier: str = Field("HIGH IMPACT", description="Impact tier: CRITICAL INFLECTION, HIGH IMPACT, MEDIUM IMPACT, LOW IMPACT")
     confidence: float = Field(90.0, ge=0.0, le=100.0, description="Verification confidence score (0-100)")
-    potential_impact: str = Field("High", description="Impact rating: High, Medium, Low")
+    potential_impact: str = Field("High", description="Impact rating: Critical, High, Medium, Low")
     window_days: int = Field(14, ge=1, le=180, description="Timeframe correlation window in days (e.g. 14)")
     strategic_interpretation: str = Field(..., min_length=10, description="PrismIQ strategic narrative and intent interpretation")
     why_it_matters: str = Field(..., min_length=10, description="Explanation of why these independent signals matter")
     recommended_action: str = Field(..., min_length=10, description="Recommended strategic counter-action")
     signals_evidence: List[SignalEvidenceItem] = Field(..., min_length=1, description="Independent corroborating signals")
+    event_category: Optional[str] = Field(None, description="Event category: Pricing Changes, Product Launches, etc.")
+    event_description: Optional[str] = Field(None, description="Event description")
+    impact_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="Deterministic impact score (0-100)")
+    affected_business_teams: Optional[List[str]] = Field(None, description="Affected business teams")
+    related_event_ids: Optional[List[str]] = Field(None, description="Related event IDs")
+    verification_status: Optional[str] = Field("corroborated", description="Verification status")
+    is_demo_data: Optional[bool] = Field(False, description="Is demonstration data")
 
 
 @app.get("/changes/detection")
 def get_detected_changes_endpoint(
     company: Optional[str] = Query(None, description="Filter by competitor name"),
     impact: Optional[str] = Query(None, description="Filter by significance tier (e.g., HIGH IMPACT)"),
+    category: Optional[str] = Query(None, description="Filter by event category"),
     tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
@@ -2262,19 +2325,23 @@ def get_detected_changes_endpoint(
     """
     clean_company = str(company).strip() if company and str(company).strip() and str(company).strip() != "ALL" else None
     clean_impact = str(impact).strip() if impact and str(impact).strip() and str(impact).strip() != "ALL" else None
+    clean_category = str(category).strip() if category and str(category).strip() and str(category).strip() != "ALL" else None
     
     changes = storage.get_detected_high_impact_changes(
         company_name=clean_company,
         significance_tier=clean_impact,
+        category=clean_category,
         tenant_id=tenant_id
     )
-    high_count = len([c for c in changes if "high" in str(c.get("significance_tier", "")).lower() or str(c.get("potential_impact", "")).lower() == "high"])
+    high_count = len([c for c in changes if "high" in str(c.get("significance_tier", "")).lower() or "critical" in str(c.get("significance_tier", "")).lower() or str(c.get("potential_impact", "")).lower() in ["high", "critical"] or float(c.get("impact_score", 0)) >= 60.0])
     
     return {
         "changes": changes,
         "count": len(changes),
         "high_impact_count": high_count,
         "filter": clean_company or "ALL",
+        "category_filter": clean_category or "ALL",
+        "impact_filter": clean_impact or "ALL",
     }
 
 
@@ -2317,6 +2384,13 @@ def create_detected_change_endpoint(
         "recommended_action": req.recommended_action.strip(),
         "corroborating_signals_count": len(req.signals_evidence),
         "signals_evidence": [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in req.signals_evidence],
+        "event_category": req.event_category,
+        "event_description": req.event_description or req.headline,
+        "impact_score": req.impact_score,
+        "affected_business_teams": req.affected_business_teams,
+        "related_event_ids": req.related_event_ids or [],
+        "verification_status": req.verification_status or "corroborated",
+        "is_demo_data": bool(req.is_demo_data),
     }
     result = storage.save_detected_high_impact_change(payload, tenant_id=tenant_id)
     return {"status": "success", "change": result}
@@ -2324,17 +2398,30 @@ def create_detected_change_endpoint(
 
 
 # ============================================================================
+def _validate_tenant_uuid(tid: str) -> str:
+    try:
+        return str(uuid.UUID(str(tid).strip()))
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid tenant ID format. Expected standard UUID.",
+        )
+
+
 # Signal Correlation Engine & Strategic Implication Pipeline (Point 4)
 # ============================================================================
 
 class CorrelatedSignalNode(BaseModel):
-    signal_type: str = Field(..., description="Category: Hiring, Product Page, GitHub Repositories, Conference Announcement, Pricing, Compliance, etc.")
+    id: Optional[str] = Field(None, description="Signal identifier")
+    channel: Optional[str] = Field(None, description="One of: github, careers, news, pricing")
+    signal_type: str = Field(..., description="Category: Hiring, Product Page, GitHub Repositories, News, Pricing, etc.")
     title: str = Field(..., min_length=3, description="Signal headline")
     source: str = Field(..., description="Source origin")
     url: str = Field("", description="Source URL")
     excerpt: str = Field(..., min_length=5, description="Verbatim proof excerpt")
     detected_at: str = Field(..., description="Detected timestamp")
     weight: float = Field(0.25, ge=0.0, le=1.0, description="Correlation signal weight")
+    confidence: Optional[float] = Field(92.0, ge=0.0, le=100.0, description="Signal confidence score")
 
 
 class CreateSignalCorrelationRequest(BaseModel):
@@ -2352,54 +2439,87 @@ class CreateSignalCorrelationRequest(BaseModel):
 def get_signal_correlations_endpoint(
     company: Optional[str] = Query(None, description="Filter by competitor name"),
     category: Optional[str] = Query(None, description="Filter by category (e.g. ai_investment)"),
-    tenant_id: str = Depends(get_current_tenant),
+    channel: Optional[str] = Query(None, description="Filter by channel: github, careers, news, pricing"),
+    tenant_id: Optional[str] = Query(None, description="Workspace tenant UUID for strict tenant isolation"),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id", description="Workspace tenant UUID header"),
+    auth_tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
     Retrieve signal correlation clusters that synthesize multi-channel signals into unified strategic patterns.
     Raw Signals -> Canonical Events -> Patterns -> Insights -> Actions
+    Maintains strict tenant isolation across workspaces.
     """
+    effective_tenant = (x_tenant_id or tenant_id or auth_tenant_id).strip()
+    if effective_tenant:
+        effective_tenant = _validate_tenant_uuid(effective_tenant)
+
     clean_company = str(company).strip() if company and str(company).strip() and str(company).strip() != "ALL" else None
     clean_cat = str(category).strip() if category and str(category).strip() and str(category).strip() != "ALL" else None
+    clean_chan = str(channel).strip().lower() if channel and str(channel).strip() and str(channel).strip() != "ALL" else None
 
     correlations = storage.get_signal_correlations(
         company_name=clean_company,
         category=clean_cat,
-        tenant_id=tenant_id
+        channel=clean_chan,
+        tenant_id=effective_tenant
     )
     return {
         "correlations": correlations,
         "count": len(correlations),
         "filter": clean_company or "ALL",
+        "channel_filter": clean_chan or "ALL",
+        "tenant_id": effective_tenant,
     }
 
 
 @app.get("/signals/correlations/{company_name}")
 def get_company_signal_correlations_endpoint(
     company_name: str,
-    tenant_id: str = Depends(get_current_tenant),
+    channel: Optional[str] = Query(None, description="Filter by channel: github, careers, news, pricing"),
+    tenant_id: Optional[str] = Query(None, description="Workspace tenant UUID for strict tenant isolation"),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
+    auth_tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
     Retrieve signal correlation clusters specifically for one competitor under tenant RLS.
     """
+    effective_tenant = (x_tenant_id or tenant_id or auth_tenant_id).strip()
+    if effective_tenant:
+        effective_tenant = _validate_tenant_uuid(effective_tenant)
+
     clean_name = str(company_name).strip()
     if not clean_name:
         raise HTTPException(status_code=400, detail="Company name is required")
-    correlations = storage.get_signal_correlations(company_name=clean_name, tenant_id=tenant_id)
+    clean_chan = str(channel).strip().lower() if channel and str(channel).strip() and str(channel).strip() != "ALL" else None
+
+    correlations = storage.get_signal_correlations(
+        company_name=clean_name,
+        channel=clean_chan,
+        tenant_id=effective_tenant
+    )
     return {
         "company_name": clean_name,
         "correlations": correlations,
         "count": len(correlations),
+        "channel_filter": clean_chan or "ALL",
+        "tenant_id": effective_tenant,
     }
 
 
 @app.post("/signals/correlations")
 def create_signal_correlation_endpoint(
     req: CreateSignalCorrelationRequest,
-    tenant_id: str = Depends(get_current_tenant),
+    tenant_id: Optional[str] = Query(None),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
+    auth_tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
     Persist a newly synthesized signal correlation pattern under tenant isolation and PostgreSQL RLS.
     """
+    effective_tenant = (x_tenant_id or tenant_id or auth_tenant_id).strip()
+    if effective_tenant:
+        effective_tenant = _validate_tenant_uuid(effective_tenant)
+
     payload = {
         "company_name": req.company_name.strip(),
         "pattern_name": req.pattern_name.strip(),
@@ -2410,8 +2530,8 @@ def create_signal_correlation_endpoint(
         "pipeline_stage": req.pipeline_stage.strip(),
         "signals_cluster": [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in req.signals_cluster],
     }
-    result = storage.save_signal_correlation(payload, tenant_id=tenant_id)
-    return {"status": "success", "correlation": result}
+    result = storage.save_signal_correlation(payload, tenant_id=effective_tenant)
+    return {"status": "success", "correlation": result, "tenant_id": effective_tenant}
 
 
 class EvidenceSourceNode(BaseModel):
@@ -2433,6 +2553,15 @@ class CreateDecisionSupportRequest(BaseModel):
     confidence: float = Field(90.0, ge=0.0, le=100.0, description="Calibrated confidence score (e.g. 94%)")
     corroboration_sources_count: Optional[int] = Field(3, ge=1, description="Count of independent corroborating sources")
     evidence_sources: List[EvidenceSourceNode] = Field(..., min_length=1, description="Independent primary evidence sources")
+    threat_type: Optional[str] = Field(None, description="Competitive threat type")
+    affected_products: Optional[List[str]] = Field(None, description="Affected target products")
+    overlapping_customer_segments: Optional[List[str]] = Field(None, description="Overlapping customer segments")
+    revenue_margin_exposure: Optional[str] = Field(None, description="Revenue and margin exposure")
+    competitor_advantage: Optional[str] = Field(None, description="Competitor advantage gained")
+    customer_impact: Optional[str] = Field(None, description="Customer impact")
+    uncertain_assumptions: Optional[str] = Field(None, description="Uncertain assumptions")
+    structured_why_it_matters: Optional[Dict[str, Any]] = Field(None, description="Structured 6-question breakdown")
+    inflection_summary_details: Optional[Dict[str, Any]] = Field(None, description="Inflection point summary details")
 
 
 @app.get("/decision-support")
@@ -2508,11 +2637,98 @@ def create_decision_support_endpoint(
         "what_should_we_do": req.what_should_we_do.strip(),
         "urgency": req.urgency.strip(),
         "confidence": req.confidence,
+        "threat_type": req.threat_type or "Direct competitive threat",
+        "affected_products": req.affected_products or [],
+        "overlapping_customer_segments": req.overlapping_customer_segments or [],
+        "revenue_margin_exposure": req.revenue_margin_exposure or "Insufficient empirical financial data to confirm revenue loss",
+        "competitor_advantage": req.competitor_advantage or "",
+        "customer_impact": req.customer_impact or "",
+        "uncertain_assumptions": req.uncertain_assumptions or "",
+        "structured_why_it_matters": req.structured_why_it_matters or {},
+        "inflection_summary_details": req.inflection_summary_details or {},
         "corroboration_sources_count": req.corroboration_sources_count or len(req.evidence_sources),
         "evidence_sources": [s.model_dump() if hasattr(s, "model_dump") else s.dict() for s in req.evidence_sources],
     }
     result = storage.save_decision_support_item(payload, tenant_id=tenant_id)
     return {"status": "success", "decision_support_item": result}
+
+
+
+class UpdateDecisionSupportActionRequest(BaseModel):
+    status: str = Field(..., description="Action status: Pending, In Progress, Accepted, Completed, Dismissed")
+    notes: Optional[str] = Field(None, description="Optional audit notes or rationale")
+    updated_by: Optional[str] = Field("executive_user", description="User or role executing update")
+
+
+@app.patch("/decision-support/{item_id}/actions/{action_id}")
+def update_decision_support_action_endpoint(
+    item_id: str,
+    action_id: str,
+    req: UpdateDecisionSupportActionRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Persistently update the status of a decision support action checklist item.
+    Enforces tenant isolation and updates action history audit log.
+    """
+    res = storage.update_decision_support_action_status(
+        tenant_id=tenant_id,
+        item_id=item_id,
+        action_id=action_id,
+        new_status=req.status,
+        updated_by=req.updated_by or "executive_user",
+        notes=req.notes
+    )
+    return res
+
+
+@app.get("/decision-support/{item_id}/actions/history")
+def get_decision_support_action_history_endpoint(
+    item_id: str,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Retrieve action checklist transition audit trail for a decision support card.
+    """
+    history = storage.get_decision_support_action_history(tenant_id=tenant_id, item_id=item_id)
+    return {
+        "item_id": item_id,
+        "history": history,
+        "count": len(history)
+    }
+
+
+class CompetitorResearchRequest(BaseModel):
+    competitor_name: str = Field(..., min_length=2, description="Competitor name to research")
+    target_company: Optional[str] = Field(None, description="Active target company context")
+    force_refresh: Optional[bool] = Field(False, description="Whether to bypass caches")
+
+
+@app.post("/decision-support/research")
+def research_competitor_endpoint(
+    req: CompetitorResearchRequest,
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Execute dynamic competitor research and synthesize a grounded 6-dimension decision support record.
+    Returns honest empty state if insufficient evidence exists.
+    """
+    from . import decision_support_engine
+    target = req.target_company
+    if not target:
+        ws_cfg = storage.get_tenant_workspace_config(tenant_id)
+        target = ws_cfg.get("target_company") or "Target Entity"
+
+    record = decision_support_engine.synthesize_decision_support_record(
+        target_company=target,
+        competitor_name=req.competitor_name.strip(),
+    )
+    return {
+        "status": "success",
+        "target_company": target,
+        "competitor_name": req.competitor_name.strip(),
+        "item": record
+    }
 
 
 # ============================================================================

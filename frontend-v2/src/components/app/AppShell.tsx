@@ -174,38 +174,61 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, token, logout, isLoading: authLoading } = useAuth();
 
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = React.useState(false);
-  const [activeTenantId, setActiveTenantId] = React.useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("prismiq_active_tenant_id");
-      if (stored && isValidUuid(stored)) return stored;
-    }
-    return DEFAULT_TENANT_ID;
-  });
+  const sidebarRef = React.useRef<HTMLElement>(null);
 
+  React.useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+
+    // A tall sidebar travels with the page until its last card is visible.
+    // A shorter sidebar stays directly below the 4rem context header.
+    const updateSidebarHeight = () => {
+      sidebar.style.setProperty("--app-sidebar-height", `${sidebar.getBoundingClientRect().height}px`);
+    };
+    updateSidebarHeight();
+    const observer = new ResizeObserver(updateSidebarHeight);
+    observer.observe(sidebar);
+    return () => observer.disconnect();
+  }, []);
+
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = React.useState(false);
+  const [activeTenantId, setActiveTenantId] = React.useState<string>(DEFAULT_TENANT_ID);
   const [customWorkspaces, setCustomWorkspaces] = React.useState<
     Array<{ tenant_id: string; name: string; target: string; sector: string }>
-  >(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("prismiq_custom_workspaces");
-        if (raw) return JSON.parse(raw);
-      } catch {
-        // ignore
+  >([]);
+
+  // Synchronize client-side tenant & custom workspaces after initial hydration to eliminate SSR mismatches
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("prismiq_active_tenant_id");
+      if (stored && isValidUuid(stored)) {
+        setActiveTenantId(stored);
       }
+      const raw = localStorage.getItem("prismiq_custom_workspaces");
+      if (raw) {
+        setCustomWorkspaces(JSON.parse(raw));
+      }
+    } catch {
+      // ignore
     }
-    return [];
-  });
+  }, []);
 
   // Combine built-in workspaces with custom user-created workspaces
   const allWorkspaces = React.useMemo(() => {
     const combined = [...AVAILABLE_WORKSPACES];
     for (const cw of customWorkspaces) {
-      if (!combined.some((w) => w.tenant_id === cw.tenant_id)) {
+      if (!combined.some((w) => w.tenant_id === cw.tenant_id || (w.target && cw.target && w.target.toLowerCase() === cw.target.toLowerCase()))) {
         combined.push(cw);
       }
     }
-    return combined;
+    // Deduplicate by target name as well
+    const seen = new Set<string>();
+    return combined.filter((w) => {
+      const key = (w.target || "").toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [customWorkspaces]);
 
   const [config, setConfig] = React.useState<WorkspaceConfig | null>(null);
@@ -309,8 +332,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })
         );
         setWorkspaceMenuOpen(false);
-        // Refresh page to reset all memory caches
-        window.location.reload();
+        // Navigate directly to overview so the selected target company opens and loads
+        window.location.href = "/app/overview";
       }
     },
     [allWorkspaces]
@@ -370,7 +393,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <EvidenceContext.Provider value={{ openEvidence, closeEvidence }}>
         <div className="prismiq-app-root min-h-screen flex flex-col antialiased text-[#17171b]">
           {/* Top Context Header Bar */}
-          <header className="sticky top-0 z-30 h-16 border-b border-[rgba(20,20,30,0.08)] bg-white/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between">
+          <header className="sticky top-0 z-30 h-16 border-b border-[rgba(20,20,30,0.08)] bg-white/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-6">
               {/* Mobile menu trigger */}
               <button
@@ -426,49 +449,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
                 {/* Workspace Dropdown */}
                 {workspaceMenuOpen && (
-                  <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-white border border-[rgba(20,20,30,0.09)] shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-2 border-b border-zinc-100">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
-                        Select Active Workspace
+                  <>
+                    {/* Backdrop to close on click outside */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setWorkspaceMenuOpen(false)}
+                    />
+                    <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-white border border-[rgba(20,20,30,0.09)] shadow-xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-3 py-2 border-b border-zinc-100">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af]">
+                          Select Active Workspace
+                        </div>
+                        <div className="text-xs text-[#70717a]">
+                          Click company to open and load workspace
+                        </div>
                       </div>
-                      <div className="text-xs text-[#70717a]">
-                        Strict Tenant-Isolated State
+                      <div className="py-1 space-y-1 max-h-64 overflow-y-auto">
+                        {allWorkspaces.map((ws) => (
+                          <button
+                            key={ws.tenant_id}
+                            onClick={() => switchWorkspace(ws.tenant_id)}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                              activeTenantId === ws.tenant_id
+                                ? "bg-purple-50 font-bold text-[#6e57dc] border border-purple-200/60"
+                                : "hover:bg-zinc-50 text-[#374151]"
+                            }`}
+                          >
+                            <div>
+                              <div className="font-bold text-sm text-[#17171b]">{ws.target}</div>
+                              <div className="text-[11px] text-[#9ca3af]">{ws.sector}</div>
+                            </div>
+                            {activeTenantId === ws.tenant_id && (
+                              <CheckCircle2 className="w-4 h-4 text-[#6e57dc]" />
+                            )}
+                          </button>
+                        ))}
                       </div>
-                    </div>
-                    <div className="py-1 space-y-1 max-h-64 overflow-y-auto">
-                      {allWorkspaces.map((ws) => (
-                        <button
-                          key={ws.tenant_id}
-                          onClick={() => switchWorkspace(ws.tenant_id)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${
-                            activeTenantId === ws.tenant_id
-                              ? "bg-purple-50 font-bold text-[#6e57dc]"
-                              : "hover:bg-zinc-50 text-[#374151]"
-                          }`}
-                        >
-                          <div>
-                            <div className="font-bold">{ws.target}</div>
-                            <div className="text-[11px] text-[#9ca3af]">{ws.sector}</div>
-                          </div>
-                          {activeTenantId === ws.tenant_id && (
-                            <CheckCircle2 className="w-4 h-4 text-[#6e57dc]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
 
-                    {/* Action to Onboard a New Company */}
-                    <div className="pt-2 mt-1 border-t border-zinc-100">
-                      <button
-                        type="button"
-                        onClick={startNewCompanyOnboarding}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50/80 hover:bg-purple-100 transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Set Up Another Company</span>
-                      </button>
+                      {/* Action to Onboard a New Company */}
+                      <div className="pt-2 mt-1 border-t border-zinc-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWorkspaceMenuOpen(false);
+                            startNewCompanyOnboarding();
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50/80 hover:bg-purple-100 transition-colors flex items-center gap-2 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Set Up Another Company</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -526,7 +559,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Body Container */}
           <div className="flex-1 flex min-h-0">
             {/* Desktop Persistent Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 border-r border-[rgba(20,20,30,0.08)] bg-white/70 backdrop-blur-md p-4 shrink-0 overflow-y-auto">
+            <aside
+              ref={sidebarRef}
+              style={{ top: "min(4rem, calc(100dvh - var(--app-sidebar-height, 0px)))" }}
+              className="sticky hidden md:flex self-start flex-col w-64 border-r border-[rgba(20,20,30,0.08)] bg-white/70 backdrop-blur-md p-4 shrink-0"
+            >
               <nav className="space-y-6">
                 {NAV_SECTIONS.map((section) => (
                   <div key={section.title}>
@@ -565,13 +602,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </nav>
 
               {/* Bottom Target Information Card */}
-              <div className="mt-auto pt-6">
+              <div className="pt-6">
                 <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50/80 via-white to-blue-50/50 border border-purple-100 text-xs">
                   <div className="flex items-center gap-1.5 font-bold text-[#6e57dc] mb-1">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Workspace Active</span>
                   </div>
-                  <div className="font-extrabold text-[#17171b] truncate">
+                  <div className="font-extrabold text-[#17171b] truncate" suppressHydrationWarning>
                     {targetCompany}
                   </div>
                   <div className="text-[11px] text-[#70717a] mt-0.5">
