@@ -236,7 +236,7 @@ export function ComparePage() {
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#6e57dc]" />
-                Point 1: Strategic Intelligence Matrix
+                Competitor Dossier Matrix
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
                   Profiles & Changes
                 </span>
@@ -277,7 +277,7 @@ export function ComparePage() {
                     <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-50/70 via-white to-blue-50/30 border border-purple-200/90 shadow-xs flex items-center justify-between">
                       <div>
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] block">
-                          Target Entity (Point 1 Profile)
+                          Target Entity Dossier
                         </span>
                         <h2 className="text-xl font-extrabold text-[#17171b]">{targetCompany}</h2>
                         <p className="text-xs text-[#70717a] mt-0.5 line-clamp-1">
@@ -290,7 +290,7 @@ export function ComparePage() {
                     <div className="p-5 rounded-2xl bg-white border border-[rgba(20,20,30,0.10)] shadow-xs flex items-center justify-between">
                       <div>
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#70717a] block">
-                          Tracked Competitor (Point 1 Profile)
+                          Tracked Competitor Dossier
                         </span>
                         <h2 className="text-xl font-extrabold text-[#17171b]">{selectedCompetitorName}</h2>
                         <p className="text-xs text-[#70717a] mt-0.5 line-clamp-1">

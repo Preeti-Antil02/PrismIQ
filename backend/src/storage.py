@@ -4521,55 +4521,77 @@ def get_competitive_sequences(
                             "sequence_steps": r[9] if isinstance(r[9], list) else (json.loads(r[9]) if r[9] else []),
                             "created_at": r[10].isoformat() if hasattr(r[10], "isoformat") else str(r[10]),
                         }))
-                    return seqs
+                    if seqs:
+                        return seqs
         except Exception as e:
             logger.warning(f"Failed to query competitive sequences from PostgreSQL: {e}")
 
-    # Tenant-scoped dynamic agent intelligence
     data_dir = _get_data_dir()
-    tid = str(tenant_id).strip()
-    if not is_test_environment() and (not tid or tid == "00000000-0000-0000-0000-000000000000"):
-        tid = "8553449a-c998-4727-be01-9aeb724038cb"
+    tid = str(tenant_id).strip() or "00000000-0000-0000-0000-000000000000"
 
-    # Direct check if tenant sequence cache exists
-    tenant_seq_file = data_dir / f"competitive_sequences_{tid}.json"
-    if tenant_seq_file.exists():
-        try:
-            with open(tenant_seq_file, "r", encoding="utf-8") as sf:
-                data = json.load(sf)
-                norm_data = [_normalize_sequence_record(s) for s in data]
-                if clean_cname:
-                    norm_data = [s for s in norm_data if s.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in s.get("company_name", "").lower()]
-                if norm_data:
-                    return norm_data
-        except Exception as e:
-            logger.warning(f"Failed to read tenant timeline sequences for {tid}: {e}")
+    # 2. Check tenant cache files in order of priority:
+    # First the requested tid, then default 00000000-..., then the seeded demo tenant 8553449a-...
+    candidate_tids = [tid]
+    for alt_tid in ["00000000-0000-0000-0000-000000000000", "8553449a-c998-4727-be01-9aeb724038cb"]:
+        if alt_tid not in candidate_tids:
+            candidate_tids.append(alt_tid)
 
-    ws_cfg = get_tenant_workspace_config(tid)
-    target = ws_cfg.get("target_company")
-    comps = ws_cfg.get("competitors", [])
-
-    if (target or comps) and (not is_test_environment() or (data_dir / f"competitive_sequences_{tid}.json").exists()):
-        from . import dynamic_intelligence_agent
-        if not tenant_seq_file.exists():
-            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+    for candidate_tid in candidate_tids:
+        tenant_seq_file = data_dir / f"competitive_sequences_{candidate_tid}.json"
         if tenant_seq_file.exists():
             try:
                 with open(tenant_seq_file, "r", encoding="utf-8") as sf:
                     data = json.load(sf)
-                    # If tenant file had old duplicate patterns across different companies, refresh it:
+                    norm_data = [_normalize_sequence_record(s) for s in data]
+                    if clean_cname:
+                        matched = [
+                            s for s in norm_data
+                            if s.get("company_name", "").lower() == clean_cname.lower()
+                            or clean_cname.lower() in s.get("company_name", "").lower()
+                            or s.get("company_name", "").lower() in clean_cname.lower()
+                        ]
+                        if matched:
+                            return matched
+                    elif norm_data:
+                        return norm_data
+            except Exception as e:
+                logger.warning(f"Failed to read tenant timeline sequences for {candidate_tid}: {e}")
+
+    # 3. Check workspace config and synthesize if configured
+    effective_tid = tid if tid != "00000000-0000-0000-0000-000000000000" else "8553449a-c998-4727-be01-9aeb724038cb"
+    ws_cfg = get_tenant_workspace_config(effective_tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", [])
+
+    if (target or comps) and (not is_test_environment() or (data_dir / f"competitive_sequences_{effective_tid}.json").exists()):
+        from . import dynamic_intelligence_agent
+        eff_file = data_dir / f"competitive_sequences_{effective_tid}.json"
+        if not eff_file.exists():
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(effective_tid, target or "Target Entity", comps or [target])
+        if eff_file.exists():
+            try:
+                with open(eff_file, "r", encoding="utf-8") as sf:
+                    data = json.load(sf)
                     if len(data) > 1 and len(set(s.get("pattern_name", "") for s in data)) == 1:
-                        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
-                        with open(tenant_seq_file, "r", encoding="utf-8") as rf:
+                        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(effective_tid, target or "Target Entity", comps or [target])
+                        with open(eff_file, "r", encoding="utf-8") as rf:
                             data = json.load(rf)
                     norm_data = [_normalize_sequence_record(s) for s in data]
                     if clean_cname:
-                        norm_data = [s for s in norm_data if s.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in s.get("company_name", "").lower()]
-                    return norm_data
+                        matched = [
+                            s for s in norm_data
+                            if s.get("company_name", "").lower() == clean_cname.lower()
+                            or clean_cname.lower() in s.get("company_name", "").lower()
+                            or s.get("company_name", "").lower() in clean_cname.lower()
+                        ]
+                        if matched:
+                            return matched
+                    elif norm_data:
+                        return norm_data
             except Exception as e:
-                logger.warning(f"Failed to read tenant timeline sequences for {tid}: {e}")
+                logger.warning(f"Failed to read tenant timeline sequences for {effective_tid}: {e}")
 
-    # Fallback to local published timeline sequences
+    # 4. Fallback to local published timeline sequences
     seq_file = data_dir / "timeline_sequences.json"
     if seq_file.exists():
         try:
@@ -4577,15 +4599,63 @@ def get_competitive_sequences(
                 data = json.load(sf)
                 norm_data = [_normalize_sequence_record(s) for s in data]
                 if clean_cname:
-                    norm_data = [s for s in norm_data if s.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in s.get("company_name", "").lower()]
-                return norm_data
+                    matched = [
+                        s for s in norm_data
+                        if s.get("company_name", "").lower() == clean_cname.lower()
+                        or clean_cname.lower() in s.get("company_name", "").lower()
+                        or s.get("company_name", "").lower() in clean_cname.lower()
+                    ]
+                    if matched:
+                        return matched
+                elif norm_data:
+                    return norm_data
         except Exception as e:
             logger.warning(f"Failed to read local timeline sequences file: {e}")
 
+    # 5. Baseline fallback sequences (has Vercel, Netlify, Amazon)
     baseline = [_normalize_sequence_record(s) for s in _get_baseline_timeline_sequences()]
     if clean_cname:
-        baseline = [s for s in baseline if s.get("company_name", "").lower() == clean_cname.lower() or clean_cname.lower() in s.get("company_name", "").lower()]
-    return baseline
+        matched_baseline = [
+            s for s in baseline
+            if s.get("company_name", "").lower() == clean_cname.lower()
+            or clean_cname.lower() in s.get("company_name", "").lower()
+            or s.get("company_name", "").lower() in clean_cname.lower()
+        ]
+        if matched_baseline:
+            return matched_baseline
+    elif baseline:
+        return baseline
+
+    # 6. On-demand dynamic sequence synthesis for arbitrary competitors (e.g. Adidas, Puma, etc.)
+    if clean_cname:
+        try:
+            from . import dynamic_intelligence_agent
+            intel = dynamic_intelligence_agent.generate_intelligence_for_competitor(
+                target_company=target or "PrismIQ Core",
+                competitor_name=clean_cname,
+                tenant_id=tid
+            )
+            if intel.get("sequence"):
+                norm_seq = _normalize_sequence_record(intel["sequence"], company_name=clean_cname)
+                # Cache sequence in tenant file to avoid re-generating
+                try:
+                    target_file = data_dir / f"competitive_sequences_{tid}.json"
+                    existing_seqs = []
+                    if target_file.exists():
+                        with open(target_file, "r", encoding="utf-8") as f:
+                            existing_seqs = json.load(f)
+                    # Deduplicate by company_name
+                    existing_seqs = [x for x in existing_seqs if x.get("company_name", "").lower() != clean_cname.lower()]
+                    existing_seqs.append(norm_seq)
+                    with open(target_file, "w", encoding="utf-8") as f:
+                        json.dump(existing_seqs, f, indent=2)
+                except Exception as cache_err:
+                    logger.debug(f"Could not cache synthesized sequence: {cache_err}")
+                return [norm_seq]
+        except Exception as e:
+            logger.warning(f"Failed to dynamically generate sequence for {clean_cname}: {e}")
+
+    return []
 
 
 def save_competitive_sequence(
@@ -5294,8 +5364,122 @@ def save_detected_high_impact_change(
     return {"id": new_id, "company_name": company_name, "headline": headline, "created_at": created_at, "status": "persisted"}
 
 # ============================================================================
+# Pillar 1: Competitor Evolution & Timeline Layer (Merged Points 1 + 2 + 3)
+# ============================================================================
+
+def _is_high_impact(change: Dict[str, Any]) -> bool:
+    """
+    Determine whether a company_changes record qualifies as a high-impact
+    inflection (Point 3 view). Applies deterministic classification based on
+    impact_score, significance_tier, and significance field so that the
+    Point 3 view is always a derived subset of the unified change ledger.
+    """
+    tier = str(change.get("significance_tier", "")).upper()
+    score = float(change.get("impact_score", 0) or 0)
+    sig = str(change.get("significance", "")).strip().lower()
+    return (
+        "critical" in tier
+        or "high impact" in tier
+        or score >= 70.0
+        or sig == "high"
+    )
+
+
+def _enrich_change_with_impact(change: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Back-fill impact_score and significance_tier on legacy company_changes
+    records created before migration 012 added those columns.
+    Uses significance field + corroborating_signals_count as proxy signals.
+    """
+    rec = dict(change)
+    if rec.get("impact_score") is None or float(rec.get("impact_score") or 0) == 50.0:
+        sig = str(rec.get("significance", "")).strip().lower()
+        corr = int(rec.get("corroborating_signals_count") or 1)
+        base = {"high": 82.0, "medium": 55.0, "low": 30.0}.get(sig, 50.0)
+        bonus = min(corr * 4.0, 12.0)
+        rec["impact_score"] = round(base + bonus, 2)
+    if not rec.get("significance_tier"):
+        score = float(rec.get("impact_score", 50.0))
+        rec["significance_tier"] = (
+            "CRITICAL INFLECTION" if score >= 90.0 else
+            "HIGH IMPACT"         if score >= 70.0 else
+            "MEDIUM IMPACT"       if score >= 45.0 else
+            "LOW IMPACT"
+        )
+    # Ensure Point 3 front-end fields are present with sensible defaults
+    if not rec.get("headline"):
+        rec["headline"] = rec.get("what_changed", "Strategic Move Detected")
+    if not rec.get("signals_evidence"):
+        rec["signals_evidence"] = []
+    if not rec.get("window_days"):
+        rec["window_days"] = 14
+    if not rec.get("corroborating_signals_count"):
+        rec["corroborating_signals_count"] = 1
+    return rec
+
+
+def get_competitor_evolution_timeline(
+    company_name: str,
+    tenant_id: str,
+    include_sequences: bool = True,
+) -> Dict[str, Any]:
+    """
+    Unified Competitor Evolution Timeline — merges Points 1, 2 & 3.
+
+    Returns a single payload containing:
+      - profile:              Point 1 company profile baseline
+      - all_changes:          Point 1 complete chronological change ledger (enriched)
+      - total_changes_count:  count of all_changes
+      - high_impact_changes:  Point 3 acute view — top 5 by impact_score (subset of all_changes)
+      - high_impact_count:    count of all qualifying high-impact records (not capped at 5)
+      - sequences:            Point 2 multi-month milestone sequence arcs
+      - sequences_count:      count of sequences
+
+    The frontend makes ONE call to /companies/{name}/evolution instead of
+    three separate calls to /profile, /changes, /timeline/sequences.
+    """
+    clean_name = str(company_name).strip()
+
+    # ── Point 1: Profile baseline ──────────────────────────────────────────
+    profile = get_company_profile(clean_name, tenant_id=tenant_id)
+
+    # ── Point 1: Full change ledger (enriched with impact fields) ──────────
+    raw_changes = get_company_changes(clean_name, tenant_id=tenant_id)
+    all_changes = [_enrich_change_with_impact(c) for c in raw_changes]
+
+    # ── Point 3: Derived high-impact view (top 5 by impact_score) ──────────
+    high_impact_all = sorted(
+        [c for c in all_changes if _is_high_impact(c)],
+        key=lambda x: float(x.get("impact_score", 0) or 0),
+        reverse=True,
+    )
+    high_impact_top5 = high_impact_all[:5]
+
+    # ── Point 2: Sequence arcs ─────────────────────────────────────────────
+    sequences: List[Dict[str, Any]] = []
+    if include_sequences:
+        sequences = get_competitive_sequences(company_name=clean_name, tenant_id=tenant_id)
+
+    return {
+        "company_name": clean_name,
+        # Point 1 — Profile baseline
+        "profile": profile,
+        # Point 1 — Full chronological ledger
+        "all_changes": all_changes,
+        "total_changes_count": len(all_changes),
+        # Point 3 — Acute high-impact view (top 5, derived from all_changes)
+        "high_impact_changes": high_impact_top5,
+        "high_impact_count": len(high_impact_all),
+        # Point 2 — Macro sequence arcs
+        "sequences": sequences,
+        "sequences_count": len(sequences),
+    }
+
+
+# ============================================================================
 # Signal Correlation Engine (Point 4: Raw Signals -> Events -> Patterns -> Insights -> Actions)
 # ============================================================================
+
 
 def _get_baseline_signal_correlations() -> List[Dict[str, Any]]:
     """Hardcoded baseline signal correlations with 4-channel support for testing and bootstrap."""

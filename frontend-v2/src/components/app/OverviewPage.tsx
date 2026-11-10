@@ -60,8 +60,6 @@ import {
   buildCompetitorSummaries,
   fetchDecisionSupportItems,
   updateDecisionSupportActionStatus,
-  fetchCompetitiveSequences,
-  fetchHighImpactChanges,
   type TrackedCompany,
   type ConsolidatedEventRecord,
   type SignalRecord,
@@ -71,9 +69,6 @@ import {
   type CompetitorActivitySummary,
   type DecisionSupportRecord,
   type DecisionSupportEvidence,
-  type CompetitiveSequenceRecord,
-  type SequenceStep,
-  type HighImpactChangeRecord,
 } from "@/lib/api";
 
 function getDepartmentBadgeClass(dept: string): string {
@@ -449,27 +444,17 @@ export function OverviewPage() {
   const [radarEvals, setRadarEvals] = React.useState<RadarEvaluation[]>([]);
   const [topics, setTopics] = React.useState<ResearchTopic[]>([]);
   const [decisionItems, setDecisionItems] = React.useState<DecisionSupportRecord[]>([]);
-  const [sequences, setSequences] = React.useState<CompetitiveSequenceRecord[]>([]);
-  const [highImpactChanges, setHighImpactChanges] = React.useState<HighImpactChangeRecord[]>([]);
-  const [selectedImpactFilter, setSelectedImpactFilter] = React.useState<string>("ALL");
   const [selectedDept, setSelectedDept] = React.useState<string>("ALL");
   const [selectedUrgency, setSelectedUrgency] = React.useState<string>("ALL");
   const [expandedWhyMatters, setExpandedWhyMatters] = React.useState<Record<string, boolean>>({});
   const [activeEvidenceItem, setActiveEvidenceItem] = React.useState<DecisionSupportRecord | null>(null);
-  const [activeHighImpactEvidence, setActiveHighImpactEvidence] = React.useState<HighImpactChangeRecord | null>(null);
-  const [activeSequenceEvidence, setActiveSequenceEvidence] = React.useState<{
-    company: string;
-    pattern: string;
-    horizon?: string;
-    step: SequenceStep;
-  } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [compsRes, eventsRes, signalsRes, findingsRes, radarRes, topicsRes, decisionRes, sequencesRes, changesRes] =
+      const [compsRes, eventsRes, signalsRes, findingsRes, radarRes, topicsRes, decisionRes] =
         await Promise.allSettled([
           fetchTrackedCompanies(),
           fetchEvents({ limit: 100 }),
@@ -478,8 +463,6 @@ export function OverviewPage() {
           fetchLatestRadar(),
           fetchWorkspaceTopics(),
           fetchDecisionSupportItems(undefined, tenantId),
-          fetchCompetitiveSequences(undefined, tenantId),
-          fetchHighImpactChanges(undefined, undefined, tenantId),
         ]);
 
       if (compsRes.status === "fulfilled") setTrackedCompanies(compsRes.value || []);
@@ -489,8 +472,6 @@ export function OverviewPage() {
       if (radarRes.status === "fulfilled") setRadarEvals(radarRes.value?.evaluations || []);
       if (topicsRes.status === "fulfilled") setTopics(topicsRes.value || []);
       if (decisionRes.status === "fulfilled") setDecisionItems(decisionRes.value?.items || []);
-      if (sequencesRes.status === "fulfilled") setSequences(sequencesRes.value?.sequences || []);
-      if (changesRes.status === "fulfilled") setHighImpactChanges(changesRes.value?.changes || []);
     } catch (err: any) {
       setError(err.message || "Failed to load intelligence");
     } finally {
@@ -507,24 +488,6 @@ export function OverviewPage() {
     if (trackedCompanies.length === 0) return [];
     return buildCompetitorSummaries(trackedCompanies, signals, events, findings, radarEvals);
   }, [trackedCompanies, signals, events, findings, radarEvals]);
-
-  // Filtered Point 3 High-Impact Changes
-  const filteredHighImpactChanges = React.useMemo(() => {
-    if (selectedImpactFilter === "ALL") return highImpactChanges;
-    return highImpactChanges.filter((c) => {
-      const tier = (c.significance_tier || "").toUpperCase();
-      if (selectedImpactFilter === "CRITICAL INFLECTION") {
-        return tier.includes("CRITICAL");
-      }
-      if (selectedImpactFilter === "HIGH IMPACT") {
-        return tier === "HIGH IMPACT" || tier === "HIGH";
-      }
-      if (selectedImpactFilter === "MEDIUM IMPACT") {
-        return tier === "MEDIUM IMPACT" || tier === "MEDIUM";
-      }
-      return tier === selectedImpactFilter.toUpperCase();
-    });
-  }, [highImpactChanges, selectedImpactFilter]);
 
   // Real-time Department counts for Point 5 filter tabs (12 canonical departments)
   const canonicalDepartments = React.useMemo(() => [
@@ -796,13 +759,13 @@ export function OverviewPage() {
 
         <PrismCard>
           <div className="text-[10px] font-extrabold tracking-wider uppercase text-[#9ca3af] mb-1">
-            Timeline Sequences
+            Competitor Evolution
           </div>
-          <div className="text-2xl font-extrabold text-[#17171b]">{sequences.length}</div>
+          <div className="text-2xl font-extrabold text-[#17171b]">{trackedCompanies.length}</div>
           <div className="text-[11px] text-[#70717a] mt-1 flex items-center justify-between">
-            <span>{sequences.reduce((acc, s) => acc + (s.sequence_steps?.length || 0), 0)} Milestones</span>
-            <Link href="/app/trends" className="text-[#6e57dc] font-semibold hover:underline">
-              Point 2 Live
+            <span>Unified Profiles &amp; Arcs</span>
+            <Link href="/app/competitors" className="text-[#6e57dc] font-semibold hover:underline">
+              Points 1, 2 &amp; 3 Live
             </Link>
           </div>
         </PrismCard>
@@ -1447,625 +1410,33 @@ export function OverviewPage() {
         </div>
       )}
 
-      {/* Point 3 Verified High-Impact Change Dossier Modal */}
-      {activeHighImpactEvidence && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-[rgba(20,20,30,0.12)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-[rgba(20,20,30,0.08)] bg-gradient-to-r from-amber-50/80 via-white to-purple-50/40 flex items-start justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-[#6e57dc] flex items-center justify-center font-extrabold text-white text-base shadow-xs shrink-0">
-                  {activeHighImpactEvidence.company_name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-extrabold text-[#17171b] text-base">
-                      {activeHighImpactEvidence.company_name}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex items-center gap-1 ${
-                      (activeHighImpactEvidence.significance_tier || "").toUpperCase().includes("CRITICAL")
-                        ? "bg-rose-100 text-rose-800 border-rose-300"
-                        : "bg-amber-100 text-amber-800 border-amber-300"
-                    }`}>
-                      <Flame className="w-3 h-3 text-amber-600" />
-                      {activeHighImpactEvidence.significance_tier || "HIGH IMPACT"}
-                    </span>
-                    {activeHighImpactEvidence.event_category && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        {activeHighImpactEvidence.event_category}
-                      </span>
-                    )}
-                    {activeHighImpactEvidence.impact_score !== undefined && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-zinc-100 text-zinc-800 border border-zinc-200">
-                        Score: {activeHighImpactEvidence.impact_score}/100
-                      </span>
-                    )}
-                    {activeHighImpactEvidence.is_demo_data && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-zinc-100 text-zinc-600 border border-dashed border-zinc-300">
-                        Demo Scenario
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                      {activeHighImpactEvidence.window_days ?? 14}-Day Emergence Window
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#70717a] mt-0.5 font-medium">
-                    {activeHighImpactEvidence.confidence ?? 94}% Calibrated Multi-Channel Confidence
-                    {activeHighImpactEvidence.verification_status ? ` • Status: ${activeHighImpactEvidence.verification_status}` : ""}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveHighImpactEvidence(null)}
-                className="p-2 rounded-xl text-[#9ca3af] hover:text-[#17171b] hover:bg-zinc-100 transition-colors cursor-pointer shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 space-y-4 overflow-y-auto">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-[#17171b] leading-snug">
-                  {activeHighImpactEvidence.headline}
-                </h3>
-              </div>
-
-              {/* Strategic Analysis */}
-              <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/90 space-y-1.5">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#70717a] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#6e57dc]" />
-                  Strategic Interpretation:
-                </span>
-                <p className="text-xs text-zinc-800 leading-relaxed font-medium">
-                  {activeHighImpactEvidence.strategic_interpretation || activeHighImpactEvidence.description}
-                </p>
-              </div>
-
-              {/* Why it matters to target company */}
-              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/90 space-y-1.5">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
-                  Direct Impact on {targetCompany}:
-                </span>
-                <p className="text-xs text-amber-950 leading-relaxed font-medium">
-                  {activeHighImpactEvidence.why_it_matters}
-                </p>
-              </div>
-
-              {/* Recommended counter-action */}
-              {activeHighImpactEvidence.recommended_action && (
-                <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/90 space-y-1.5">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-emerald-700" />
-                    Recommended Counter-Playbook:
-                  </span>
-                  <p className="text-xs text-emerald-950 leading-relaxed font-medium">
-                    {activeHighImpactEvidence.recommended_action}
-                  </p>
-                </div>
-              )}
-
-              {/* Affected Business Teams */}
-              {activeHighImpactEvidence.affected_business_teams && activeHighImpactEvidence.affected_business_teams.length > 0 && (
-                <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-200/80 flex items-center gap-2 flex-wrap text-xs">
-                  <span className="font-bold text-purple-900 text-[11px] uppercase tracking-wider">Affected Business Teams:</span>
-                  {activeHighImpactEvidence.affected_business_teams.map((team, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded-md font-semibold bg-white text-purple-800 border border-purple-200 text-[11px]">
-                      {team}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Related Strategic Shifts */}
-              {activeHighImpactEvidence.related_event_ids && activeHighImpactEvidence.related_event_ids.length > 0 && (
-                <div className="p-3 rounded-xl bg-zinc-50 border border-zinc-200 text-xs">
-                  <span className="font-bold text-zinc-700 text-[11px] uppercase tracking-wider block mb-1">Correlated Strategic Patterns:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {activeHighImpactEvidence.related_event_ids.map((relId, rIdx) => (
-                      <span key={rIdx} className="px-2 py-0.5 rounded font-mono text-[10px] bg-white border border-zinc-300 text-zinc-600">
-                        Linked Signal: {relId}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Corroborating Signals Evidence Section */}
-              <div className="space-y-2.5 pt-2 border-t border-zinc-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    Corroborated Multi-Channel Evidence ({((activeHighImpactEvidence.signals_evidence || activeHighImpactEvidence.signals) || []).length} Channels)
-                  </span>
-                  <span className="text-[11px] text-zinc-400">
-                    Emergence window: {activeHighImpactEvidence.window_days ?? 14} days
-                  </span>
-                </div>
-
-                <div className="space-y-2.5">
-                  {((activeHighImpactEvidence.signals_evidence || activeHighImpactEvidence.signals) || []).map((sig, sIdx) => (
-                    <div
-                      key={sIdx}
-                      className="p-3.5 rounded-xl bg-zinc-50 border border-zinc-200/80 space-y-2 text-xs"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-100 text-purple-800 border border-purple-200">
-                            {sig.signal_type}
-                          </span>
-                          <span className="font-bold text-zinc-900">{sig.title}</span>
-                        </div>
-                        <span className="text-[10px] text-zinc-500 font-mono">
-                          {sig.source} • {sig.detected_at ? sig.detected_at.split("T")[0] : "Verified"}
-                        </span>
-                      </div>
-
-                      <div className="p-2.5 rounded-lg bg-white border border-zinc-200/60 font-mono text-zinc-700 italic leading-relaxed text-[11px]">
-                        &ldquo;{sig.excerpt}&rdquo;
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-[10px] text-zinc-400">PrismIQ Public Crawl Verification</span>
-                        {(() => {
-                          const safeUrl = sanitizeSourceUrl(sig.url);
-                          return safeUrl ? (
-                            <a
-                              href={safeUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 font-bold text-[#6e57dc] hover:underline text-[11px]"
-                            >
-                              <span>Open Primary Source</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
-                          ) : (
-                            <span className="text-[11px] text-zinc-400 italic">
-                              Source document unavailable.
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-[rgba(20,20,30,0.08)] bg-zinc-50 flex items-center justify-between shrink-0">
-              <span className="text-[11px] text-[#70717a]">
-                PrismIQ Autonomous Change Detection Engine • Zero Demo Data
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveHighImpactEvidence(null)}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors cursor-pointer"
-              >
-                Close Dossier
-              </button>
-            </div>
+      {/* 3. Merged Competitor Evolution & Timeline Hub Bridge (Points 1, 2 & 3) */}
+      <div className="p-6 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/60 rounded-2xl border border-[rgba(20,20,30,0.10)] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div className="flex items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#6e57dc] to-[#35a9c2] flex items-center justify-center font-extrabold text-white text-lg shadow-xs shrink-0">
+            <Layers className="w-6 h-6 text-white" />
           </div>
-        </div>
-      )}
-
-      {/* Point 2 Verified Sequence Milestone Dossier Modal */}
-      {activeSequenceEvidence && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto">
-          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[rgba(20,20,30,0.12)] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-[rgba(20,20,30,0.08)] bg-gradient-to-r from-purple-50 via-white to-blue-50/30 flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#6e57dc] to-[#35a9c2] flex items-center justify-center font-extrabold text-white text-base shadow-xs">
-                  {activeSequenceEvidence.company.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-extrabold text-[#17171b] text-base">
-                      {activeSequenceEvidence.company}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 text-[#6e57dc] border border-purple-200">
-                      Step {activeSequenceEvidence.step.step_number} Milestone
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#70717a] mt-0.5">
-                    {activeSequenceEvidence.pattern}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSequenceEvidence(null)}
-                className="p-2 rounded-xl text-[#9ca3af] hover:text-[#17171b] hover:bg-zinc-100 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 space-y-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-zinc-100 text-zinc-700">
-                    {activeSequenceEvidence.step.month}
-                  </span>
-                  <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
-                    {activeSequenceEvidence.step.dimension}
-                  </span>
-                  <span className="text-xs text-zinc-400">•</span>
-                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    {activeSequenceEvidence.step.signals_count} Corroborated Signal{activeSequenceEvidence.step.signals_count !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-[#17171b]">
-                  {activeSequenceEvidence.step.event_title}
-                </h3>
-              </div>
-
-              {/* Verbatim quote / excerpt */}
-              <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200/90 relative">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#70717a] block mb-1">
-                  Verified Primary Evidence & Excerpt:
-                </span>
-                <p className="text-xs text-zinc-800 font-mono leading-relaxed italic">
-                  &ldquo;{activeSequenceEvidence.step.evidence_excerpt}&rdquo;
-                </p>
-              </div>
-
-              {/* Primary Source Verification Link */}
-              <div className="p-3 rounded-xl bg-purple-50/50 border border-purple-100 flex items-center justify-between text-xs">
-                <span className="text-zinc-600 font-medium">Original Public Source:</span>
-                {(() => {
-                  const safeUrl = sanitizeSourceUrl(activeSequenceEvidence.step.evidence_url);
-                  return safeUrl ? (
-                    <a
-                      href={safeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 font-bold text-[#6e57dc] hover:underline"
-                    >
-                      <span>Open Primary Evidence Link</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  ) : (
-                    <span className="text-zinc-400 italic">Source document unavailable.</span>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-[rgba(20,20,30,0.08)] bg-zinc-50 flex items-center justify-between">
-              <span className="text-[11px] text-[#70717a]">
-                PrismIQ Multi-Month Causal Verification Engine
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveSequenceEvidence(null)}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors cursor-pointer"
-              >
-                Close Dossier
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* POINT 3: COMPETITIVE CHANGE DETECTION ENGINE ("THE 5 CHANGES THAT ACTUALLY MATTER") */}
-      <div className="space-y-4">
-        <PrismSectionHeader
-          title="High-Impact Change Detection: The 5 Changes That Matter"
-          subtitle="Curated detection of strategic inflection points: Pricing overhauls, Enterprise pivots, Executive hiring, Deprecations, and Strategic partnerships."
-          eyebrow="Point 3 • High-Impact Change Detection"
-          action={
+          <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                {highImpactChanges.filter((c) => (c.significance_tier || "").toUpperCase().includes("CRITICAL")).length} Critical Inflections
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                {highImpactChanges.filter((c) => (c.significance_tier || "").toUpperCase() === "HIGH IMPACT").length} High Impact
+              <h3 className="text-base font-extrabold text-[#17171b]">
+                Competitor Evolution &amp; Timeline Hub
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 text-[#6e57dc] border border-purple-200">
+                Merged Points 1, 2 &amp; 3
               </span>
             </div>
-          }
-        />
-
-        {/* Change Filter Pills */}
-        <div className="p-3 bg-white rounded-xl border border-[rgba(20,20,30,0.08)] shadow-xs flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold text-[#70717a] mr-1 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5 text-[#9ca3af]" />
-              Significance Tier:
-            </span>
-            {[
-              { id: "ALL", label: "All Inflections" },
-              { id: "CRITICAL INFLECTION", label: "Critical Inflections" },
-              { id: "HIGH IMPACT", label: "High Impact" },
-              { id: "MEDIUM IMPACT", label: "Medium Impact" },
-            ].map(({ id, label }) => {
-              const active = selectedImpactFilter === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setSelectedImpactFilter(id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    active
-                      ? "bg-amber-600 text-white shadow-xs"
-                      : "bg-zinc-100/80 text-[#70717a] hover:bg-zinc-200/70 hover:text-[#17171b]"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
+            <p className="text-xs text-[#70717a] mt-1 max-w-2xl leading-relaxed">
+              Consolidated intelligence layer: explore acute strategic inflections, multi-month sequence roadmaps, and complete historical change ledgers per competitor in one unified place.
+            </p>
           </div>
-
-          <Link href="/app/events" className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1">
-            Canonical Event Ledger <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
-
-        {/* High Impact Cards */}
-        {filteredHighImpactChanges.length === 0 ? (
-          <PrismCard className="p-6 text-center text-xs text-[#70717a]">
-            <p className="font-bold text-[#17171b]">No high-impact shifts match filter</p>
-          </PrismCard>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredHighImpactChanges.map((change) => {
-              const tier = change.significance_tier || (change.impact_severity ? `${change.impact_severity.toUpperCase()} IMPACT` : "HIGH IMPACT");
-              const isCritical = tier.toUpperCase().includes("CRITICAL");
-              const isHigh = tier.toUpperCase().includes("HIGH") || isCritical;
-              const category = change.event_category || change.dimension || "Strategic Shift";
-              const score = change.impact_score;
-              const affectedTeams = change.affected_business_teams || change.who_is_affected || [];
-              const whyItMatters = change.why_it_matters || "Insufficient evidence";
-              const strategicInterpretation = change.strategic_interpretation || change.event_description || change.description || "Insufficient evidence";
-              return (
-                <div
-                  key={change.id}
-                  onClick={() => setActiveHighImpactEvidence(change)}
-                  className="bg-white rounded-2xl border border-[rgba(20,20,30,0.10)] p-5 shadow-xs hover:border-[#6e57dc] hover:shadow-md transition-all flex flex-col justify-between space-y-3.5 cursor-pointer group text-left"
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <PrismCompanyBadge
-                          name={change.company_name}
-                          isTarget={change.company_name.toLowerCase() === targetCompany.toLowerCase()}
-                          size="sm"
-                        />
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex items-center gap-1 ${
-                            isCritical
-                              ? "bg-rose-50 text-rose-800 border-rose-300"
-                              : isHigh
-                              ? "bg-amber-50 text-amber-800 border-amber-200"
-                              : "bg-blue-50 text-blue-700 border-blue-200"
-                          }`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${isCritical ? "bg-rose-500 animate-pulse" : isHigh ? "bg-amber-500" : "bg-blue-500"}`} />
-                          {tier}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          {category}
-                        </span>
-                        {score !== undefined && score !== null && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-zinc-100 text-zinc-800 border border-zinc-200">
-                            Score: {score}/100
-                          </span>
-                        )}
-                        {change.is_demo_data && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-zinc-100 text-zinc-500 border border-dashed border-zinc-300">
-                            Demo Scenario
-                          </span>
-                        )}
-                      </div>
-
-                      <span className="text-[11px] font-bold text-[#70717a] flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-[#9ca3af]" />
-                        {change.window_days ?? 14}-day emergence window
-                      </span>
-                    </div>
-
-                    <h4 className="text-sm sm:text-base font-extrabold text-[#17171b] leading-snug">
-                      {change.headline}
-                    </h4>
-
-                    <p className="text-xs text-[#4b5563] leading-relaxed">
-                      {strategicInterpretation}
-                    </p>
-
-                    <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-100/90 text-xs text-amber-950 font-medium">
-                      <strong className="text-amber-900 block mb-0.5 font-bold">Why it matters:</strong>
-                      {whyItMatters}
-                    </div>
-
-                    {affectedTeams.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                        <span className="text-[10px] font-bold text-[#70717a] uppercase tracking-wider">Affected Teams:</span>
-                        {affectedTeams.map((team, tIdx) => (
-                          <span key={tIdx} className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                            {team}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between text-xs">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-100 text-[#17171b] border border-zinc-200 flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      {change.corroborating_signals_count ?? change.corroboration_count ?? ((change.signals_evidence || change.signals) || []).length ?? 3} corroborated sources
-                    </span>
-
-                    <span className="text-[#6e57dc] font-bold group-hover:underline flex items-center gap-1">
-                      <span>Inspect Dossier</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* POINT 2: Historical Competitive Memory & Multi-Month Sequence Detection */}
-      <div className="space-y-4">
-        <PrismSectionHeader
-          title="Historical Competitive Memory & Multi-Month Sequences"
-          subtitle="Connecting isolated milestones across months into unified competitor intent (e.g., Hiring → Compliance → Enterprise Pricing → Case Study → Market Expansion)."
-          eyebrow="Point 2 • Sequence Detection & Memory"
-          action={
-            <Link
-              href="/app/trends"
-              className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1.5"
-            >
-              Full Interactive Trends Timeline <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          }
-        />
-
-        {sequences.length === 0 ? (
-          <PrismCard className="p-6 text-center text-xs text-[#70717a]">
-            <Workflow className="w-7 h-7 text-[#9ca3af] mx-auto mb-2 opacity-60" />
-            <p className="font-bold text-[#17171b]">No multi-month milestone sequence active</p>
-            <p className="text-[#70717a] mt-0.5">Milestones will correlate automatically once multi-period signals are captured.</p>
-          </PrismCard>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {sequences.slice(0, 3).map((seq) => (
-              <div
-                key={seq.id}
-                className="bg-white rounded-2xl border border-[rgba(20,20,30,0.10)] p-5 shadow-xs hover:shadow-md transition-all space-y-4"
-              >
-                {/* Sequence Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[rgba(20,20,30,0.06)]">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <PrismCompanyBadge
-                      name={seq.company_name}
-                      isTarget={(seq.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
-                      size="sm"
-                    />
-                    <span className="text-xs text-[#70717a] flex items-center gap-1 font-semibold">
-                      <Calendar className="w-3.5 h-3.5 text-[#6e57dc]" />
-                      {seq.time_horizon}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-50 text-[#6e57dc] border border-purple-200 flex items-center gap-1">
-                      <Workflow className="w-3 h-3" />
-                      {seq.sequence_steps?.length || 0} Corroborated Steps
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      {seq.confidence}% Confidence
-                    </span>
-                  </div>
-                </div>
-
-                {/* Pattern Name & Strategic Interpretation */}
-                <div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#6e57dc]" />
-                    Detected Multi-Month Pattern
-                  </div>
-                  <h3 className="text-base sm:text-lg font-extrabold text-[#17171b]">
-                    {seq.pattern_name}
-                  </h3>
-                  <p className="text-xs text-[#4b5563] mt-1 leading-relaxed">
-                    {seq.strategic_interpretation}
-                  </p>
-                </div>
-
-                {/* Milestone Timeline Stepper */}
-                <div className="pt-1">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#70717a] mb-2.5">
-                    Chronological Milestone Progression:
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                    {(seq.sequence_steps || []).map((step, sIdx) => {
-                      const dStyle = DIMENSION_STYLES[step.dimension] || {
-                        bg: "bg-zinc-100",
-                        text: "text-zinc-800",
-                        border: "border-zinc-200",
-                        label: step.dimension,
-                      };
-                      return (
-                        <button
-                          key={sIdx}
-                          type="button"
-                          onClick={() => setActiveSequenceEvidence({
-                            company: seq.company_name,
-                            pattern: seq.pattern_name,
-                            horizon: seq.time_horizon,
-                            step: step,
-                          })}
-                          className="p-3 rounded-xl bg-zinc-50/80 border border-zinc-200/80 hover:bg-white hover:border-[#6e57dc] hover:shadow-md transition-all flex flex-col justify-between space-y-2 text-left cursor-pointer group"
-                        >
-                          <div>
-                            <div className="flex items-center justify-between text-[10px] mb-1">
-                              <span className="font-extrabold text-[#6e57dc]">
-                                Step {step.step_number || sIdx + 1}
-                              </span>
-                              <span className="font-semibold text-[#70717a]">
-                                {step.month}
-                              </span>
-                            </div>
-                            <span
-                              className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border mb-1.5 ${dStyle.bg} ${dStyle.text} ${dStyle.border}`}
-                            >
-                              {dStyle.label}
-                            </span>
-                            <h4 className="text-xs font-bold text-[#17171b] leading-tight line-clamp-2 group-hover:text-[#6e57dc] transition-colors">
-                              {step.event_title}
-                            </h4>
-                          </div>
-
-                          <div className="pt-1.5 border-t border-zinc-200/60 flex items-center justify-between text-[10px] text-[#70717a] w-full">
-                            <span className="font-bold text-[#17171b] flex items-center gap-1">
-                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                              {step.signals_count} signals
-                            </span>
-                            <span className="text-[#6e57dc] font-bold group-hover:underline flex items-center gap-0.5">
-                              Evidence &rarr;
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Actionable Counter-Playbook */}
-                <div className="p-3.5 rounded-xl bg-zinc-900 text-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 mb-0.5 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                      Recommended Counter-Action:
-                    </div>
-                    <p className="text-xs text-zinc-200 font-medium leading-relaxed">
-                      {seq.recommended_action}
-                    </p>
-                  </div>
-                  <Link
-                    href="/app/trends"
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#6e57dc] hover:bg-[#5b45c6] text-white shrink-0 self-start sm:self-auto transition-colors flex items-center gap-1"
-                  >
-                    Drill Down <ChevronRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Link
+          href="/app/competitors"
+          className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#6e57dc] hover:bg-[#5b45c6] text-white shadow-xs transition-colors flex items-center gap-2 shrink-0 self-start md:self-auto cursor-pointer"
+        >
+          <span>Open Competitor Evolution</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* 4. Competitive Movement Strip */}

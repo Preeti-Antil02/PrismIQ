@@ -2111,6 +2111,33 @@ class AddCompanyChangeRequest(BaseModel):
     significance: str = Field("Medium", description="Significance rating: High, Medium, Low")
     strategic_implication: Optional[str] = Field(None, description="Strategic interpretation and impact")
 
+@app.get("/companies/{company_name}/evolution")
+def get_competitor_evolution_endpoint(
+    company_name: str,
+    include_sequences: bool = Query(True, description="Include multi-month sequence arcs (Point 2)"),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
+    """
+    Pillar 1: Unified Competitor Evolution & Timeline endpoint (Merges Points 1, 2 & 3).
+
+    Returns a single payload with:
+      - profile:             Continuously evolving competitor profile (Point 1 baseline)
+      - all_changes:         Complete chronological change ledger with impact enrichment (Point 1 micro)
+      - high_impact_changes: Top 5 high-impact inflections derived from the ledger (Point 3 acute)
+      - sequences:           Multi-month milestone sequence arcs (Point 2 macro)
+
+    Frontend can replace 3 separate calls (/profile, /changes, /timeline/sequences)
+    with this single endpoint. All existing individual endpoints remain for backward compat.
+    """
+    clean_name = str(company_name).strip()
+    if not clean_name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    return storage.get_competitor_evolution_timeline(
+        clean_name,
+        tenant_id=tenant_id,
+        include_sequences=include_sequences,
+    )
+
 
 @app.get("/companies/{company_name}/profile")
 def get_company_profile_endpoint(

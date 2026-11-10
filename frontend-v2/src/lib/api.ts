@@ -1244,6 +1244,53 @@ export async function fetchCompanyChanges(
 
 
 // ============================================================================
+// Pillar 1: Unified Competitor Evolution Timeline (Merges Points 1, 2 & 3)
+// ============================================================================
+
+export interface CompetitorEvolutionTimeline {
+  company_name: string;
+  // Point 1 — Profile baseline
+  profile: CompanyProfile | null;
+  // Point 1 — Full chronological ledger (enriched with impact fields)
+  all_changes: CompanyChangeRecord[];
+  total_changes_count: number;
+  // Point 3 — Acute top-5 high-impact view (derived from all_changes)
+  high_impact_changes: HighImpactChangeRecord[];
+  high_impact_count: number;
+  // Point 2 — Macro sequence arcs
+  sequences: CompetitiveSequenceRecord[];
+  sequences_count: number;
+}
+
+export async function fetchCompetitorEvolution(
+  companyName: string,
+  tenantId?: string,
+  includeSequences: boolean = true
+): Promise<CompetitorEvolutionTimeline> {
+  const token = getClientAuthToken();
+  const encoded = encodeURIComponent(companyName);
+  const qs = includeSequences ? "" : "?include_sequences=false";
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/companies/${encoded}/evolution${qs}`
+    : `${API_BASE_URL}/companies/${encoded}/evolution${qs}`;
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (tenantId) {
+    headers["X-Tenant-ID"] = tenantId;
+  }
+
+  const res = await fetch(baseUrl, {
+    headers,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load competitor evolution timeline (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
 // Historical Competitive Memory & Timeline Sequences (Point 2: Sequence Detection)
 // ============================================================================
 
