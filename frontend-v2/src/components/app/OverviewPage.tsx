@@ -210,6 +210,7 @@ function ActionablePlaybookChecklist({
     }
     return initial;
   });
+  const [expandedActions, setExpandedActions] = React.useState<Record<string, boolean>>({});
   const [syncState, setSyncState] = React.useState<"idle" | "saving" | "synced">("idle");
 
   React.useEffect(() => {
@@ -267,59 +268,13 @@ function ActionablePlaybookChecklist({
     }
   };
 
-  const acceptedCount = actions.filter((a) => statuses[a.id] === "Accepted").length;
-  const inProgressCount = actions.filter((a) => statuses[a.id] === "In Progress").length;
-  const completedCount = actions.filter((a) => statuses[a.id] === "Completed").length;
-  const dismissedCount = actions.filter((a) => statuses[a.id] === "Dismissed").length;
-  const totalExecuted = acceptedCount + completedCount;
-  const percentComplete = actions.length > 0 ? Math.round((totalExecuted / actions.length) * 100) : 0;
-
   return (
-    <div className="mt-3 pt-3 border-t border-zinc-800 space-y-2.5">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-300">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Interactive Counter-Playbook Checklist</span>
-          {syncState === "saving" && (
-            <span className="text-[10px] text-zinc-400 animate-pulse font-normal">
-              (Saving...)
-            </span>
-          )}
-          {syncState === "synced" && (
-            <span className="text-[10px] text-emerald-400 font-normal">
-              ✓ Saved to DB
-            </span>
-          )}
+    <div className="mt-2 space-y-2">
+      {syncState !== "idle" && (
+        <div className={`text-[10px] ${syncState === "synced" ? "text-emerald-400" : "text-zinc-400 animate-pulse"}`}>
+          {syncState === "saving" ? "Saving action status…" : "✓ Saved to DB"}
         </div>
-        <div className="flex items-center gap-2 text-[10px]">
-          <span className="text-zinc-400 font-medium">
-            {completedCount > 0 && `${completedCount} Done • `}
-            {acceptedCount} Accepted
-            {inProgressCount > 0 && ` • ${inProgressCount} In Progress`}
-          </span>
-          <span className="px-1.5 py-0.5 rounded font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
-            {percentComplete}% Executed
-          </span>
-        </div>
-      </div>
-
-      {/* Progress track */}
-      <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden flex">
-        <div 
-          className="bg-emerald-500 transition-all duration-300" 
-          style={{ width: `${(completedCount / actions.length) * 100}%` }} 
-        />
-        <div 
-          className="bg-teal-400 transition-all duration-300" 
-          style={{ width: `${(acceptedCount / actions.length) * 100}%` }} 
-        />
-        <div 
-          className="bg-amber-400 transition-all duration-300" 
-          style={{ width: `${(inProgressCount / actions.length) * 100}%` }} 
-        />
-      </div>
-
-      {/* Actions list */}
+      )}
       <div className="space-y-2">
         {actions.map((act) => {
           const status = statuses[act.id];
@@ -327,7 +282,7 @@ function ActionablePlaybookChecklist({
           return (
             <div
               key={act.id}
-              className={`p-2.5 rounded-lg border transition-all text-xs flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 ${
+              className={`p-2.5 rounded-lg border transition-all text-xs ${
                 status === "Completed"
                   ? "bg-emerald-950/50 border-emerald-500/50 text-emerald-100"
                   : status === "Accepted"
@@ -339,8 +294,13 @@ function ActionablePlaybookChecklist({
                   : "bg-zinc-800/70 border-zinc-700/70 text-zinc-200 hover:border-zinc-600"
               }`}
             >
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                aria-expanded={Boolean(expandedActions[act.id])}
+                onClick={() => setExpandedActions((prev) => ({ ...prev, [act.id]: !prev[act.id] }))}
+                className="w-full min-h-9 flex items-center justify-between gap-3 text-left cursor-pointer"
+              >
+                <span className="min-w-0 flex items-center gap-1.5 flex-wrap">
                   {act.department && (
                     <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-zinc-700/80 text-zinc-300 border border-zinc-600">
                       {act.department}
@@ -349,26 +309,29 @@ function ActionablePlaybookChecklist({
                   <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider border ${getPriorityBadgeClass(priority)}`}>
                     {priority}
                   </span>
-                  {act.suggested_deadline && (
-                    <span className="text-[10px] text-zinc-400 font-medium">
-                      ⏱ {act.suggested_deadline}
-                    </span>
-                  )}
-                </div>
-                <div className="font-medium leading-snug">{act.title || act.text}</div>
-                {act.suggested_next_step && (
-                  <div className="text-[11px] text-purple-300 font-normal">
-                    <span className="font-bold text-purple-200">Next:</span> {act.suggested_next_step}
-                  </div>
-                )}
-              </div>
+                    {act.suggested_deadline && (
+                      <span className="text-[10px] text-zinc-400 font-medium">
+                        ⏱ {act.suggested_deadline}
+                      </span>
+                    )}
+                </span>
+                <ChevronRight className={`w-3.5 h-3.5 shrink-0 text-zinc-400 transition-transform ${expandedActions[act.id] ? "rotate-90" : ""}`} />
+              </button>
 
+              {expandedActions[act.id] && (
+                <div className="mt-2 space-y-2">
+                  <div className="font-medium leading-snug">{act.title || act.text}</div>
+                  {act.suggested_next_step && (
+                    <div className="text-[11px] text-purple-300 font-normal">
+                      <span className="font-bold text-purple-200">Next:</span> {act.suggested_next_step}
+                    </div>
+                  )}
               {/* Status selector buttons */}
-              <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto not-italic flex-wrap">
+              <div className="flex items-center gap-1.5 not-italic flex-wrap">
                 <button
                   type="button"
                   onClick={() => updateStatus(act.id, "In Progress")}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                  className={`min-h-8 px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-colors ${
                     status === "In Progress"
                       ? "bg-amber-500 text-black shadow-xs font-black"
                       : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-amber-200"
@@ -380,7 +343,7 @@ function ActionablePlaybookChecklist({
                 <button
                   type="button"
                   onClick={() => updateStatus(act.id, "Accepted")}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                  className={`min-h-8 px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-colors ${
                     status === "Accepted"
                       ? "bg-teal-500 text-black shadow-xs font-black"
                       : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-teal-200"
@@ -392,7 +355,7 @@ function ActionablePlaybookChecklist({
                 <button
                   type="button"
                   onClick={() => updateStatus(act.id, "Completed")}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                  className={`min-h-8 px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-colors ${
                     status === "Completed"
                       ? "bg-emerald-500 text-black shadow-xs font-black"
                       : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-emerald-200"
@@ -404,7 +367,7 @@ function ActionablePlaybookChecklist({
                 <button
                   type="button"
                   onClick={() => updateStatus(act.id, "Dismissed")}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                  className={`min-h-8 px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-colors ${
                     status === "Dismissed"
                       ? "bg-zinc-600 text-white font-black"
                       : "bg-zinc-700/60 hover:bg-zinc-600/80 text-zinc-400 hover:text-zinc-200"
@@ -417,13 +380,15 @@ function ActionablePlaybookChecklist({
                   <button
                     type="button"
                     onClick={() => updateStatus(act.id, "Pending")}
-                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-700/40 hover:bg-zinc-600 text-zinc-400 hover:text-white cursor-pointer transition-colors"
+                    className="min-h-8 px-2 py-1 rounded text-[10px] font-medium bg-zinc-700/40 hover:bg-zinc-600 text-zinc-400 hover:text-white cursor-pointer transition-colors"
                     title="Reset to Pending"
                   >
                     Reopen
                   </button>
                 )}
               </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -446,6 +411,7 @@ export function OverviewPage() {
   const [decisionItems, setDecisionItems] = React.useState<DecisionSupportRecord[]>([]);
   const [selectedDept, setSelectedDept] = React.useState<string>("ALL");
   const [selectedUrgency, setSelectedUrgency] = React.useState<string>("ALL");
+  const [expandedWhyAssessment, setExpandedWhyAssessment] = React.useState<Record<string, boolean>>({});
   const [expandedWhyMatters, setExpandedWhyMatters] = React.useState<Record<string, boolean>>({});
   const [activeEvidenceItem, setActiveEvidenceItem] = React.useState<DecisionSupportRecord | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -985,7 +951,7 @@ export function OverviewPage() {
             }}
           />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {filteredDecisionItems.map((item) => {
               const urgConfig = getUrgencyBadgeConfig(item.urgency);
               const sourceCount = item.corroboration_sources_count || item.evidence_sources?.length || 4;
@@ -999,13 +965,13 @@ export function OverviewPage() {
               return (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between border ${
+                  className={`bg-white rounded-xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between border ${
                     isHighUrgency
                       ? "border-rose-300 ring-1 ring-rose-200/70 bg-gradient-to-b from-rose-50/15 via-white to-white"
                       : "border-[rgba(20,20,30,0.10)]"
                   }`}
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* High-Urgency Alert Banner & Counter-Strategy Countdown */}
                     {isHighUrgency && item.deadline_at && (
                       <div className="flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/5 border border-rose-200/90 shadow-2xs">
@@ -1087,18 +1053,24 @@ export function OverviewPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-[#17171b] leading-snug">
+                      <p className="text-sm font-bold text-[#17171b] leading-snug max-h-20 overflow-y-auto pr-1">
                         {item.what_happened}
                       </p>
                     </div>
 
                     {/* Dimension 2: Why It Matters (Independent Dyadic Assessment & 6-Question Matrix) */}
-                    <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-100/90 space-y-2.5">
+                    <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-100/90 space-y-2">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          aria-expanded={Boolean(expandedWhyAssessment[item.id])}
+                          onClick={() => setExpandedWhyAssessment((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                          className="min-h-9 text-left text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] flex items-center gap-1.5 cursor-pointer"
+                        >
                           <Sparkles className="w-3.5 h-3.5 text-[#6e57dc]" />
                           2. Why It Matters (Independent Dyadic Assessment)
-                        </div>
+                          <ChevronRight className={`w-3.5 h-3.5 transition-transform ${expandedWhyAssessment[item.id] ? "rotate-90" : ""}`} />
+                        </button>
                         {item.revenue_margin_exposure && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100/80 text-amber-900 border border-amber-200 flex items-center gap-1">
                             <TrendingDown className="w-3 h-3 text-amber-700" />
@@ -1107,9 +1079,11 @@ export function OverviewPage() {
                         )}
                       </div>
 
-                      <p className="text-xs text-[#374151] leading-relaxed font-normal">
-                        {item.why_it_matters}
-                      </p>
+                      {expandedWhyAssessment[item.id] && (
+                        <>
+                          <p className="text-xs text-[#374151] leading-relaxed font-normal">
+                            {item.why_it_matters}
+                          </p>
 
                       {/* Structured 6-Question Breakdown Accordion */}
                       {item.structured_why_it_matters && (
@@ -1164,6 +1138,8 @@ export function OverviewPage() {
                           )}
                         </div>
                       )}
+                        </>
+                      )}
                     </div>
 
                     {/* Dimension 3: Who Is Affected (Dynamic Department Routing) */}
@@ -1189,16 +1165,14 @@ export function OverviewPage() {
                     </div>
 
                     {/* Dimension 4: What Should We Do (Prescriptive Counter-Action Playbook) & Checklist */}
-                    <div className="p-4 rounded-xl bg-zinc-900 text-white shadow-xs">
+                    <div className="p-3 rounded-xl bg-zinc-900 text-white shadow-xs border border-zinc-800">
                       <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 mb-1 flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                        4. What Should We Do (Prescriptive Counter-Action Playbook)
+                        4. What Should We Do · Counter-Action Playbook
                       </div>
-                      <p className="text-xs text-zinc-200 leading-relaxed font-medium">
+                      <p className="text-xs text-zinc-200 leading-relaxed font-medium max-h-24 overflow-y-auto pr-1">
                         {item.what_should_we_do}
                       </p>
-
-                      {/* Interactive Counter-Playbook Checklist */}
                       <ActionablePlaybookChecklist
                         itemId={item.id}
                         actions={getEffectiveActionChecklist(item)}
@@ -1238,7 +1212,7 @@ export function OverviewPage() {
                   </div>
 
                   {/* Dimension 6: Verification & Confidence Footer */}
-                  <div className="mt-4 pt-3.5 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="mt-3 pt-3 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between flex-wrap gap-2 text-xs">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
