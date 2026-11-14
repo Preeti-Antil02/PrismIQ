@@ -1193,6 +1193,607 @@ export async function triggerPipelineRun(
   return res.json();
 }
 
+
+// ============================================================================
+// Evolving Company Intelligence Layer Types & API (Point 1: Foundation)
+// ============================================================================
+
+
+export interface CompanyProduct {
+  name: string;
+  description: string;
+  url?: string;
+}
+
+export interface CompanyPricingModel {
+  tiers?: string[];
+  model_type?: string;
+  free_tier?: boolean;
+  starting_price?: string;
+  bandwidth_included?: string;
+  recent_focus?: string;
+}
+
+export interface CompanyFunding {
+  total_raised?: string;
+  last_round?: string;
+  lead_investors?: string[];
+}
+
+export interface CompanyHiring {
+  velocity?: string;
+  focus_areas?: string[];
+  key_open_roles?: string[];
+}
+
+export interface CompanyChangeRecord {
+  id?: string;
+  company_name: string;
+  dimension: "pricing" | "products" | "features" | "hiring" | "partnerships" | "target_market" | string;
+  what_changed: string;
+  summary?: string;
+  previous_state?: string;
+  new_state?: string;
+  when_detected: string;
+  detected_at?: string;
+  evidence_url?: string;
+  evidence_title?: string;
+  evidence_excerpt?: string;
+  evidence_source?: string;
+  significance: "High" | "Medium" | "Low" | string;
+  severity?: string;
+  strategic_implication?: string;
+  why_it_matters?: string;
+}
+
+export interface CompanyProfile {
+  company_name: string;
+  summary: string;
+  products: CompanyProduct[];
+  features: string[];
+  pricing_model: CompanyPricingModel;
+  target_market: string;
+  customers: string[];
+  funding: CompanyFunding;
+  hiring: CompanyHiring;
+  partnerships: string[];
+  strengths: string[];
+  weaknesses: string[];
+  strategic_narrative: string;
+  confidence: string;
+  last_updated: string;
+  recent_changes?: CompanyChangeRecord[];
+  total_changes_count?: number;
+}
+
+export async function fetchCompanyProfile(
+  companyName: string,
+  tenantId?: string
+): Promise<CompanyProfile> {
+  const token = getClientAuthToken();
+  const encoded = encodeURIComponent(companyName);
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/companies/${encoded}/profile`
+    : `${API_BASE_URL}/companies/${encoded}/profile`;
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (tenantId) {
+    headers["X-Tenant-ID"] = tenantId;
+  }
+
+  const res = await fetch(baseUrl, {
+    headers,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load company profile (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function fetchCompanyChanges(
+  companyName: string,
+  filters?: { dimension?: string; significance?: string },
+  tenantId?: string
+): Promise<{ company_name: string; changes: CompanyChangeRecord[]; count: number }> {
+  const token = getClientAuthToken();
+  const encoded = encodeURIComponent(companyName);
+  const query = new URLSearchParams();
+  if (filters?.dimension && filters.dimension !== "ALL") query.set("dimension", filters.dimension);
+  if (filters?.significance && filters.significance !== "ALL") query.set("significance", filters.significance);
+
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/companies/${encoded}/changes${qs}`
+    : `${API_BASE_URL}/companies/${encoded}/changes${qs}`;
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (tenantId) {
+    headers["X-Tenant-ID"] = tenantId;
+  }
+
+  const res = await fetch(baseUrl, {
+    headers,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load company changes (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+
+// ============================================================================
+// Pillar 1: Unified Competitor Evolution Timeline (Merges Points 1, 2 & 3)
+// ============================================================================
+
+export interface CompetitorEvolutionTimeline {
+  company_name: string;
+  // Point 1 — Profile baseline
+  profile: CompanyProfile | null;
+  // Point 1 — Full chronological ledger (enriched with impact fields)
+  all_changes: CompanyChangeRecord[];
+  total_changes_count: number;
+  // Point 3 — Acute top-5 high-impact view (derived from all_changes)
+  high_impact_changes: HighImpactChangeRecord[];
+  high_impact_count: number;
+  // Point 2 — Macro sequence arcs
+  sequences: CompetitiveSequenceRecord[];
+  sequences_count: number;
+}
+
+export async function fetchCompetitorEvolution(
+  companyName: string,
+  tenantId?: string,
+  includeSequences: boolean = true
+): Promise<CompetitorEvolutionTimeline> {
+  const token = getClientAuthToken();
+  const encoded = encodeURIComponent(companyName);
+  const qs = includeSequences ? "" : "?include_sequences=false";
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/companies/${encoded}/evolution${qs}`
+    : `${API_BASE_URL}/companies/${encoded}/evolution${qs}`;
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (tenantId) {
+    headers["X-Tenant-ID"] = tenantId;
+  }
+
+  const res = await fetch(baseUrl, {
+    headers,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load competitor evolution timeline (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+// ============================================================================
+// Historical Competitive Memory & Timeline Sequences (Point 2: Sequence Detection)
+// ============================================================================
+
+export interface SequenceStep {
+  step_number: number;
+  month: string;
+  dimension: string;
+  event_title: string;
+  evidence_excerpt: string;
+  evidence_url?: string;
+  signals_count: number;
+}
+
+export interface CompetitiveSequenceRecord {
+  id: string;
+  company_name: string;
+  pattern_name: string;
+  pattern_type: string;
+  time_horizon: string;
+  confidence: number;
+  potential_impact: "High" | "Medium" | "Low" | string;
+  strategic_interpretation: string;
+  recommended_action: string;
+  sequence_steps: SequenceStep[];
+  created_at: string;
+}
+
+export interface SequencesApiResponse {
+  sequences: CompetitiveSequenceRecord[];
+  count: number;
+  filter: string;
+}
+
+export async function fetchCompetitiveSequences(company?: string, tenantId?: string): Promise<SequencesApiResponse> {
+  const token = getClientAuthToken(tenantId);
+  const query = new URLSearchParams();
+  if (company && company !== "ALL") query.set("company", company);
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/timeline/sequences${qs}`
+    : `${API_BASE_URL}/timeline/sequences${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load competitive sequences (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+
+// ============================================================================
+// Competitive Change Detection Engine (Point 3: The 5 Changes That Actually Matter)
+// ============================================================================
+
+export interface SignalEvidenceItem {
+  signal_type: string;
+  title: string;
+  source: string;
+  url?: string;
+  excerpt: string;
+  detected_at: string;
+}
+
+export interface HighImpactChangeRecord {
+  id: string;
+  company_name: string;
+  headline: string;
+  significance_tier?: "CRITICAL INFLECTION" | "HIGH IMPACT" | "MEDIUM IMPACT" | "LOW IMPACT" | string;
+  confidence?: number;
+  potential_impact?: "High" | "Medium" | "Low" | string;
+  window_days?: number;
+  strategic_interpretation?: string;
+  why_it_matters?: string;
+  recommended_action?: string;
+  corroborating_signals_count?: number;
+  signals_evidence?: SignalEvidenceItem[];
+  signals?: SignalEvidenceItem[];
+  detected_at?: string;
+  created_at?: string;
+  // Dynamic intelligence agent fields
+  change_type?: string;
+  description?: string;
+  impact_severity?: string;
+  counter_measure?: string;
+  corroboration_count?: number;
+
+  // Point 3 Change Detection Engine Enhancements
+  event_category?: string;
+  dimension?: string;
+  event_description?: string;
+  impact_score?: number;
+  affected_business_teams?: string[];
+  who_is_affected?: string[];
+  related_event_ids?: string[];
+  verification_status?: string;
+  is_demo_data?: boolean;
+}
+
+export interface HighImpactChangesResponse {
+  changes: HighImpactChangeRecord[];
+  count: number;
+  high_impact_count: number;
+  filter: string;
+}
+
+export async function fetchHighImpactChanges(
+  company?: string,
+  impact?: string,
+  tenantId?: string,
+  category?: string
+): Promise<HighImpactChangesResponse> {
+  const token = getClientAuthToken(tenantId);
+  const query = new URLSearchParams();
+  if (company && company !== "ALL") query.set("company", company);
+  if (impact && impact !== "ALL") query.set("impact", impact);
+  if (category && category !== "ALL") query.set("category", category);
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/changes/detection${qs}`
+    : `${API_BASE_URL}/changes/detection${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load high impact changes (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+
+// ============================================================================
+// Signal Correlation Engine (Point 4: Raw Signals -> Events -> Patterns -> Insights -> Actions)
+// ============================================================================
+
+export interface CorrelatedSignalNode {
+  id?: string;
+  channel?: "github" | "careers" | "news" | "pricing" | string;
+  signal_type: string;
+  title: string;
+  source: string;
+  url?: string;
+  excerpt: string;
+  evidence_excerpt?: string;
+  detected_at: string;
+  weight?: number;
+  confidence?: number;
+}
+
+export interface StrategicImplicationDetails {
+  observed_move?: string;
+  strategic_direction?: string;
+  affected_business_area?: string;
+  competitive_implication?: string;
+  strategic_uncertainty?: string;
+  key_uncertainty?: string;
+  summary_text?: string;
+}
+
+export interface RecommendedActionDetails {
+  action_title?: string;
+  reason?: string;
+  responsible_team?: string;
+  priority?: "Critical" | "High" | "Medium" | string;
+  suggested_next_step?: string;
+  supporting_evidence_ids?: string[];
+  summary_text?: string;
+}
+
+export interface SignalCorrelationRecord {
+  id: string;
+  company_name: string;
+  pattern_name: string;
+  correlation_category: string;
+  correlation_category_slug?: string;
+  confidence: number;
+  confidence_level?: string;
+  confidence_breakdown?: Record<string, any>;
+  corroboration_score?: number;
+  corroboration_level?: string;
+  corroboration_breakdown?: Record<string, any>;
+  independent_sources_count?: number;
+  distinct_channels_count?: number;
+  pattern_summary?: string;
+  strategic_implication: string;
+  strategic_implication_details?: StrategicImplicationDetails;
+  recommended_action: string;
+  recommended_action_details?: RecommendedActionDetails;
+  pipeline_stage: string;
+  signals_cluster: CorrelatedSignalNode[];
+  first_signal_at?: string;
+  last_signal_at?: string;
+  created_at: string;
+  title?: string;
+  synthesized_narrative?: string;
+  signals?: CorrelatedSignalNode[];
+}
+
+export interface SignalCorrelationsResponse {
+  correlations: SignalCorrelationRecord[];
+  count: number;
+  filter: string;
+  channel_filter?: string;
+  tenant_id?: string;
+}
+
+export async function fetchSignalCorrelations(
+  company?: string,
+  category?: string,
+  tenantId?: string,
+  channel?: string
+): Promise<SignalCorrelationsResponse> {
+  const token = getClientAuthToken(tenantId);
+  const query = new URLSearchParams();
+  if (company && company !== "ALL") query.set("company", company);
+  if (category && category !== "ALL") query.set("category", category);
+  if (channel && channel !== "ALL") query.set("channel", channel);
+  if (tenantId) query.set("tenant_id", tenantId);
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/signals/correlations${qs}`
+    : `${API_BASE_URL}/signals/correlations${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load signal correlations (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+
+// ============================================================================
+// "Why Should I Care?" Decision Support System (Point 5)
+// ============================================================================
+
+export interface DecisionSupportEvidence {
+  id?: string;
+  source: string;
+  title: string;
+  url: string;
+  excerpt?: string;
+  detected_at?: string;
+}
+
+export interface DecisionSupportActionItem {
+  id: string;
+  title?: string;
+  text: string;
+  description?: string;
+  department?: string;
+  responsible_department?: string;
+  suggested_owner?: string;
+  priority?: "Critical" | "High" | "Medium" | "Low" | string;
+  suggested_deadline?: string;
+  business_justification?: string;
+  supporting_competitive_development?: string;
+  suggested_next_step?: string;
+  expected_outcome?: string;
+  supporting_evidence_ids?: string[];
+  status?: "In Progress" | "Accepted" | "Completed" | "Dismissed" | "Pending" | string;
+}
+
+export interface StructuredWhyItMatters {
+  q1_affected_products?: string[];
+  q2_overlapping_customer_segments?: string[];
+  q3_competitor_advantage?: string;
+  q4_business_risk_or_opportunity?: string;
+  q5_supporting_evidence_summary?: string;
+  q6_uncertain_assumptions?: string;
+}
+
+export interface InflectionSummaryDetails {
+  competitor_product?: string;
+  publication_date?: string;
+  actual_change?: string;
+  relevant_evidence_ids?: string[];
+  assessment_status?: string;
+}
+
+export interface DecisionSupportRecord {
+  id: string;
+  company_name: string;
+  target_company?: string;
+  event_id?: string;
+  dimension?: string;
+  impact_category?: string;
+  threat_type?: "Direct competitive threat" | "Indirect competitive threat" | "Market opportunity" | "Operational risk" | "Technology opportunity" | "No significant competitive impact" | string;
+  affected_products?: string[];
+  overlapping_customer_segments?: string[];
+  revenue_margin_exposure?: string;
+  competitor_advantage?: string;
+  customer_impact?: string;
+  uncertain_assumptions?: string;
+  structured_why_it_matters?: StructuredWhyItMatters;
+  inflection_summary_details?: InflectionSummaryDetails;
+  what_happened: string;
+  why_it_matters: string;
+  who_is_affected: string[];
+  department_reasons?: Record<string, string>;
+  what_should_we_do: string;
+  urgency: "Critical" | "High" | "Medium" | "Low" | string;
+  time_horizon?: "Immediate (<7d)" | "Tactical (<30d)" | "Strategic (90d+)" | string;
+  deadline_at?: string | null;
+  response_deadline_label?: string;
+  confidence: number;
+  confidence_breakdown?: any;
+  corroboration_sources_count: number;
+  evidence_sources: DecisionSupportEvidence[];
+  action_checklist?: DecisionSupportActionItem[];
+  execution_progress?: {
+    total: number;
+    accepted: number;
+    in_progress: number;
+    completed: number;
+    dismissed: number;
+    percent_complete: number;
+  };
+  insufficient_evidence?: boolean;
+  created_at: string;
+}
+
+export interface DecisionSupportResponse {
+  items: DecisionSupportRecord[];
+  count: number;
+  filters: {
+    company?: string;
+    department?: string;
+    urgency?: string;
+  };
+}
+
+export async function fetchDecisionSupportItems(filters?: {
+  company?: string;
+  department?: string;
+  urgency?: string;
+}, tenantId?: string): Promise<DecisionSupportResponse> {
+  const token = getClientAuthToken(tenantId);
+  const query = new URLSearchParams();
+  if (filters?.company && filters.company !== "ALL") query.set("company", filters.company);
+  if (filters?.department && filters.department !== "ALL") query.set("department", filters.department);
+  if (filters?.urgency && filters.urgency !== "ALL") query.set("urgency", filters.urgency);
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/decision-support${qs}`
+    : `${API_BASE_URL}/decision-support${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load decision support items (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function updateDecisionSupportActionStatus(
+  itemId: string,
+  actionId: string,
+  status: string,
+  notes?: string,
+  tenantId?: string
+): Promise<{
+  status: string;
+  item_id: string;
+  action_id: string;
+  new_status: string;
+  execution_progress: {
+    total: number;
+    accepted: number;
+    in_progress: number;
+    completed: number;
+    dismissed: number;
+    percent_complete: number;
+  };
+  item?: DecisionSupportRecord;
+}> {
+  const token = getClientAuthToken(tenantId);
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/decision-support/${itemId}/actions/${actionId}`
+    : `${API_BASE_URL}/decision-support/${itemId}/actions/${actionId}`;
+
+  const res = await fetch(baseUrl, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    body: JSON.stringify({ status, notes, updated_by: "executive_user" }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to update action status (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
 // ============================================================================
 // Trend Evolution & Cross-Company Intelligence API (Milestone S5)
 // ============================================================================

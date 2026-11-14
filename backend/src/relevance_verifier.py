@@ -479,7 +479,7 @@ COMMON_ENGLISH_NOUNS = {
     "stripe", "gobble", "square", "box", "apple", "target", "block",
     "nest", "ring", "clover", "scale", "ramp", "branch", "blend",
     "anchor", "bolt", "glide", "drift", "ember", "beacon", "roast",
-    "place", "carousel", "segment",
+    "place", "carousel", "segment", "amazon",
 }
 
 # Dictionary word initialization with WordNet & NLTK Words + Fallback
@@ -663,10 +663,12 @@ def verify_news_relevance(
             return True, f"Verified: Direct primary domain match '{primary_domain}'"
 
         # Check domain stem if domain is a coined brand name (e.g. "carousell" from "carousell.com")
-        dom_stem = dom_clean.split(".")[0]
-        if len(dom_stem) >= 4 and not is_dictionary_word(dom_stem):
-            if re.search(r"\b" + re.escape(dom_stem) + r"\b", full_text, re.IGNORECASE):
-                return True, f"Verified: Primary domain brand anchor match '{dom_stem}' from '{primary_domain}'"
+        # Domain stem matching must NEVER apply to qualified entities (e.g. 'Amazon (India)' should not match bare 'amazon')
+        if not qualifier:
+            dom_stem = dom_clean.split(".")[0]
+            if len(dom_stem) >= 4 and not is_dictionary_word(dom_stem):
+                if re.search(r"\b" + re.escape(dom_stem) + r"\b", full_text, re.IGNORECASE):
+                    return True, f"Verified: Primary domain brand anchor match '{dom_stem}' from '{primary_domain}'"
 
     # 2. Specific branded terms and executive names (High confidence verification)
     if profile:

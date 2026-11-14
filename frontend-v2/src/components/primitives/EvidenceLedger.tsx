@@ -1,3 +1,4 @@
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ExternalLink, Database, Code2, Newspaper, Tag, FileText } from "lucide-react";
@@ -93,19 +94,26 @@ export function EvidenceLedger({ records, className }: EvidenceLedgerProps) {
             </blockquote>
 
             {/* Grounding source URL link */}
-            {record.url && (
-              <div className="pt-1 flex items-center justify-end">
-                <a
-                  href={record.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                >
-                  <span>{isPrimary ? "Verify primary source" : "Verify corroborating source"}</span>
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            )}
+            <div className="pt-1 flex items-center justify-end">
+              {(() => {
+                const safeUrl = sanitizeSourceUrl(record.url);
+                return safeUrl ? (
+                  <a
+                    href={safeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                  >
+                    <span>{isPrimary ? "Verify primary source" : "Verify corroborating source"}</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-[#6B7280] italic">
+                    Source document unavailable.
+                  </span>
+                );
+              })()}
+            </div>
           </div>
         );
       })}

@@ -1,4 +1,5 @@
 "use client";
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import {
@@ -11,19 +12,24 @@ import {
   Newspaper,
   Briefcase,
   ExternalLink,
-  ShieldCheck,
-  ChevronRight,
-  Filter,
-  CheckCircle2,
-  AlertCircle,
-  Building2,
+  Workflow,
   Calendar,
   Layers,
   ArrowRight,
+  Target,
+  CheckCircle2,
+  AlertTriangle,
+  Lightbulb,
+  ShieldCheck,
+  ChevronRight,
+  Filter,
+  AlertCircle,
+  Building2,
   Activity,
   Flame,
   Search,
   PieChart,
+  Radio,
 } from "lucide-react";
 import { useWorkspace, useAppEvidence } from "./AppShell";
 import {
@@ -43,11 +49,73 @@ import {
   fetchTrends,
   fetchTrendDetail,
   fetchTrackedCompanies,
+  fetchCompetitiveSequences,
   type TrendRecord,
   type TrendDetailRecord,
   type TimelineNode,
+  type ConsolidatedEventRecord,
+  type SignalRecord,
   type TrackedCompany,
+  type CompetitiveSequenceRecord,
+  type SequenceStep,
 } from "@/lib/api";
+
+const DIMENSION_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  hiring: {
+    bg: "bg-blue-50/70",
+    text: "text-blue-700",
+    border: "border-blue-200",
+    label: "Hiring Signal",
+  },
+  compliance: {
+    bg: "bg-emerald-50/70",
+    text: "text-emerald-700",
+    border: "border-emerald-200",
+    label: "Compliance & Security",
+  },
+  pricing: {
+    bg: "bg-amber-50/70",
+    text: "text-amber-700",
+    border: "border-amber-200",
+    label: "Pricing Structure",
+  },
+  proof: {
+    bg: "bg-purple-50/70",
+    text: "text-purple-700",
+    border: "border-purple-200",
+    label: "Case Study / Proof",
+  },
+  go_to_market: {
+    bg: "bg-indigo-50/70",
+    text: "text-indigo-700",
+    border: "border-indigo-200",
+    label: "GTM / Field Sales",
+  },
+  partnerships: {
+    bg: "bg-cyan-50/70",
+    text: "text-cyan-700",
+    border: "border-cyan-200",
+    label: "Strategic Alliance",
+  },
+  product: {
+    bg: "bg-violet-50/70",
+    text: "text-violet-700",
+    border: "border-violet-200",
+    label: "Product Infrastructure",
+  },
+  infrastructure: {
+    bg: "bg-teal-50/70",
+    text: "text-teal-700",
+    border: "border-teal-200",
+    label: "Core Infrastructure",
+  },
+  margin_disruption: {
+    bg: "bg-rose-50/70",
+    text: "text-rose-700",
+    border: "border-rose-200",
+    label: "Disruption Vector",
+  },
+};
 
 // ============================================================================
 // Mini Momentum Velocity Sparkline Component
@@ -157,6 +225,9 @@ export function TrendsPage() {
   const [selectedTrendId, setSelectedTrendId] = React.useState<string | null>(null);
   const [trendDetail, setTrendDetail] = React.useState<TrendDetailRecord | null>(null);
   const [companies, setCompanies] = React.useState<TrackedCompany[]>([]);
+  const [sequences, setSequences] = React.useState<CompetitiveSequenceRecord[]>([]);
+  const [selectedSequenceCompany, setSelectedSequenceCompany] = React.useState<string>("ALL");
+  const [activeStepIndices, setActiveStepIndices] = React.useState<Record<string, number>>({});
   const [error, setError] = React.useState<string | null>(null);
 
   // Filters
@@ -431,6 +502,22 @@ export function TrendsPage() {
     }));
   }, [trendDetail, timelineSignalFilter]);
 
+  // Unique companies with detected sequences
+  const sequenceCompanies = React.useMemo(() => {
+    const set = new Set<string>();
+    sequences.forEach((s) => set.add(s.company_name));
+    return Array.from(set);
+  }, [sequences]);
+
+  // Filtered sequences based on user tab selection
+  const filteredSequences = React.useMemo(() => {
+    if (selectedSequenceCompany === "ALL") return sequences;
+    return sequences.filter(
+      (s) => s.company_name.toLowerCase() === selectedSequenceCompany.toLowerCase()
+    );
+  }, [sequences, selectedSequenceCompany]);
+
+
   return (
     <div className="space-y-8 pb-16">
       {/* Top Header */}
@@ -438,19 +525,19 @@ export function TrendsPage() {
         <div>
           <div className="app-eyebrow mb-2">
             <span className="app-dot" />
-            Cross-Company Trend Evolution
+            Cross-Company Trend Evolution & Historical Memory
           </div>
           <h1 className="app-title-lg">
             Market Signals & Storylines for <span className="app-gradient-text">{targetCompany}</span>
           </h1>
           <p className="app-caption mt-1 max-w-2xl">
-            Autonomous multi-week storylines derived strictly from validated signals across news, GitHub, research, and hiring surges.
+            Derived cross-company trends, momentum vectors, and multi-month sequence detection calculated from corroborated signals across hiring, compliance, pricing, proof, and strategic partnerships.
           </p>
         </div>
 
         <PrismButton variant="light" size="sm" onClick={loadTrends}>
           <RefreshCw className="w-3.5 h-3.5 text-[#70717a]" />
-          <span>Refresh Trends</span>
+          <span>Refresh Intelligence</span>
         </PrismButton>
       </div>
 
@@ -619,83 +706,144 @@ export function TrendsPage() {
           actionText="Retry"
           onAction={loadTrends}
         />
-      ) : trends.length === 0 ? (
-        <PrismEmptyState
-          icon={<TrendingUp className="w-6 h-6" />}
-          title="No Active Trend Storylines"
-          description={`PrismIQ has not yet detected multi-event storylines for ${targetCompany}. Nightly intelligence runs will automatically cluster and evolve trends.`}
-          actionText="Trigger Intelligence Sweep"
-          actionHref="/app"
-        />
       ) : (
-        <div className="space-y-8">
-          {/* Controls & Filter Bar */}
-          <div className="flex flex-wrap items-center gap-3 p-3 bg-white border border-[rgba(20,20,30,0.07)] rounded-xl shadow-xs">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 pr-2 border-r border-zinc-200">
-              <Filter className="w-3.5 h-3.5" />
-              <span>Filters:</span>
+        <div className="space-y-12">
+          {/* ========================================================================= */}
+          {/* CROSS-CHANNEL SIGNAL CORRELATIONS BRIDGE */}
+          {/* ========================================================================= */}
+          <section className="pt-2">
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-50/80 via-indigo-50/50 to-blue-50/60 border border-purple-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-purple-600/10 flex items-center justify-center text-[#6e57dc] border border-purple-200 shrink-0">
+                  <Radio className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-900 bg-white/90 px-2.5 py-0.5 rounded-full border border-purple-200">
+                      Point 4 • Signals &amp; Correlations
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-[#17171b] tracking-tight mt-1">
+                    Multi-Channel Signal Correlation Engine &amp; 5-Stage Pipeline
+                  </h3>
+                  <p className="text-xs text-[#70717a] mt-0.5 max-w-xl">
+                    Explore GitHub commits, engineering careers, pricing shifts, and PR releases correlated into high-confidence patterns and defensive counter-playbooks.
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href="/app/signals"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-black text-xs font-bold text-white shadow-xs transition-all whitespace-nowrap self-start sm:self-auto group"
+              >
+                <span>View Signals &amp; Playbooks</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform text-purple-300" />
+              </a>
+            </div>
+          </section>
+
+          {/* ========================================================================= */}
+          {/* TREND EVOLUTION & CROSS-COMPANY STORYLINES */}
+          {/* ========================================================================= */}
+          <section className="space-y-6 pt-6 border-t border-[rgba(20,20,30,0.08)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#6e57dc]/10 text-[#6e57dc] border border-[#6e57dc]/20">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Cross-Company Storylines
+                  </span>
+                  <span className="text-xs text-[#70717a]">•</span>
+                  <span className="text-xs text-[#70717a] font-medium">
+                    {trends.length} Active Storylines
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold text-[#17171b] tracking-tight mt-1">
+                  Trend Evolution Engine
+                </h2>
+                <p className="text-xs text-[#70717a] mt-0.5">
+                  Chronological swimlanes, momentum vectors, and audited competitor absence tracking.
+                </p>
+              </div>
             </div>
 
-            {/* Company Filter */}
-            <select
-              value={selectedCompanyFilter}
-              onChange={(e) => setSelectedCompanyFilter(e.target.value)}
-              className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="all">All Companies</option>
-              {companies.map((c) => (
-                <option key={c.company_name} value={c.company_name}>
-                  {c.company_name}
-                </option>
-              ))}
-            </select>
+            {trends.length === 0 ? (
+              <PrismEmptyState
+                icon={<TrendingUp className="w-6 h-6" />}
+                title="No Active Trend Storylines"
+                description={`PrismIQ has not yet detected multi-event storylines for ${targetCompany}. Nightly intelligence runs will automatically cluster and evolve trends.`}
+                actionText="Trigger Intelligence Sweep"
+                actionHref="/app"
+              />
+            ) : (
+              <div className="space-y-8">
+                {/* Controls & Filter Bar */}
+                <div className="flex flex-wrap items-center gap-3 p-3 bg-white border border-[rgba(20,20,30,0.07)] rounded-xl shadow-xs">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 pr-2 border-r border-zinc-200">
+                    <Filter className="w-3.5 h-3.5" />
+                    <span>Filters:</span>
+                  </div>
 
-            {/* Momentum Filter */}
-            <select
-              value={selectedMomentumFilter}
-              onChange={(e) => setSelectedMomentumFilter(e.target.value)}
-              className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="all">All Momentum</option>
-              <option value="surging">Surging [Week 3 Peak]</option>
-              <option value="building">Building [Week 2 &gt; 1]</option>
-              <option value="fading">Fading [Inactive W3]</option>
-              <option value="stable">Stable [Continuous]</option>
-              <option value="transient">Transient [Single Event]</option>
-            </select>
-
-            {/* Type Filter */}
-            <select
-              value={selectedTypeFilter}
-              onChange={(e) => setSelectedTypeFilter(e.target.value)}
-              className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="all">All Storyline Types</option>
-              <option value="cross_company_trend">Cross-Company Trends</option>
-              <option value="single_company_storyline">Single-Company Storylines</option>
-            </select>
-
-            <div className="ml-auto text-xs text-zinc-500 font-medium">
-              Showing {filteredTrends.length} of {trends.length} Storylines
-            </div>
-          </div>
-
-          {/* Main Grid: Left Trend Cards, Right Swimlane Timeline */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left: Trend Cards Column */}
-            <div className="lg:col-span-4 space-y-3 max-h-[820px] overflow-y-auto pr-1">
-              {filteredTrends.map((t) => {
-                const isSelected = t.cluster_id === selectedTrendId;
-                return (
-                  <div
-                    key={t.cluster_id}
-                    onClick={() => setSelectedTrendId(t.cluster_id)}
-                    className={`cursor-pointer p-4 rounded-xl border transition-all text-left ${
-                      isSelected
-                        ? "bg-white border-[#6e57dc] shadow-md ring-1 ring-[#6e57dc]"
-                        : "bg-white/80 border-[rgba(20,20,30,0.07)] hover:border-zinc-300 hover:bg-white"
-                    }`}
+                  {/* Company Filter */}
+                  <select
+                    value={selectedCompanyFilter}
+                    onChange={(e) => setSelectedCompanyFilter(e.target.value)}
+                    className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
+                    <option value="all">All Companies</option>
+                    {companies.map((c) => (
+                      <option key={c.company_name} value={c.company_name}>
+                        {c.company_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Momentum Filter */}
+                  <select
+                    value={selectedMomentumFilter}
+                    onChange={(e) => setSelectedMomentumFilter(e.target.value)}
+                    className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="all">All Momentum</option>
+                    <option value="surging">Surging [Week 3 Peak]</option>
+                    <option value="building">Building [Week 2 &gt; 1]</option>
+                    <option value="fading">Fading [Inactive W3]</option>
+                    <option value="stable">Stable [Continuous]</option>
+                    <option value="transient">Transient [Single Event]</option>
+                  </select>
+
+                  {/* Type Filter */}
+                  <select
+                    value={selectedTypeFilter}
+                    onChange={(e) => setSelectedTypeFilter(e.target.value)}
+                    className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 font-medium text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="all">All Storyline Types</option>
+                    <option value="cross_company_trend">Cross-Company Trends</option>
+                    <option value="single_company_storyline">Single-Company Storylines</option>
+                  </select>
+
+                  <div className="ml-auto text-xs text-zinc-500 font-medium">
+                    Showing {filteredTrends.length} of {trends.length} Storylines
+                  </div>
+                </div>
+
+                {/* Main Grid: Left Trend Cards, Right Swimlane Timeline */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  {/* Left: Trend Cards Column */}
+                  <div className="lg:col-span-4 space-y-3 max-h-[820px] overflow-y-auto pr-1">
+                    {filteredTrends.map((t) => {
+                      const isSelected = t.cluster_id === selectedTrendId;
+                      return (
+                        <div
+                          key={t.cluster_id}
+                          onClick={() => setSelectedTrendId(t.cluster_id)}
+                          className={`cursor-pointer p-4 rounded-xl border transition-all text-left ${
+                            isSelected
+                              ? "bg-white border-[#6e57dc] shadow-md ring-1 ring-[#6e57dc]"
+                              : "bg-white/80 border-[rgba(20,20,30,0.07)] hover:border-zinc-300 hover:bg-white"
+                          }`}
+                        >
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider font-mono">
                         {t.cluster_id}
@@ -920,6 +1068,9 @@ export function TrendsPage() {
           </div>
         </div>
       )}
-    </div>
-  );
+    </section>
+  </div>
+)}
+</div>
+);
 }

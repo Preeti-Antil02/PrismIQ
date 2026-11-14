@@ -1,4 +1,5 @@
 "use client";
+import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import {
@@ -168,22 +169,28 @@ export function EvidenceDrawer({ isOpen, onClose, data }: EvidenceDrawerProps) {
                         </div>
 
                         {/* Visible fail-loud citation status */}
-                        {isBroken ? (
-                          <div className="flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded shrink-0">
-                            <AlertTriangle className="h-3 w-3 text-rose-600" />
-                            <span>Broken citation</span>
-                          </div>
-                        ) : (
-                          <a
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 hover:underline shrink-0"
-                          >
-                            <span>Open source</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
+                        {(() => {
+                          const safeUrl = sanitizeSourceUrl(source.url);
+                          if (isBroken || !safeUrl) {
+                            return (
+                              <div className="flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded shrink-0">
+                                <AlertTriangle className="h-3 w-3 text-rose-600" />
+                                <span>Source document unavailable.</span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <a
+                              href={safeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 hover:underline shrink-0"
+                            >
+                              <span>View Primary Source Document</span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          );
+                        })()}
                       </div>
 
                       {/* Excerpt if present */}
