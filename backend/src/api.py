@@ -847,7 +847,7 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
     data_dir = _get_data_dir()
     pub_dir = Path(__file__).resolve().parent.parent / "published_briefs"
     candidate_dirs = [data_dir]
-    if pub_dir.exists() and pub_dir != data_dir:
+    if not storage.is_test_environment() and pub_dir.exists() and pub_dir != data_dir:
         candidate_dirs.append(pub_dir)
 
     cfg = storage.get_tenant_workspace_config(tenant_id)
@@ -885,7 +885,7 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
             })
 
         latest_path = cdir / "brief.md"
-        if latest_path.exists() and "brief.md" not in seen_filenames:
+        if latest_path.exists() and not timestamped_files and "brief.md" not in seen_filenames:
             try:
                 content = latest_path.read_text(encoding="utf-8")
             except Exception:
@@ -942,7 +942,7 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
     data_dir = _get_data_dir()
     pub_dir = Path(__file__).resolve().parent.parent / "published_briefs"
     search_dirs = [data_dir]
-    if pub_dir.exists() and pub_dir != data_dir:
+    if not storage.is_test_environment() and pub_dir.exists() and pub_dir != data_dir:
         search_dirs.append(pub_dir)
 
     target_file: Optional[Path] = None
@@ -967,11 +967,10 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
                 continue
             for candidate in sorted(sdir.glob("brief*.md"), reverse=True):
                 try:
-                    if candidate.stat().st_size > 1000:
-                        content_sample = candidate.read_text(encoding="utf-8", errors="ignore")[:4000].lower()
-                        if target_comp in content_sample or any(comp in content_sample for comp in competitors):
-                            target_file = candidate
-                            break
+                    content_sample = candidate.read_text(encoding="utf-8", errors="ignore")[:4000].lower()
+                    if target_comp in content_sample or any(comp in content_sample for comp in competitors) or not target_comp:
+                        target_file = candidate
+                        break
                 except Exception:
                     pass
             if target_file:
@@ -1049,7 +1048,7 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
     data_dir = _get_data_dir()
     pub_dir = Path(__file__).resolve().parent.parent / "published_briefs"
     search_dirs = [data_dir]
-    if pub_dir.exists() and pub_dir != data_dir:
+    if not storage.is_test_environment() and pub_dir.exists() and pub_dir != data_dir:
         search_dirs.append(pub_dir)
 
     cfg = storage.get_tenant_workspace_config(tenant_id)

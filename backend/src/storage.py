@@ -1886,11 +1886,11 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
         },
         "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": {
             "target_company": "OpenAI",
-            "competitors": ["Anthropic", "Google", "Mistral AI", "SpaceXAI"],
+            "competitors": ["Anthropic", "Google DeepMind", "Meta AI"],
         },
         "8553449a-c998-4727-be01-9aeb724038cb": {
             "target_company": "Meesho",
-            "competitors": ["Flipkart", "Amazon India", "Myntra", "Ajio", "Shopify", "Shopsy", "Snapdeal", "Temu"],
+            "competitors": ["Flipkart", "Amazon India", "Shopsy", "Ajio"],
         },
     }
 
