@@ -2895,3 +2895,11 @@ def get_trend_detail_endpoint(
         )
     return detail
 
+
+# ============================================================================
+# Evidence-Linked Competitive Battlecards & Drift Detection Routes (Batch 1)
+# ============================================================================
+from .battlecard_routes import router as battlecard_router
+app.include_router(battlecard_router)
+
+
