@@ -45,6 +45,7 @@ import {
   PrismCompanyBadge,
   PrismSectionHeader,
 } from "./PrismPrimitives";
+import { BattlecardView } from "./battlecard/BattlecardView";
 import {
   fetchTrackedCompanies,
   fetchEvents,
@@ -79,13 +80,17 @@ export function CompetitorsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
+  // Top-level Navigation Bar Tabs: Landscape vs Battlecards
+  const [mainPageTab, setMainPageTab] = React.useState<"landscape" | "battlecards">("landscape");
+  const [selectedBattlecardCompetitor, setSelectedBattlecardCompetitor] = React.useState<string>(targetCompany || "OpenAI");
+
   // Evolving Company Intelligence State (Pillar 1: Unified Evolution Layer)
   const [activeProfileCompany, setActiveProfileCompany] = React.useState<string | null>(null);
   const [evolutionData, setEvolutionData] = React.useState<CompetitorEvolutionTimeline | null>(null);
   const [profileData, setProfileData] = React.useState<CompanyProfile | null>(null);
   const [profileChanges, setProfileChanges] = React.useState<CompanyChangeRecord[]>([]);
   const [profileLoading, setProfileLoading] = React.useState(false);
-  const [profileTab, setProfileTab] = React.useState<"inflections" | "timeline" | "ledger" | "changes" | "profile" | "pricing" | "products" | "market" | "swot" | "hiring">("inflections");
+  const [profileTab, setProfileTab] = React.useState<"battlecards" | "inflections" | "timeline" | "ledger" | "changes" | "profile" | "pricing" | "products" | "market" | "swot" | "hiring">("battlecards");
   const [dimensionFilter, setDimensionFilter] = React.useState<string>("ALL");
 
   const loadData = React.useCallback(async () => {
@@ -117,7 +122,7 @@ export function CompetitorsPage() {
   const openCompanyIntelligence = React.useCallback(async (companyName: string) => {
     setActiveProfileCompany(companyName);
     setProfileLoading(true);
-    setProfileTab("inflections");
+    setProfileTab("battlecards");
     setDimensionFilter("ALL");
     try {
       const evo = await fetchCompetitorEvolution(companyName, tenantId, true);
@@ -144,12 +149,42 @@ export function CompetitorsPage() {
   React.useEffect(() => {
     loadData();
     if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search).get("profile");
+      const p =
+        new URLSearchParams(window.location.search).get("profile") ||
+        new URLSearchParams(window.location.search).get("competitor");
       if (p) {
         openCompanyIntelligence(p);
       }
+      const t = new URLSearchParams(window.location.search).get("tab");
+      if (t === "battlecards" || t === "battlecard") {
+        setMainPageTab("battlecards");
+      }
+      const c = new URLSearchParams(window.location.search).get("competitor");
+      if (c) {
+        setSelectedBattlecardCompetitor(c);
+      }
     }
   }, [loadData, openCompanyIntelligence]);
+
+  const battlecardCompetitorOptions = React.useMemo(() => {
+    const list: string[] = [];
+    if (targetCompany) list.push(targetCompany);
+    companies.forEach((c) => {
+      if (c.company_name && !list.includes(c.company_name)) {
+        list.push(c.company_name);
+      }
+    });
+    ["Vercel", "Netlify", "Flipkart", "OpenAI"].forEach((c) => {
+      if (!list.includes(c)) list.push(c);
+    });
+    return list;
+  }, [targetCompany, companies]);
+
+  React.useEffect(() => {
+    if (targetCompany && (!selectedBattlecardCompetitor || selectedBattlecardCompetitor === "OpenAI")) {
+      setSelectedBattlecardCompetitor(targetCompany);
+    }
+  }, [targetCompany, selectedBattlecardCompetitor]);
 
   const closeCompanyIntelligence = React.useCallback(() => {
     setActiveProfileCompany(null);
@@ -294,7 +329,73 @@ export function CompetitorsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {/* Top Navigation Bar Tabs */}
+      <div className="flex items-center gap-2 border-b border-[rgba(20,20,30,0.08)]">
+        <button
+          type="button"
+          onClick={() => setMainPageTab("landscape")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${mainPageTab === "landscape"
+            ? "border-[#6e57dc] text-[#17171b]"
+            : "border-transparent text-[#70717a] hover:text-[#17171b]"
+            }`}
+        >
+          <Users className="w-4 h-4 text-[#6e57dc]" />
+          <span>Competitor Landscape &amp; Evolution</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMainPageTab("battlecards")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${mainPageTab === "battlecards"
+            ? "border-amber-500 text-[#17171b] font-bold"
+            : "border-transparent text-[#70717a] hover:text-[#17171b]"
+            }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-amber-500" />
+          <span>Battlecards</span>
+          <span className="ml-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wider">
+            Live
+          </span>
+        </button>
+      </div>
+
+      {mainPageTab === "battlecards" ? (
+        <div className="space-y-6">
+          {/* Competitor Selector Bar */}
+          <div className="p-4 rounded-xl bg-white border border-[rgba(20,20,30,0.08)] shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-[#70717a] uppercase tracking-wider mr-1">
+                Select Competitor:
+              </span>
+              {battlecardCompetitorOptions.map((comp) => {
+                const isSelected = selectedBattlecardCompetitor.toLowerCase() === comp.toLowerCase();
+                return (
+                  <button
+                    key={comp}
+                    type="button"
+                    onClick={() => setSelectedBattlecardCompetitor(comp)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${isSelected
+                      ? "bg-amber-500 text-black shadow-xs ring-2 ring-amber-400/40"
+                      : "bg-zinc-100 hover:bg-zinc-200 text-[#4b5563]"
+                      }`}
+                  >
+                    <span>{comp}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[11px] text-[#70717a] font-medium flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Evidence-Linked Claims Active</span>
+            </div>
+          </div>
+
+          {/* Embedded Battlecard */}
+          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F17] p-6 shadow-xl">
+            <BattlecardView competitorName={selectedBattlecardCompetitor} tenantId={tenantId} />
+          </div>
+        </div>
+      ) : loading ? (
         <PrismLoadingSkeleton count={4} />
       ) : error ? (
         <PrismEmptyState
@@ -383,120 +484,6 @@ export function CompetitorsPage() {
             </div>
           )}
 
-          {/* Competitive Intelligence Visual Benchmark */}
-          <div className="space-y-4">
-            <PrismSectionHeader
-              title="Competitive Intelligence Visual Benchmark"
-              subtitle="Comparative graphical representation of rival activity volume, source footprints, and threat severity."
-              eyebrow="Rival Visual Analytics"
-              action={
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#70717a]">
-                  <BarChart2 className="w-3.5 h-3.5 text-[#6e57dc]" />
-                  <span>Market Footprint Comparison</span>
-                </div>
-              }
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Chart 1: Activity Volume Benchmark */}
-              <PrismCard className="p-5">
-                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#17171b]">Overall Market Activity Benchmark</h3>
-                    <p className="text-[11px] text-[#70717a] mt-0.5">Ranked by combined verified signals and corroborated events</p>
-                  </div>
-                  <span className="app-pill bg-purple-50 text-[#6e57dc] text-[10px] font-bold">
-                    Top Active Competitors
-                  </span>
-                </div>
-
-                {competitorActivityBars.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#9ca3af]">No competitor activity detected</div>
-                ) : (
-                  <PrismHorizontalBarChart items={competitorActivityBars} />
-                )}
-              </PrismCard>
-
-              {/* Chart 2: Competitor Multi-Channel Footprint */}
-              <PrismCard className="p-5">
-                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#17171b]">Multi-Channel Intelligence Footprint</h3>
-                    <p className="text-[11px] text-[#70717a] mt-0.5">Channel mix: News, Research, GitHub, Hiring, Pricing</p>
-                  </div>
-                  <span className="app-pill bg-blue-50 text-blue-700 text-[10px] font-bold">
-                    Signal Channel Mix
-                  </span>
-                </div>
-
-                {competitorSourceStackedRows.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#9ca3af]">No multi-channel signals available</div>
-                ) : (
-                  <PrismStackedBarChart
-                    rows={competitorSourceStackedRows}
-                    legend={[
-                      { label: "News", color: "#0ea5e9" },
-                      { label: "Research", color: "#8b5cf6" },
-                      { label: "GitHub", color: "#10b981" },
-                      { label: "Hiring", color: "#f59e0b" },
-                      { label: "Pricing", color: "#ec4899" },
-                    ]}
-                  />
-                )}
-              </PrismCard>
-
-              {/* Chart 3: Landscape Event Severity Donut */}
-              <PrismCard className="p-5 flex flex-col justify-between">
-                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#17171b]">Landscape Event Severity Split</h3>
-                    <p className="text-[11px] text-[#70717a] mt-0.5">Critical Must-Know shifts vs Tactical & Operational developments</p>
-                  </div>
-                  <span className="app-pill bg-rose-50 text-rose-700 text-[10px] font-bold">
-                    {events.length} Events Total
-                  </span>
-                </div>
-
-                {landscapeTierDistribution.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#9ca3af]">No event severity data</div>
-                ) : (
-                  <PrismDonutChart
-                    data={landscapeTierDistribution}
-                    centerLabel="Events"
-                    centerValue={events.length}
-                    size={180}
-                    thickness={22}
-                  />
-                )}
-              </PrismCard>
-
-              {/* Chart 4: Landscape Multi-Source Signal Donut */}
-              <PrismCard className="p-5 flex flex-col justify-between">
-                <div className="flex items-center justify-between pb-3 border-b border-[rgba(20,20,30,0.06)] mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#17171b]">Channel Source Share</h3>
-                    <p className="text-[11px] text-[#70717a] mt-0.5">Distribution across external evidence channels</p>
-                  </div>
-                  <span className="app-pill bg-emerald-50 text-emerald-700 text-[10px] font-bold">
-                    {signals.length} Signals Total
-                  </span>
-                </div>
-
-                {landscapeSourceDistribution.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[#9ca3af]">No signal source data</div>
-                ) : (
-                  <PrismDonutChart
-                    data={landscapeSourceDistribution}
-                    centerLabel="Signals"
-                    centerValue={signals.length}
-                    size={180}
-                    thickness={22}
-                  />
-                )}
-              </PrismCard>
-            </div>
-          </div>
-
           {/* 2. Tracked Competitors Section */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -559,11 +546,10 @@ export function CompetitorsPage() {
                             </span>
                           )}
                           <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                              (comp.tier || "core").toLowerCase() === "core"
-                                ? "bg-purple-50 text-purple-700 border-purple-200"
-                                : "bg-blue-50 text-blue-700 border-blue-200"
-                            }`}
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${(comp.tier || "core").toLowerCase() === "core"
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
+                              : "bg-blue-50 text-blue-700 border-blue-200"
+                              }`}
                           >
                             {(comp.tier || "core").toLowerCase() === "core" ? "Core Rival" : "Secondary"}
                           </span>
@@ -590,8 +576,8 @@ export function CompetitorsPage() {
                             {isNetlify
                               ? "Pricing strategy shifted from acquisition-focused → enterprise-focused over 4 months."
                               : isVercel
-                              ? "Transitioning from web hosting into full enterprise AI application infrastructure."
-                              : "Active enterprise feature expansion with increased pricing granularity."}
+                                ? "Transitioning from web hosting into full enterprise AI application infrastructure."
+                                : "Active enterprise feature expansion with increased pricing granularity."}
                           </p>
                         </div>
 
@@ -621,7 +607,7 @@ export function CompetitorsPage() {
                         >
                           <History className="w-3.5 h-3.5" />
                           <span>Competitor Evolution (Points 1, 2 &amp; 3)</span>
-                          <ArrowRight className="w-3 h-3 ml-auto" />
+                          <ArrowRight className="w-3.5 h-3.5 ml-auto" />
                         </button>
                       </div>
 
@@ -669,7 +655,7 @@ export function CompetitorsPage() {
                       {activeProfileCompany}
                     </h2>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-purple-100 text-[#6e57dc] border border-purple-200">
-                      Competitor Evolution Hub • Points 1, 2 &amp; 3
+                      Competitor Detail
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3 text-green-600" />
@@ -677,7 +663,7 @@ export function CompetitorsPage() {
                     </span>
                   </div>
                   <p className="text-xs text-[#70717a] mt-0.5">
-                    Unified intelligence: Acute Inflections (Point 3) • Sequence Roadmaps (Point 2) • Change Ledger (Point 1)
+                    Unified competitive intelligence: Evidence-Linked Battlecard, Inflections, Roadmap, and Change Ledger.
                   </p>
                 </div>
               </div>
@@ -706,12 +692,23 @@ export function CompetitorsPage() {
             <div className="h-12 min-h-[48px] max-h-12 px-6 border-b border-zinc-200 bg-zinc-50/95 flex items-stretch gap-1 overflow-x-auto text-xs font-bold text-[#70717a] shrink-0 relative z-0 no-scrollbar">
               <button
                 type="button"
+                onClick={() => setProfileTab("battlecards")}
+                className={`h-full px-4 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${profileTab === "battlecards"
+                  ? "border-amber-500 text-amber-700 font-extrabold bg-white/90 shadow-2xs"
+                  : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
+                  }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="whitespace-nowrap">Battlecard</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setProfileTab("inflections")}
-                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${
-                  profileTab === "inflections"
-                    ? "border-rose-600 text-rose-700 font-extrabold bg-white/90 shadow-2xs"
-                    : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
-                }`}
+                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${profileTab === "inflections"
+                  ? "border-rose-600 text-rose-700 font-extrabold bg-white/90 shadow-2xs"
+                  : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
+                  }`}
               >
                 <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
                 <span className="whitespace-nowrap">
@@ -725,11 +722,10 @@ export function CompetitorsPage() {
               <button
                 type="button"
                 onClick={() => setProfileTab("timeline")}
-                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${
-                  profileTab === "timeline"
-                    ? "border-purple-600 text-purple-700 font-extrabold bg-white/90 shadow-2xs"
-                    : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
-                }`}
+                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${profileTab === "timeline"
+                  ? "border-purple-600 text-purple-700 font-extrabold bg-white/90 shadow-2xs"
+                  : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
+                  }`}
               >
                 <CalendarDays className="w-4 h-4 text-purple-500 shrink-0" />
                 <span className="whitespace-nowrap">
@@ -743,11 +739,10 @@ export function CompetitorsPage() {
               <button
                 type="button"
                 onClick={() => setProfileTab("ledger")}
-                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${
-                  profileTab === "ledger"
-                    ? "border-[#6e57dc] text-[#6e57dc] font-extrabold bg-white/90 shadow-2xs"
-                    : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
-                }`}
+                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${profileTab === "ledger"
+                  ? "border-[#6e57dc] text-[#6e57dc] font-extrabold bg-white/90 shadow-2xs"
+                  : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
+                  }`}
               >
                 <History className="w-4 h-4 shrink-0" />
                 <span className="whitespace-nowrap">Full Change Ledger ({profileChanges.length})</span>
@@ -759,11 +754,10 @@ export function CompetitorsPage() {
               <button
                 type="button"
                 onClick={() => setProfileTab("products")}
-                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${
-                  ["products", "pricing", "market", "swot", "hiring"].includes(profileTab)
-                    ? "border-sky-600 text-sky-700 font-extrabold bg-white/90 shadow-2xs"
-                    : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
-                }`}
+                className={`h-full px-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 select-none ${["products", "pricing", "market", "swot", "hiring"].includes(profileTab)
+                  ? "border-sky-600 text-sky-700 font-extrabold bg-white/90 shadow-2xs"
+                  : "border-transparent hover:text-[#17171b] hover:border-zinc-300"
+                  }`}
               >
                 <Layers className="w-4 h-4 text-sky-500 shrink-0" />
                 <span className="whitespace-nowrap">Company Dossier</span>
@@ -776,6 +770,13 @@ export function CompetitorsPage() {
                 <PrismLoadingSkeleton count={3} />
               ) : (
                 <>
+                  {/* TAB 0: EVIDENCE-LINKED COMPETITIVE BATTLECARD (Batch 1) */}
+                  {profileTab === "battlecards" && activeProfileCompany && (
+                    <div className="-m-6 p-6 bg-[#0B0F17] rounded-b-2xl overflow-y-auto">
+                      <BattlecardView competitorName={activeProfileCompany} tenantId={tenantId} />
+                    </div>
+                  )}
+
                   {/* TAB 1: ACUTE INFLECTIONS (Point 3 High-Impact View) */}
                   {profileTab === "inflections" && (
                     <div className="space-y-4">
@@ -1047,11 +1048,10 @@ export function CompetitorsPage() {
                               key={dim}
                               type="button"
                               onClick={() => setDimensionFilter(dim)}
-                              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors cursor-pointer whitespace-nowrap ${
-                                dimensionFilter === dim
-                                  ? "bg-[#6e57dc] text-white shadow-xs"
-                                  : "bg-zinc-100 text-[#70717a] hover:bg-zinc-200"
-                              }`}
+                              className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-colors cursor-pointer whitespace-nowrap ${dimensionFilter === dim
+                                ? "bg-[#6e57dc] text-white shadow-xs"
+                                : "bg-zinc-100 text-[#70717a] hover:bg-zinc-200"
+                                }`}
                             >
                               {dim.toUpperCase()}
                             </button>
@@ -1077,11 +1077,10 @@ export function CompetitorsPage() {
                                     {change.dimension}
                                   </span>
                                   <span
-                                    className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
-                                      change.significance === "High"
-                                        ? "bg-rose-50 text-rose-700 border-rose-200"
-                                        : "bg-blue-50 text-blue-700 border-blue-200"
-                                    }`}
+                                    className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${change.significance === "High"
+                                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                                      : "bg-blue-50 text-blue-700 border-blue-200"
+                                      }`}
                                   >
                                     {change.significance} Significance
                                   </span>
@@ -1330,11 +1329,11 @@ export function CompetitorsPage() {
                           {((profileData.strengths && profileData.strengths.length > 0)
                             ? profileData.strengths
                             : [
-                                "Rapid product iteration velocity and active release cadence",
-                                "Strong specialized positioning in core competitive category",
-                                "Flexible commercial packaging and modern API-first design",
-                                "Extensive developer community and ecosystem integration mesh"
-                              ]
+                              "Rapid product iteration velocity and active release cadence",
+                              "Strong specialized positioning in core competitive category",
+                              "Flexible commercial packaging and modern API-first design",
+                              "Extensive developer community and ecosystem integration mesh"
+                            ]
                           ).map((s: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-2 text-green-950 font-medium">
                               <span className="text-green-600 font-bold">•</span>
@@ -1354,11 +1353,11 @@ export function CompetitorsPage() {
                           {((profileData.weaknesses && profileData.weaknesses.length > 0)
                             ? profileData.weaknesses
                             : [
-                                "Higher operational overhead scaling multi-tenant infrastructure",
-                                "Direct competitive overlap in enterprise contract renewals",
-                                "Margin compression under aggressive price parity pressure",
-                                "Complex procurement cycles across non-technical buyer personas"
-                              ]
+                              "Higher operational overhead scaling multi-tenant infrastructure",
+                              "Direct competitive overlap in enterprise contract renewals",
+                              "Margin compression under aggressive price parity pressure",
+                              "Complex procurement cycles across non-technical buyer personas"
+                            ]
                           ).map((w: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-2 text-rose-950 font-medium">
                               <span className="text-rose-600 font-bold">•</span>
@@ -1395,11 +1394,11 @@ export function CompetitorsPage() {
                           {((profileData.partnerships && profileData.partnerships.length > 0)
                             ? profileData.partnerships
                             : [
-                                "Major Cloud Infrastructure Providers",
-                                "Enterprise Systems Integration Partners",
-                                "Technology & Open Source Ecosystem Alliances",
-                                "Global Developer Consortia"
-                              ]
+                              "Major Cloud Infrastructure Providers",
+                              "Enterprise Systems Integration Partners",
+                              "Technology & Open Source Ecosystem Alliances",
+                              "Global Developer Consortia"
+                            ]
                           ).map((p: string, idx: number) => (
                             <div key={idx} className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-100 font-medium text-[#17171b]">
                               {p}
