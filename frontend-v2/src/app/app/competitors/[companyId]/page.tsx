@@ -30,6 +30,7 @@ import {
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/components/app/AppShell";
+import { BattlecardView } from "@/components/app/battlecard/BattlecardView";
 import {
   ArrowLeft,
   Crown,
@@ -105,6 +106,7 @@ export default function CompetitorProfilePage() {
   const [allFindings, setAllFindings] = React.useState<FindingRecord[]>([]);
   const [radarEvals, setRadarEvals] = React.useState<RadarEvaluation[]>([]);
   const [drawerData, setDrawerData] = React.useState<EvidenceDrawerData | null>(null);
+  const [detailTab, setDetailTab] = React.useState<"battlecard" | "overview">("battlecard");
 
   const loadData = React.useCallback(async () => {
     if (!companyId) return;
@@ -329,6 +331,42 @@ export default function CompetitorProfilePage() {
               </Link>
             </div>
 
+            {/* Detail Tabs */}
+            <div className="flex items-center gap-2 border-b border-slate-200">
+              <button
+                type="button"
+                onClick={() => setDetailTab("battlecard")}
+                className={cn(
+                  "pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer",
+                  detailTab === "battlecard"
+                    ? "border-amber-500 text-slate-900 font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
+                )}
+              >
+                <Shield className="h-4 w-4 text-amber-500" />
+                <span>Battlecard</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailTab("overview")}
+                className={cn(
+                  "pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer",
+                  detailTab === "overview"
+                    ? "border-slate-900 text-slate-900 font-bold"
+                    : "border-transparent text-slate-500 hover:text-slate-900"
+                )}
+              >
+                <Activity className="h-4 w-4 text-slate-600" />
+                <span>Overview &amp; Evidence Timeline</span>
+              </button>
+            </div>
+
+            {detailTab === "battlecard" ? (
+              <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F17] p-6 shadow-xl">
+                <BattlecardView competitorName={summary.company_name} tenantId={tenantId} />
+              </div>
+            ) : (
+              <>
             {/* Signal Volume + Source Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Signal Volume Card */}
@@ -506,6 +544,8 @@ export default function CompetitorProfilePage() {
                 );
               })}
             </div>
+            </>
+            )}
           </>
         )}
       </div>
