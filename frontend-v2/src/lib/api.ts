@@ -1953,3 +1953,364 @@ export async function fetchTrendDetail(trendId: string, tenantId?: string): Prom
   };
 }
 
+// ============================================================================
+// PrismIQ Batch 1: Evidence-Linked Battlecards & Drift Detection Types & APIs
+// ============================================================================
+
+export interface FactImpactAct {
+  fact: string;
+  impact: string;
+  act: string;
+}
+
+export interface ClaimEvidence {
+  id: string;
+  claim_id: string;
+  tenant_id?: string;
+  event_id?: string | null;
+  signal_id?: string | null;
+  source_url: string;
+  source_title?: string | null;
+  excerpt: string;
+  publication_date?: string | null;
+  relationship: "supports" | "contradicts" | "contextualizes";
+  source_quality: "primary" | "secondary" | "unverified";
+  created_at?: string;
+}
+
+export interface IntelligenceClaim {
+  id: string;
+  company_name: string;
+  claim_type: string;
+  subject: string;
+  statement: string;
+  fact_impact_act: FactImpactAct;
+  status: "active" | "verified" | "disputed" | "outdated" | "archived";
+  confidence: "High" | "Medium" | "Low";
+  verification_status: "verified" | "unverified" | "unknown";
+  last_verified_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  evidence?: ClaimEvidence[];
+}
+
+export interface BattlecardBlock {
+  id?: string;
+  battlecard_id?: string;
+  block_key: string;
+  block_title: string;
+  block_order: number;
+  content: Record<string, any>;
+  claim_ids?: string[];
+  claims?: IntelligenceClaim[];
+}
+
+export interface Battlecard {
+  id: string;
+  tenant_id: string;
+  company_name: string;
+  title: string;
+  audience: "sales" | "product" | "marketing" | "executive";
+  segment: string;
+  owner_id?: string;
+  status: "draft" | "published" | "archived";
+  current_version: number;
+  published_version?: number | null;
+  published_at?: string | null;
+  freshness_score: number;
+  blocks: BattlecardBlock[];
+  claims_count?: number;
+}
+
+export interface BattlecardRevision {
+  id: string;
+  battlecard_id: string;
+  tenant_id?: string;
+  version: number;
+  snapshot: Record<string, any>;
+  change_summary?: string | null;
+  published_by: string;
+  published_at: string;
+}
+
+export interface ClaimDriftAlert {
+  id: string;
+  tenant_id: string;
+  claim_id: string;
+  company_name: string;
+  drift_type: "stable" | "new_evidence" | "contradicted" | "stale";
+  trigger_event_id?: string | null;
+  new_evidence_excerpt?: string | null;
+  new_evidence_url?: string | null;
+  suggested_update: {
+    statement?: string;
+    reason?: string;
+    fact_impact_act?: FactImpactAct;
+    confidence?: string;
+  };
+  review_status: "pending" | "accepted" | "edited" | "dismissed" | "marked_incorrect";
+  review_decision_notes?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  deduplication_key?: string;
+  created_at?: string;
+  updated_at?: string;
+  claim?: IntelligenceClaim;
+}
+
+export interface BattlecardResponse {
+  status: string;
+  battlecard: Battlecard;
+  frontend_components: {
+    BattlecardHeader: any;
+    SalesView: any;
+    IntelligenceView: any;
+    CompetitorSnapshot: any;
+    PositioningCard: any;
+    CompetitiveStrengths: any;
+    ObjectionPlaybook: any;
+    DiscoveryQuestions: any;
+    PricingSnapshot: any;
+    RecentChanges: any;
+    EvidenceDrawer: {
+      evidence_by_claim: Record<string, ClaimEvidence[]>;
+    };
+    FreshnessPanel: any;
+    DriftReviewPanel: {
+      pending_alerts: ClaimDriftAlert[];
+    };
+    VersionHistory: {
+      current_version: number;
+      published_version?: number | null;
+      published_at?: string | null;
+      revisions: Array<{
+        version: number;
+        published_at: string;
+        published_by: string;
+        change_summary?: string | null;
+      }>;
+    };
+  };
+}
+
+export async function fetchBattlecard(
+  competitorId: string,
+  options?: { audience?: string; segment?: string; status?: string },
+  tenantId?: string
+): Promise<BattlecardResponse> {
+  const token = getClientAuthToken(tenantId);
+  const query = new URLSearchParams();
+  if (options?.audience) query.set("audience", options.audience);
+  if (options?.segment) query.set("segment", options.segment);
+  if (options?.status) query.set("status", options.status);
+  const qs = query.toString() ? `?${query.toString()}` : "";
+
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/competitors/${encodeURIComponent(competitorId)}/battlecard${qs}`
+    : `${API_BASE_URL}/api/competitors/${encodeURIComponent(competitorId)}/battlecard${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load battlecard (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function generateBattlecard(
+  competitorId: string,
+  payload: { audience?: string; segment?: string; force_refresh?: boolean },
+  tenantId?: string
+): Promise<BattlecardResponse> {
+  const token = getClientAuthToken(tenantId);
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/competitors/${encodeURIComponent(competitorId)}/battlecards/generate`
+    : `${API_BASE_URL}/api/competitors/${encodeURIComponent(competitorId)}/battlecards/generate`;
+
+  const res = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to generate battlecard (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function updateBattlecardBlock(
+  battlecardId: string,
+  blockKey: string,
+  payload: { content?: any; block_title?: string; claim_ids?: string[] },
+  tenantId?: string
+): Promise<any> {
+  const token = getClientAuthToken(tenantId);
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/battlecards/${encodeURIComponent(battlecardId)}/blocks/${encodeURIComponent(blockKey)}`
+    : `${API_BASE_URL}/api/battlecards/${encodeURIComponent(battlecardId)}/blocks/${encodeURIComponent(blockKey)}`;
+
+  const res = await fetch(baseUrl, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to update battlecard block (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function publishBattlecard(
+  battlecardId: string,
+  payload: { published_by?: string; change_summary?: string },
+  tenantId?: string
+): Promise<any> {
+  const token = getClientAuthToken(tenantId);
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/battlecards/${encodeURIComponent(battlecardId)}/publish`
+    : `${API_BASE_URL}/api/battlecards/${encodeURIComponent(battlecardId)}/publish`;
+
+  const res = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to publish battlecard (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function fetchBattlecardVersions(
+  battlecardId: string,
+  tenantId?: string
+): Promise<{ status: string; versions: BattlecardRevision[]; total_versions: number }> {
+  const token = getClientAuthToken(tenantId);
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/battlecards/${encodeURIComponent(battlecardId)}/versions`
+    : `${API_BASE_URL}/api/battlecards/${encodeURIComponent(battlecardId)}/versions`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to fetch battlecard versions (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function fetchCompetitorClaimDrift(
+  competitorId: string,
+  filters?: { review_status?: string; drift_type?: string; limit?: number; offset?: number },
+  tenantId?: string
+): Promise<{ status: string; alerts: ClaimDriftAlert[]; total_count: number; competitor_name: string }> {
+  const token = getClientAuthToken(tenantId);
+  const query = new URLSearchParams();
+  if (filters?.review_status) query.set("review_status", filters.review_status);
+  if (filters?.drift_type) query.set("drift_type", filters.drift_type);
+  if (filters?.limit) query.set("limit", String(filters.limit));
+  if (filters?.offset) query.set("offset", String(filters.offset));
+  const qs = query.toString() ? `?${query.toString()}` : "";
+
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/competitors/${encodeURIComponent(competitorId)}/claim-drift${qs}`
+    : `${API_BASE_URL}/api/competitors/${encodeURIComponent(competitorId)}/claim-drift${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to fetch competitor claim drift (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function fetchGlobalClaimDrift(
+  filters?: { company_name?: string; review_status?: string; drift_type?: string; limit?: number; offset?: number },
+  tenantId?: string
+): Promise<{ status: string; alerts: ClaimDriftAlert[]; total_count: number }> {
+  const token = getClientAuthToken(tenantId);
+  const query = new URLSearchParams();
+  if (filters?.company_name) query.set("company_name", filters.company_name);
+  if (filters?.review_status) query.set("review_status", filters.review_status);
+  if (filters?.drift_type) query.set("drift_type", filters.drift_type);
+  if (filters?.limit) query.set("limit", String(filters.limit));
+  if (filters?.offset) query.set("offset", String(filters.offset));
+  const qs = query.toString() ? `?${query.toString()}` : "";
+
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/claim-drift${qs}`
+    : `${API_BASE_URL}/api/claim-drift${qs}`;
+
+  const res = await fetch(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to fetch global claim drift (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export async function reviewClaimDrift(
+  alertId: string,
+  payload: { action: string; notes?: string; reviewer?: string; edited_claim?: any },
+  tenantId?: string
+): Promise<{ status: string; message: string; alert: ClaimDriftAlert; review_action: any; propagated_battlecard_blocks_count: number }> {
+  const token = getClientAuthToken(tenantId);
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/claim-drift/${encodeURIComponent(alertId)}/review`
+    : `${API_BASE_URL}/api/claim-drift/${encodeURIComponent(alertId)}/review`;
+
+  const res = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to submit drift review (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+
