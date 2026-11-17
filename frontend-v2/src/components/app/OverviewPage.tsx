@@ -33,6 +33,8 @@ import {
   TrendingDown,
   RotateCcw,
   Check,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { useWorkspace, useAppEvidence } from "./AppShell";
 import {
@@ -50,6 +52,7 @@ import {
   PrismSectionHeader,
   PrismCompanyBadge,
 } from "./PrismPrimitives";
+import { BattlecardView } from "./battlecard/BattlecardView";
 import {
   fetchTrackedCompanies,
   fetchEvents,
@@ -411,9 +414,12 @@ export function OverviewPage() {
   const [decisionItems, setDecisionItems] = React.useState<DecisionSupportRecord[]>([]);
   const [selectedDept, setSelectedDept] = React.useState<string>("ALL");
   const [selectedUrgency, setSelectedUrgency] = React.useState<string>("ALL");
+  const [mainPageTab, setMainPageTab] = React.useState<"overview" | "battlecards">("overview");
+  const [selectedBattlecardCompetitor, setSelectedBattlecardCompetitor] = React.useState<string>(targetCompany || "OpenAI");
   const [expandedWhyAssessment, setExpandedWhyAssessment] = React.useState<Record<string, boolean>>({});
   const [expandedWhyMatters, setExpandedWhyMatters] = React.useState<Record<string, boolean>>({});
   const [activeEvidenceItem, setActiveEvidenceItem] = React.useState<DecisionSupportRecord | null>(null);
+  const [expandedDecisionItem, setExpandedDecisionItem] = React.useState<DecisionSupportRecord | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const loadData = React.useCallback(async () => {
@@ -449,11 +455,61 @@ export function OverviewPage() {
     loadData();
   }, [loadData]);
 
+  // Handle escape key to dismiss fullscreen modals
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (expandedDecisionItem) {
+          setExpandedDecisionItem(null);
+        } else if (activeEvidenceItem) {
+          setActiveEvidenceItem(null);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [expandedDecisionItem, activeEvidenceItem]);
+
+  React.useEffect(() => {
+    if (targetCompany && (!selectedBattlecardCompetitor || selectedBattlecardCompetitor === "OpenAI")) {
+      setSelectedBattlecardCompetitor(targetCompany);
+    }
+  }, [targetCompany, selectedBattlecardCompetitor]);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const t = new URLSearchParams(window.location.search).get("tab");
+      if (t === "battlecards" || t === "battlecard") {
+        setMainPageTab("battlecards");
+      }
+      const c = new URLSearchParams(window.location.search).get("competitor");
+      if (c) {
+        setSelectedBattlecardCompetitor(c);
+      }
+    }
+  }, []);
+
   // Compute summaries
   const competitorSummaries: CompetitorActivitySummary[] = React.useMemo(() => {
     if (trackedCompanies.length === 0) return [];
     return buildCompetitorSummaries(trackedCompanies, signals, events, findings, radarEvals);
   }, [trackedCompanies, signals, events, findings, radarEvals]);
+
+  const battlecardCompetitorOptions = React.useMemo(() => {
+    const list: string[] = [];
+    if (targetCompany && !list.includes(targetCompany)) list.push(targetCompany);
+    trackedCompanies.forEach((c) => {
+      if (c.company_name && !list.includes(c.company_name)) {
+        list.push(c.company_name);
+      }
+    });
+    decisionItems.forEach((d) => {
+      if (d.company_name && !list.includes(d.company_name)) {
+        list.push(d.company_name);
+      }
+    });
+    return list.length > 0 ? list : ["OpenAI", "Anthropic", "Google"];
+  }, [targetCompany, trackedCompanies, decisionItems]);
 
   // Real-time Department counts for Point 5 filter tabs (12 canonical departments)
   const canonicalDepartments = React.useMemo(() => [
@@ -619,23 +675,84 @@ export function OverviewPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* 1. Header & Quick Pulse Metrics */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#17171b]">
-              Competitive Intelligence
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-[#6e57dc] border border-purple-200 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              RLS Secured
-            </span>
+    <div className="space-y-6">
+      {/* Top Navigation Tabs: Executive Overview vs Battlecards */}
+      <div className="flex items-center gap-2 border-b border-[rgba(20,20,30,0.08)]">
+        <button
+          type="button"
+          onClick={() => setMainPageTab("overview")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+            mainPageTab === "overview"
+              ? "border-[#6e57dc] text-[#17171b] font-bold"
+              : "border-transparent text-[#70717a] hover:text-[#17171b]"
+          }`}
+        >
+          <Activity className="w-4 h-4 text-[#6e57dc]" />
+          <span>Executive Overview</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMainPageTab("battlecards")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+            mainPageTab === "battlecards"
+              ? "border-amber-500 text-[#17171b] font-bold"
+              : "border-transparent text-[#70717a] hover:text-[#17171b]"
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-amber-500" />
+          <span>Battlecards</span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+            Live
+          </span>
+        </button>
+      </div>
+
+      {mainPageTab === "battlecards" ? (
+        <div className="space-y-6">
+          {/* Competitor Selector Bar */}
+          <div className="p-4 rounded-xl bg-white border border-[rgba(20,20,30,0.08)] shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-[#70717a] uppercase tracking-wider mr-1">
+                Select Competitor:
+              </span>
+              {battlecardCompetitorOptions.map((comp) => (
+                <button
+                  key={comp}
+                  type="button"
+                  onClick={() => setSelectedBattlecardCompetitor(comp)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    selectedBattlecardCompetitor.toLowerCase() === comp.toLowerCase()
+                      ? "bg-[#17171b] text-white shadow-xs"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  }`}
+                >
+                  {comp}
+                </button>
+              ))}
+            </div>
+            <div className="text-xs text-[#70717a] flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Evidence-Linked Battlecard · Freshness Monitored</span>
+            </div>
           </div>
-          <p className="text-xs sm:text-sm text-[#70717a] mt-1">
-            Real-time multi-channel surveillance across your tracked landscape.
-          </p>
+
+          {/* Embedded Battlecard */}
+          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F17] p-6 shadow-xl">
+            <BattlecardView competitorName={selectedBattlecardCompetitor} tenantId={tenantId} />
+          </div>
         </div>
+      ) : (
+        <>
+          {/* 1. Header & Quick Pulse Metrics */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#17171b]">
+                Competitive Intelligence
+              </h1>
+              <p className="text-xs sm:text-sm text-[#70717a] mt-1">
+                Real-time multi-channel surveillance across your tracked landscape.
+              </p>
+            </div>
 
         <div className="flex items-center gap-2.5">
           <PrismButton
@@ -851,67 +968,80 @@ export function OverviewPage() {
               return (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between border ${
+                  className={`bg-white rounded-xl p-4 shadow-xs hover:shadow-md transition-all flex flex-col h-[520px] max-h-[520px] border ${
                     isHighUrgency
                       ? "border-rose-300 ring-1 ring-rose-200/70 bg-gradient-to-b from-rose-50/15 via-white to-white"
                       : "border-[rgba(20,20,30,0.10)]"
                   }`}
                 >
-                  <div className="space-y-3">
-                    {/* High-Urgency Alert Banner & Counter-Strategy Countdown */}
-                    {isHighUrgency && item.deadline_at && (
-                      <div className="flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/5 border border-rose-200/90 shadow-2xs">
-                        <div className="flex items-center gap-2">
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
-                          </span>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-rose-700">
-                            ⚡ Critical Counter-Window
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs font-black text-rose-800 bg-white/90 px-2.5 py-0.5 rounded-lg border border-rose-200 shadow-2xs">
-                          <Clock className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
-                          <span>Window: <DecisionCardCountdown item={item} /></span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Top Bar: Company Badge + Urgency + Threat Type + Calibrated Confidence */}
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <PrismCompanyBadge
-                          name={item.company_name}
-                          isTarget={item.company_name.toLowerCase() === targetCompany.toLowerCase()}
-                          size="sm"
-                        />
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex items-center gap-1.5 ${urgConfig.bg} ${urgConfig.text} ${urgConfig.border}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${urgConfig.dot}`} />
-                          {item.urgency} Urgency
-                        </span>
-                        {item.threat_type && (
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getThreatTypeBadgeClass(item.threat_type)}`}
-                          >
-                            {item.threat_type}
-                          </span>
-                        )}
-                        {item.dimension && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
-                            {item.dimension}
-                          </span>
-                        )}
-                      </div>
-
+                  {/* High-Urgency Alert Banner & Counter-Strategy Countdown */}
+                  {isHighUrgency && item.deadline_at && (
+                    <div className="mb-2 shrink-0 flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/5 border border-rose-200/90 shadow-2xs">
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
-                          {item.confidence}% Calibrated Confidence
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
                         </span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-700">
+                          ⚡ Critical Counter-Window
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs font-black text-rose-800 bg-white/90 px-2.5 py-0.5 rounded-lg border border-rose-200 shadow-2xs">
+                        <Clock className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
+                        <span>Window: <DecisionCardCountdown item={item} /></span>
                       </div>
                     </div>
+                  )}
 
+                  {/* Top Bar: Company Badge + Urgency + Threat Type + Calibrated Confidence + Zoom/Expand Icon */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap shrink-0 pb-2 border-b border-zinc-100">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                      <PrismCompanyBadge
+                        name={item.company_name}
+                        isTarget={item.company_name.toLowerCase() === targetCompany.toLowerCase()}
+                        size="sm"
+                      />
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex items-center gap-1.5 ${urgConfig.bg} ${urgConfig.text} ${urgConfig.border}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${urgConfig.dot}`} />
+                        {item.urgency} Urgency
+                      </span>
+                      {item.threat_type && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getThreatTypeBadgeClass(item.threat_type)}`}
+                        >
+                          {item.threat_type}
+                        </span>
+                      )}
+                      {item.dimension && (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
+                          {item.dimension}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
+                        {item.confidence}% Calibrated
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedDecisionItem(item)}
+                        className="p-1 rounded-lg text-zinc-400 hover:text-[#6e57dc] hover:bg-purple-50 hover:border-purple-200 border border-transparent transition-all cursor-pointer flex items-center justify-center"
+                        title="Expand to Fullscreen View"
+                        aria-label={`Expand ${item.company_name} to fullscreen`}
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Independently Scrollable Content Area */}
+                  <div
+                    className="flex-1 overflow-y-auto pr-1.5 space-y-3 my-2.5 min-h-0 focus:outline-none"
+                    style={{ scrollbarWidth: "thin" }}
+                  >
                     {/* Target Company Affected Products Exposure */}
                     {item.affected_products && item.affected_products.length > 0 && (
                       <div className="flex items-center gap-1.5 flex-wrap text-[11px] p-2 rounded-lg bg-zinc-50 border border-zinc-200/60">
@@ -939,7 +1069,7 @@ export function OverviewPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-[#17171b] leading-snug max-h-20 overflow-y-auto pr-1">
+                      <p className="text-xs sm:text-sm font-bold text-[#17171b] leading-snug">
                         {item.what_happened}
                       </p>
                     </div>
@@ -960,7 +1090,7 @@ export function OverviewPage() {
                         {item.revenue_margin_exposure && (
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100/80 text-amber-900 border border-amber-200 flex items-center gap-1">
                             <TrendingDown className="w-3 h-3 text-amber-700" />
-                            {item.revenue_margin_exposure.length > 60 ? item.revenue_margin_exposure.slice(0, 58) + "..." : item.revenue_margin_exposure}
+                            {item.revenue_margin_exposure.length > 50 ? item.revenue_margin_exposure.slice(0, 48) + "..." : item.revenue_margin_exposure}
                           </span>
                         )}
                       </div>
@@ -971,59 +1101,59 @@ export function OverviewPage() {
                             {item.why_it_matters}
                           </p>
 
-                      {/* Structured 6-Question Breakdown Accordion */}
-                      {item.structured_why_it_matters && (
-                        <div className="pt-2 border-t border-purple-200/60">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedWhyMatters((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
-                            className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] hover:text-[#533ab7] flex items-center gap-1 cursor-pointer transition-colors"
-                          >
-                            <span>{expandedWhyMatters[item.id] ? "▾ Hide 6-Question Strategic Matrix" : "▸ Inspect 6-Question Strategic Matrix"}</span>
-                          </button>
+                          {/* Structured 6-Question Breakdown Accordion */}
+                          {item.structured_why_it_matters && (
+                            <div className="pt-2 border-t border-purple-200/60">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedWhyMatters((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                                className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] hover:text-[#533ab7] flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <span>{expandedWhyMatters[item.id] ? "▾ Hide 6-Question Strategic Matrix" : "▸ Inspect 6-Question Strategic Matrix"}</span>
+                              </button>
 
-                          {expandedWhyMatters[item.id] && (
-                            <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-white/90 p-3 rounded-lg border border-purple-100 shadow-2xs">
-                              <div>
-                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">1. Affected Products:</span>
-                                <span className="text-zinc-600 font-medium">
-                                  {(item.structured_why_it_matters.q1_affected_products || []).join(", ") || "None specified"}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">2. Overlapping Segments:</span>
-                                <span className="text-zinc-600 font-medium">
-                                  {(item.structured_why_it_matters.q2_overlapping_customer_segments || []).join(", ") || "None specified"}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">3. Competitor Advantage:</span>
-                                <span className="text-zinc-600 font-medium">
-                                  {item.structured_why_it_matters.q3_competitor_advantage || "None verified"}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">4. Business Risk / Opportunity:</span>
-                                <span className="text-zinc-600 font-medium">
-                                  {item.structured_why_it_matters.q4_business_risk_or_opportunity || item.why_it_matters}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">5. Supporting Evidence:</span>
-                                <span className="text-zinc-600 font-medium">
-                                  {item.structured_why_it_matters.q5_supporting_evidence_summary || `${item.corroboration_sources_count} primary sources`}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">6. Uncertain Assumptions:</span>
-                                <span className="text-zinc-600 font-medium">
-                                  {item.structured_why_it_matters.q6_uncertain_assumptions || "None stated"}
-                                </span>
-                              </div>
+                              {expandedWhyMatters[item.id] && (
+                                <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] bg-white/90 p-3 rounded-lg border border-purple-100 shadow-2xs">
+                                  <div>
+                                    <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">1. Affected Products:</span>
+                                    <span className="text-zinc-600 font-medium">
+                                      {(item.structured_why_it_matters.q1_affected_products || []).join(", ") || "None specified"}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">2. Overlapping Segments:</span>
+                                    <span className="text-zinc-600 font-medium">
+                                      {(item.structured_why_it_matters.q2_overlapping_customer_segments || []).join(", ") || "None specified"}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">3. Competitor Advantage:</span>
+                                    <span className="text-zinc-600 font-medium">
+                                      {item.structured_why_it_matters.q3_competitor_advantage || "None verified"}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">4. Business Risk / Opportunity:</span>
+                                    <span className="text-zinc-600 font-medium">
+                                      {item.structured_why_it_matters.q4_business_risk_or_opportunity || item.why_it_matters}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">5. Supporting Evidence:</span>
+                                    <span className="text-zinc-600 font-medium">
+                                      {item.structured_why_it_matters.q5_supporting_evidence_summary || `${item.corroboration_sources_count} primary sources`}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">6. Uncertain Assumptions:</span>
+                                    <span className="text-zinc-600 font-medium">
+                                      {item.structured_why_it_matters.q6_uncertain_assumptions || "None stated"}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
-                      )}
                         </>
                       )}
                     </div>
@@ -1032,7 +1162,7 @@ export function OverviewPage() {
                     <div>
                       <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1.5 flex items-center gap-1.5">
                         <Users className="w-3.5 h-3.5 text-[#9ca3af]" />
-                        3. Who Is Affected (Executive Department Routing across 12 Departments):
+                        3. Who Is Affected (Executive Department Routing):
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {(item.who_is_affected || []).map((dept) => {
@@ -1056,7 +1186,7 @@ export function OverviewPage() {
                         <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
                         4. What Should We Do · Counter-Action Playbook
                       </div>
-                      <p className="text-xs text-zinc-200 leading-relaxed font-medium max-h-24 overflow-y-auto pr-1">
+                      <p className="text-xs text-zinc-200 leading-relaxed font-medium">
                         {item.what_should_we_do}
                       </p>
                       <ActionablePlaybookChecklist
@@ -1098,7 +1228,7 @@ export function OverviewPage() {
                   </div>
 
                   {/* Dimension 6: Verification & Confidence Footer */}
-                  <div className="mt-3 pt-3 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="pt-2.5 mt-auto border-t border-[rgba(20,20,30,0.06)] shrink-0 flex items-center justify-between flex-wrap gap-2 text-xs">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -1115,7 +1245,7 @@ export function OverviewPage() {
                     <button
                       type="button"
                       onClick={() => setActiveEvidenceItem(item)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-50 hover:bg-purple-100/80 text-[#6e57dc] border border-purple-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 hover:bg-purple-100/80 text-[#6e57dc] border border-purple-200 flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <ShieldCheck className="w-3.5 h-3.5 text-[#6e57dc]" />
                       Inspect {sourceCount} Independent Sources
@@ -1128,6 +1258,314 @@ export function OverviewPage() {
           </div>
         )}
       </div>
+
+      {/* Fullscreen Expanded View for Decision Support Card */}
+      {expandedDecisionItem && (() => {
+        const item = expandedDecisionItem;
+        const urgConfig = getUrgencyBadgeConfig(item.urgency);
+        const sourceCount = item.corroboration_sources_count || item.evidence_sources?.length || 4;
+        const isHighUrgency =
+          (item.urgency || "").toLowerCase().includes("crit") ||
+          (item.urgency || "").toLowerCase().includes("high");
+        const effectiveHorizon =
+          item.time_horizon ||
+          (isHighUrgency ? "Immediate (<7d)" : (item.urgency === "Medium" ? "Tactical (<30d)" : "Strategic (90d+)"));
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-6 md:p-8 animate-in fade-in duration-200"
+            onClick={() => setExpandedDecisionItem(null)}
+          >
+            <div
+              className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-[rgba(20,20,30,0.15)] max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-4 sm:p-5 border-b border-[rgba(20,20,30,0.08)] bg-gradient-to-r from-purple-50/70 via-white to-blue-50/40 flex items-center justify-between gap-4 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#6e57dc] to-[#35a9c2] flex items-center justify-center font-extrabold text-white text-base shadow-xs shrink-0">
+                    {item.company_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-lg font-extrabold text-[#17171b] truncate">
+                        {item.company_name}
+                      </h2>
+                      {item.company_name.toLowerCase() === targetCompany.toLowerCase() && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-100 text-[#6e57dc]">
+                          Target Organization
+                        </span>
+                      )}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border flex items-center gap-1.5 ${urgConfig.bg} ${urgConfig.text} ${urgConfig.border}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${urgConfig.dot}`} />
+                        {item.urgency} Urgency
+                      </span>
+                      {item.threat_type && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getThreatTypeBadgeClass(item.threat_type)}`}
+                        >
+                          {item.threat_type}
+                        </span>
+                      )}
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
+                        {item.confidence}% Calibrated Confidence
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#70717a] mt-0.5 truncate">
+                      Executive 6-Dimension Strategic Intelligence Profile · Full-Screen View
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedDecisionItem(null)}
+                    className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors cursor-pointer border border-zinc-200/80 flex items-center gap-1.5 text-xs font-bold"
+                    title="Exit Fullscreen (Esc)"
+                  >
+                    <Minimize2 className="w-4 h-4 text-zinc-600" />
+                    <span className="hidden sm:inline">Close</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 focus:outline-none" style={{ scrollbarWidth: "thin" }}>
+                {/* High-Urgency Alert Banner */}
+                {isHighUrgency && item.deadline_at && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/5 border border-rose-200 shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+                      </span>
+                      <span className="text-xs font-black uppercase tracking-wider text-rose-700">
+                        ⚡ Critical Counter-Window Active
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-black text-rose-800 bg-white px-3 py-1 rounded-lg border border-rose-200 shadow-2xs">
+                      <Clock className="w-4 h-4 text-rose-600 animate-pulse" />
+                      <span>Window: <DecisionCardCountdown item={item} /></span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Exposed Target Products */}
+                {item.affected_products && item.affected_products.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap text-xs p-3 rounded-xl bg-zinc-50 border border-zinc-200/70">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500">
+                      Exposed Target Products:
+                    </span>
+                    {item.affected_products.map((prod) => (
+                      <span key={prod} className="px-2.5 py-0.5 rounded-md bg-white text-zinc-800 font-semibold border border-zinc-300 text-xs shadow-2xs">
+                        {prod}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Grid: Dimension 1 & Dimension 5 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Dimension 1: What Happened */}
+                  <div className="md:col-span-2 p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-1.5 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#6e57dc]" />
+                        1. What Happened (Factual Grounded Inflection)
+                      </span>
+                      {item.inflection_summary_details?.publication_date && (
+                        <span className="text-[10px] text-zinc-400 font-medium">
+                          Published: {item.inflection_summary_details.publication_date}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-semibold text-[#17171b] leading-relaxed">
+                      {item.what_happened}
+                    </p>
+                  </div>
+
+                  {/* Dimension 5: Urgency & Time Horizon */}
+                  <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80 flex flex-col justify-between gap-3">
+                    <div>
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#70717a] mb-1.5 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-[#6e57dc]" />
+                        5. Urgency & Time Horizon
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="text-xs font-bold text-zinc-700">
+                          Time Horizon: <span className="font-extrabold text-zinc-900">{effectiveHorizon}</span>
+                        </div>
+                        <div className="text-xs font-bold text-zinc-700">
+                          Priority Tier: <span className="font-extrabold text-zinc-900">{item.urgency} Urgency</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-zinc-200">
+                      <div className="text-[10px] font-bold text-[#9ca3af]">Counter-Strategy Countdown</div>
+                      <div className="text-xs font-black text-[#17171b] flex items-center gap-1.5 mt-0.5">
+                        <Clock className="w-3.5 h-3.5 text-[#6e57dc]" />
+                        <DecisionCardCountdown item={item} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dimension 2: Why It Matters (Independent Dyadic Assessment & 6-Question Matrix) */}
+                <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-100/90 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-[#6e57dc]" />
+                      2. Why It Matters (Independent Dyadic Assessment)
+                    </div>
+                    {item.revenue_margin_exposure && (
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-100/80 text-amber-900 border border-amber-200 flex items-center gap-1">
+                        <TrendingDown className="w-3.5 h-3.5 text-amber-700" />
+                        {item.revenue_margin_exposure}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-[#374151] leading-relaxed">
+                    {item.why_it_matters}
+                  </p>
+
+                  {/* Structured 6-Question Matrix */}
+                  {item.structured_why_it_matters && (
+                    <div className="pt-3 border-t border-purple-200/60">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#6e57dc] mb-2">
+                        Structured 6-Question Strategic Matrix:
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs bg-white/90 p-4 rounded-xl border border-purple-100 shadow-2xs">
+                        <div>
+                          <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">1. Affected Products:</span>
+                          <span className="text-zinc-600 font-medium">
+                            {(item.structured_why_it_matters.q1_affected_products || []).join(", ") || "None specified"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">2. Overlapping Segments:</span>
+                          <span className="text-zinc-600 font-medium">
+                            {(item.structured_why_it_matters.q2_overlapping_customer_segments || []).join(", ") || "None specified"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">3. Competitor Advantage:</span>
+                          <span className="text-zinc-600 font-medium">
+                            {item.structured_why_it_matters.q3_competitor_advantage || "None verified"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">4. Business Risk / Opportunity:</span>
+                          <span className="text-zinc-600 font-medium">
+                            {item.structured_why_it_matters.q4_business_risk_or_opportunity || item.why_it_matters}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">5. Supporting Evidence:</span>
+                          <span className="text-zinc-600 font-medium">
+                            {item.structured_why_it_matters.q5_supporting_evidence_summary || `${item.corroboration_sources_count} primary sources`}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-zinc-900 block text-[10px] uppercase">6. Uncertain Assumptions:</span>
+                          <span className="text-zinc-600 font-medium">
+                            {item.structured_why_it_matters.q6_uncertain_assumptions || "None stated"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Dimension 3: Who Is Affected */}
+                <div className="p-4 rounded-xl bg-zinc-50/70 border border-zinc-200/80">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#9ca3af] mb-2 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-[#9ca3af]" />
+                    3. Who Is Affected (Executive Department Routing across 12 Departments):
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {(item.who_is_affected || []).map((dept) => {
+                      const reason = item.department_reasons ? item.department_reasons[dept] : undefined;
+                      return (
+                        <span
+                          key={dept}
+                          title={reason || `${dept} strategic execution`}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold border ${getDepartmentBadgeClass(dept)} cursor-help flex items-center gap-1`}
+                        >
+                          <span>{dept}</span>
+                          {reason && <span className="text-[10px] opacity-75 font-normal ml-1">({reason.slice(0, 30)}...)</span>}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Dimension 4: What Should We Do (Prescriptive Counter-Action Playbook) & Interactive Checklist */}
+                <div className="p-4 sm:p-5 rounded-xl bg-zinc-900 text-white shadow-xs border border-zinc-800 space-y-3">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                    4. What Should We Do · Counter-Action Playbook & Execution Tracking
+                  </div>
+                  <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed font-medium">
+                    {item.what_should_we_do}
+                  </p>
+                  <ActionablePlaybookChecklist
+                    itemId={item.id}
+                    actions={getEffectiveActionChecklist(item)}
+                    companyName={item.company_name}
+                    tenantId={tenantId}
+                  />
+                </div>
+
+                {/* Dimension 6: Verification & Confidence */}
+                <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="text-xs font-extrabold uppercase tracking-wider text-zinc-600 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      6. Verification & Confidence Guarantee:
+                    </div>
+                    <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {sourceCount} Verified Primary Sources
+                    </span>
+                    <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
+                      {item.confidence}% Calibrated
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveEvidenceItem(item);
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-[#6e57dc] hover:bg-[#5b45c6] text-white shadow-xs flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    Inspect Independent Evidence Dossier
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-3.5 sm:p-4 border-t border-[rgba(20,20,30,0.08)] bg-zinc-50 flex items-center justify-between shrink-0">
+                <span className="text-xs text-[#70717a]">
+                  PrismIQ Executive Decision Cockpit • Press Esc or Click Close to exit
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setExpandedDecisionItem(null)}
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  Close Fullscreen
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 3. Evidence Modal: Full Primary Verification Dossier */}
       {activeEvidenceItem && (
@@ -1298,213 +1736,8 @@ export function OverviewPage() {
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
-
-      {/* 4. Competitive Movement Strip */}
-      <div>
-        <PrismSectionHeader
-          title="Competitive Movement & Activity Share"
-          subtitle="Relative momentum across your tracked landscape based on verified signal volume and event velocity."
-          eyebrow="Landscape Dynamics"
-          action={
-            <Link href="/app/competitors" className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1">
-              Manage Competitors <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          }
-        />
-
-        {competitorSummaries.length === 0 ? (
-          <PrismEmptyState
-            title="No competitor summaries available"
-            description="Configure your tracked competitors in the workspace to monitor activity across companies."
-            actionText="Configure Competitors"
-            actionHref="/app/workspace/watchlist"
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {competitorSummaries.slice(0, 6).map((comp) => (
-              <PrismCard key={comp.company_name} solid className="p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <PrismCompanyBadge
-                    name={comp.company_name}
-                    isTarget={comp.is_target}
-                    size="md"
-                  />
-                  <span className="text-[11px] font-bold text-[#70717a]">
-                    {comp.total_events} Event{comp.total_events !== 1 ? "s" : ""}
-                  </span>
-                </div>
-
-                <div className="space-y-2 mb-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#70717a]">Total Signals:</span>
-                    <span className="font-bold text-[#17171b]">{comp.total_signals}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#70717a]">Must-Know Events:</span>
-                    <span className="font-bold text-[#e11d48]">{comp.must_know_count}</span>
-                  </div>
-                </div>
-
-                {(comp.recent_events || []).length > 0 && (
-                  <div className="pt-2.5 border-t border-[rgba(20,20,30,0.06)]">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#9ca3af] mb-1">
-                      Latest Activity
-                    </div>
-                    <div
-                      className="text-xs font-semibold text-[#17171b] truncate hover:text-[#6e57dc] cursor-pointer"
-                      onClick={() => {
-                        if (comp.recent_events && comp.recent_events[0]) {
-                          openEvidence({
-                            id: comp.recent_events[0].event_id,
-                            title: comp.recent_events[0].title,
-                            company_name: comp.company_name,
-                            why_it_matters: comp.recent_events[0].why_it_matters,
-                            url: comp.recent_events[0].url,
-                            raw_excerpt: comp.recent_events[0].raw_excerpt,
-                            tier: comp.recent_events[0].tier,
-                          });
-                        }
-                      }}
-                    >
-                      {comp.recent_events?.[0]?.title || "Recent Event"}
-                    </div>
-                  </div>
-                )}
-              </PrismCard>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 4. Research Radar Field */}
-      {topics.length > 0 && (
-        <div>
-          <PrismSectionHeader
-            title="Emerging Research Radar"
-            subtitle="Configured topics monitored across academic, technical, and patent disclosures."
-            eyebrow="Field Radar"
-            action={
-              <Link href="/app/research-radar" className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1">
-                Explore Radar <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            }
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {topics.slice(0, 3).map((topic) => (
-              <PrismCard key={topic.id} solid className="p-4 sm:p-5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-lg bg-cyan-50 border border-cyan-200 flex items-center justify-center text-cyan-700">
-                      <Radio className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="font-bold text-xs text-[#17171b]">{topic.topic_label}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {(Array.isArray(topic.keywords) ? topic.keywords : []).slice(0, 3).map((kw, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-[10px] font-medium text-[#595a63]"
-                      >
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="pt-3 mt-3 border-t border-[rgba(20,20,30,0.06)] flex items-center justify-between text-[11px] text-[#9ca3af]">
-                  <span>Active Monitoring</span>
-                  <Link href="/app/research-radar" className="text-[#6e57dc] font-semibold hover:underline">
-                    View posture →
-                  </Link>
-                </div>
-              </PrismCard>
-            ))}
-          </div>
-        </div>
+      </>
       )}
-
-      {/* 5. Recent Canonical Events */}
-      <div>
-        <PrismSectionHeader
-          title="Recent Canonical Events"
-          subtitle="Directly corroborated, multi-channel competitor moves verified by the fact-checking engine."
-          eyebrow="Activity Log"
-          action={
-            <Link href="/app/events" className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1">
-              Full Event Feed <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          }
-        />
-
-        <div className="bg-white rounded-xl border border-[rgba(20,20,30,0.08)] overflow-hidden shadow-xs">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 border-b border-[rgba(20,20,30,0.08)] text-[10px] font-extrabold uppercase tracking-wider text-[#70717a]">
-              <tr>
-                <th className="py-3 px-4">Company</th>
-                <th className="py-3 px-4">Event & Summary</th>
-                <th className="py-3 px-4">Tier</th>
-                <th className="py-3 px-4">Confidence</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Evidence</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[rgba(20,20,30,0.06)]">
-              {recentEvents.map((ev) => (
-                <tr
-                  key={ev.event_id}
-                  className="cursor-pointer hover:bg-zinc-50/80 transition-colors"
-                  onClick={() =>
-                    openEvidence({
-                      id: ev.event_id,
-                      title: ev.title,
-                      company_name: ev.company_name,
-                      why_it_matters: ev.why_it_matters,
-                      confidence: ev.confidence || ev.fact_confidence,
-                      tier: ev.tier,
-                      raw_excerpt: ev.raw_excerpt || ev.event_summary,
-                      url: ev.url,
-                      source: ev.contributing_sources?.[0] || "Verified Source",
-                      published_timestamp: ev.published_timestamp || ev.published_at,
-                      corroboration_count: ev.corroboration_count,
-                    })
-                  }
-                >
-                  <td className="whitespace-nowrap font-bold">
-                    <PrismCompanyBadge
-                      name={ev.company_name}
-                      isTarget={(ev.company_name || "").toLowerCase() === (targetCompany || "").toLowerCase()}
-                      size="sm"
-                    />
-                  </td>
-                  <td className="max-w-md font-semibold text-[#17171b]">
-                    <div className="line-clamp-1">{ev.title}</div>
-                    {ev.why_it_matters && (
-                      <div className="text-[11px] text-[#70717a] line-clamp-1 mt-0.5">
-                        {ev.why_it_matters}
-                      </div>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap">
-                    <PrismTierBadge tier={ev.tier} />
-                  </td>
-                  <td className="whitespace-nowrap">
-                    <PrismConfidenceBadge confidence={ev.confidence || ev.fact_confidence} />
-                  </td>
-                  <td className="whitespace-nowrap text-xs text-[#70717a]">
-                    {ev.published_timestamp || ev.published_at || "Recent"}
-                  </td>
-                  <td className="whitespace-nowrap">
-                    <button className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      {ev.corroboration_count || 1} source{ev.corroboration_count !== 1 ? "s" : ""}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
