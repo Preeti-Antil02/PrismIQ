@@ -73,7 +73,7 @@ def is_live_write_permitted() -> bool:
     2. In DRY_RUN mode, strictly returns False.
     3. Platform isolation defense-in-depth: Live database connections/writes are strictly refused
        unless running under platform environments:
-       - GitHub Actions (GITHUB_ACTIONS='true')
+       - GtHub Actions (GITHUB_ACTIONS='true')
        - Render web service / worker (RENDER='true' or RENDER env var set)
        Local processes cannot open a read-write connection even if ALLOW_LIVE_WRITE is present.
     4. If running in CI/Render, ALLOW_LIVE_WRITE must be explicitly true (or Render web container).
@@ -1013,6 +1013,20 @@ def save_findings(
 
         _execute_batch(cur, f_sql, f_params, page_size=200)
         logger.info(f"Dual-write: persisted {len(f_params)} findings for tenant {tid} to PostgreSQL.")
+
+    # Trigger battlecard drift detection for affected competitor findings
+    try:
+        from .battlecard_drift import DriftDetector
+        detector = DriftDetector(tenant_id=tid)
+        comp_findings_map: Dict[str, List[Dict[str, Any]]] = {}
+        for f in findings:
+            c = f.get("company") or f.get("company_name")
+            if c:
+                comp_findings_map.setdefault(str(c).strip(), []).append(f)
+        for c, f_list in comp_findings_map.items():
+            detector.detect_drift_for_events(f_list, company_name=c)
+    except Exception as drift_err:
+        logger.debug(f"Battlecard drift detection hook: {drift_err}")
 
 
 def save_brief(
@@ -7091,3 +7105,28 @@ def get_decision_support_action_history(
         except Exception:
             return []
     return []
+
+
+# ============================================================================
+# Evidence-Linked Competitive Battlecards & Drift Detection Storage Interface
+# ============================================================================
+from .battlecard_storage import (
+    save_claim,
+    get_claim,
+    get_claims,
+    save_claim_evidence,
+    get_claim_evidence,
+    save_battlecard,
+    get_battlecard,
+    save_battlecard_block,
+    get_battlecard_blocks,
+    update_battlecard_block,
+    publish_battlecard,
+    get_battlecard_revisions,
+    save_claim_drift_alert,
+    get_claim_drift_alert,
+    get_claim_drift_alerts,
+    record_claim_review_action,
+    propagate_claim_update_to_battlecards,
+    compute_drift_deduplication_key,
+)
