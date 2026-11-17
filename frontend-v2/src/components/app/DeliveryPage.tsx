@@ -11,8 +11,10 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { useWorkspace } from "./AppShell";
+import { GlobalDriftReview } from "./battlecard/GlobalDriftReview";
 import {
   PrismCard,
   PrismButton,
@@ -29,6 +31,7 @@ import {
 export function DeliveryPage() {
   const { targetCompany, tenantId } = useWorkspace();
 
+  const [deliveryTab, setDeliveryTab] = React.useState<"routing" | "drift">("routing");
   const [loading, setLoading] = React.useState(true);
   const [config, setConfig] = React.useState<DeliveryConfig | null>(null);
   const [webhookUrl, setWebhookUrl] = React.useState("");
@@ -86,29 +89,64 @@ export function DeliveryPage() {
   const isConfigured = Boolean(config?.slack_webhook_url);
 
   return (
-    <div className="max-w-3xl space-y-10 pb-16">
+    <div className={`space-y-6 pb-16 ${deliveryTab === "drift" ? "max-w-6xl" : "max-w-3xl"}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[rgba(20,20,30,0.07)]">
         <div>
           <div className="app-eyebrow mb-2">
             <span className="app-dot" />
-            Notification Channels
+            Delivery & Intelligence Operations
           </div>
           <h1 className="app-title-lg">
-            Delivery Settings for <span className="app-gradient-text">{targetCompany}</span>
+            Delivery & Review for <span className="app-gradient-text">{targetCompany}</span>
           </h1>
           <p className="app-caption mt-1 max-w-xl">
-            Configure automated outbound delivery of executive briefs and high-urgency competitive alerts.
+            Configure automated notification channels or manage global competitive battlecard drift across all competitors.
           </p>
         </div>
 
-        <PrismButton variant="light" size="sm" onClick={loadDelivery}>
-          <RefreshCw className="w-3.5 h-3.5 text-[#70717a]" />
-          <span>Refresh</span>
-        </PrismButton>
+        {deliveryTab === "routing" && (
+          <PrismButton variant="light" size="sm" onClick={loadDelivery}>
+            <RefreshCw className="w-3.5 h-3.5 text-[#70717a]" />
+            <span>Refresh</span>
+          </PrismButton>
+        )}
       </div>
 
-      {loading ? (
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b border-[rgba(20,20,30,0.08)]">
+        <button
+          type="button"
+          onClick={() => setDeliveryTab("routing")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            deliveryTab === "routing"
+              ? "border-[#17171b] text-[#17171b]"
+              : "border-transparent text-[#70717a] hover:text-[#17171b]"
+          }`}
+        >
+          <Bell className="w-4 h-4" />
+          <span>Notification Channels</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setDeliveryTab("drift")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            deliveryTab === "drift"
+              ? "border-amber-500 text-[#17171b]"
+              : "border-transparent text-[#70717a] hover:text-[#17171b]"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <span>Global Drift Review Queue</span>
+          <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            Live Queue
+          </span>
+        </button>
+      </div>
+
+      {deliveryTab === "drift" ? (
+        <GlobalDriftReview tenantId={tenantId} />
+      ) : loading ? (
         <PrismLoadingSkeleton count={3} />
       ) : error ? (
         <PrismEmptyState
