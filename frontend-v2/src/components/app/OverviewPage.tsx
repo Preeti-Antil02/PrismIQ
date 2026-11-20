@@ -3,6 +3,7 @@ import { sanitizeSourceUrl } from "@/lib/urlUtils";
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Flame,
@@ -53,6 +54,7 @@ import {
   PrismCompanyBadge,
 } from "./PrismPrimitives";
 import { BattlecardView } from "./battlecard/BattlecardView";
+import { NextBestActionsView } from "./nextbestactions/NextBestActionsView";
 import {
   fetchTrackedCompanies,
   fetchEvents,
@@ -403,6 +405,7 @@ function ActionablePlaybookChecklist({
 export function OverviewPage() {
   const { targetCompany, tenantId, triggerSweep, isSweeping } = useWorkspace();
   const { openEvidence } = useAppEvidence();
+  const router = useRouter();
 
   const [loading, setLoading] = React.useState(true);
   const [trackedCompanies, setTrackedCompanies] = React.useState<TrackedCompany[]>([]);
@@ -414,7 +417,7 @@ export function OverviewPage() {
   const [decisionItems, setDecisionItems] = React.useState<DecisionSupportRecord[]>([]);
   const [selectedDept, setSelectedDept] = React.useState<string>("ALL");
   const [selectedUrgency, setSelectedUrgency] = React.useState<string>("ALL");
-  const [mainPageTab, setMainPageTab] = React.useState<"overview" | "battlecards">("overview");
+  const [mainPageTab, setMainPageTab] = React.useState<"overview" | "battlecards" | "next_best_actions">("overview");
   const [selectedBattlecardCompetitor, setSelectedBattlecardCompetitor] = React.useState<string>(targetCompany || "OpenAI");
   const [expandedWhyAssessment, setExpandedWhyAssessment] = React.useState<Record<string, boolean>>({});
   const [expandedWhyMatters, setExpandedWhyMatters] = React.useState<Record<string, boolean>>({});
@@ -676,7 +679,7 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Navigation Tabs: Executive Overview vs Battlecards */}
+      {/* Top Navigation Tabs: Executive Overview vs Battlecards vs Next Best Actions */}
       <div className="flex items-center gap-2 border-b border-[rgba(20,20,30,0.08)]">
         <button
           type="button"
@@ -703,6 +706,21 @@ export function OverviewPage() {
           <span>Battlecards</span>
           <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
             Live
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMainPageTab("next_best_actions")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+            mainPageTab === "next_best_actions"
+              ? "border-violet-600 text-[#17171b] font-bold"
+              : "border-transparent text-[#70717a] hover:text-[#17171b]"
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-violet-600" />
+          <span>Next Best Actions</span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-violet-100 text-violet-800 border border-violet-200">
+            Decision Engine
           </span>
         </button>
       </div>
@@ -737,10 +755,25 @@ export function OverviewPage() {
           </div>
 
           {/* Embedded Battlecard */}
-          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F17] p-6 shadow-xl">
+          <div className="rounded-2xl overflow-hidden border border-zinc-200 bg-white p-6 shadow-xs">
             <BattlecardView competitorName={selectedBattlecardCompetitor} tenantId={tenantId} />
           </div>
         </div>
+      ) : mainPageTab === "next_best_actions" ? (
+        <NextBestActionsView
+          targetCompany={targetCompany}
+          tenantId={tenantId}
+          onOpenBattlecard={(comp) => {
+            setSelectedBattlecardCompetitor(comp);
+            setMainPageTab("battlecards");
+          }}
+          onOpenCustomerVoice={(comp) => {
+            router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}?tab=voice`);
+          }}
+          onOpenDealRoom={(dealId) => {
+            router.push(`/app/workspace/delivery?dealId=${dealId}`);
+          }}
+        />
       ) : (
         <>
           {/* 1. Header & Quick Pulse Metrics */}

@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AppLayout } from "@/components/layout/AppLayout";
 import {
   fetchTrackedCompanies,
   fetchSignals,
@@ -30,6 +29,7 @@ import {
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/components/app/AppShell";
+import { BASELINE_TRACKED_COMPANIES } from "@/lib/baselineData";
 import { BattlecardView } from "@/components/app/battlecard/BattlecardView";
 import {
   ArrowLeft,
@@ -48,6 +48,7 @@ import {
   Scale,
   AlertCircle,
   Layers,
+  MessageSquare,
 } from "lucide-react";
 
 // ============================================================================
@@ -97,7 +98,7 @@ const CATEGORIES: CategoryConfig[] = [
 export default function CompetitorProfilePage() {
   const params = useParams();
   const companyId = decodeURIComponent((params?.companyId as string) || "");
-  const { tenantId } = useWorkspace();
+  const { tenantId, targetCompany } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -106,7 +107,6 @@ export default function CompetitorProfilePage() {
   const [allFindings, setAllFindings] = React.useState<FindingRecord[]>([]);
   const [radarEvals, setRadarEvals] = React.useState<RadarEvaluation[]>([]);
   const [drawerData, setDrawerData] = React.useState<EvidenceDrawerData | null>(null);
-  const [detailTab, setDetailTab] = React.useState<"battlecard" | "overview">("battlecard");
 
   const loadData = React.useCallback(async () => {
     if (!companyId) return;
@@ -121,12 +121,32 @@ export default function CompetitorProfilePage() {
         fetchLatestRadar(tenantId),
       ]);
 
-      // Verify company is tracked
-      const isTracked = companies.some((c) => c.company_name === companyId);
-      if (!isTracked) {
-        setError(`"${companyId}" is not a tracked competitor.`);
-        setLoading(false);
-        return;
+      const decodedCompanyId = decodeURIComponent(companyId || "").trim();
+      let matchedComp = companies.find(
+        (c) => c.company_name.toLowerCase() === decodedCompanyId.toLowerCase()
+      );
+
+      // Fallback to baseline companies if not in current tenant's active list
+      if (!matchedComp) {
+        matchedComp = BASELINE_TRACKED_COMPANIES.find(
+          (c) => c.company_name.toLowerCase() === decodedCompanyId.toLowerCase()
+        );
+        if (matchedComp && !companies.some((c) => c.company_name.toLowerCase() === matchedComp!.company_name.toLowerCase())) {
+          companies.push(matchedComp);
+        }
+      }
+
+      // If still not found, synthesize a minimal tracked record so page never hard crashes
+      if (!matchedComp) {
+        matchedComp = {
+          company_name: decodedCompanyId,
+          is_target: false,
+          status: "active",
+          tier: "core",
+          confidence: "High",
+          industry_category: "Tracked Competitor",
+        };
+        companies.push(matchedComp);
       }
 
       const built = buildCompetitorSummaries(
@@ -137,12 +157,22 @@ export default function CompetitorProfilePage() {
         radarRes.evaluations || [],
       );
 
-      const match = built.find((s) => s.company_name === companyId);
+      const match = built.find(
+        (s) => s.company_name.toLowerCase() === decodedCompanyId.toLowerCase()
+      ) || built.find((s) => s.company_name.toLowerCase() === matchedComp!.company_name.toLowerCase());
       setSummary(match || null);
 
-      // Keep full events/findings for this company
-      setAllEvents(eventsRes.events.filter((e) => e.company_name === companyId));
-      setAllFindings(findingsRes.findings.filter((f) => f.company_name === companyId));
+      // Keep full events/findings for this company (case-insensitive)
+      setAllEvents(
+        eventsRes.events.filter(
+          (e) => (e.company_name || "").toLowerCase() === decodedCompanyId.toLowerCase()
+        )
+      );
+      setAllFindings(
+        findingsRes.findings.filter(
+          (f) => (f.company_name || "").toLowerCase() === decodedCompanyId.toLowerCase()
+        )
+      );
       setRadarEvals(radarRes.evaluations || []);
     } catch (err: any) {
       setError(err.message || "Failed to load competitor profile");
@@ -251,7 +281,7 @@ export default function CompetitorProfilePage() {
   };
 
   return (
-    <AppLayout>
+    <div className="space-y-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Back Navigation */}
         <div className="flex items-center gap-4">
@@ -322,51 +352,24 @@ export default function CompetitorProfilePage() {
                   </div>
                 </div>
               </div>
-              <Link
-                href={`/app/compare?companies=${encodeURIComponent(summary.company_name)}`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-sm shrink-0"
-              >
-                <Scale className="h-3.5 w-3.5" />
-                Compare
-              </Link>
-            </div>
-
-            {/* Detail Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-200">
-              <button
-                type="button"
-                onClick={() => setDetailTab("battlecard")}
-                className={cn(
-                  "pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer",
-                  detailTab === "battlecard"
-                    ? "border-amber-500 text-slate-900 font-bold"
-                    : "border-transparent text-slate-500 hover:text-slate-900"
-                )}
-              >
-                <Shield className="h-4 w-4 text-amber-500" />
-                <span>Battlecard</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDetailTab("overview")}
-                className={cn(
-                  "pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer",
-                  detailTab === "overview"
-                    ? "border-slate-900 text-slate-900 font-bold"
-                    : "border-transparent text-slate-500 hover:text-slate-900"
-                )}
-              >
-                <Activity className="h-4 w-4 text-slate-600" />
-                <span>Overview &amp; Evidence Timeline</span>
-              </button>
-            </div>
-
-            {detailTab === "battlecard" ? (
-              <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F17] p-6 shadow-xl">
-                <BattlecardView competitorName={summary.company_name} tenantId={tenantId} />
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/app/overview?tab=battlecards&competitor=${encodeURIComponent(summary.company_name)}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold hover:bg-amber-100 transition-colors shadow-2xs shrink-0"
+                >
+                  <Shield className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Open Battlecard</span>
+                </Link>
+                <Link
+                  href={`/app/compare?companies=${encodeURIComponent(summary.company_name)}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors shadow-sm shrink-0"
+                >
+                  <Scale className="h-3.5 w-3.5" />
+                  Compare
+                </Link>
               </div>
-            ) : (
-              <>
+            </div>
+
             {/* Signal Volume + Source Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Signal Volume Card */}
@@ -544,8 +547,6 @@ export default function CompetitorProfilePage() {
                 );
               })}
             </div>
-            </>
-            )}
           </>
         )}
       </div>
@@ -556,6 +557,6 @@ export default function CompetitorProfilePage() {
         isOpen={!!drawerData}
         onClose={() => setDrawerData(null)}
       />
-    </AppLayout>
+    </div>
   );
 }

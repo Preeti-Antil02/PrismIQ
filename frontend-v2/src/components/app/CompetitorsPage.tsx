@@ -391,7 +391,7 @@ export function CompetitorsPage() {
           </div>
 
           {/* Embedded Battlecard */}
-          <div className="rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F17] p-6 shadow-xl">
+          <div className="rounded-2xl overflow-hidden border border-zinc-200 bg-white p-6 shadow-xs">
             <BattlecardView competitorName={selectedBattlecardCompetitor} tenantId={tenantId} />
           </div>
         </div>
@@ -772,7 +772,7 @@ export function CompetitorsPage() {
                 <>
                   {/* TAB 0: EVIDENCE-LINKED COMPETITIVE BATTLECARD (Batch 1) */}
                   {profileTab === "battlecards" && activeProfileCompany && (
-                    <div className="-m-6 p-6 bg-[#0B0F17] rounded-b-2xl overflow-y-auto">
+                    <div className="-m-6 p-6 bg-white rounded-b-2xl overflow-y-auto">
                       <BattlecardView competitorName={activeProfileCompany} tenantId={tenantId} />
                     </div>
                   )}

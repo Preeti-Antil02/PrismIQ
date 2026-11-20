@@ -49,6 +49,17 @@ def _ensure_tenant_cache(tenant_id: str):
         _IN_MEMORY_REVIEW_ACTIONS[tid] = []
 
 
+def clear_tenant_cache():
+    """Clear all in-memory cache structures across tenants (used in tests)."""
+    _IN_MEMORY_CLAIMS.clear()
+    _IN_MEMORY_EVIDENCE.clear()
+    _IN_MEMORY_BATTLECARDS.clear()
+    _IN_MEMORY_BLOCKS.clear()
+    _IN_MEMORY_REVISIONS.clear()
+    _IN_MEMORY_DRIFT_ALERTS.clear()
+    _IN_MEMORY_REVIEW_ACTIONS.clear()
+
+
 # ============================================================================
 # 1. Intelligence Claims
 # ============================================================================
@@ -167,6 +178,8 @@ def get_claims(
     company_name: Optional[str] = None,
     claim_type: Optional[str] = None,
     status: Optional[str] = None,
+    limit: Optional[int] = None,
+    **kwargs: Any,
 ) -> List[Dict[str, Any]]:
     """Retrieve claims matching filters for tenant."""
     tid = str(tenant_id).strip()
@@ -193,7 +206,10 @@ def get_claims(
                 if status:
                     q += " AND status = %s"
                     params.append(status.strip())
-                q += " ORDER BY updated_at DESC;"
+                q += " ORDER BY updated_at DESC"
+                if limit and int(limit) > 0:
+                    q += f" LIMIT {int(limit)}"
+                q += ";"
 
                 cur.execute(q, tuple(params))
                 rows = cur.fetchall()
@@ -227,7 +243,14 @@ def get_claims(
         claims = [c for c in claims if c["claim_type"] == claim_type.strip()]
     if status:
         claims = [c for c in claims if c["status"] == status.strip()]
-    return sorted(claims, key=lambda c: c.get("updated_at", ""), reverse=True)
+    sorted_claims = sorted(claims, key=lambda c: c.get("updated_at", ""), reverse=True)
+    if limit and int(limit) > 0:
+        return sorted_claims[:int(limit)]
+    return sorted_claims
+
+
+# Alias for compatibility with Batch 2 caller conventions
+list_claims = get_claims
 
 
 # ============================================================================
