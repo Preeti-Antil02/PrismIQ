@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
   CheckCircle2,
@@ -12,9 +13,13 @@ import {
   EyeOff,
   RefreshCw,
   AlertTriangle,
+  Briefcase,
+  Target,
+  Sparkles,
 } from "lucide-react";
 import { useWorkspace } from "./AppShell";
 import { GlobalDriftReview } from "./battlecard/GlobalDriftReview";
+import { DealIntelligenceView } from "./deals/DealIntelligenceView";
 import {
   PrismCard,
   PrismButton,
@@ -30,8 +35,13 @@ import {
 
 export function DeliveryPage() {
   const { targetCompany, tenantId } = useWorkspace();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialDealId = searchParams?.get("dealId") || null;
 
-  const [deliveryTab, setDeliveryTab] = React.useState<"routing" | "drift">("routing");
+  const [deliveryTab, setDeliveryTab] = React.useState<"deals" | "drift" | "routing">(
+    initialDealId ? "deals" : "deals"
+  );
   const [loading, setLoading] = React.useState(true);
   const [config, setConfig] = React.useState<DeliveryConfig | null>(null);
   const [webhookUrl, setWebhookUrl] = React.useState("");
@@ -89,7 +99,7 @@ export function DeliveryPage() {
   const isConfigured = Boolean(config?.slack_webhook_url);
 
   return (
-    <div className={`space-y-6 pb-16 ${deliveryTab === "drift" ? "max-w-6xl" : "max-w-3xl"}`}>
+    <div className={`space-y-6 pb-16 ${deliveryTab === "routing" ? "max-w-3xl" : "max-w-6xl"}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[rgba(20,20,30,0.07)]">
         <div>
@@ -98,10 +108,10 @@ export function DeliveryPage() {
             Delivery & Intelligence Operations
           </div>
           <h1 className="app-title-lg">
-            Delivery & Review for <span className="app-gradient-text">{targetCompany}</span>
+            Delivery & Deal Enablement for <span className="app-gradient-text">{targetCompany}</span>
           </h1>
           <p className="app-caption mt-1 max-w-xl">
-            Configure automated notification channels or manage global competitive battlecard drift across all competitors.
+            Ground sales opportunities in live battlecards and call intelligence, monitor competitive drift, or configure Slack notification channels.
           </p>
         </div>
 
@@ -117,22 +127,25 @@ export function DeliveryPage() {
       <div className="flex items-center gap-2 border-b border-[rgba(20,20,30,0.08)]">
         <button
           type="button"
-          onClick={() => setDeliveryTab("routing")}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-            deliveryTab === "routing"
-              ? "border-[#17171b] text-[#17171b]"
+          onClick={() => setDeliveryTab("deals")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+            deliveryTab === "deals"
+              ? "border-[#6e57dc] text-[#17171b] font-bold"
               : "border-transparent text-[#70717a] hover:text-[#17171b]"
           }`}
         >
-          <Bell className="w-4 h-4" />
-          <span>Notification Channels</span>
+          <Briefcase className="w-4 h-4 text-[#6e57dc]" />
+          <span>Deal Intelligence & Deal Room</span>
+          <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-50 text-[#6e57dc] border border-purple-200">
+            Sales Cockpit
+          </span>
         </button>
         <button
           type="button"
           onClick={() => setDeliveryTab("drift")}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
             deliveryTab === "drift"
-              ? "border-amber-500 text-[#17171b]"
+              ? "border-amber-500 text-[#17171b] font-bold"
               : "border-transparent text-[#70717a] hover:text-[#17171b]"
           }`}
         >
@@ -142,9 +155,33 @@ export function DeliveryPage() {
             Live Queue
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => setDeliveryTab("routing")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+            deliveryTab === "routing"
+              ? "border-[#17171b] text-[#17171b] font-bold"
+              : "border-transparent text-[#70717a] hover:text-[#17171b]"
+          }`}
+        >
+          <Bell className="w-4 h-4" />
+          <span>Notification Channels</span>
+        </button>
       </div>
 
-      {deliveryTab === "drift" ? (
+      {deliveryTab === "deals" ? (
+        <DealIntelligenceView
+          initialDealId={initialDealId}
+          targetCompany={targetCompany}
+          tenantId={tenantId}
+          onOpenBattlecard={(comp) => {
+            router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}`);
+          }}
+          onOpenCustomerVoice={(comp) => {
+            router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}?tab=voice`);
+          }}
+        />
+      ) : deliveryTab === "drift" ? (
         <GlobalDriftReview tenantId={tenantId} />
       ) : loading ? (
         <PrismLoadingSkeleton count={3} />
