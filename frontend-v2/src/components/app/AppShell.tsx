@@ -26,6 +26,7 @@ import {
   Sparkles,
   ExternalLink,
   Plus,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { createTenantToken, isValidUuid, DEFAULT_TENANT_ID } from "@/lib/auth";
