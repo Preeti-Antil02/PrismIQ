@@ -2902,4 +2902,11 @@ def get_trend_detail_endpoint(
 from .battlecard_routes import router as battlecard_router
 app.include_router(battlecard_router)
 
+# ============================================================================
+# Customer Voice, Win/Loss, Deal Intelligence & Next Best Action Routes (Batch 2)
+# ============================================================================
+from .batch2_routes import router as batch2_router
+app.include_router(batch2_router)
+
+
 
