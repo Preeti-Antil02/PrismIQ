@@ -46,9 +46,17 @@ class DealIntelligenceService:
         # 1. Inspect existing deal record if deal_id provided
         existing_deal = None
         if deal_id:
-            existing_deal = batch2_storage.get_win_loss_deal(deal_id, self.tenant_id)
+            try:
+                from . import batch3_storage
+                existing_deal = batch3_storage.get_deal(deal_id, self.tenant_id)
+            except Exception:
+                pass
+            if not existing_deal:
+                existing_deal = batch2_storage.get_win_loss_deal(deal_id, self.tenant_id)
             if existing_deal:
-                if not comps and existing_deal.get("competitors_involved"):
+                if not comps and existing_deal.get("associated_competitors"):
+                    comps = existing_deal["associated_competitors"]
+                elif not comps and existing_deal.get("competitors_involved"):
                     comps = existing_deal["competitors_involved"]
                 elif not comps and existing_deal.get("primary_competitor"):
                     comps = [existing_deal["primary_competitor"]]
@@ -80,7 +88,7 @@ class DealIntelligenceService:
             quote = itm.get("verbatim_quote", "")
             comp_n = itm.get("competitor_name", "Competitor")
 
-            if itype == "buyer_objection":
+            if itype in ("buyer_objection", "customer_objection"):
                 objections.append({
                     "objection": quote,
                     "competitor": comp_n,
@@ -100,6 +108,19 @@ class DealIntelligenceService:
                     "source": "Sales Call Transcript",
                 })
 
+        # Also pull objections from deal record and kwargs
+        direct_objs = list(kwargs.get("buyer_objections") or [])
+        if existing_deal and existing_deal.get("buyer_objections"):
+            direct_objs.extend(existing_deal["buyer_objections"])
+        for bo in direct_objs:
+            if bo and not any(o.get("objection") == bo for o in objections):
+                objections.append({
+                    "objection": str(bo).strip(),
+                    "competitor": comps[0] if comps else "Competitor",
+                    "speaker": "Prospect",
+                    "source": "Deal Record",
+                })
+
         import re
         if effective_notes:
             if re.search(r"\b(price|pricing|discount|cost|api)\b", effective_notes, re.IGNORECASE):
@@ -109,32 +130,103 @@ class DealIntelligenceService:
                     "speaker": "Prospect",
                     "source": "CRM Notes",
                 })
+            elif not objections:
+                objections.append({
+                    "objection": effective_notes,
+                    "competitor": comps[0] if comps else "Competitor",
+                    "speaker": "Prospect",
+                    "source": "Deal Notes",
+                })
 
-        # 4. Integrate with Batch 1 Battlecards for each competitor
+        if not objections and comps:
+            for c in comps:
+                objections.append({
+                    "objection": f"Competitive evaluation against {c}",
+                    "competitor": c,
+                    "speaker": "Prospect",
+                    "source": "Deal Evaluation",
+                })
+
+        # 4. Integrate with Batch 1 Battlecards for each competitor with strict evidence grounding
         recommended_responses = []
+        structured_recommendations = []
         supporting_claims: List[str] = []
 
         for comp in comps:
             # Query existing battlecard claims
             claims = battlecard_storage.list_claims(self.tenant_id, company_name=comp, status="active")
             
-            # Match objection claims
-            obj_claims = [c for c in claims if c.get("claim_type") == "objections_responses"]
+            # Match objection claims & win claims
+            obj_claims = [c for c in claims if c.get("claim_type") in ("objections_responses", "pricing_comparison")]
             win_claims = [c for c in claims if c.get("claim_type") == "where_we_win"]
-            discovery_claims = [c for c in claims if c.get("claim_type") == "discovery_questions"]
 
-            for cl in obj_claims[:2]:
-                supporting_claims.append(cl["id"])
-                recommended_responses.append({
+            for cl in obj_claims[:3]:
+                cid = cl["id"]
+                supporting_claims.append(cid)
+                evidence = battlecard_storage.get_claim_evidence(cid, self.tenant_id)
+                evidence_list = [
+                    {
+                        "source_url": e.get("source_url"),
+                        "excerpt": e.get("excerpt"),
+                        "source_title": e.get("source_title"),
+                        "relationship": e.get("relationship", "supports"),
+                    }
+                    for e in evidence
+                ]
+                has_evidence = len(evidence) > 0 and cl.get("verification_status") == "verified"
+
+                reasoning = (
+                    f"Verified claim grounded in {len(evidence)} primary source citation(s) "
+                    f"counters {comp}'s positioning by emphasizing our architectural and pricing transparency."
+                    if has_evidence else
+                    f"Potential rebuttal against {comp}; insufficient verified empirical evidence available in knowledge base. Flagged for review."
+                )
+
+                rec_entry = {
+                    "id": str(uuid.uuid4()),
                     "competitor": comp,
                     "buyer_objection_scenario": cl.get("subject"),
+                    "objection": cl.get("subject"),
                     "recommended_rebuttal": cl.get("statement"),
+                    "recommended_response": cl.get("statement"),
                     "action_guide": cl.get("fact_impact_act", {}).get("act") or "Pivot to our governance advantage.",
-                    "claim_id": cl["id"],
-                })
+                    "claim_id": cid,
+                    "reasoning": reasoning,
+                    "supporting_evidence": evidence_list,
+                    "evidence_references": evidence_list,
+                    "requires_review": not has_evidence,
+                    "evidence_status": "verified" if has_evidence else "insufficient",
+                }
+                recommended_responses.append(rec_entry)
+                structured_recommendations.append(rec_entry)
 
             for cl in win_claims[:2]:
                 supporting_claims.append(cl["id"])
+
+        # Also process any unaddressed customer objections from transcripts
+        for obj_item in objections:
+            obj_text = obj_item.get("objection", "")
+            target_c = obj_item.get("competitor") or (comps[0] if comps else "Competitor")
+            # If not already covered by a claim
+            already_covered = any(r.get("competitor") == target_c and (r.get("objection") in obj_text or obj_text in r.get("objection", "")) for r in structured_recommendations)
+            if not already_covered:
+                rec_unverified = {
+                    "id": str(uuid.uuid4()),
+                    "competitor": target_c,
+                    "buyer_objection_scenario": obj_text,
+                    "objection": obj_text,
+                    "recommended_rebuttal": f"Acknowledge the objection regarding '{obj_text[:60]}...' and highlight our verified SLAs and enterprise tier roadmap.",
+                    "recommended_response": f"Acknowledge the objection regarding '{obj_text[:60]}...' and highlight our verified SLAs and enterprise tier roadmap.",
+                    "action_guide": "Schedule deep-dive technical demo with solutions engineering.",
+                    "claim_id": None,
+                    "reasoning": f"Objection raised has no pre-existing verified battlecard counter for '{target_c}'. Requires human analyst verification.",
+                    "supporting_evidence": [{"quote": obj_text, "source": "Customer Objection"}],
+                    "evidence_references": [{"quote": obj_text, "source": "Customer Objection"}],
+                    "requires_review": True,
+                    "evidence_status": "insufficient",
+                }
+                structured_recommendations.append(rec_unverified)
+                recommended_responses.append(rec_unverified)
 
         # 5. Retrieve REAL historical win/loss data for these competitors (NEVER hallucinate)
         historical_records: List[Dict[str, Any]] = []
@@ -214,6 +306,7 @@ class DealIntelligenceService:
                 "playbook_scripts": recommended_responses,
             },
             "recommended_sales_responses": recommended_responses,
+            "recommendations": structured_recommendations,
             "relevant_historical_wins_losses": historical_records,
             "historical_proof_points": historical_records,
             "supporting_claim_ids": supporting_claims,
@@ -224,4 +317,28 @@ class DealIntelligenceService:
 
         saved_dossier = batch2_storage.save_deal_dossier(dossier_record, self.tenant_id)
         return saved_dossier
+
+    def generate_deal_responses(self, deal_id: str) -> List[Dict[str, Any]]:
+        """
+        Generate evidence-grounded tactical response recommendations for a specific deal.
+        Flags any recommendation as requiring review if supporting evidence is insufficient.
+        """
+        from . import batch3_storage
+        deal = batch3_storage.get_deal(deal_id, self.tenant_id)
+        if not deal:
+            raise ValueError(f"Deal {deal_id} not found for tenant {self.tenant_id}")
+
+        dossier = self.generate_deal_dossier(
+            deal_name=deal.get("deal_name", "Deal"),
+            deal_id=deal["id"],
+            competitors_involved=deal.get("associated_competitors") or deal.get("competitors_involved"),
+            customer_segment=deal.get("customer_segment", "general"),
+            deal_notes=deal.get("description") or deal.get("notes"),
+            deal_value=deal.get("deal_value"),
+            customer_requirements=deal.get("customer_requirements"),
+            buyer_objections=deal.get("buyer_objections"),
+        )
+
+        return dossier.get("recommendations") or dossier.get("recommended_sales_responses") or []
+
 
