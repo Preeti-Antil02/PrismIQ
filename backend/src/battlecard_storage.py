@@ -73,11 +73,12 @@ def save_claim(claim_dict: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
 
     cid = str(claim_dict.get("id") or uuid.uuid4())
     now_iso = datetime.now(timezone.utc).isoformat()
+    claim_text = str(claim_dict.get("statement") or claim_dict.get("claim_text") or "").strip()
 
     fia = claim_dict.get("fact_impact_act")
     if not isinstance(fia, dict):
         fia = {
-            "fact": str(claim_dict.get("statement") or ""),
+            "fact": claim_text,
             "impact": "",
             "act": "",
         }
@@ -88,7 +89,8 @@ def save_claim(claim_dict: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
         "company_name": str(claim_dict.get("company_name") or "").strip(),
         "claim_type": str(claim_dict.get("claim_type") or "positioning").strip(),
         "subject": str(claim_dict.get("subject") or "").strip(),
-        "statement": str(claim_dict.get("statement") or "").strip(),
+        "statement": claim_text,
+        "claim_text": claim_text,
         "fact_impact_act": fia,
         "status": str(claim_dict.get("status") or "active").strip(),
         "confidence": str(claim_dict.get("confidence") or "Medium").strip(),
@@ -554,6 +556,74 @@ def update_battlecard_block(
     target_block["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     return save_battlecard_block(target_block, tid)
+
+
+def list_battlecards(
+    tenant_id: str,
+    company_name: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+) -> List[Dict[str, Any]]:
+    """List battlecards for tenant with optional company and status filters."""
+    tid = str(tenant_id).strip()
+    _ensure_tenant_cache(tid)
+
+    if not _is_test_mode():
+        try:
+            from .storage import get_tenant_db_cursor
+            with get_tenant_db_cursor(tid) as cur:
+                q = """
+                    SELECT id, tenant_id, company_name, title, audience, segment,
+                           owner_id, status, current_version, published_version,
+                           published_at, freshness_score, created_at, updated_at
+                    FROM battlecards
+                    WHERE tenant_id = %s
+                """
+                params = [tid]
+                if company_name:
+                    q += " AND LOWER(company_name) = LOWER(%s)"
+                    params.append(company_name.strip())
+                if status:
+                    q += " AND LOWER(status) = LOWER(%s)"
+                    params.append(status.strip())
+                q += " ORDER BY updated_at DESC"
+                if limit and int(limit) > 0:
+                    q += f" LIMIT {int(limit)}"
+                q += ";"
+                cur.execute(q, tuple(params))
+                rows = cur.fetchall()
+                if rows:
+                    return [
+                        {
+                            "id": str(r[0]),
+                            "tenant_id": str(r[1]),
+                            "company_name": r[2],
+                            "title": r[3],
+                            "audience": r[4],
+                            "segment": r[5],
+                            "owner_id": r[6],
+                            "status": r[7],
+                            "current_version": r[8],
+                            "published_version": r[9],
+                            "published_at": r[10].isoformat() if hasattr(r[10], "isoformat") else str(r[10]) if r[10] else None,
+                            "freshness_score": float(r[11]) if r[11] is not None else 100.0,
+                            "created_at": r[12].isoformat() if hasattr(r[12], "isoformat") else str(r[12]),
+                            "updated_at": r[13].isoformat() if hasattr(r[13], "isoformat") else str(r[13]),
+                        }
+                        for r in rows
+                    ]
+        except Exception as e:
+            logger.warning(f"PostgreSQL list_battlecards fallback: {e}")
+
+    cards = list(_IN_MEMORY_BATTLECARDS[tid].values())
+    if company_name:
+        cn = company_name.strip().lower()
+        cards = [c for c in cards if c.get("company_name", "").lower() == cn]
+    if status:
+        st = status.strip().lower()
+        cards = [c for c in cards if c.get("status", "").lower() == st]
+    cards = sorted(cards, key=lambda c: c.get("updated_at", ""), reverse=True)
+    return cards[:limit]
 
 
 def get_battlecard(
