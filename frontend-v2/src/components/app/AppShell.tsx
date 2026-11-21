@@ -53,6 +53,12 @@ import {
 // ============================================================================
 export const AVAILABLE_WORKSPACES = [
   {
+    tenant_id: "00000000-0000-0000-0000-000000000001",
+    name: "Acme Corp Intelligence",
+    target: "Acme Corp",
+    sector: "Enterprise CRM & Cloud",
+  },
+  {
     tenant_id: "8553449a-c998-4727-be01-9aeb724038cb",
     name: "Meesho Competitive Intelligence",
     target: "Meesho",
