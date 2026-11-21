@@ -45,6 +45,11 @@ scratch/
 scratch/evidence/
 *.patch
 *.diff
+# Project Report Artifacts & Helper Scripts (Not Push Code)
+PrismIQ_BTech_Final_Project_Report.docx
+*.docx
+scripts/generate_prismiq_report.py
+scripts/test_xml.py
 docs/*
 !docs/OWNER_RUNBOOK.md
 !docs/trend_evolution/
