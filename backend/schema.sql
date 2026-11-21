@@ -1177,3 +1177,300 @@ CREATE POLICY tenant_isolation_all ON next_best_actions FOR ALL TO authenticated
 DROP POLICY IF EXISTS tenant_isolation_all ON action_status_audits;
 CREATE POLICY tenant_isolation_all ON action_status_audits FOR ALL TO authenticated
     USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+-- ============================================================================
+-- Migration 015: Deal Intelligence & Next Best Action Engine (Batch 3)
+-- ============================================================================
+
+-- 1. Sales Deals Table
+CREATE TABLE IF NOT EXISTS sales_deals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    deal_name VARCHAR(255) NOT NULL,
+    customer VARCHAR(255) NOT NULL,
+    stage VARCHAR(50) NOT NULL DEFAULT 'discovery',
+    associated_competitors TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    description TEXT,
+    deal_value NUMERIC(14, 2),
+    outcome VARCHAR(50) DEFAULT 'in_progress',
+    close_date VARCHAR(50),
+    customer_segment VARCHAR(100) DEFAULT 'general',
+    industry VARCHAR(100) DEFAULT 'General',
+    buyer_objections TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    target_company VARCHAR(255),
+    transcript_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    attachments JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_deals_tenant ON sales_deals(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_sales_deals_customer ON sales_deals(customer);
+CREATE INDEX IF NOT EXISTS idx_sales_deals_stage ON sales_deals(stage);
+CREATE INDEX IF NOT EXISTS idx_sales_deals_created ON sales_deals(created_at DESC);
+
+-- 2. Deal Stage History Table
+CREATE TABLE IF NOT EXISTS deal_stage_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    deal_id UUID NOT NULL REFERENCES sales_deals(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    from_stage VARCHAR(50),
+    to_stage VARCHAR(50) NOT NULL,
+    changed_by VARCHAR(255) NOT NULL DEFAULT 'analyst',
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_deal_stage_hist_deal ON deal_stage_history(deal_id);
+CREATE INDEX IF NOT EXISTS idx_deal_stage_hist_tenant ON deal_stage_history(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_deal_stage_hist_created ON deal_stage_history(created_at ASC);
+
+-- 3. Deal Attachments Table
+CREATE TABLE IF NOT EXISTS deal_attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    deal_id UUID NOT NULL REFERENCES sales_deals(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    file_format VARCHAR(20) NOT NULL DEFAULT 'txt',
+    file_url TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_deal_attachments_deal ON deal_attachments(deal_id);
+CREATE INDEX IF NOT EXISTS idx_deal_attachments_tenant ON deal_attachments(tenant_id);
+
+-- 4. Recommendation Outcomes Table
+CREATE TABLE IF NOT EXISTS recommendation_outcomes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    recommendation_id VARCHAR(255) NOT NULL,
+    action_taken TEXT NOT NULL,
+    related_deal UUID REFERENCES sales_deals(id) ON DELETE CASCADE,
+    outcome VARCHAR(50) NOT NULL,
+    outcome_date VARCHAR(50) NOT NULL,
+    notes TEXT,
+    attribution_type VARCHAR(50) NOT NULL DEFAULT 'recorded_association',
+    causation_claimed BOOLEAN NOT NULL DEFAULT FALSE,
+    attribution_disclaimer TEXT NOT NULL DEFAULT 'Recorded association between action and deal outcome; does not establish direct causation.',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rec_outcomes_tenant ON recommendation_outcomes(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_rec_outcomes_deal ON recommendation_outcomes(related_deal);
+CREATE INDEX IF NOT EXISTS idx_rec_outcomes_rec ON recommendation_outcomes(recommendation_id);
+CREATE INDEX IF NOT EXISTS idx_rec_outcomes_date ON recommendation_outcomes(outcome_date DESC);
+
+-- RLS Policies for Batch 3 Tables
+ALTER TABLE sales_deals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deal_stage_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deal_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recommendation_outcomes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON sales_deals;
+CREATE POLICY tenant_isolation_all ON sales_deals FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON deal_stage_history;
+CREATE POLICY tenant_isolation_all ON deal_stage_history FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON deal_attachments;
+CREATE POLICY tenant_isolation_all ON deal_attachments FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON recommendation_outcomes;
+CREATE POLICY tenant_isolation_all ON recommendation_outcomes FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+-- ============================================================================
+-- Migration 016: Batch 4 — Market Intelligence, Trust & Outcomes
+-- ============================================================================
+
+-- 1. Competitive Relationship Graph Edges
+CREATE TABLE IF NOT EXISTS competitive_relationships (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    subject_id VARCHAR(255) NOT NULL,
+    subject_type VARCHAR(50) NOT NULL,
+    subject_name VARCHAR(255) NOT NULL,
+    predicate VARCHAR(50) NOT NULL,
+    object_id VARCHAR(255) NOT NULL,
+    object_type VARCHAR(50) NOT NULL,
+    object_name VARCHAR(255) NOT NULL,
+    relationship_source VARCHAR(255) NOT NULL DEFAULT 'verified_fact',
+    source_reference TEXT,
+    is_inferred BOOLEAN NOT NULL DEFAULT FALSE,
+    inference_reason TEXT,
+    confidence VARCHAR(20) NOT NULL DEFAULT 'High',
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comp_rel_tenant ON competitive_relationships(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_comp_rel_subject ON competitive_relationships(tenant_id, subject_id, subject_type);
+CREATE INDEX IF NOT EXISTS idx_comp_rel_object ON competitive_relationships(tenant_id, object_id, object_type);
+CREATE INDEX IF NOT EXISTS idx_comp_rel_predicate ON competitive_relationships(tenant_id, predicate);
+
+-- 2. Relationship Mutation History
+CREATE TABLE IF NOT EXISTS relationship_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    relationship_id UUID NOT NULL,
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    action_type VARCHAR(50) NOT NULL,
+    actor_id VARCHAR(255) NOT NULL DEFAULT 'system',
+    prior_state JSONB,
+    new_state JSONB NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rel_hist_tenant ON relationship_history(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_rel_hist_rel_id ON relationship_history(relationship_id);
+
+-- 3. Competitor Threat Scores
+CREATE TABLE IF NOT EXISTS competitor_threat_scores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    competitor_name VARCHAR(255) NOT NULL,
+    overall_threat_score NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+    threat_level VARCHAR(50) NOT NULL DEFAULT 'Medium',
+    factor_contributions JSONB NOT NULL DEFAULT '{}'::jsonb,
+    configured_weights JSONB NOT NULL DEFAULT '{}'::jsonb,
+    data_coverage_score NUMERIC(5,4) NOT NULL DEFAULT 0.0000,
+    has_missing_data BOOLEAN NOT NULL DEFAULT FALSE,
+    unassessed_factors JSONB NOT NULL DEFAULT '[]'::jsonb,
+    supporting_evidence JSONB NOT NULL DEFAULT '[]'::jsonb,
+    calculation_formula TEXT NOT NULL,
+    score_representation VARCHAR(50) NOT NULL DEFAULT 'threat_intensity_index',
+    is_probability BOOLEAN NOT NULL DEFAULT FALSE,
+    disclaimer TEXT NOT NULL,
+    calculated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_tenant_competitor_threat UNIQUE (tenant_id, competitor_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_threat_scores_tenant ON competitor_threat_scores(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_threat_scores_comp ON competitor_threat_scores(tenant_id, competitor_name);
+
+-- 4. Emerging Competitor Candidates
+CREATE TABLE IF NOT EXISTS emerging_competitor_candidates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    company_name VARCHAR(255) NOT NULL,
+    domain VARCHAR(255),
+    industry VARCHAR(100) NOT NULL DEFAULT 'Technology',
+    similarity_reason TEXT,
+    discovery_explanation TEXT NOT NULL,
+    discovery_sources JSONB NOT NULL DEFAULT '[]'::jsonb,
+    supporting_signals JSONB NOT NULL DEFAULT '[]'::jsonb,
+    review_status VARCHAR(50) NOT NULL DEFAULT 'pending_approval',
+    relevance_score NUMERIC(5,2) NOT NULL DEFAULT 0.00,
+    corroboration_count INT NOT NULL DEFAULT 1,
+    first_detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reviewed_at TIMESTAMPTZ,
+    reviewed_by VARCHAR(255),
+    review_notes TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_emerging_cands_tenant ON emerging_competitor_candidates(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_emerging_cands_status ON emerging_competitor_candidates(tenant_id, review_status);
+
+-- 5. Governed Evidence
+CREATE TABLE IF NOT EXISTS governed_evidence (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    claim_id VARCHAR(255),
+    source_url TEXT NOT NULL,
+    source_title TEXT NOT NULL,
+    source_type VARCHAR(100) NOT NULL DEFAULT 'documentation',
+    excerpt TEXT NOT NULL,
+    publication_date VARCHAR(50) NOT NULL,
+    relationship VARCHAR(50) NOT NULL DEFAULT 'supports',
+    source_quality VARCHAR(50) NOT NULL DEFAULT 'primary',
+    confidence_methodology TEXT NOT NULL,
+    verification_status VARCHAR(50) NOT NULL DEFAULT 'verified',
+    last_verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    related_company VARCHAR(255),
+    related_competitor VARCHAR(255),
+    related_event_id VARCHAR(255),
+    related_battlecard_id VARCHAR(255),
+    related_recommendation_id VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_gov_evidence_tenant ON governed_evidence(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_gov_evidence_claim ON governed_evidence(claim_id);
+CREATE INDEX IF NOT EXISTS idx_gov_evidence_company ON governed_evidence(related_company);
+
+-- 6. Contradictory Evidence Links
+CREATE TABLE IF NOT EXISTS contradictory_evidence_links (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    evidence_id_a UUID NOT NULL,
+    evidence_id_b UUID NOT NULL,
+    contradiction_reason TEXT NOT NULL,
+    confidence VARCHAR(50) NOT NULL DEFAULT 'High',
+    actor_id VARCHAR(255) NOT NULL DEFAULT 'analyst',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contra_links_tenant ON contradictory_evidence_links(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_contra_links_a ON contradictory_evidence_links(evidence_id_a);
+CREATE INDEX IF NOT EXISTS idx_contra_links_b ON contradictory_evidence_links(evidence_id_b);
+
+-- 7. Analyst Feedback
+CREATE TABLE IF NOT EXISTS analyst_feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    target_entity_type VARCHAR(50) NOT NULL,
+    target_entity_id VARCHAR(255) NOT NULL,
+    feedback_type VARCHAR(50) NOT NULL,
+    analyst_id VARCHAR(255) NOT NULL DEFAULT 'analyst',
+    notes TEXT,
+    suggested_interpretation TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_analyst_feedback_tenant ON analyst_feedback(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_analyst_feedback_target ON analyst_feedback(target_entity_type, target_entity_id);
+
+-- RLS Policies for Batch 4 Tables
+ALTER TABLE competitive_relationships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE relationship_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE competitor_threat_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE emerging_competitor_candidates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE governed_evidence ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contradictory_evidence_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analyst_feedback ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_all ON competitive_relationships;
+CREATE POLICY tenant_isolation_all ON competitive_relationships FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON relationship_history;
+CREATE POLICY tenant_isolation_all ON relationship_history FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON competitor_threat_scores;
+CREATE POLICY tenant_isolation_all ON competitor_threat_scores FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON emerging_competitor_candidates;
+CREATE POLICY tenant_isolation_all ON emerging_competitor_candidates FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON governed_evidence;
+CREATE POLICY tenant_isolation_all ON governed_evidence FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON contradictory_evidence_links;
+CREATE POLICY tenant_isolation_all ON contradictory_evidence_links FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+DROP POLICY IF EXISTS tenant_isolation_all ON analyst_feedback;
+CREATE POLICY tenant_isolation_all ON analyst_feedback FOR ALL TO authenticated
+    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
+
+
