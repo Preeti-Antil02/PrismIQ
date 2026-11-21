@@ -90,6 +90,18 @@ def clear_tenant_cache(tenant_id: Optional[str] = None):
         _IN_MEMORY_ACTIONS.clear()
         _IN_MEMORY_AUDITS.clear()
 
+    try:
+        from . import batch3_storage
+        batch3_storage.clear_tenant_cache(tenant_id)
+    except Exception:
+        pass
+
+    try:
+        from . import batch4_storage
+        batch4_storage.clear_tenant_cache(tenant_id)
+    except Exception:
+        pass
+
 
 # ============================================================================
 # 1. Raw Documents
@@ -575,6 +587,7 @@ def save_deal_dossier(dossier_dict: Dict[str, Any], tenant_id: str) -> Dict[str,
         "competitive_advantages": dossier_dict.get("competitive_advantages") or [],
         "recommended_sales_response": dossier_dict.get("recommended_sales_response") or {},
         "recommended_sales_responses": dossier_dict.get("recommended_sales_responses") or (dossier_dict.get("recommended_sales_response", {}).get("playbook_scripts") if isinstance(dossier_dict.get("recommended_sales_response"), dict) else []),
+        "recommendations": dossier_dict.get("recommendations") or dossier_dict.get("recommended_sales_responses") or [],
         "relevant_historical_wins_losses": dossier_dict.get("relevant_historical_wins_losses") or dossier_dict.get("historical_proof_points") or [],
         "historical_proof_points": dossier_dict.get("historical_proof_points") or dossier_dict.get("relevant_historical_wins_losses") or [],
         "supporting_claim_ids": dossier_dict.get("supporting_claim_ids") or [],
@@ -627,34 +640,74 @@ def list_deal_dossiers(
 # ============================================================================
 
 def save_next_best_action(action_dict: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-    """Save Next Best Action recommendation."""
+    """Save Next Best Action recommendation with duplicate prevention."""
     tid = str(tenant_id).strip()
     _ensure_tenant_cache(tid)
-    aid = str(action_dict.get("id") or uuid.uuid4())
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    raw_team = str(action_dict.get("team") or action_dict.get("affected_team") or "Sales").strip()
+    raw_team = str(action_dict.get("responsible_department") or action_dict.get("department") or action_dict.get("team") or action_dict.get("affected_team") or "Sales").strip()
     team_title = raw_team.title()
     team_lower = raw_team.lower()
+
+    title = str(action_dict.get("title") or "Recommended Action").strip()
+    related_deal_id = str(action_dict.get("related_deal_id") or action_dict.get("deal_id") or "") or None
+    category = str(action_dict.get("category") or "positioning").strip()
+
+    # Deduplication key across deal, department, category, and title
+    dedup_key = str(action_dict.get("deduplication_key") or f"{tid}_{related_deal_id or 'global'}_{team_lower}_{title[:40]}").strip()
+
+    # Check for existing action to prevent duplicates
+    for existing in _IN_MEMORY_ACTIONS[tid].values():
+        existing_status = str(existing.get("status", "")).lower()
+        if existing_status not in ("dismissed", "completed"):
+            if existing.get("deduplication_key") == dedup_key:
+                return existing
+            if (
+                existing.get("related_deal_id") == related_deal_id
+                and existing.get("team", "").lower() == team_lower
+                and existing.get("title", "").strip().lower() == title.lower()
+            ):
+                return existing
+
+    aid = str(action_dict.get("id") or uuid.uuid4())
+    urgency = str(action_dict.get("priority") or action_dict.get("urgency") or "Medium").strip().title()
+    priority = urgency
+    desc = str(action_dict.get("description") or action_dict.get("recommended_action") or "").strip()
+    reason = str(action_dict.get("reason") or action_dict.get("why_it_matters") or "").strip()
+    evidence = action_dict.get("evidence_references") or action_dict.get("supporting_evidence") or []
+
+    status_val = str(action_dict.get("status") or action_dict.get("review_status") or "pending").strip()
+    status_lower = status_val.lower().replace(" ", "_")
 
     record = {
         "id": aid,
         "tenant_id": tid,
         "team": team_title,
+        "department": team_title,
+        "responsible_department": team_title,
         "affected_team": team_lower,
-        "category": str(action_dict.get("category") or "positioning").strip(),
-        "title": str(action_dict.get("title") or "Recommended Action").strip(),
+        "category": category,
+        "title": title,
+        "description": desc,
+        "recommended_action": desc,
+        "reason": reason,
+        "why_it_matters": reason,
         "what_happened": str(action_dict.get("what_happened") or "").strip(),
-        "why_it_matters": str(action_dict.get("why_it_matters") or "").strip(),
-        "recommended_action": str(action_dict.get("recommended_action") or "").strip(),
-        "urgency": str(action_dict.get("urgency") or "Medium").strip(),
+        "priority": priority,
+        "urgency": urgency,
         "confidence": str(action_dict.get("confidence") or "Medium").strip(),
-        "status": str(action_dict.get("status") or action_dict.get("review_status") or "pending").strip(),
-        "review_status": str(action_dict.get("review_status") or action_dict.get("status") or "pending").strip(),
+        "status": status_val,
+        "review_status": status_lower,
+        "owner": action_dict.get("owner"),
+        "due_date": action_dict.get("due_date"),
         "related_competitor": str(action_dict.get("related_competitor") or "").strip(),
-        "related_deal_id": str(action_dict.get("related_deal_id")) if action_dict.get("related_deal_id") else None,
-        "supporting_evidence": action_dict.get("supporting_evidence") or [],
+        "related_deal_id": related_deal_id,
+        "deal_id": related_deal_id,
+        "supporting_evidence": evidence,
+        "evidence_references": evidence,
+        "deduplication_key": dedup_key,
         "created_at": action_dict.get("created_at") or now_iso,
+        "completed_at": action_dict.get("completed_at"),
         "updated_at": now_iso,
     }
 
@@ -664,12 +717,17 @@ def save_next_best_action(action_dict: Dict[str, Any], tenant_id: str) -> Dict[s
 
 def save_next_best_actions_batch(actions: List[Dict[str, Any]], tenant_id: str) -> List[Dict[str, Any]]:
     """Save batch of next best actions."""
-    return [save_next_best_action(a, tenant_id) for a in actions]
+    saved = []
+    for a in actions:
+        rec = save_next_best_action(a, tenant_id)
+        if rec not in saved:
+            saved.append(rec)
+    return saved
 
 
 def save_next_best_actions(actions: List[Dict[str, Any]], tenant_id: str) -> List[Dict[str, Any]]:
     """Save batch of next best actions."""
-    return [save_next_best_action(a, tenant_id) for a in actions]
+    return save_next_best_actions_batch(actions, tenant_id)
 
 
 def get_next_best_action(action_id: str, tenant_id: str) -> Optional[Dict[str, Any]]:
@@ -682,9 +740,12 @@ def get_next_best_action(action_id: str, tenant_id: str) -> Optional[Dict[str, A
 def list_next_best_actions(
     tenant_id: str,
     team: Optional[str] = None,
+    department: Optional[str] = None,
     urgency: Optional[str] = None,
+    priority: Optional[str] = None,
     status: Optional[str] = None,
     related_competitor: Optional[str] = None,
+    related_deal_id: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
@@ -693,18 +754,25 @@ def list_next_best_actions(
     _ensure_tenant_cache(tid)
     actions = list(_IN_MEMORY_ACTIONS[tid].values())
 
-    if team:
-        tm = team.strip().lower()
-        actions = [a for a in actions if a.get("team", "").lower() == tm]
-    if urgency:
-        urg = urgency.strip().lower()
-        actions = [a for a in actions if a.get("urgency", "").lower() == urg]
+    filter_team = (team or department or "").strip().lower()
+    if filter_team:
+        actions = [a for a in actions if a.get("team", "").lower() == filter_team or a.get("department", "").lower() == filter_team]
+
+    filter_urg = (priority or urgency or "").strip().lower()
+    if filter_urg:
+        actions = [a for a in actions if a.get("urgency", "").lower() == filter_urg or a.get("priority", "").lower() == filter_urg]
+
     if status:
-        st = status.strip().lower()
-        actions = [a for a in actions if a.get("status", "").lower() == st]
+        st = status.strip().lower().replace(" ", "_")
+        actions = [a for a in actions if a.get("status", "").lower().replace(" ", "_") == st or a.get("review_status", "").lower() == st]
+
     if related_competitor:
         rc = related_competitor.strip().lower()
         actions = [a for a in actions if a.get("related_competitor", "").lower() == rc]
+
+    if related_deal_id:
+        did = str(related_deal_id).strip()
+        actions = [a for a in actions if a.get("related_deal_id") == did or a.get("deal_id") == did]
 
     actions = sorted(actions, key=lambda a: a.get("created_at", ""), reverse=True)
     return actions[offset : offset + limit]
@@ -713,11 +781,13 @@ def list_next_best_actions(
 def update_action_status(
     action_id: str,
     new_status: str,
-    user_id: str,
-    notes: Optional[str],
-    tenant_id: str,
+    user_id: str = "analyst",
+    notes: Optional[str] = None,
+    tenant_id: str = "00000000-0000-0000-0000-000000000000",
+    owner: Optional[str] = None,
+    due_date: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Update action status and record audit log."""
+    """Update action status, owner, due_date and record audit log."""
     tid = str(tenant_id).strip()
     _ensure_tenant_cache(tid)
     aid = str(action_id).strip()
@@ -725,17 +795,48 @@ def update_action_status(
     if not action:
         return None
 
-    valid_statuses = {"pending", "accepted", "dismissed", "completed", "irrelevant"}
-    ns = new_status.strip().lower()
-    if ns not in valid_statuses:
-        raise ValueError(f"Invalid action status '{new_status}'. Must be one of: {', '.join(sorted(valid_statuses))}")
+    valid_statuses = {
+        "pending", "in_progress", "in progress", "accepted", "completed", "dismissed", "irrelevant"
+    }
+    raw_ns = str(new_status).strip().lower().replace(" ", "_")
+    if raw_ns not in valid_statuses:
+        raise ValueError(f"Invalid action status '{new_status}'. Must be one of: Pending, In Progress, Completed, Dismissed, Accepted, Irrelevant")
 
-    prior = action.get("status", "pending")
+    prior = str(action.get("review_status") or action.get("status") or "pending").lower().replace(" ", "_")
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    action["status"] = ns
-    action["review_status"] = ns
+    if raw_ns == "accepted":
+        canonical = "accepted" if new_status.islower() else "Accepted"
+        audit_new = "accepted" if new_status.islower() else "Accepted"
+    elif raw_ns in ("in_progress", "in progress"):
+        canonical = "in_progress" if new_status.islower() else "In Progress"
+        audit_new = "in_progress" if new_status.islower() else "In Progress"
+    elif raw_ns == "completed":
+        canonical = "completed" if new_status.islower() else "Completed"
+        audit_new = "completed" if new_status.islower() else "Completed"
+    elif raw_ns == "dismissed":
+        canonical = "dismissed" if new_status.islower() else "Dismissed"
+        audit_new = "dismissed" if new_status.islower() else "Dismissed"
+    elif raw_ns == "irrelevant":
+        canonical = "irrelevant"
+        audit_new = "irrelevant"
+    else:
+        canonical = new_status
+        audit_new = new_status.lower()
+
+    action["status"] = canonical
+    action["review_status"] = raw_ns
     action["updated_at"] = now_iso
+
+    if raw_ns == "completed":
+        action["completed_at"] = now_iso
+    elif prior == "completed" and raw_ns != "completed":
+        action["completed_at"] = None
+
+    if owner is not None:
+        action["owner"] = owner
+    if due_date is not None:
+        action["due_date"] = due_date
 
     audit_entry = {
         "id": str(uuid.uuid4()),
@@ -743,7 +844,7 @@ def update_action_status(
         "action_id": aid,
         "prior_status": prior,
         "old_status": prior,
-        "new_status": ns,
+        "new_status": audit_new,
         "user_id": str(user_id or "analyst").strip(),
         "changed_by": str(user_id or "analyst").strip(),
         "notes": str(notes or "").strip(),
@@ -751,6 +852,8 @@ def update_action_status(
         "created_at": now_iso,
     }
     _IN_MEMORY_AUDITS[tid].append(audit_entry)
+
+    return action
 
     return action
 
