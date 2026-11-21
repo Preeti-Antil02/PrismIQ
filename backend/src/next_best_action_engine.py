@@ -29,13 +29,25 @@ class NextBestActionEngine:
         competitor_name: Optional[str] = None,
         target_company: str = "Our Company",
         force_refresh: bool = False,
+        deal_id: Optional[str] = None,
         **kwargs,
     ) -> List[Dict[str, Any]]:
         """
-        Scan customer voice, win/loss patterns, calls, and drift to produce recommendations.
+        Scan customer voice, win/loss patterns, calls, and drift to produce recommendations
+        across Sales, Product, Marketing, Leadership, and Engineering.
         """
         generated: List[Dict[str, Any]] = []
         comp_filter = (competitor_name or "").strip()
+
+        # If deal_id supplied, inspect deal competitors
+        if deal_id and not comp_filter:
+            try:
+                from . import batch3_storage
+                deal = batch3_storage.get_deal(deal_id, self.tenant_id)
+                if deal and deal.get("associated_competitors"):
+                    comp_filter = deal["associated_competitors"][0]
+            except Exception:
+                pass
 
         # -------------------------------------------------------------------
         # 1. Product Team Recommendations (Feature Gaps & Customer Complaints)
@@ -162,7 +174,67 @@ class NextBestActionEngine:
                 "supporting_evidence": [{"deal_count": len(lost_deals), "value": total_lost_val, "source": "Win/Loss Deal History"}],
             })
 
-        # Save to database / memory
+        # -------------------------------------------------------------------
+        # 5. Engineering Team Recommendations (Technical Blockers & Integrations)
+        # Relevant when a deal or explicit technical integration blocker is present
+        # -------------------------------------------------------------------
+        if deal_id or kwargs.get("include_engineering"):
+            tech_requirements = [
+                i for i in call_items
+                if i.get("item_type") in ("customer_requirement", "decision_criteria", "product_gap")
+                or any(kw in str(i.get("verbatim_quote", "")).lower() for kw in [
+                    "soc2", "sso", "saml", "api", "connector", "webhook", "latency", "compliance", "integration", "servicenow"
+                ])
+            ]
+            if deal_id:
+                try:
+                    from . import batch3_storage
+                    deal_obj = batch3_storage.get_deal(deal_id, self.tenant_id)
+                    if deal_obj:
+                        for req in (deal_obj.get("customer_requirements") or deal_obj.get("buyer_objections") or []):
+                            if any(kw in str(req).lower() for kw in ["soc2", "sso", "saml", "api", "connector", "integration", "compliance"]):
+                                tech_requirements.append({
+                                    "verbatim_quote": req,
+                                    "speaker": "Prospect",
+                                    "competitor_name": comp_filter or (deal_obj.get("associated_competitors") or ["Competitor"])[0],
+                                })
+                except Exception:
+                    pass
+
+            for req in tech_requirements[:2]:
+                quote = req.get("verbatim_quote", "")
+                comp = comp_filter or req.get("competitor_name") or "Competitor"
+                clean_q = quote[:60].strip()
+                generated.append({
+                    "team": "Engineering",
+                    "department": "Engineering",
+                    "responsible_department": "Engineering",
+                    "affected_team": "engineering",
+                    "category": "technical_blocker",
+                    "title": f"Review technical integration & compliance requirement: '{clean_q}...'",
+                    "description": f"Perform engineering review on technical requirement '{quote}' to eliminate deal execution blocker.",
+                    "recommended_action": f"Perform engineering review on technical requirement '{quote}' to eliminate deal execution blocker.",
+                    "reason": f"Prospect specified '{quote}' as a mandatory decision criterion. Lack of verified support directly increases deal stall risk.",
+                    "why_it_matters": f"Prospect specified '{quote}' as a mandatory decision criterion. Lack of verified support directly increases deal stall risk.",
+                    "what_happened": f"Customer identified technical specification: '{quote}'.",
+                    "priority": "High",
+                    "urgency": "High",
+                    "confidence": "High",
+                    "related_competitor": comp,
+                    "related_deal_id": deal_id,
+                    "status": "Pending",
+                    "review_status": "pending",
+                    "supporting_evidence": [{"quote": quote, "source": "Customer Technical Requirement", "speaker": req.get("speaker")}],
+                    "evidence_references": [{"quote": quote, "source": "Customer Technical Requirement", "speaker": req.get("speaker")}],
+                })
+
+        # Attach deal_id to generated actions if provided
+        if deal_id:
+            for g in generated:
+                if not g.get("related_deal_id"):
+                    g["related_deal_id"] = deal_id
+
+        # Save to database / memory with deduplication
         if generated:
             return batch2_storage.save_next_best_actions_batch(generated, self.tenant_id)
         return []
@@ -177,9 +249,11 @@ class NextBestActionEngine:
         user_id: Optional[str] = None,
         reason: Optional[str] = None,
         notes: Optional[str] = None,
+        owner: Optional[str] = None,
+        due_date: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        Transition recommendation status: accept, dismiss, complete, or irrelevant.
+        Transition recommendation status: Pending, In Progress, Completed, Dismissed.
         """
         user = changed_by or user_id or "analyst"
         note = reason or notes or ""
@@ -189,6 +263,8 @@ class NextBestActionEngine:
             user_id=user,
             notes=note,
             tenant_id=self.tenant_id,
+            owner=owner,
+            due_date=due_date,
         )
 
     update_action_review_status = update_action_status
