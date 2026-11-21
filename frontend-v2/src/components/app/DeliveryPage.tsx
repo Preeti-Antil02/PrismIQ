@@ -174,10 +174,10 @@ export function DeliveryPage() {
           initialDealId={initialDealId}
           targetCompany={targetCompany}
           tenantId={tenantId}
-          onOpenBattlecard={(comp) => {
+          onOpenBattlecard={(comp: string) => {
             router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}`);
           }}
-          onOpenCustomerVoice={(comp) => {
+          onOpenCustomerVoice={(comp: string) => {
             router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}?tab=voice`);
           }}
         />
