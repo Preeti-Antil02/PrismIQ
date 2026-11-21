@@ -27,6 +27,11 @@ import {
   ExternalLink,
   Plus,
   MessageSquare,
+  Trophy,
+  Briefcase,
+  Target,
+  ShieldCheck,
+  PieChart,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { createTenantToken, isValidUuid, DEFAULT_TENANT_ID } from "@/lib/auth";
@@ -142,26 +147,34 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: "COMPETITIVE",
+    title: "COMPETITIVE INTELLIGENCE",
     items: [
       { name: "Competitors", href: "/app/competitors", icon: Users },
       { name: "Compare", href: "/app/compare", icon: GitCompare },
+      { name: "Intelligence Explorer", href: "/app/intelligence-explorer", icon: Compass },
     ],
   },
   {
-    title: "RESEARCH",
+    title: "REVENUE INTELLIGENCE",
+    items: [
+      { name: "Win/Loss", href: "/app/win-loss", icon: Trophy },
+      { name: "Deal Room", href: "/app/deal-room", icon: Briefcase },
+    ],
+  },
+  {
+    title: "EXECUTION",
+    items: [
+      { name: "Action Center", href: "/app/actions", icon: Target },
+      { name: "Evidence Center", href: "/app/evidence", icon: ShieldCheck },
+      { name: "Impact & ROI", href: "/app/impact", icon: PieChart },
+    ],
+  },
+  {
+    title: "RESEARCH & WORKSPACE",
     items: [
       { name: "Research Radar", href: "/app/research-radar", icon: Radar },
-      { name: "Research Topics", href: "/app/workspace/topics", icon: Compass },
-    ],
-  },
-  {
-    title: "WORKSPACE",
-    items: [
       { name: "Companies & Competitors", href: "/app/workspace/watchlist", icon: Building2 },
-      { name: "Delivery", href: "/app/workspace/delivery", icon: Bell },
       { name: "Settings", href: "/app/workspace/settings", icon: Settings },
-      { name: "Onboard New Company", href: "/onboarding?new=1", icon: Sparkles },
     ],
   },
 ];
@@ -604,17 +617,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </nav>
 
               {/* Bottom Target Information Card */}
-              <div className="pt-6">
-                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50/80 via-white to-blue-50/50 border border-purple-100 text-xs">
+              <div className="pt-6 mt-auto">
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 border border-purple-100 text-xs shadow-2xs">
                   <div className="flex items-center gap-1.5 font-bold text-[#6e57dc] mb-1">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#6e57dc]" />
                     <span>Workspace Active</span>
                   </div>
-                  <div className="font-extrabold text-[#17171b] truncate" suppressHydrationWarning>
-                    {targetCompany}
-                  </div>
-                  <div className="text-[11px] text-[#70717a] mt-0.5">
-                    Grounding intelligence in verified sources.
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-extrabold text-[#17171b] truncate text-sm" suppressHydrationWarning>
+                        {targetCompany}
+                      </div>
+                      <div className="text-[11px] text-[#70717a] mt-0.5">
+                        Last synced: 2m ago
+                      </div>
+                    </div>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs shrink-0" title="Synchronized" />
                   </div>
                 </div>
               </div>
