@@ -517,12 +517,17 @@ def _parse_timestamp(val: Any) -> Optional[str]:
 def save_signals(
     signals: List[Dict[str, Any]],
     filepath: Optional[Union[str, Path]] = None,
+    tenant_id: Optional[str] = None,
 ) -> Path:
     """
     Dual-write normalized raw signals:
     1. Primary write: PostgreSQL `raw_signals` table (is_mock = FALSE).
-    2. Secondary write: Flat JSON files (signals_YYYYMMDD_HHMMSS.json and signals.json).
+    2. Secondary write: Flat JSON files (signals_YYYYMMDD_HHMMSS.json and signals.json or signals_<tenant_id>.json).
     """
+    data_dir = _get_data_dir()
+    if tenant_id and not filepath:
+        filepath = data_dir / f"signals_{str(tenant_id).strip()}.json"
+
     # 1. Primary PostgreSQL Write
     if signals and not is_dry_run():
         with get_db_cursor() as cur:
