@@ -27,6 +27,15 @@ import {
 
 import vercelRaw from "./baseline_vercel.json";
 import openaiRaw from "./baseline_openai.json";
+import {
+  ACME_TRACKED_COMPANIES,
+  ACME_SIGNALS,
+  ACME_EVENTS,
+  ACME_TOPICS,
+  ACME_WORKSPACE_CONFIG,
+  ACME_WORKSPACE_SETTINGS,
+  ACME_LATEST_BRIEF,
+} from "./baseline_acme";
 
 export interface TenantBaselineData {
   tenantId: string;
@@ -46,6 +55,7 @@ export interface TenantBaselineData {
 }
 
 export const KNOWN_TENANT_IDS = {
+  ACME: "00000000-0000-0000-0000-000000000001",
   MEESHO: "8553449a-c998-4727-be01-9aeb724038cb",
   VERCEL: "c8f13b91-46ef-4682-9975-f85764d8a12e",
   FLIPKART: "7b90477d-2524-4cf9-8e47-f389ec890ff7",
@@ -508,6 +518,37 @@ export function getTenantBaselineData(
   }
   if (!tid) {
     tid = KNOWN_TENANT_IDS.MEESHO;
+  }
+
+  // 0. ACME CORP (Enterprise CRM & Competitor X)
+  if (
+    tid === KNOWN_TENANT_IDS.ACME ||
+    targetCompanyName?.toLowerCase() === "acme corp" ||
+    targetCompanyName?.toLowerCase() === "acme"
+  ) {
+    return {
+      tenantId: KNOWN_TENANT_IDS.ACME,
+      targetCompany: "Acme Corp",
+      competitors: ["Competitor X", "Salesforce", "HubSpot"],
+      trackedCompanies: ACME_TRACKED_COMPANIES,
+      workspaceConfig: ACME_WORKSPACE_CONFIG,
+      signals: ACME_SIGNALS,
+      events: ACME_EVENTS,
+      findings: [],
+      trends: [],
+      topics: ACME_TOPICS,
+      radarEvaluations: [],
+      workspaceSettings: ACME_WORKSPACE_SETTINGS,
+      latestBrief: ACME_LATEST_BRIEF,
+      briefs: [
+        {
+          id: "brief_acme_latest",
+          date: "2026-11-21T09:00:00Z",
+          title: "Daily Intelligence Brief: Competitor X Enterprise Push",
+          preview: "Competitor X has intensified enterprise discounting by 15-20%.",
+        },
+      ],
+    };
   }
 
   // 1. VERCEL
