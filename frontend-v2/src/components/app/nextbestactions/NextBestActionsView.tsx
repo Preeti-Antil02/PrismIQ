@@ -110,34 +110,190 @@ export function NextBestActionsView({
         setActions(res.actions);
       } else {
         // High-fidelity fallback baseline
-        let fallback = [...BASELINE_NEXT_BEST_ACTIONS];
+        const isAcme = effectiveTarget.toLowerCase().includes("acme");
+        let fallbackBase = isAcme
+          ? [
+              {
+                id: "act_acme_1",
+                title: "Prepare response to Competitor X's enterprise pricing push",
+                team: "Sales",
+                affected_team: "Sales",
+                urgency: "High" as const,
+                status: "pending" as const,
+                due_date: "Today",
+                description: "Competitor X discounted enterprise annual contracts by 15-20%. Arm field reps with TCO calculator emphasizing zero API surcharges.",
+                confidence: "High" as const,
+                supporting_evidence: [
+                  {
+                    source: "Gartner Pricing Benchmark",
+                    quote: "Competitor X's enterprise plan remains 15-20% lower than industry average, but requires add-on fees for custom integrations.",
+                    competitor: "Competitor X",
+                  },
+                ],
+              },
+              {
+                id: "act_acme_2",
+                title: "Review feature gap in AI workflow automation vs Competitor X",
+                team: "Product",
+                affected_team: "Product",
+                urgency: "Medium" as const,
+                status: "pending" as const,
+                due_date: "Tomorrow",
+                description: "Competitor X launched workflow automation triggers with AI lead routing. Prioritize multi-branch approval tree roadmap.",
+                confidence: "High" as const,
+                supporting_evidence: [
+                  {
+                    source: "TechCrunch",
+                    quote: "Competitor X introduces advanced automation features and AI-assisted lead scoring.",
+                    competitor: "Competitor X",
+                  },
+                ],
+              },
+              {
+                id: "act_acme_3",
+                title: "Update comparison page with TCO calculator vs Competitor X",
+                team: "Marketing",
+                affected_team: "Marketing",
+                urgency: "Medium" as const,
+                status: "pending" as const,
+                due_date: "This Week",
+                description: "Publish interactive calculator showing that unbundled API limits and SLA fees make Competitor X 28% more expensive over 3 years.",
+                confidence: "High" as const,
+                supporting_evidence: [
+                  {
+                    source: "PrismIQ Win/Loss Analysis",
+                    quote: "78% of won renewals against Competitor X cited predictable all-inclusive pricing without seat surcharges.",
+                    competitor: "Competitor X",
+                  },
+                ],
+              },
+              {
+                id: "act_acme_4",
+                title: "Benchmark multi-tenant latency and security isolation vs Competitor X",
+                team: "Engineering",
+                affected_team: "Engineering",
+                urgency: "High" as const,
+                status: "pending" as const,
+                due_date: "In 3 Days",
+                description: "Produce technical whitepaper validating sub-50ms API throughput and isolated tenant database schema encryption.",
+                confidence: "High" as const,
+                supporting_evidence: [
+                  {
+                    source: "Engineering Benchmark",
+                    quote: "Acme Corp architecture maintains strict tenant isolation with zero cross-tenant cache bleed.",
+                    competitor: "Competitor X",
+                  },
+                ],
+              },
+              {
+                id: "act_acme_5",
+                title: "Evaluate SI partner incentives to counter Competitor X ecosystem",
+                team: "Leadership",
+                affected_team: "Leadership",
+                urgency: "Medium" as const,
+                status: "pending" as const,
+                due_date: "Next Week",
+                description: "Competitor X recruited 45 enterprise systems integrators. Author partner certification program for top tier VARs.",
+                confidence: "Medium" as const,
+                supporting_evidence: [
+                  {
+                    source: "Reuters",
+                    quote: "Competitor X expanded SI partnerships across North America & EMEA.",
+                    competitor: "Competitor X",
+                  },
+                ],
+              },
+            ]
+          : BASELINE_NEXT_BEST_ACTIONS;
+
+        let fallback: NextBestAction[] = [...(fallbackBase as any as NextBestAction[])];
         if (teamFilter !== "ALL") {
           fallback = fallback.filter(
             (a) =>
               a.team.toLowerCase() === teamFilter.toLowerCase() ||
-              a.affected_team.toLowerCase() === teamFilter.toLowerCase()
+              (a.affected_team || "").toLowerCase() === teamFilter.toLowerCase()
           );
         }
         if (statusFilter !== "ALL") {
           fallback = fallback.filter(
-            (a) => (a.status || a.review_status || "").toLowerCase() === statusFilter.toLowerCase()
+            (a) => (a.status || (a as any).review_status || "").toLowerCase() === statusFilter.toLowerCase()
           );
         }
         setActions(fallback);
       }
     } catch (err: any) {
       // Offline fallback
-      let fallback = [...BASELINE_NEXT_BEST_ACTIONS];
+      const isAcme = effectiveTarget.toLowerCase().includes("acme");
+      let fallbackBase = isAcme
+        ? [
+            {
+              id: "act_acme_1",
+              title: "Prepare response to Competitor X's enterprise pricing push",
+              team: "Sales",
+              affected_team: "Sales",
+              urgency: "High" as const,
+              status: "pending" as const,
+              due_date: "Today",
+              description: "Competitor X discounted enterprise annual contracts by 15-20%. Arm field reps with TCO calculator emphasizing zero API surcharges.",
+              confidence: "High" as const,
+              supporting_evidence: [
+                {
+                  source: "Gartner Pricing Benchmark",
+                  quote: "Competitor X's enterprise plan remains 15-20% lower than industry average, but requires add-on fees for custom integrations.",
+                  competitor: "Competitor X",
+                },
+              ],
+            },
+            {
+              id: "act_acme_2",
+              title: "Review feature gap in AI workflow automation vs Competitor X",
+              team: "Product",
+              affected_team: "Product",
+              urgency: "Medium" as const,
+              status: "pending" as const,
+              due_date: "Tomorrow",
+              description: "Competitor X launched workflow automation triggers with AI lead routing. Prioritize multi-branch approval tree roadmap.",
+              confidence: "High" as const,
+              supporting_evidence: [
+                {
+                  source: "TechCrunch",
+                  quote: "Competitor X introduces advanced automation features and AI-assisted lead scoring.",
+                  competitor: "Competitor X",
+                },
+              ],
+            },
+            {
+              id: "act_acme_3",
+              title: "Update comparison page with TCO calculator vs Competitor X",
+              team: "Marketing",
+              affected_team: "Marketing",
+              urgency: "Medium" as const,
+              status: "pending" as const,
+              due_date: "This Week",
+              description: "Publish interactive calculator showing that unbundled API limits and SLA fees make Competitor X 28% more expensive over 3 years.",
+              confidence: "High" as const,
+              supporting_evidence: [
+                {
+                  source: "PrismIQ Win/Loss Analysis",
+                  quote: "78% of won renewals against Competitor X cited predictable all-inclusive pricing without seat surcharges.",
+                  competitor: "Competitor X",
+                },
+              ],
+            },
+          ]
+        : BASELINE_NEXT_BEST_ACTIONS;
+
+      let fallback: NextBestAction[] = [...(fallbackBase as any as NextBestAction[])];
       if (teamFilter !== "ALL") {
         fallback = fallback.filter(
           (a) =>
             a.team.toLowerCase() === teamFilter.toLowerCase() ||
-            a.affected_team.toLowerCase() === teamFilter.toLowerCase()
+            (a.affected_team || "").toLowerCase() === teamFilter.toLowerCase()
         );
       }
       if (statusFilter !== "ALL") {
         fallback = fallback.filter(
-          (a) => (a.status || a.review_status || "").toLowerCase() === statusFilter.toLowerCase()
+          (a) => (a.status || (a as any).review_status || "").toLowerCase() === statusFilter.toLowerCase()
         );
       }
       setActions(fallback);
@@ -293,9 +449,10 @@ export function NextBestActionsView({
         {[
           { key: "ALL", label: "All Departments" },
           { key: "Sales", label: "Sales & Field" },
-          { key: "Product", label: "Product & Engineering" },
+          { key: "Product", label: "Product & Strategy" },
           { key: "Marketing", label: "Marketing & Growth" },
           { key: "Leadership", label: "Executive Leadership" },
+          { key: "Engineering", label: "Engineering & Arch" },
         ].map((tab) => (
           <button
             key={tab.key}
