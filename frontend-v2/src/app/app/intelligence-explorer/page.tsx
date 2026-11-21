@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { CompetitorsPage } from "@/components/app/CompetitorsPage";
+import { IntelligenceExplorerView } from "@/components/app/explorer/IntelligenceExplorerView";
 
 export default function IntelligenceExplorerPage() {
-  return <CompetitorsPage />;
+  return <IntelligenceExplorerView />;
 }
