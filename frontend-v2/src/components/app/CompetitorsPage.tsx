@@ -46,6 +46,8 @@ import {
   PrismSectionHeader,
 } from "./PrismPrimitives";
 import { BattlecardView } from "./battlecard/BattlecardView";
+import { ThreatAssessmentView } from "./threat/ThreatAssessmentView";
+import { EmergingCompetitorsView } from "./emerging/EmergingCompetitorsView";
 import {
   fetchTrackedCompanies,
   fetchEvents,
@@ -80,8 +82,8 @@ export function CompetitorsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
-  // Top-level Navigation Bar Tabs: Landscape vs Battlecards
-  const [mainPageTab, setMainPageTab] = React.useState<"landscape" | "battlecards">("landscape");
+  // Top-level Navigation Bar Tabs: Landscape, Battlecards, Threat Scoring, Emerging Rivals
+  const [mainPageTab, setMainPageTab] = React.useState<"landscape" | "battlecards" | "threat_scoring" | "emerging">("landscape");
   const [selectedBattlecardCompetitor, setSelectedBattlecardCompetitor] = React.useState<string>(targetCompany || "OpenAI");
 
   // Evolving Company Intelligence State (Pillar 1: Unified Evolution Layer)
@@ -357,6 +359,30 @@ export function CompetitorsPage() {
             Live
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setMainPageTab("threat_scoring")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${mainPageTab === "threat_scoring"
+            ? "border-rose-500 text-[#17171b] font-bold"
+            : "border-transparent text-[#70717a] hover:text-[#17171b]"
+            }`}
+        >
+          <AlertTriangle className="w-4 h-4 text-rose-500" />
+          <span>Threat Scoring</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMainPageTab("emerging")}
+          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${mainPageTab === "emerging"
+            ? "border-violet-600 text-[#17171b] font-bold"
+            : "border-transparent text-[#70717a] hover:text-[#17171b]"
+            }`}
+        >
+          <Sparkles className="w-4 h-4 text-violet-600" />
+          <span>Emerging Rivals</span>
+        </button>
       </div>
 
       {mainPageTab === "battlecards" ? (
@@ -395,6 +421,18 @@ export function CompetitorsPage() {
             <BattlecardView competitorName={selectedBattlecardCompetitor} tenantId={tenantId} />
           </div>
         </div>
+      ) : mainPageTab === "threat_scoring" ? (
+        <ThreatAssessmentView
+          competitorName={selectedBattlecardCompetitor || (filteredCompetitors[0]?.company_name ?? "Competitor X")}
+          tenantId={tenantId}
+        />
+      ) : mainPageTab === "emerging" ? (
+        <EmergingCompetitorsView
+          tenantId={tenantId}
+          onCompetitorAdded={() => {
+            loadData();
+          }}
+        />
       ) : loading ? (
         <PrismLoadingSkeleton count={4} />
       ) : error ? (
