@@ -2908,5 +2908,18 @@ app.include_router(battlecard_router)
 from .batch2_routes import router as batch2_router
 app.include_router(batch2_router)
 
+# ============================================================================
+# Deal Intelligence & Next Best Action Engine Routes (Batch 3)
+# ============================================================================
+from .batch3_routes import router as batch3_router
+app.include_router(batch3_router)
+
+# ============================================================================
+# Market Intelligence, Trust & Outcomes Routes (Batch 4)
+# ============================================================================
+from .batch4_routes import router as batch4_router
+app.include_router(batch4_router)
+
+
 
 
