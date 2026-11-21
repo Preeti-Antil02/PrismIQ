@@ -4,4 +4,5 @@ const proxy = createBatch2Proxy("deals");
 export const GET = proxy.GET;
 export const POST = proxy.POST;
 export const PATCH = proxy.PATCH;
+export const PUT = proxy.PUT;
 export const DELETE = proxy.DELETE;
