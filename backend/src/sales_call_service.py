@@ -15,17 +15,22 @@ from . import battlecard_storage
 
 logger = logging.getLogger(__name__)
 
-# 9 Canonical Sales Call Intelligence Categories
+# 9 Canonical Sales Call Intelligence Categories + Batch 3 Categories
 CALL_ITEM_TYPES = [
     "competitor_mention",
     "buyer_objection",
+    "customer_objection",
     "pricing_discussion",
+    "pricing_concern",
     "feature_comparison",
     "customer_requirement",
+    "decision_criteria",
     "buying_signal",
     "competitor_advantage",
     "product_gap",
     "deal_risk",
+    "competitive_threat",
+    "important_customer_statement",
 ]
 
 
@@ -97,13 +102,14 @@ class SalesCallService:
         items: List[Dict[str, Any]] = []
         lower = turn_text.lower()
 
-        # Detect competitor mentions
+        # 1. Competitor mentions
         detected_comp = None
         for comp in known_competitors:
-            if comp.lower() in lower:
+            if comp.lower() in lower or re.search(r"\b" + re.escape(comp.lower()) + r"\b", lower):
                 detected_comp = comp
                 items.append({
                     "item_type": "competitor_mention",
+                    "category": "competitor_mentions",
                     "competitor_name": comp,
                     "verbatim_quote": turn_text,
                     "speaker": speaker,
@@ -112,13 +118,16 @@ class SalesCallService:
                 })
                 break
 
-        # Buying Signals
+        # 2. Buying Signals (Grounded only in explicit context - never inferred without context)
         if any(re.search(p, lower) for p in [
             r"\bif you can\b", r"\bready to sign\b", r"\bbudget is approved\b",
-            r"\bdecision by\b", r"\bnext step is legal\b", r"\bprocurement approved\b"
+            r"\bdecision by\b", r"\bnext step is legal\b", r"\bprocurement approved\b",
+            r"\bmoving forward with you\b", r"\bsend the contract\b", r"\bready to buy\b",
+            r"\bselected your solution\b", r"\bapproved the proposal\b"
         ]):
             items.append({
                 "item_type": "buying_signal",
+                "category": "buying_signals",
                 "competitor_name": detected_comp or "General",
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
@@ -126,13 +135,15 @@ class SalesCallService:
                 "analysis": "Explicit timeline or positive buyer purchase intent signal.",
             })
 
-        # Pricing Discussions
+        # 3. Pricing Concerns / Discussions
         if any(re.search(p, lower) for p in [
             r"\bpricing\b", r"\bcost\b", r"\bbudget\b", r"\bdiscount\b", r"\bexpensive\b",
-            r"\bseat(s)? minimum\b", r"\bquote\b", r"\bper user\b", r"\bcontract\b"
+            r"\bseat(s)? minimum\b", r"\bquote\b", r"\bper user\b", r"\bcontract\b",
+            r"\btoo high\b", r"\bprice point\b", r"\btco\b", r"\blicensing fee\b"
         ]):
             items.append({
                 "item_type": "pricing_discussion",
+                "category": "pricing_concerns",
                 "competitor_name": detected_comp or "General",
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
@@ -140,13 +151,15 @@ class SalesCallService:
                 "analysis": "Buyer discussion regarding pricing structure, budget, or quote.",
             })
 
-        # Buyer Objections
+        # 4. Customer Objections / Buyer Objections
         if any(re.search(p, lower) for p in [
             r"\bconcern\b", r"\bworried\b", r"\bhesitant\b", r"\bissue with\b",
-            r"\bnot sure\b", r"\bdoesn't work for us\b", r"\brisk\b", r"\bdeal breaker\b"
+            r"\bnot sure\b", r"\bdoesn't work for us\b", r"\brisk\b", r"\bdeal breaker\b",
+            r"\bobjection\b", r"\bproblem with\b", r"\bskeptical\b"
         ]):
             items.append({
                 "item_type": "buyer_objection",
+                "category": "customer_objections",
                 "competitor_name": detected_comp or "General",
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
@@ -154,38 +167,45 @@ class SalesCallService:
                 "analysis": "Buyer voiced reservation, objection, or perceived friction.",
             })
 
-        # Feature Comparison
-        if any(re.search(p, lower) for p in [
+        # 5. Feature Comparison
+        if (any(re.search(p, lower) for p in [
             r"\bhow do you compare\b", r"\bversus\b", r"\bvs\b", r"\bdifference between\b",
-            r"\bbetter than\b", r"\bdoes competitor\b"
-        ]) and detected_comp:
+            r"\bbetter than\b", r"\bdoes competitor\b", r"\bcompared to\b"
+        ]) and detected_comp) or any(re.search(p, lower) for p in [
+            r"\bcompare (to|with|against)\b", r"\balternative to\b", r"\bhow does this compare\b"
+        ]):
             items.append({
                 "item_type": "feature_comparison",
-                "competitor_name": detected_comp,
+                "category": "feature_comparisons",
+                "competitor_name": detected_comp or "Competitor",
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
                 "timestamp_offset": timestamp,
-                "analysis": f"Direct feature comparison inquiry regarding {detected_comp}.",
+                "analysis": f"Direct feature comparison inquiry regarding {detected_comp or 'competitor'}.",
             })
 
-        # Customer Requirements
+        # 6. Decision Criteria / Customer Requirements
         if any(re.search(p, lower) for p in [
             r"\bwe require\b", r"\bmust have\b", r"\bneed support for\b",
-            r"\bcompliance\b", r"\bsoc2\b", r"\bgdpr\b", r"\bhipaa\b", r"\bsso\b", r"\bmandatory\b"
+            r"\bcompliance\b", r"\bsoc2\b", r"\bgdpr\b", r"\bhipaa\b", r"\bsso\b", r"\bmandatory\b",
+            r"\bdecision criteria\b", r"\bselection criteria\b", r"\bevaluation criteria\b",
+            r"\bkey requirement\b", r"\bnon-negotiable\b"
         ]):
             items.append({
                 "item_type": "customer_requirement",
+                "category": "decision_criteria",
                 "competitor_name": detected_comp or "General",
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
                 "timestamp_offset": timestamp,
-                "analysis": "Mandatory technical or compliance requirement specified by customer.",
+                "analysis": "Mandatory technical, compliance, or strategic decision criteria specified by customer.",
             })
 
-        # Competitor Advantages & Product Gaps
+        # 7. Competitor Advantages & Product Gaps
         if detected_comp and any(w in lower for w in ["they already have", "they do this well", "their strength"]):
             items.append({
                 "item_type": "competitor_advantage",
+                "category": "competitor_advantages",
                 "competitor_name": detected_comp,
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
@@ -196,6 +216,7 @@ class SalesCallService:
         if any(w in lower for w in ["you don't have", "you lack", "missing in your product"]):
             items.append({
                 "item_type": "product_gap",
+                "category": "product_gaps",
                 "competitor_name": detected_comp or "General",
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
@@ -203,18 +224,38 @@ class SalesCallService:
                 "analysis": "Product capability gap confirmed during call.",
             })
 
-        # Deal Risks
+        # 8. Competitive Threats / Deal Risks
         if any(re.search(p, lower) for p in [
             r"\bbudget freeze\b", r"\bdelay until next quarter\b", r"\bcfo rejected\b",
-            r"\bleaning towards\b", r"\bre-evaluating\b", r"\bpausing the project\b"
+            r"\bleaning towards\b", r"\bre-evaluating\b", r"\bpausing the project\b",
+            r"\bcompetitive threat\b", r"\bthreat to the deal\b", r"\bchoosing (them|another)\b",
+            r"\bgiving preference to\b"
         ]):
             items.append({
                 "item_type": "deal_risk",
+                "category": "competitive_threats",
                 "competitor_name": detected_comp or "General",
                 "verbatim_quote": turn_text,
                 "speaker": speaker,
                 "timestamp_offset": timestamp,
-                "analysis": "Direct risk to deal velocity or outcome.",
+                "analysis": "Direct competitive threat or risk to deal velocity or outcome.",
+            })
+
+        # 9. Important Customer Statements
+        if any(re.search(p, lower) for p in [
+            r"\bour (top|main|primary) goal\b", r"\bour priority is\b", r"\bexecutive sponsor\b",
+            r"\bboard mandate\b", r"\bstrategic priority\b", r"\bour timeline is\b",
+            r"\bwe plan to deploy by\b", r"\bwe expect to decide by\b", r"\bwe want to ensure\b",
+            r"\bthe most important factor\b", r"\bour leadership expects\b", r"\bour goal with this project\b"
+        ]):
+            items.append({
+                "item_type": "important_customer_statement",
+                "category": "important_customer_statements",
+                "competitor_name": detected_comp or "General",
+                "verbatim_quote": turn_text,
+                "speaker": speaker,
+                "timestamp_offset": timestamp,
+                "analysis": "Important customer statement on strategic objectives, executive priorities, or milestones.",
             })
 
         return items
@@ -301,10 +342,57 @@ class SalesCallService:
 
         saved_items = batch2_storage.save_call_intelligence_items(all_extracted, self.tenant_id)
 
+        # 3. Associate with sales deal if deal_id provided
+        if deal_id:
+            try:
+                from . import batch3_storage
+                deal = batch3_storage.get_deal(deal_id, self.tenant_id)
+                if deal:
+                    tids = list(deal.get("transcript_ids") or [])
+                    if call_id not in tids:
+                        tids.append(call_id)
+                        batch3_storage.update_deal(deal_id, {"transcript_ids": tids}, self.tenant_id)
+            except Exception as e:
+                logger.warning(f"Failed to link transcript {call_id} to deal {deal_id}: {e}")
+
+        # 4. Group structured extractions across canonical categories
+        categories = {
+            "competitor_mentions": [],
+            "customer_objections": [],
+            "pricing_concerns": [],
+            "feature_comparisons": [],
+            "buying_signals": [],
+            "decision_criteria": [],
+            "competitive_threats": [],
+            "important_customer_statements": [],
+        }
+        for itm in saved_items:
+            itype = itm.get("item_type")
+            icat = itm.get("category")
+            if itype == "competitor_mention" or icat == "competitor_mentions":
+                categories["competitor_mentions"].append(itm)
+            if itype in ("buyer_objection", "customer_objection") or icat == "customer_objections":
+                categories["customer_objections"].append(itm)
+            if itype in ("pricing_discussion", "pricing_concern") or icat == "pricing_concerns":
+                categories["pricing_concerns"].append(itm)
+            if itype == "feature_comparison" or icat == "feature_comparisons":
+                categories["feature_comparisons"].append(itm)
+            if itype == "buying_signal" or icat == "buying_signals":
+                categories["buying_signals"].append(itm)
+            if itype in ("customer_requirement", "decision_criteria") or icat == "decision_criteria":
+                categories["decision_criteria"].append(itm)
+            if itype in ("deal_risk", "competitive_threat") or icat == "competitive_threats":
+                categories["competitive_threats"].append(itm)
+            if itype == "important_customer_statement" or icat == "important_customer_statements":
+                categories["important_customer_statements"].append(itm)
+
         return {
             "call": saved_call,
             "items_count": len(saved_items),
             "competitors_mentioned": competitors_mentioned,
             "items": saved_items,
+            "intelligence_items": saved_items,
+            "extracted_intelligence": categories,
+            **categories,
         }
 
