@@ -929,7 +929,8 @@ class BattlecardGenerator:
 
         if isinstance(p_model, dict) and p_model:
             model_type = p_model.get("model_type") or p_model.get("type") or "Commercial Pricing Architecture"
-            tiers = p_model.get("tiers") or ["Standard Tier", "Enterprise Tier"]
+            raw_tiers = p_model.get("tiers") or ["Standard Tier", "Enterprise Tier"]
+            tiers = [t.get("name", str(t)) if isinstance(t, dict) else str(t) for t in raw_tiers]
             traps = p_model.get("hidden_costs_or_traps") or p_model.get("hidden_costs") or "Overage charges, unbundled add-ons, or return fees."
             verif = "verified"
         elif isinstance(p_model, str) and p_model.strip():
