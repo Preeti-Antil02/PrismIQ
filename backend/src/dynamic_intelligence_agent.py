@@ -2483,13 +2483,11 @@ def generate_intelligence_for_competitor(
             break
 
     changes = []
-    comp_hash = abs(hash(comp.lower()))
-    comp_jitter = (comp_hash % 7) + 3
     if matched_custom and "changes" in matched_custom:
         for idx, item in enumerate(matched_custom["changes"]):
             ctype, desc, sev, what_chg, prev_st, new_st, slug, ev_title, ev_src, ev_excerpt = item
-            days_ago = comp_jitter + idx * 16 + ((comp_hash + idx * 7) % 5)
-            change_date = (now - timedelta(days=days_ago, hours=(comp_hash % 20), minutes=(comp_hash % 50))).isoformat()
+            days_ago = 4 + idx * 14
+            change_date = (now - timedelta(days=days_ago)).isoformat()
             strat_imp = f"Directly challenges {target}'s positioning in {ctype.lower()} and customer acquisition."
             # ── Inline Point 3 impact classification ──────────────────────
             sev_norm = sev.strip().title()
@@ -2500,7 +2498,7 @@ def generate_intelligence_for_competitor(
                 "Medium": 56.0,
                 "Low": 32.0,
             }.get(sev_norm, 78.0)
-            impact_score = round(base_score + ((comp_hash + idx) % 8), 2)
+            impact_score = float(base_score)
             significance_tier = (
                 "CRITICAL INFLECTION" if impact_score >= 90.0 else
                 "HIGH IMPACT"         if impact_score >= 70.0 else
@@ -2569,8 +2567,8 @@ def generate_intelligence_for_competitor(
             })
     else:
         for idx, (ctype, desc, sev) in enumerate(sector["change_types"]):
-            days_ago = comp_jitter + idx * 18 + ((comp_hash + idx * 11) % 5)
-            change_date = (now - timedelta(days=days_ago, hours=(comp_hash % 18), minutes=(comp_hash % 45))).isoformat()
+            days_ago = 5 + idx * 15
+            change_date = (now - timedelta(days=days_ago)).isoformat()
             pillar = sector["pillars"][idx % len(sector["pillars"])] if sector.get("pillars") else "core operations"
             what_chg = f"{comp}: {desc}"
             strat_imp = f"Directly impacts {target}'s market positioning and customer acquisition in {pillar}."
@@ -2586,7 +2584,7 @@ def generate_intelligence_for_competitor(
                 "Medium": 56.0,
                 "Low": 32.0,
             }.get(sev_norm, 78.0)
-            impact_score = round(base_score + ((comp_hash + idx) % 8), 2)
+            impact_score = float(base_score)
             significance_tier = (
                 "CRITICAL INFLECTION" if impact_score >= 90.0 else
                 "HIGH IMPACT"         if impact_score >= 70.0 else
