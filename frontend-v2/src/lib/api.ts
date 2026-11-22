@@ -58,7 +58,7 @@ const API_BASE_URL = (
   "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
 
-function getFilteredBaselineSignals(params?: {
+function getFilteredBaselineSignals(_params?: {
   company?: string;
   source?: string;
   tier?: string;
@@ -67,31 +67,10 @@ function getFilteredBaselineSignals(params?: {
   offset?: number;
   tenantId?: string;
 }): SignalsApiResponse {
-  const baseline = getTenantBaselineData(params?.tenantId);
-  let list = [...baseline.signals];
-  if (params?.company && params.company !== "ALL") {
-    const compLower = params.company.toLowerCase();
-    list = list.filter((s) => (s.company_name || "").toLowerCase() === compLower);
-  }
-  if (params?.source && params.source !== "ALL") {
-    const srcLower = params.source.toLowerCase();
-    list = list.filter((s) => (s.source || "").toLowerCase().includes(srcLower));
-  }
-  if (params?.tier && params.tier !== "ALL") {
-    const tierLower = params.tier.toLowerCase();
-    list = list.filter((s) => (s.tier || "").toLowerCase() === tierLower);
-  }
-  if (params?.confidence && params.confidence !== "ALL") {
-    const confLower = params.confidence.toLowerCase();
-    list = list.filter((s) => (s.confidence || "").toLowerCase() === confLower);
-  }
-  const offset = params?.offset || 0;
-  const limit = params?.limit || list.length;
-  const paged = list.slice(offset, offset + limit);
   return {
-    signals: paged,
-    count: list.length,
-    noise_suppressed_count: baseline.workspaceSettings?.noise_suppressed_count || 0,
+    signals: [],
+    count: 0,
+    noise_suppressed_count: 0,
   };
 }
 
@@ -147,15 +126,19 @@ export async function fetchSignals(params?: {
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data?.signals) && data.signals.length > 0) {
+      if (Array.isArray(data?.signals)) {
         return data;
       }
     }
   } catch {
-    // Graceful fallback to verified baseline snapshot
+    // Zero static fallback - return honest empty response
   }
 
-  return getFilteredBaselineSignals(params);
+  return {
+    signals: [],
+    count: 0,
+    noise_suppressed_count: 0,
+  };
 }
 
 export interface ContributingSignal {
@@ -194,7 +177,7 @@ export interface EventsApiResponse {
   count: number;
 }
 
-function getFilteredBaselineEvents(params?: {
+function getFilteredBaselineEvents(_params?: {
   company?: string;
   tier?: string;
   confidence?: string;
@@ -202,30 +185,9 @@ function getFilteredBaselineEvents(params?: {
   offset?: number;
   tenantId?: string;
 }): EventsApiResponse {
-  const baseline = getTenantBaselineData(params?.tenantId);
-  let list = [...baseline.events];
-  if (params?.company && params.company !== "ALL") {
-    const compLower = params.company.toLowerCase();
-    list = list.filter(
-      (e) =>
-        (e.company_name || (e as any).company || "").toLowerCase() === compLower ||
-        (e.title || "").toLowerCase().includes(compLower)
-    );
-  }
-  if (params?.tier && params.tier !== "ALL") {
-    const tierLower = params.tier.toLowerCase();
-    list = list.filter((e) => (e.tier || "").toLowerCase() === tierLower);
-  }
-  if (params?.confidence && params.confidence !== "ALL") {
-    const confLower = params.confidence.toLowerCase();
-    list = list.filter((e) => (e.confidence || "").toLowerCase() === confLower);
-  }
-  const offset = params?.offset || 0;
-  const limit = params?.limit || list.length;
-  const paged = list.slice(offset, offset + limit);
   return {
-    events: paged,
-    count: list.length,
+    events: [],
+    count: 0,
   };
 }
 
@@ -276,15 +238,18 @@ export async function fetchEvents(params?: {
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data?.events) && data.events.length > 0) {
+      if (Array.isArray(data?.events)) {
         return data;
       }
     }
   } catch {
-    // Graceful fallback
+    // Zero static fallback - return honest empty response
   }
 
-  return getFilteredBaselineEvents(params);
+  return {
+    events: [],
+    count: 0,
+  };
 }
 
 export async function fetchEventDetail(eventId: string, tenantId?: string): Promise<ConsolidatedEventRecord> {
@@ -305,20 +270,18 @@ export async function fetchEventDetail(eventId: string, tenantId?: string): Prom
     if (res.ok) {
       const data = await res.json();
       if (data?.event) return data.event;
+      if (data?.event_id) return data;
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  const baseline = getTenantBaselineData(tenantId);
-  const match = baseline.events.find((e) => e.event_id === eventId);
-  if (match) return match;
-  return baseline.events[0] || BASELINE_EVENTS[0];
+  throw new Error(`Event '${eventId}' not found.`);
 }
 
 export async function fetchTrackedCompanies(tenantId?: string): Promise<TrackedCompany[]> {
   const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined" ? "/api/tracked-companies" : `${API_BASE_URL}/tracked-companies`;
+  const baseUrl = typeof window !== "undefined" ? "/api/companies/tracked" : `${API_BASE_URL}/companies/tracked`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
@@ -333,15 +296,18 @@ export async function fetchTrackedCompanies(tenantId?: string): Promise<TrackedC
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.tracked_companies) && data.tracked_companies.length > 0) {
+      if (Array.isArray(data.tracked_companies)) {
         return data.tracked_companies;
+      }
+      if (Array.isArray(data)) {
+        return data;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  return getTenantBaselineData(tenantId).trackedCompanies;
+  return [];
 }
 
 
@@ -366,9 +332,6 @@ export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
-  const baseline = getTenantBaselineData(tenantId);
-  const targetComp = baseline.targetCompany.toLowerCase();
-
   try {
     const res = await fetch(url.toString(), {
       headers: {
@@ -380,22 +343,15 @@ export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.briefs) && data.briefs.length > 0) {
-        const relevant = data.briefs.filter((b: BriefEntry) => {
-          const txt = `${b.title || ""} ${b.preview || ""} ${b.filename || ""}`.toLowerCase();
-          return (
-            txt.includes(targetComp) ||
-            baseline.competitors.some((c) => txt.includes(c.toLowerCase()))
-          );
-        });
-        if (relevant.length > 0) return relevant;
+      if (Array.isArray(data.briefs)) {
+        return data.briefs;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  return baseline.briefs;
+  return [];
 }
 
 export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> {
@@ -404,9 +360,6 @@ export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> 
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
-  const baseline = getTenantBaselineData(tenantId);
-  const targetComp = baseline.targetCompany.toLowerCase();
-
   try {
     const res = await fetch(url.toString(), {
       headers: {
@@ -418,21 +371,20 @@ export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> 
 
     if (res.ok) {
       const data = await res.json();
-      if (data && typeof data.content === "string" && data.content.length > 100) {
-        const lower = data.content.toLowerCase();
-        const isMatch =
-          lower.includes(targetComp) ||
-          baseline.competitors.some((c) => lower.includes(c.toLowerCase()));
-        if (isMatch) {
-          return data;
-        }
+      if (data && typeof data.content === "string") {
+        return data;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  return baseline.latestBrief;
+  return {
+    id: "latest",
+    date: new Date().toISOString(),
+    filename: "brief.md",
+    content: "# Competitive Intelligence Brief\n\nNo published briefs available for this tenant yet.",
+  };
 }
 
 export async function fetchBriefById(briefId: string, tenantId?: string): Promise<BriefDetail> {
@@ -441,14 +393,6 @@ export async function fetchBriefById(briefId: string, tenantId?: string): Promis
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
-  const baseline = getTenantBaselineData(tenantId);
-  const targetComp = baseline.targetCompany.toLowerCase();
-
-  // If the briefId is known baseline ID, return immediately
-  if (briefId === baseline.latestBrief.id) {
-    return baseline.latestBrief;
-  }
-
   try {
     const res = await fetch(url.toString(), {
       headers: {
@@ -460,21 +404,15 @@ export async function fetchBriefById(briefId: string, tenantId?: string): Promis
 
     if (res.ok) {
       const data = await res.json();
-      if (data && typeof data.content === "string" && data.content.length > 100) {
-        const lower = data.content.toLowerCase();
-        const isMatch =
-          lower.includes(targetComp) ||
-          baseline.competitors.some((c) => lower.includes(c.toLowerCase()));
-        if (isMatch) {
-          return data;
-        }
+      if (data && typeof data.content === "string") {
+        return data;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  return baseline.latestBrief;
+  throw new Error(`Brief '${briefId}' not found.`);
 }
 
 
@@ -513,7 +451,7 @@ export interface RadarApiResponse {
 
 export async function fetchLatestRadar(tenantId?: string): Promise<RadarApiResponse> {
   const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined" ? "/api/research-radar/latest" : `${API_BASE_URL}/research-radar/latest`;
+  const baseUrl = typeof window !== "undefined" ? "/api/radar" : `${API_BASE_URL}/radar`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
@@ -528,18 +466,17 @@ export async function fetchLatestRadar(tenantId?: string): Promise<RadarApiRespo
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.evaluations) && data.evaluations.length > 0) {
+      if (Array.isArray(data.evaluations)) {
         return data;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  const baseline = getTenantBaselineData(tenantId);
   return {
-    evaluations: baseline.radarEvaluations,
-    count: baseline.radarEvaluations.length,
+    evaluations: [],
+    count: 0,
   };
 }
 
@@ -582,18 +519,17 @@ export async function fetchFindings(tenantId?: string): Promise<FindingsApiRespo
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.findings) && data.findings.length > 0) {
+      if (Array.isArray(data.findings)) {
         return data;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  const baseline = getTenantBaselineData(tenantId);
   return {
-    findings: baseline.findings,
-    count: baseline.findings.length,
+    findings: [],
+    count: 0,
   };
 }
 
@@ -834,7 +770,7 @@ export interface DiscoveryResponse {
 
 export async function fetchWorkspaceTopics(includePaused: boolean = true, tenantId?: string): Promise<ResearchTopic[]> {
   const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined" ? `/api/workspace/topics?include_paused=${includePaused}` : `${API_BASE_URL}/research-radar/topics?include_paused=${includePaused}`;
+  const baseUrl = typeof window !== "undefined" ? `/api/topics?include_paused=${includePaused}` : `${API_BASE_URL}/api/topics?include_paused=${includePaused}`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
@@ -845,14 +781,14 @@ export async function fetchWorkspaceTopics(includePaused: boolean = true, tenant
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.topics) && data.topics.length > 0) {
+      if (Array.isArray(data.topics)) {
         return data.topics;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
-  return getTenantBaselineData(tenantId).topics;
+  return [];
 }
 
 export async function createWorkspaceTopic(topicLabel: string, keywords: string[]): Promise<ResearchTopic> {
@@ -1070,9 +1006,22 @@ export async function fetchWorkspaceSettings(tenantId?: string): Promise<Workspa
       return await res.json();
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
-  return getTenantBaselineData(tenantId).workspaceSettings;
+  return {
+    tenant_id: tenantId || DEFAULT_TENANT_ID,
+    workspace_name: "PrismIQ Workspace",
+    owner_email: "",
+    rls_enforcement: "Active (PostgreSQL Row-Level Security)",
+    tracked_companies_count: 0,
+    active_topics_count: 0,
+    paused_topics_count: 0,
+    total_signals_evaluated: 0,
+    noise_suppressed_count: 0,
+    cadence: "daily",
+    schedule: "0 0 * * *",
+    api_status: "online",
+  };
 }
 
 export interface WorkspaceConfig {
@@ -1106,14 +1055,25 @@ export async function fetchWorkspaceConfig(tenantId?: string): Promise<Workspace
     });
     if (res.ok) {
       const data = await res.json();
-      if (data && data.target_company) {
+      if (data && typeof data === "object") {
         return data;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
-  return getTenantBaselineData(tenantId).workspaceConfig;
+  return {
+    tenant_id: tenantId || DEFAULT_TENANT_ID,
+    target_company: "",
+    competitors: [],
+    tracked_companies: [],
+    topics: [],
+    has_target: false,
+    has_competitors: false,
+    has_preferences: false,
+    is_configured: false,
+    onboarding_complete: false,
+  };
 }
 
 export interface PipelineProgress {
@@ -1870,33 +1830,17 @@ export async function fetchTrends(params?: {
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.trends) && data.trends.length > 0) {
+      if (Array.isArray(data.trends)) {
         return data;
       }
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  // Filter baseline trends for this tenant
-  const baseline = getTenantBaselineData(params?.tenantId);
-  let filtered = [...baseline.trends];
-  if (params?.company && params.company !== "all" && params.company !== "ALL") {
-    const cLower = params.company.toLowerCase();
-    filtered = filtered.filter((t) =>
-      (t.companies_involved || []).some((c) => c.toLowerCase() === cLower)
-    );
-  }
-  if (params?.momentum && params.momentum !== "all" && params.momentum !== "ALL") {
-    filtered = filtered.filter((t) => t.momentum?.label === params.momentum);
-  }
-  if (params?.trend_type && params.trend_type !== "all" && params.trend_type !== "ALL") {
-    filtered = filtered.filter((t) => t.cluster_type === params.trend_type);
-  }
-  const limit = params?.limit || filtered.length;
   return {
-    trends: filtered.slice(0, limit),
-    total_count: filtered.length,
+    trends: [],
+    total_count: 0,
     has_more: false,
   };
 }
@@ -1916,41 +1860,10 @@ export async function fetchTrendDetail(trendId: string, tenantId?: string): Prom
       return await res.json();
     }
   } catch {
-    // Fallback
+    // Zero static fallback
   }
 
-  const baseline = getTenantBaselineData(tenantId);
-  const baseTrend = (baseline.trends as any[]).find((t) => t.cluster_id === trendId) || (baseline.trends as any[])[0] || (BASELINE_TRENDS as any[])[0];
-  const members = Array.isArray(baseTrend?.members) ? baseTrend.members : [];
-  const timeline: TimelineNode[] = members.map((m: any) => ({
-    member_id: m.event_id,
-    event_id: m.event_id,
-    company: m.company,
-    title: m.title,
-    source_url: m.url,
-    signal_type: m.signal_type || "news",
-    node_class: m.node_class || "third_party",
-    published_at: m.published_at || baseTrend?.latest_detected_at || "2026-10-04T12:00:00Z",
-    date_precision: m.date_precision || "day",
-    is_sequence_eligible: Boolean(m.is_sequence_eligible),
-  }));
-
-  const trackedCompanies = baseline.trackedCompanies.map((c) => c.company_name);
-  const companiesIn = new Set(baseTrend?.companies_involved || []);
-  const auditedAbsences: AuditedAbsence[] = trackedCompanies
-    .filter((comp) => !companiesIn.has(comp))
-    .map((comp) => ({
-      company: comp,
-      status: "absent",
-      audit_note: "Audited: 0 events detected across tracked window",
-    }));
-
-  return {
-    ...baseTrend,
-    timeline,
-    audited_absences: auditedAbsences,
-    lineage: [],
-  };
+  throw new Error(`Trend '${trendId}' not found.`);
 }
 
 // ============================================================================
@@ -3054,15 +2967,34 @@ export interface IntelligenceDetailPayload {
   confidence_badge: string;
   subtitle: string;
   last_updated: string;
+  critical_counter_window?: {
+    active: boolean;
+    window_text: string;
+  };
+  exposed_target_products?: string[];
   what_happened: {
     published_date: string;
     headline: string;
     paragraph: string;
     exposed_target_product: string;
     image_url?: string;
+    banner_image_url?: string;
+    banner_label?: string;
+    exposed_product_analysis?: string;
+    event_category?: string;
   };
   why_it_matters: {
     key_impact: string;
+    callout_impact?: string;
+    deep_assessment?: string;
+    strategic_matrix?: {
+      affected_products: string;
+      overlapping_segments: string;
+      competitor_advantage: string;
+      business_risk: string;
+      supporting_evidence: string;
+      uncertain_assumptions: string;
+    };
     strategic_lens: {
       affected_products: string;
       overlapping_segments: string;
@@ -3079,16 +3011,24 @@ export interface IntelligenceDetailPayload {
       subtitle: string;
       details: string;
       icon?: string;
+      risk_summary?: string;
+      routing_action?: string;
     }>;
   };
   what_should_we_do: {
     title: string;
     subtitle: string;
+    summary_playbook?: string;
     actions: Array<{
+      id?: string;
       number: number;
       title: string;
       department: string;
       days: string;
+      priority?: string;
+      timeframe?: string;
+      next_step?: string;
+      status?: string;
       business_justification?: string;
     }>;
     priority: string;
@@ -3103,6 +3043,11 @@ export interface IntelligenceDetailPayload {
     verified_sources_count: number;
     confidence_score: number;
     confidence_breakdown?: any;
+    sources?: Array<{
+      name: string;
+      url: string;
+      type: string;
+    }>;
     evidence_sources: Array<{
       id: string;
       source: string;
