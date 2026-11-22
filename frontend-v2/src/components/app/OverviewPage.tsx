@@ -4,225 +4,120 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Zap,
+  Users,
   Calendar,
   ShieldCheck,
-  Target,
-  ArrowRight,
-  TrendingUp,
+  ClipboardList,
+  ChevronRight,
+  ChevronDown,
   Star,
   BarChart2,
+  TrendingUp,
+  Zap,
+  ArrowRight,
+  Clock,
   Briefcase,
   Box,
-  Megaphone,
-  ChevronDown,
-  Sparkles,
+  Compass,
+  Settings,
+  Target,
+  BarChart3,
+  Handshake,
   CheckCircle2,
-  FileText,
-  Globe,
-  Tag,
-  Heart,
-  ExternalLink,
   X,
-  Clock,
-  ArrowUpRight,
+  FileText,
 } from "lucide-react";
-import { useWorkspace, useAppEvidence } from "./AppShell";
+import { useWorkspace } from "./AppShell";
 import {
-  fetchTrackedCompanies,
-  fetchEvents,
-  fetchSignals,
-  fetchWinLossAnalytics,
-  type TrackedCompany,
-  type ConsolidatedEventRecord,
-  type SignalRecord,
+  fetchOverview,
+  type OverviewPayload,
+  type OverviewAttentionItem,
+  type OverviewNextBestAction,
 } from "@/lib/api";
+import { CompetitorLogoRender } from "./intelligence/CompetitorIntelligenceDetailView";
 
 // ============================================================================
-// 3D Isometric SVG Artwork Components
+// 3D Isometric SVG Graphics for Emerging Strategic Patterns
 // ============================================================================
 
-function HeroIsometricGraphic() {
+function IsometricTrendGraphic() {
   return (
-    <div className="relative w-48 h-36 sm:w-64 sm:h-44 shrink-0 flex items-center justify-center select-none pointer-events-none">
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-lg"
-      >
+    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 select-none pointer-events-none">
+      <svg viewBox="0 0 100 100" fill="none" className="w-full h-full drop-shadow-md">
         <defs>
-          {/* Gradients for 3D Isometric Bars */}
-          <linearGradient id="bar1Top" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="barGrad1" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#c4b5fd" />
-            <stop offset="100%" stopColor="#a78bfa" />
+            <stop offset="100%" stopColor="#8b5cf6" />
           </linearGradient>
-          <linearGradient id="bar1Front" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#8b5cf6" />
-            <stop offset="100%" stopColor="#6d28d9" />
-          </linearGradient>
-          <linearGradient id="bar1Side" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#7c3aed" />
-            <stop offset="100%" stopColor="#5b21b6" />
-          </linearGradient>
-
-          <linearGradient id="bar2Top" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ddd6fe" />
-            <stop offset="100%" stopColor="#c4b5fd" />
-          </linearGradient>
-          <linearGradient id="bar2Front" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#9333ea" />
-            <stop offset="100%" stopColor="#7e22ce" />
-          </linearGradient>
-          <linearGradient id="bar2Side" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#86198f" />
-            <stop offset="100%" stopColor="#581c87" />
-          </linearGradient>
-
-          <linearGradient id="bar3Top" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ede9fe" />
-            <stop offset="100%" stopColor="#ddd6fe" />
-          </linearGradient>
-          <linearGradient id="bar3Front" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#9333ea" />
-          </linearGradient>
-
-          {/* 3D Arrow Gradients */}
-          <linearGradient id="arrowGrad" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="50%" stopColor="#2563eb" />
-            <stop offset="100%" stopColor="#1d4ed8" />
-          </linearGradient>
-          <linearGradient id="arrowShadow" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1e40af" />
-            <stop offset="100%" stopColor="#172554" />
-          </linearGradient>
-
-          {/* Base Floor Plane */}
-          <linearGradient id="floorGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#f3f0ff" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#e9e5ff" stopOpacity="0.3" />
-          </linearGradient>
-        </defs>
-
-        {/* Isometric Grid Floor */}
-        <path
-          d="M140 190 L270 130 L140 70 L10 130 Z"
-          fill="url(#floorGrad)"
-        />
-
-        {/* Isometric Bar 1 (Short left) */}
-        <g transform="translate(45, 25)">
-          {/* Top Face */}
-          <path d="M30 65 L55 52 L30 40 L5 52 Z" fill="url(#bar1Top)" />
-          {/* Front Face */}
-          <path d="M5 52 L30 65 L30 115 L5 102 Z" fill="url(#bar1Front)" />
-          {/* Right Side Face */}
-          <path d="M30 65 L55 52 L55 102 L30 115 Z" fill="url(#bar1Side)" />
-        </g>
-
-        {/* Isometric Bar 2 (Medium center) */}
-        <g transform="translate(90, 0)">
-          {/* Top Face */}
-          <path d="M30 50 L55 37 L30 25 L5 37 Z" fill="url(#bar2Top)" />
-          {/* Front Face */}
-          <path d="M5 37 L30 50 L30 125 L5 112 Z" fill="url(#bar2Front)" />
-          {/* Right Side Face */}
-          <path d="M30 50 L55 37 L55 112 L30 125 Z" fill="url(#bar2Side)" />
-        </g>
-
-        {/* Isometric Bar 3 (Tall right) */}
-        <g transform="translate(135, -20)">
-          {/* Top Face */}
-          <path d="M30 35 L55 22 L30 10 L5 22 Z" fill="url(#bar3Top)" />
-          {/* Front Face */}
-          <path d="M5 22 L30 35 L30 135 L5 122 Z" fill="url(#bar3Front)" />
-          {/* Right Side Face */}
-          <path d="M30 35 L55 22 L55 122 L30 135 Z" fill="url(#bar1Side)" />
-        </g>
-
-        {/* 3D Ascending Blue Arrow */}
-        <g transform="translate(60, 20)">
-          {/* Main Arrow Body with 3D Depth */}
-          <path
-            d="M30 130 L105 85 L98 75 L155 50 L140 110 L132 100 L60 145 Z"
-            fill="url(#arrowGrad)"
-            filter="drop-shadow(0px 8px 12px rgba(37,99,235,0.35))"
-          />
-          {/* Arrow Underside / Depth */}
-          <path
-            d="M30 130 L60 145 L60 152 L30 137 Z"
-            fill="url(#arrowShadow)"
-          />
-          <path
-            d="M60 145 L132 100 L132 107 L60 152 Z"
-            fill="url(#arrowShadow)"
-          />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function ImpactDartboardGraphic() {
-  return (
-    <div className="absolute -right-4 -bottom-4 w-36 h-36 sm:w-44 sm:h-44 select-none pointer-events-none opacity-90">
-      <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="dartRing1" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ede9fe" />
-            <stop offset="100%" stopColor="#ddd6fe" />
-          </linearGradient>
-          <linearGradient id="dartRing2" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#c4b5fd" />
-            <stop offset="100%" stopColor="#a78bfa" />
-          </linearGradient>
-          <linearGradient id="dartBullseye" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#7c3aed" />
-            <stop offset="100%" stopColor="#6e57dc" />
-          </linearGradient>
-          <linearGradient id="dartShaft" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="barGrad2" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#a78bfa" />
-            <stop offset="100%" stopColor="#6d28d9" />
+            <stop offset="100%" stopColor="#7c3aed" />
+          </linearGradient>
+          <linearGradient id="arrowGrad" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="100%" stopColor="#3b82f6" />
           </linearGradient>
         </defs>
+        {/* Step 1 */}
+        <path d="M20 75 L35 67 L45 73 L30 81 Z" fill="#7c3aed" />
+        <path d="M20 75 L30 81 L30 88 L20 82 Z" fill="#6d28d9" />
+        <path d="M45 73 L30 81 L30 88 L45 80 Z" fill="#5b21b6" />
 
-        {/* Concentric Dartboard Rings (Isometric Tilt) */}
-        <g transform="translate(80, 80) rotate(-15) scale(1, 0.65)">
-          <circle cx="0" cy="0" r="68" fill="url(#dartRing1)" stroke="#c4b5fd" strokeWidth="4" />
-          <circle cx="0" cy="0" r="50" fill="white" stroke="#c4b5fd" strokeWidth="4" />
-          <circle cx="0" cy="0" r="32" fill="url(#dartRing2)" stroke="#a78bfa" strokeWidth="3" />
-          <circle cx="0" cy="0" r="15" fill="url(#dartBullseye)" />
-        </g>
+        {/* Step 2 */}
+        <path d="M38 60 L53 52 L63 58 L48 66 Z" fill="url(#barGrad1)" />
+        <path d="M38 60 L48 66 L48 76 L38 70 Z" fill="#7c3aed" />
+        <path d="M63 58 L48 66 L48 76 L63 68 Z" fill="#6d28d9" />
 
-        {/* 3D Dart Piercing Bullseye */}
-        <g transform="translate(68, 62) rotate(35)">
-          {/* Dart Shaft */}
-          <path d="M0 0 L-25 -25 L-22 -28 L3 -3 Z" fill="url(#dartShaft)" />
-          {/* Dart Tip into Center */}
-          <polygon points="0,0 6,-3 2,3" fill="#4c1d95" />
-          {/* Dart Flights / Wings */}
-          <polygon points="-25,-25 -42,-22 -35,-32" fill="#8b5cf6" />
-          <polygon points="-25,-25 -28,-42 -37,-32" fill="#a78bfa" />
-        </g>
+        {/* Step 3 */}
+        <path d="M56 45 L71 37 L81 43 L66 51 Z" fill="url(#barGrad2)" />
+        <path d="M56 45 L66 51 L66 65 L56 59 Z" fill="#8b5cf6" />
+        <path d="M81 43 L66 51 L66 65 L81 57 Z" fill="#7c3aed" />
+
+        {/* Ascending Arrow */}
+        <path
+          d="M25 65 Q 50 35 78 20"
+          stroke="url(#arrowGrad)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <polygon points="78,14 86,20 76,26" fill="#3b82f6" />
       </svg>
     </div>
   );
 }
 
-// Sparkline Wave SVG
-function SparklineWave({ color = "#a855f7" }: { color?: string }) {
+function IsometricRobotGraphic() {
   return (
-    <div className="w-16 h-8 shrink-0">
-      <svg viewBox="0 0 64 28" fill="none" className="w-full h-full">
-        <path
-          d="M2 18 C 12 18, 16 6, 26 12 C 36 18, 42 2, 52 8 C 58 12, 60 4, 62 6"
-          stroke={color}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 select-none pointer-events-none">
+      <svg viewBox="0 0 100 100" fill="none" className="w-full h-full drop-shadow-md">
+        <defs>
+          <linearGradient id="botGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#99f6e4" />
+            <stop offset="100%" stopColor="#14b8a6" />
+          </linearGradient>
+        </defs>
+        {/* Antenna */}
+        <circle cx="50" cy="20" r="4" fill="#0d9488" />
+        <line x1="50" y1="24" x2="50" y2="34" stroke="#0d9488" strokeWidth="3" />
+
+        {/* Head */}
+        <rect x="28" y="34" width="44" height="34" rx="10" fill="url(#botGrad)" />
+        {/* Ears */}
+        <rect x="22" y="44" width="6" height="14" rx="3" fill="#0f766e" />
+        <rect x="72" y="44" width="6" height="14" rx="3" fill="#0f766e" />
+
+        {/* Visor / Screen */}
+        <rect x="34" y="42" width="32" height="14" rx="5" fill="#134e4a" />
+        {/* Eyes */}
+        <circle cx="42" cy="49" r="3" fill="#5eead4" />
+        <circle cx="58" cy="49" r="3" fill="#5eead4" />
+
+        {/* Smile */}
+        <path d="M44 60 Q 50 64 56 60" stroke="#134e4a" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+        {/* Body Base */}
+        <path d="M38 72 L62 72 L68 84 L32 84 Z" fill="#0d9488" />
       </svg>
     </div>
   );
@@ -235,188 +130,526 @@ function SparklineWave({ color = "#a855f7" }: { color?: string }) {
 export function OverviewPage() {
   const router = useRouter();
   const { targetCompany, tenantId } = useWorkspace();
-  const { openEvidence } = useAppEvidence();
 
-  const [timeRange, setTimeRange] = React.useState<"30" | "7" | "90">("30");
+  const [data, setData] = React.useState<OverviewPayload | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  // Time range filter
+  const [timeRange, setTimeRange] = React.useState<string>("6m");
   const [rangeDropdownOpen, setRangeDropdownOpen] = React.useState(false);
 
-  // Next Best Action Modal
-  const [selectedAction, setSelectedAction] = React.useState<{
-    id: string;
-    title: string;
-    subtitle: string;
-    priority: string;
-    department: string;
-    due: string;
-  } | null>(null);
+  // Action execution modal
+  const [selectedAction, setSelectedAction] = React.useState<OverviewNextBestAction | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = React.useState<string | null>(null);
 
-  // Grouped Bar Data for "Competitive Landscape"
-  const landscapeData = React.useMemo(() => {
-    return [
-      { competitor: "Meesho", wins: 12, losses: 6 },
-      { competitor: "Flipkart", wins: 10, losses: 5 },
-      { competitor: "Amazon India", wins: 8, losses: 7 },
-      { competitor: "Shopify", wins: 6, losses: 4 },
-    ];
-  }, []);
+  // Fetch real overview data dynamically based on targetCompany
+  React.useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
 
-  const handleTakeAction = (action: {
-    id: string;
-    title: string;
-    subtitle: string;
-    priority: string;
-    department: string;
-    due: string;
-  }) => {
-    setSelectedAction(action);
-  };
+fetchOverview(targetCompany, timeRange, tenantId)
+  .then((res) => {
+    if (isMounted) {
+      setData(res);
+      setError(null);
+    }
+  })
+  .catch((err) => {
+    if (isMounted) setError(err.message);
+  })
+  .finally(() => {
+    if (isMounted) setLoading(false);
+  });
+
+return () => {
+  isMounted = false;
+};
+  }, [targetCompany, timeRange, tenantId]);
 
   const handleConfirmAction = () => {
     if (selectedAction) {
-      setActionSuccessMsg(`Action "${selectedAction.title}" executed and assigned to ${selectedAction.department}!`);
+      setActionSuccessMsg(
+        `Action "${selectedAction.title}" executed and queued for ${selectedAction.department} team!`
+      );
       setSelectedAction(null);
       setTimeout(() => setActionSuccessMsg(null), 4000);
     }
-  };
+    setActionSuccessMsg(
+      `Action "${selectedAction.title}" executed and queued for ${selectedAction.department} team!`
+    );
+    setSelectedAction(null);
+    // Reload actions list
+    fetchNextBestActions("ALL", "pending", undefined, tenantId)
+      .then((res) => setActions(res.actions || []))
+      .catch(() => { });
+    setTimeout(() => setActionSuccessMsg(null), 4000);
+  }
+};
 
+if (loading) {
   return (
-    <div className="space-y-6 pb-8">
-      {/* Action Success Toast */}
-      {actionSuccessMsg && (
-        <div className="fixed top-20 right-6 z-50 bg-[#17171b] text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-purple-500/30 animate-in fade-in slide-in-from-top-4 duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span className="text-xs font-semibold">{actionSuccessMsg}</span>
-          <button
-            onClick={() => setActionSuccessMsg(null)}
-            className="text-zinc-400 hover:text-white p-1"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <div className="space-y-6 pb-8 animate-pulse">
+      <div className="h-20 bg-white rounded-3xl border border-zinc-200" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7 h-80 bg-white rounded-3xl border border-zinc-200" />
+        <div className="lg:col-span-5 h-80 bg-white rounded-3xl border border-zinc-200" />
+      </div>
+    </div>
+  );
+}
+
+if (error || !data) {
+  return (
+    <div className="p-8">
+      <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl">
+        <p className="font-semibold">Unable to load executive overview</p>
+        <p className="text-sm">{error || "Record not found"}</p>
+      </div>
+    </div>
+  );
+}
+
+const handleGenerateActions = async () => {
+  setGeneratingActions(true);
+  try {
+    await generateNextBestActions(targetCompany || "Meesho", targetCompany || "Our Company", tenantId);
+    const res = await fetchNextBestActions("ALL", "pending", undefined, tenantId);
+    setActions(res.actions || []);
+    setActionSuccessMsg("Generated new Next Best Actions based on latest intelligence signals!");
+    setTimeout(() => setActionSuccessMsg(null), 4000);
+  } catch (err: any) {
+    console.error("Failed to generate actions:", err);
+  } finally {
+    setGeneratingActions(false);
+  }
+};
+
+      {/* 1. HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 border border-purple-200/80 rounded-full text-xs font-bold text-[#6e57dc]">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>{data.headline_badge}</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950">
+            {data.headline_title}
+          </h1>
+          <p className="text-xs sm:text-sm font-medium text-zinc-500">
+            {data.headline_subtitle}
+          </p>
         </div>
-      )}
 
-      {/* 1. HERO BANNER: "Stay Ahead. Make Smarter Decisions." */}
-      <section className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-[#f4f2ff] via-[#fbfaff] to-[#ede9fe] border border-purple-100/80 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="max-w-xl">
-            {/* Soft violet pill badge */}
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#ede9fe] text-[#6e57dc] text-xs font-bold tracking-tight mb-3">
-              <span>Competitive Intelligence at Your Fingertips</span>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-[#17171b] leading-tight">
-              Stay Ahead. Make Smarter Decisions.
-            </h1>
-
-            {/* Subheadline */}
-            <p className="text-xs sm:text-sm text-[#595a63] font-medium mt-2 leading-relaxed">
-              Real-time competitive insights, actionable recommendations and clear business impact.
-            </p>
+        <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
+          <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium bg-white px-3.5 py-2 rounded-xl border border-zinc-200/80 shadow-xs">
+            <Clock className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Last Updated: {data.last_updated}</span>
           </div>
 
-          {/* Right Side Isometric Graphic + Button */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 self-start md:self-center">
-            <HeroIsometricGraphic />
+          <Link
+            href="/app/intelligence/amazon"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#6e57dc] hover:bg-[#5842be] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+          >
+            <span>View Intelligence</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+        {/* Large Title */}
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950">
+          {data.headline_title}
+        </h1>
+        {/* Subtitle */}
+        <p className="text-xs sm:text-sm font-medium text-zinc-500">
+          {data.headline_subtitle}
+        </p>
+      </div>
+
+      {/* 2. TOP METRIC CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link
+          href="/app/intelligence/amazon"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#6e57dc] hover:bg-[#5842be] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+        >
+          <span>View Intelligence</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+    </div>
+
+    {/* ==================================================================== */}
+    {/* 2. TOP METRIC CARDS (4 Cards in a Row)                              */}
+    {/* ==================================================================== */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Card 1: Tracked Competitors */}
+      <Link
+        href="/app/competitors"
+        className="bg-white rounded-3xl p-5 border border-zinc-200/80 shadow-xs hover:border-purple-300 transition-all flex items-center justify-between group"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-purple-100/80 text-[#6e57dc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Users className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-zinc-500">
+              {metrics.tracked_competitors.label}
+              {trackedCompanies.length > 0 && (
+                <span className="text-xs font-bold text-emerald-600 inline-flex items-center">
+                  Tracked
+                </span>
+              )}
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-zinc-500">
+                {metrics.tracked_competitors.label}
+              </div>
+              <div className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-0.5">
+                {metrics.tracked_competitors.value}
+              </div>
+              <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                <span>↑</span>
+                <span>{metrics.tracked_competitors.delta}</span>
+              </div>
+            </div>
+            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+              <span>↑</span>
+              <span>{metrics.tracked_competitors.delta}</span>
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-purple-600 transition-colors" />
+      </Link>
+
+        <Link
+          href="/app/events"
+          className="bg-white rounded-3xl p-5 border border-zinc-200/80 shadow-xs hover:border-blue-300 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100/80 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-zinc-500">
+                {metrics.verified_events.label}
+              </div>
+              <div className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-0.5">
+                {metrics.verified_events.value}
+              </div>
+              <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                <span>↑</span>
+                <span>{metrics.verified_events.delta}</span>
+              </div>
+            </div>
+            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+              <span>↑</span>
+              <span>{metrics.verified_events.delta}</span>
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-blue-600 transition-colors" />
+      </Link>
+
+        <Link
+          href="/app/intelligence/amazon"
+          className="bg-white rounded-3xl p-5 border border-zinc-200/80 shadow-xs hover:border-emerald-300 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100/80 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-0.5">
+              {metrics.high_priority_developments.value}
+            </div>
+            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+              <span>↑</span>
+              <span>{metrics.high_priority_developments.delta}</span>
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-emerald-600 transition-colors" />
+      </Link>
+
+        <Link
+          href="/app/actions"
+          className="bg-white rounded-3xl p-5 border border-zinc-200/80 shadow-xs hover:border-amber-300 transition-all flex items-center justify-between group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100/80 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ClipboardList className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-zinc-500">
+                {metrics.pending_actions.label}
+              </div>
+              <div className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-0.5">
+                {metrics.pending_actions.value}
+              </div>
+              <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                <span>↑</span>
+                <span>{metrics.pending_actions.delta}</span>
+              </div>
+            </div>
+            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+              <span>↑</span>
+              <span>{metrics.pending_actions.delta}</span>
+            </div>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-amber-600 transition-colors" />
+      </Link>
+    </div>
+
+      {/* 3. ROW 2: What Deserves Attention & Competitive Landscape */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-5">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-[#6e57dc] fill-[#6e57dc]" />
+              <h2 className="text-base font-extrabold text-zinc-950">What Deserves Attention</h2>
+            </div>
             <Link
-              href="/app/brief"
-              className="bg-white hover:bg-zinc-50 text-[#17171b] px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm shadow-md border border-zinc-200/80 inline-flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap"
+              href="/app/events"
+              className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1"
             >
-              <span>View Intelligence</span>
-              <ArrowRight className="w-4 h-4 text-[#17171b]" />
+              <span>View All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* 2. STAT CARDS ROW (4 Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Card 1: Active Competitors */}
-        <div className="rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#6e57dc] flex items-center justify-center shrink-0">
-              <Zap className="w-5 h-5 fill-[#6e57dc] text-[#6e57dc]" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-[#70717a]">Active Competitors</div>
-              <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-2xl font-black text-[#17171b]">6</span>
-                <span className="text-xs font-bold text-emerald-600 inline-flex items-center">
-                  ↑ 1
-                </span>
-              </div>
-            </div>
-          </div>
-          <SparklineWave color="#a855f7" />
+          <Link
+            href="/app/events"
+            className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1"
+          >
+            <span>View All</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        {/* Card 2: Recent Events */}
-        <div className="rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 text-[#0284c7] flex items-center justify-center shrink-0">
-              <Calendar className="w-5 h-5 text-[#0284c7]" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-[#70717a]">Recent Events</div>
-              <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-2xl font-black text-[#17171b]">12</span>
-                <span className="text-xs font-bold text-emerald-600 inline-flex items-center">
-                  ↑ 3
-                </span>
-              </div>
-            </div>
-          </div>
-          <SparklineWave color="#0284c7" />
-        </div>
+          <div className="divide-y divide-zinc-100">
+            {what_deserves_attention.map((item) => {
+              const impactBg =
+                item.impact_level === "High"
+                  ? "bg-rose-50 text-rose-700 border-rose-200/80"
+                  : item.impact_level === "Medium"
+                  ? "bg-amber-50 text-amber-800 border-amber-200/80"
+                  : "bg-emerald-50 text-emerald-700 border-emerald-200/80";
 
-        {/* Card 3: Threat Score */}
-        <div className="rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-[#70717a]">Threat Score</div>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="text-2xl font-black text-[#17171b]">72/100</span>
-              </div>
-            </div>
-          </div>
-          <SparklineWave color="#f59e0b" />
-        </div>
+            const deptIcon =
+              item.department === "Sales" ? (
+                <Briefcase className="w-3 h-3 text-zinc-500" />
+              ) : item.department === "Product" ? (
+                <Box className="w-3 h-3 text-zinc-500" />
+              ) : item.department === "Strategy" ? (
+                <Compass className="w-3 h-3 text-zinc-500" />
+              ) : (
+                <Settings className="w-3 h-3 text-zinc-500" />
+              );
 
-        {/* Card 4: Open Actions */}
-        <div className="rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] p-5 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-[#6e57dc] flex items-center justify-center shrink-0">
-              <Target className="w-5 h-5 text-[#6e57dc]" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-[#70717a]">Open Actions</div>
-              <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-2xl font-black text-[#17171b]">8</span>
-                <span className="text-xs font-bold text-emerald-600 inline-flex items-center">
-                  ↑ 2
-                </span>
+              return (
+                <div
+                  key={item.id}
+                  className="py-4 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                >
+                  <div className="flex items-start sm:items-center gap-4 flex-1">
+                    <div className="w-16 h-10 rounded-xl bg-zinc-50 border border-zinc-150 flex items-center justify-center p-1.5 shrink-0">
+                      <CompetitorLogoRender name={item.competitor} className="w-full h-full object-contain" />
+                    </div>
+
+                    <div className="space-y-1 flex-1">
+                      <h3 className="text-xs sm:text-sm font-bold text-zinc-950 group-hover:text-[#6e57dc] transition-colors leading-snug">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-zinc-500 leading-relaxed font-normal">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full border ${impactBg}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      {item.impact}
+                    </span>
+
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200">
+                      {deptIcon}
+                      {item.department}
+                    </span>
+
+                    <Link
+                      href={`/app/intelligence/${item.id}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-zinc-50 hover:bg-purple-50 text-zinc-700 hover:text-[#6e57dc] text-xs font-bold rounded-xl border border-zinc-200 hover:border-purple-200 transition-colors"
+                    >
+                      <span>View Details</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+                );
+            })}
+          </div>
               </div>
+
+        <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-5">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-purple-600" />
+              <h2 className="text-base font-extrabold text-zinc-950">Competitive Landscape</h2>
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-700 transition-colors"
+              >
+                <span>{timeRange === "6m" ? "Last 6 Months" : timeRange === "30d" ? "Last 30 Days" : "Last 90 Days"}</span>
+                <ChevronDown className="w-3 h-3 text-zinc-500" />
+              </button>
+              {rangeDropdownOpen && (
+                <div className="absolute right-0 mt-1 w-36 bg-white border border-zinc-200 rounded-2xl shadow-xl z-20 py-1 text-xs">
+                  <button
+                    onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-700 transition-colors"
+                  >
+                    <span>{timeRange === "6m" ? "Last 6 Months" : timeRange === "30d" ? "Last 30 Days" : "Last 90 Days"}</span>
+                    <ChevronDown className="w-3 h-3 text-zinc-500" />
+                  </button>
+                  {rangeDropdownOpen && (
+                    <div className="absolute right-0 mt-1 w-36 bg-white border border-zinc-200 rounded-2xl shadow-xl z-20 py-1 text-xs">
+                      <button
+                        onClick={() => {
+                          setTimeRange("6m");
+                          setRangeDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
+                      >
+                        Last 6 Months
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTimeRange("30d");
+                          setRangeDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
+                      >
+                        Last 30 Days
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTimeRange("90d");
+                          setRangeDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
+                      >
+                        Last 90 Days
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-          <SparklineWave color="#a855f7" />
+
+          <div className="flex flex-wrap items-center justify-end gap-3 text-xs font-semibold">
+            {competitive_landscape.competitors.map((comp) => (
+              <div key={comp} className="flex items-center gap-1.5 text-zinc-600">
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: competitive_landscape.colors[comp] || "#6e57dc" }}
+                />
+                <span>{comp}</span>
+              </div>
+
+          <div className="space-y-3 pt-2">
+            <div className="relative h-44 flex items-end justify-between gap-2 border-b border-zinc-200 px-2 pb-1">
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none -left-2 pr-2 text-[10px] font-semibold text-zinc-400">
+                <div className="border-b border-zinc-100 w-full flex justify-between">
+                  <span>15</span>
+                </div>
+                <div className="border-b border-zinc-100 w-full flex justify-between">
+                  <span>10</span>
+                </div>
+                <div className="border-b border-zinc-100 w-full flex justify-between">
+                  <span>5</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>0</span>
+                </div>
+              </div>
+
+              {competitive_landscape.chart_data.map((item, idx) => (
+                <div key={item.month || idx} className="flex-1 flex flex-col items-center gap-1 z-10 h-full justify-end">
+                  <div className="w-full flex items-end justify-center gap-1 h-[82%]">
+                    {competitive_landscape.competitors.map((comp) => {
+                      const val = item[comp] || 4;
+                      const heightPercent = Math.min(100, Math.round((val / 16) * 100));
+                      const color = competitive_landscape.colors[comp] || "#6e57dc";
+
+                      return (
+                        <div
+                          key={comp}
+                          title={`${comp}: ${val} events`}
+                          style={{ height: `${heightPercent}%`, backgroundColor: color }}
+                          className="w-2 sm:w-2.5 rounded-t-md hover:brightness-110 transition-all cursor-pointer"
+                        />
+                      );
+                    })}
+                  </div>
+                  <span className="text-[11px] font-bold text-zinc-500 mt-1">{item.month}</span>
+                </div>
+          </div>
         </div>
       </div>
 
-      {/* 3. MIDDLE ROW (Next Best Actions + Competitive Landscape) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left: Next Best Actions (7 columns) */}
-        <div className="lg:col-span-7 rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] p-6 shadow-xs flex flex-col justify-between">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-zinc-100 mb-4">
+      {/* 4. ROW 3: Emerging Strategic Patterns & Next Best Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-5">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-purple-50 text-[#6e57dc] flex items-center justify-center">
-                <Star className="w-4 h-4 fill-[#6e57dc] text-[#6e57dc]" />
+              <TrendingUp className="w-5 h-5 text-[#6e57dc]" />
+              <h2 className="text-base font-extrabold text-zinc-950">Emerging Strategic Patterns</h2>
+            </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {emerging_strategic_patterns.map((pat) => (
+              <div
+                key={pat.id}
+                className="p-5 rounded-3xl bg-[#f9faff] border border-indigo-100/70 hover:border-indigo-300 transition-all flex items-start justify-between gap-3 group"
+              >
+                <div className="space-y-2 flex-1">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      pat.tag_color === "teal"
+                        ? "bg-teal-50 text-teal-700 border border-teal-200"
+                        : "bg-purple-50 text-purple-700 border border-purple-200"
+                    }`}
+                  >
+                    <span>View All</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+
+                {pat.visual_type === "ai_bot" ? (
+                  <IsometricRobotGraphic />
+                ) : (
+                  <IsometricTrendGraphic />
+                )}
               </div>
-              <h2 className="text-base font-extrabold text-[#17171b]">Next Best Actions</h2>
+            ))}
+          </div>
+        </div>
+
+        <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-5">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-purple-600 fill-purple-600" />
+              <h2 className="text-base font-extrabold text-zinc-950">Next Best Actions</h2>
             </div>
             <Link
               href="/app/actions"
@@ -427,486 +660,183 @@ export function OverviewPage() {
             </Link>
           </div>
 
-          {/* 3 Action Rows */}
-          <div className="space-y-3.5">
-            {/* Item 1 */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl hover:bg-zinc-50/80 transition-colors border border-transparent hover:border-zinc-100">
-              <div className="flex items-start gap-3">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200/60 shrink-0 mt-0.5">
-                  High
-                </span>
-                <div>
-                  <div className="font-bold text-sm text-[#17171b] leading-tight">
-                    Prepare response to Meesho's pricing push
-                  </div>
-                  <div className="text-xs text-[#70717a] mt-0.5">
-                    Competitor increased pricing for enterprise plan
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 shrink-0 sm:self-center self-end">
-                <div className="text-right">
-                  <div className="text-xs font-medium text-[#70717a] flex items-center gap-1 sm:justify-end">
-                    <Briefcase className="w-3.5 h-3.5 text-[#9ca3af]" />
-                    <span>Sales</span>
-                  </div>
-                  <div className="text-xs text-[#9ca3af] font-medium">Today</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleTakeAction({
-                      id: "act-1",
-                      title: "Prepare response to Meesho's pricing push",
-                      subtitle: "Competitor increased pricing for enterprise plan",
-                      priority: "High",
-                      department: "Sales",
-                      due: "Today",
-                    })
-                  }
-                  className="bg-purple-50 hover:bg-purple-100 text-[#6e57dc] font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
-                >
-                  Take Action
-                </button>
-              </div>
-            </div>
-
-            {/* Item 2 */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl hover:bg-zinc-50/80 transition-colors border border-transparent hover:border-zinc-100">
-              <div className="flex items-start gap-3">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/60 shrink-0 mt-0.5">
-                  Medium
-                </span>
-                <div>
-                  <div className="font-bold text-sm text-[#17171b] leading-tight">
-                    Review feature gap in AI capabilities
-                  </div>
-                  <div className="text-xs text-[#70717a] mt-0.5">
-                    Competitor launched new AI features
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 shrink-0 sm:self-center self-end">
-                <div className="text-right">
-                  <div className="text-xs font-medium text-[#70717a] flex items-center gap-1 sm:justify-end">
-                    <Box className="w-3.5 h-3.5 text-[#9ca3af]" />
-                    <span>Product</span>
-                  </div>
-                  <div className="text-xs text-[#9ca3af] font-medium">Tomorrow</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleTakeAction({
-                      id: "act-2",
-                      title: "Review feature gap in AI capabilities",
-                      subtitle: "Competitor launched new AI features",
-                      priority: "Medium",
-                      department: "Product",
-                      due: "Tomorrow",
-                    })
-                  }
-                  className="bg-purple-50 hover:bg-purple-100 text-[#6e57dc] font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
-                >
-                  Take Action
-                </button>
-              </div>
-            </div>
-
-            {/* Item 3 */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl hover:bg-zinc-50/80 transition-colors border border-transparent hover:border-zinc-100">
-              <div className="flex items-start gap-3">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-[#6e57dc] border border-purple-200/60 shrink-0 mt-0.5">
-                  Medium
-                </span>
-                <div>
-                  <div className="font-bold text-sm text-[#17171b] leading-tight">
-                    Update comparison page
-                  </div>
-                  <div className="text-xs text-[#70717a] mt-0.5">
-                    New competitor capabilities detected
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 shrink-0 sm:self-center self-end">
-                <div className="text-right">
-                  <div className="text-xs font-medium text-[#70717a] flex items-center gap-1 sm:justify-end">
-                    <Megaphone className="w-3.5 h-3.5 text-[#9ca3af]" />
-                    <span>Marketing</span>
-                  </div>
-                  <div className="text-xs text-[#9ca3af] font-medium">This Week</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleTakeAction({
-                      id: "act-3",
-                      title: "Update comparison page",
-                      subtitle: "New competitor capabilities detected",
-                      priority: "Medium",
-                      department: "Marketing",
-                      due: "This Week",
-                    })
-                  }
-                  className="bg-purple-50 hover:bg-purple-100 text-[#6e57dc] font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
-                >
-                  Take Action
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Competitive Landscape Grouped Bar Chart (5 columns) */}
-        <div className="lg:col-span-5 rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] p-6 shadow-xs flex flex-col justify-between">
-          {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-100 mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-purple-50 text-[#6e57dc] flex items-center justify-center">
-                <BarChart2 className="w-4 h-4 text-[#6e57dc]" />
-              </div>
-              <h2 className="text-base font-extrabold text-[#17171b]">Competitive Landscape</h2>
-            </div>
-
-            {/* Time range dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
-                className="px-2.5 py-1 rounded-lg border border-zinc-200 text-xs font-semibold text-[#70717a] flex items-center gap-1 hover:bg-zinc-50 bg-white"
-              >
-                <span>
-                  {timeRange === "30" ? "Last 30 Days" : timeRange === "7" ? "Last 7 Days" : "Last 90 Days"}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#9ca3af]" />
-              </button>
-
-              {rangeDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setRangeDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-1 w-36 bg-white rounded-xl border border-zinc-200 shadow-lg p-1 z-30 text-xs font-medium">
-                    <button
-                      onClick={() => {
-                        setTimeRange("7");
-                        setRangeDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-100"
-                    >
-                      Last 7 Days
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTimeRange("30");
-                        setRangeDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 font-bold text-[#6e57dc]"
-                    >
-                      Last 30 Days
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTimeRange("90");
-                        setRangeDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-100"
-                    >
-                      Last 90 Days
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-end gap-4 py-1 text-xs font-semibold text-[#595a63]">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#6e57dc]" />
-              <span>Wins</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#c4b5fd]" />
-              <span>Losses</span>
-            </div>
-          </div>
-
-          {/* Grouped Bar Chart Area */}
-          <div className="relative pt-4 pb-2">
-            {/* Horizontal Gridlines & Y-Axis values */}
-            <div className="absolute inset-x-0 top-6 bottom-8 flex flex-col justify-between pointer-events-none text-[10px] text-[#9ca3af]">
-              <div className="flex items-center gap-2">
-                <span className="w-4 text-right">15</span>
-                <div className="flex-1 border-b border-dashed border-zinc-100" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 text-right">10</span>
-                <div className="flex-1 border-b border-dashed border-zinc-100" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 text-right">5</span>
-                <div className="flex-1 border-b border-dashed border-zinc-100" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 text-right">0</span>
-                <div className="flex-1 border-b border-zinc-200" />
-              </div>
-            </div>
-
-            {/* Bars Container */}
-            <div className="ml-7 grid grid-cols-4 gap-2 sm:gap-4 h-48 items-end relative z-10 pb-6">
-              {landscapeData.map((d) => {
-                // Max height mapped to 15
-                const maxVal = 15;
-                const winH = (d.wins / maxVal) * 100;
-                const lossH = (d.losses / maxVal) * 100;
-
-                return (
-                  <div key={d.competitor} className="flex flex-col items-center h-full justify-end">
-                    {/* Pair of Bars */}
-                    <div className="flex items-end gap-1 sm:gap-1.5 w-full justify-center h-full">
-                      {/* Wins Bar (Solid Purple) */}
-                      <div className="flex flex-col items-center flex-1 max-w-[20px] sm:max-w-[24px] h-full justify-end group">
-                        <span className="text-[11px] font-bold text-[#17171b] mb-1 opacity-90 group-hover:opacity-100">
-                          {d.wins}
-                        </span>
-                        <div
-                          style={{ height: `${winH}%` }}
-                          className="w-full bg-[#6e57dc] hover:bg-[#5b46cc] rounded-t-md transition-all shadow-2xs"
-                        />
-                      </div>
-
-                      {/* Losses Bar (Light Lavender) */}
-                      <div className="flex flex-col items-center flex-1 max-w-[20px] sm:max-w-[24px] h-full justify-end group">
-                        <span className="text-[11px] font-bold text-[#70717a] mb-1 opacity-90 group-hover:opacity-100">
-                          {d.losses}
-                        </span>
-                        <div
-                          style={{ height: `${lossH}%` }}
-                          className="w-full bg-[#c4b5fd] hover:bg-[#b4a0fa] rounded-t-md transition-all shadow-2xs"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Competitor X-Axis Label */}
-                    <div className="text-[11px] font-semibold text-[#17171b] text-center mt-2 truncate w-full" title={d.competitor}>
-                      {d.competitor}
-                    </div>
-                  </div>
+          <div className="divide-y divide-zinc-100">
+            {next_best_actions.map((act) => {
+              const actionIcon =
+                act.icon === "barchart" ? (
+                  <BarChart3 className="w-4 h-4 text-blue-600" />
+                ) : act.icon === "handshake" ? (
+                  <Handshake className="w-4 h-4 text-purple-600" />
+                ) : (
+                  <Target className="w-4 h-4 text-purple-600" />
                 );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* 4. BOTTOM ROW (Competitive Threat Overview + Turn Intelligence into Impact) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left: Competitive Threat Overview (8 columns) */}
-        <div className="lg:col-span-8 rounded-2xl bg-white border border-[rgba(20,20,30,0.08)] p-6 shadow-xs">
-          {/* Header */}
-          <div className="flex items-center gap-2 pb-4 border-b border-zinc-100 mb-6">
-            <div className="w-7 h-7 rounded-lg bg-purple-50 text-[#6e57dc] flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-[#6e57dc]" />
-            </div>
-            <h2 className="text-base font-extrabold text-[#17171b]">Competitive Threat Overview</h2>
-          </div>
+                        <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
+                          <FileText className="w-3 h-3 text-zinc-400" />
+                          <span>
+                            {pat.related_events_count} related events • {pat.competitors_count} competitors
+                          </span>
+                        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-            {/* Col 1: Circular Progress Gauge (4 cols) */}
-            <div className="md:col-span-4 flex flex-col items-center justify-center py-2">
-              <div className="relative w-36 h-36 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="#f3f4f6"
-                    strokeWidth="10"
-                    fill="transparent"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="#6e57dc"
-                    strokeWidth="10"
-                    fill="transparent"
-                    strokeDasharray={2 * Math.PI * 40}
-                    strokeDashoffset={(2 * Math.PI * 40) * (1 - 0.72)}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center text-center">
-                  <span className="text-3xl font-black text-[#17171b] tracking-tight">72</span>
-                  <span className="text-xs text-[#9ca3af] font-medium -mt-1">/100</span>
+                        <p className="text-xs text-zinc-600 leading-relaxed pt-1">
+                          {pat.description}
+                        </p>
+                      </div>
+
+                      {/* 3D Isometric Art on Right */}
+                      {pat.visual_type === "ai_bot" ? (
+                        <IsometricRobotGraphic />
+                      ) : (
+                        <IsometricTrendGraphic />
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
-              <span className="mt-3 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200">
-                High Threat
-              </span>
-            </div>
 
-            {/* Col 2: Key Drivers (4 cols) */}
-            <div className="md:col-span-4 space-y-3.5 border-t md:border-t-0 md:border-l md:border-r border-zinc-100 md:px-5 py-2">
-              <div className="text-xs font-bold text-[#17171b]">Key Drivers</div>
-
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-[#595a63]">
-                  <FileText className="w-3.5 h-3.5 text-[#6e57dc]" />
-                  <span>Product Activity</span>
+              {/* Right: Next Best Actions (5 Cols) */}
+              <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-5">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-purple-600 fill-purple-600" />
+                    <h2 className="text-base font-extrabold text-zinc-950">Next Best Actions</h2>
+                  </div>
+                  <Link
+                    href="/app/actions"
+                    className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1"
+                  >
+                    <span>View All</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
-                <span className="font-bold text-[#17171b]">32%</span>
-              </div>
 
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-[#595a63]">
-                  <Globe className="w-3.5 h-3.5 text-[#0284c7]" />
-                  <span>Market Expansion</span>
-                </div>
-                <span className="font-bold text-[#17171b]">28%</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-[#595a63]">
-                  <Tag className="w-3.5 h-3.5 text-[#f59e0b]" />
-                  <span>Pricing Movement</span>
-                </div>
-                <span className="font-bold text-[#17171b]">24%</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-[#595a63]">
-                  <Heart className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Customer Sentiment</span>
-                </div>
-                <span className="font-bold text-[#17171b]">16%</span>
-              </div>
-            </div>
-
-            {/* Col 3: Line Chart Trend (4 cols) */}
-            <div className="md:col-span-4 flex flex-col justify-between h-full py-2">
-              <div className="flex justify-end mb-2">
-                <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-600 inline-flex items-center gap-0.5">
-                  ↑ +8%
-                </span>
-              </div>
-
-              {/* Gradient Shaded Sparkline Wave */}
-              <div className="w-full h-24 relative">
-                <svg viewBox="0 0 160 70" fill="none" className="w-full h-full">
-                  <defs>
-                    <linearGradient id="threatTrendGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#a855f7" stopOpacity="0.28" />
-                      <stop offset="100%" stopColor="#a855f7" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                  {/* Fill Area */}
-                  <path
-                    d="M5 45 C 25 42, 35 55, 55 40 C 75 25, 95 38, 115 22 C 135 15, 145 20, 155 12 L155 70 L5 70 Z"
-                    fill="url(#threatTrendGrad)"
-                  />
-                  {/* Stroke Line */}
-                  <path
-                    d="M5 45 C 25 42, 35 55, 55 40 C 75 25, 95 38, 115 22 C 135 15, 145 20, 155 12"
-                    stroke="#a855f7"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-
-              <div className="text-center text-xs text-[#9ca3af] font-medium mt-1">
-                vs last month
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Turn Intelligence into Impact (4 columns) */}
-        <div className="lg:col-span-4 rounded-2xl bg-gradient-to-br from-[#f8f6ff] via-[#fbfaff] to-[#ede9fe] border border-purple-100/90 p-6 shadow-xs relative overflow-hidden flex flex-col justify-between">
-          <div className="relative z-10">
-            {/* Target Icon */}
-            <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#6e57dc] flex items-center justify-center mb-3">
-              <Target className="w-5 h-5 text-[#6e57dc]" />
-            </div>
-
-            {/* Headline */}
-            <h3 className="text-lg font-black text-[#17171b] tracking-tight">
-              Turn Intelligence into Impact
-            </h3>
-
-            {/* Subtitle */}
-            <p className="text-xs text-[#595a63] font-medium mt-1.5 leading-relaxed max-w-[210px] sm:max-w-xs">
-              Get actionable recommendations tailored to your business goals.
-            </p>
-
-            {/* CTA Button */}
-            <Link
-              href="/app/actions"
-              className="bg-[#6e57dc] hover:bg-[#5b46cc] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-purple-500/20 inline-flex items-center gap-1.5 mt-5 transition-all cursor-pointer"
-            >
-              <span>Explore Action Center</span>
-              <ArrowRight className="w-3.5 h-3.5 text-white" />
-            </Link>
-          </div>
-
-          {/* 3D Dartboard Graphic */}
-          <ImpactDartboardGraphic />
-        </div>
-      </div>
-
-      {/* Action Execution Modal */}
+      {/* ACTION EXECUTION MODAL */}
       {selectedAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-zinc-100 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-[#6e57dc] border border-purple-200">
-                  {selectedAction.priority} Priority
-                </span>
-                <span className="text-xs text-[#70717a] font-semibold">{selectedAction.department}</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-5 border border-zinc-200">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2 text-base font-bold text-zinc-950">
+                <Target className="w-5 h-5 text-purple-600" />
+                <span>Execute Next Best Action</span>
               </div>
               <button
                 onClick={() => setSelectedAction(null)}
-                className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700"
+                className="p-1 rounded-xl hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="my-4 space-y-2">
-              <h3 className="text-base font-extrabold text-[#17171b] leading-snug">
-                {selectedAction.title}
-              </h3>
-              <p className="text-xs text-[#595a63] leading-relaxed">
-                {selectedAction.subtitle}
-              </p>
-              <div className="pt-2 text-xs text-[#70717a] flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-[#9ca3af]" />
-                <span>Due: {selectedAction.due}</span>
+                    const statusBadgeClass =
+                      act.status === "In Progress"
+                        ? "bg-purple-100/80 text-purple-800 border-purple-200"
+                        : act.status === "Planned"
+                          ? "bg-cyan-50 text-cyan-800 border-cyan-200"
+                          : "bg-zinc-100 text-zinc-700 border-zinc-200";
+
+                    return (
+                      <div
+                        key={act.id}
+                        className="py-3.5 first:pt-1 last:pb-1 flex items-center justify-between gap-3 group cursor-pointer"
+                        onClick={() => setSelectedAction(act)}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-150 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                            {actionIcon}
+                          </div>
+                          <div className="space-y-0.5 truncate">
+                            <h4 className="text-xs sm:text-sm font-bold text-zinc-950 truncate group-hover:text-[#6e57dc] transition-colors">
+                              {act.title}
+                            </h4>
+                            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 font-medium">
+                              <span>{act.department}</span>
+                              <span>•</span>
+                              <span className="font-semibold text-amber-600">{act.priority}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-400">
+                            <Calendar className="w-3 h-3 text-zinc-400" />
+                            <span>{act.due_date}</span>
+                          </div>
+
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeClass}`}
+                          >
+                            {act.status}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
-              <button
-                type="button"
-                onClick={() => setSelectedAction(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 hover:bg-zinc-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmAction}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[#6e57dc] hover:bg-[#5b46cc] text-white shadow-xs"
-              >
-                Execute Action
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            {/* ==================================================================== */ }
+            {/* ACTION EXECUTION MODAL                                               */ }
+            {/* ==================================================================== */ }
+            {
+              selectedAction && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+                  <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-5 border border-zinc-200">
+                    <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                      <div className="flex items-center gap-2 text-base font-bold text-zinc-950">
+                        <Target className="w-5 h-5 text-purple-600" />
+                        <span>Execute Next Best Action</span>
+                      </div>
+                      <button
+                        onClick={() => setSelectedAction(null)}
+                        className="p-1 rounded-xl hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-extrabold text-zinc-900 leading-snug">
+                        {selectedAction.title}
+                      </h3>
+                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-150 space-y-1.5 text-xs">
+                        <div className="flex justify-between text-zinc-600">
+                          <span>Assigned Department:</span>
+                          <strong className="text-zinc-900">{selectedAction.department}</strong>
+                        </div>
+                        <div className="flex justify-between text-zinc-600">
+                          <span>Priority Tier:</span>
+                          <strong className="text-amber-600">{selectedAction.priority}</strong>
+                        </div>
+                        <div className="flex justify-between text-zinc-600">
+                          <span>Target Due Date:</span>
+                          <strong className="text-zinc-900">{selectedAction.due_date}</strong>
+                        </div>
+                        <div className="flex justify-between text-zinc-600">
+                          <span>Current Status:</span>
+                          <strong className="text-purple-700">{selectedAction.status}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
+                      <button
+                        onClick={() => setSelectedAction(null)}
+                        className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:text-zinc-900 rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleConfirmAction}
+                        className="px-5 py-2.5 bg-[#6e57dc] hover:bg-[#5842be] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+                      >
+                        Confirm & Dispatch Action
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
     </div>
-  );
+        );
 }
