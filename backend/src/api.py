@@ -2920,6 +2920,38 @@ app.include_router(batch3_router)
 from .batch4_routes import router as batch4_router
 app.include_router(batch4_router)
 
+# ============================================================================
+# Executive Overview & Intelligence Detail Routes
+# ============================================================================
+from .overview_service import get_overview_intelligence, get_intelligence_detail
+
+@app.get("/api/overview")
+@app.get("/overview")
+def api_get_overview(
+    company: str = Query("Flipkart", description="Target company to analyze"),
+    range: str = Query("6m", description="Time range (e.g. 6m, 30d, 90d)"),
+    tenant_id: Optional[str] = Query(None, description="Tenant ID")
+):
+    try:
+        return get_overview_intelligence(target_company=company, time_range=range, tenant_id=tenant_id)
+    except Exception as e:
+        logger.error(f"Error fetching overview intelligence: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/intelligence/{detail_id}")
+@app.get("/intelligence/{detail_id}")
+def api_get_intelligence_detail(
+    detail_id: str,
+    target_company: str = Query("Flipkart", description="Target company"),
+    tenant_id: Optional[str] = Query(None, description="Tenant ID")
+):
+    try:
+        return get_intelligence_detail(detail_id=detail_id, target_company=target_company, tenant_id=tenant_id)
+    except Exception as e:
+        logger.error(f"Error fetching intelligence detail for {detail_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 
