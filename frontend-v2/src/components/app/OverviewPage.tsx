@@ -148,23 +148,23 @@ export function OverviewPage() {
     let isMounted = true;
     setLoading(true);
 
-fetchOverview(targetCompany, timeRange, tenantId)
-  .then((res) => {
-    if (isMounted) {
-      setData(res);
-      setError(null);
-    }
-  })
-  .catch((err) => {
-    if (isMounted) setError(err.message);
-  })
-  .finally(() => {
-    if (isMounted) setLoading(false);
-  });
+    fetchOverview(targetCompany, timeRange, tenantId)
+      .then((res) => {
+        if (isMounted) {
+          setData(res);
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) setError(err.message);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
 
-return () => {
-  isMounted = false;
-};
+    return () => {
+      isMounted = false;
+    };
   }, [targetCompany, timeRange, tenantId]);
 
   const handleConfirmAction = () => {
@@ -175,61 +175,51 @@ return () => {
       setSelectedAction(null);
       setTimeout(() => setActionSuccessMsg(null), 4000);
     }
-    setActionSuccessMsg(
-      `Action "${selectedAction.title}" executed and queued for ${selectedAction.department} team!`
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 pb-8 animate-pulse">
+        <div className="h-20 bg-white rounded-3xl border border-zinc-200" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+          <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+          <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+          <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 h-80 bg-white rounded-3xl border border-zinc-200" />
+          <div className="lg:col-span-5 h-80 bg-white rounded-3xl border border-zinc-200" />
+        </div>
+      </div>
     );
-    setSelectedAction(null);
-    // Reload actions list
-    fetchNextBestActions("ALL", "pending", undefined, tenantId)
-      .then((res) => setActions(res.actions || []))
-      .catch(() => { });
-    setTimeout(() => setActionSuccessMsg(null), 4000);
   }
-};
 
-if (loading) {
-  return (
-    <div className="space-y-6 pb-8 animate-pulse">
-      <div className="h-20 bg-white rounded-3xl border border-zinc-200" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
-        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
-        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
-        <div className="h-28 bg-white rounded-3xl border border-zinc-200" />
+  if (error || !data) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl">
+          <p className="font-semibold">Unable to load executive overview</p>
+          <p className="text-sm">{error || "Record not found"}</p>
+        </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 h-80 bg-white rounded-3xl border border-zinc-200" />
-        <div className="lg:col-span-5 h-80 bg-white rounded-3xl border border-zinc-200" />
-      </div>
-    </div>
-  );
-}
-
-if (error || !data) {
-  return (
-    <div className="p-8">
-      <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl">
-        <p className="font-semibold">Unable to load executive overview</p>
-        <p className="text-sm">{error || "Record not found"}</p>
-      </div>
-    </div>
-  );
-}
-
-const handleGenerateActions = async () => {
-  setGeneratingActions(true);
-  try {
-    await generateNextBestActions(targetCompany || "Meesho", targetCompany || "Our Company", tenantId);
-    const res = await fetchNextBestActions("ALL", "pending", undefined, tenantId);
-    setActions(res.actions || []);
-    setActionSuccessMsg("Generated new Next Best Actions based on latest intelligence signals!");
-    setTimeout(() => setActionSuccessMsg(null), 4000);
-  } catch (err: any) {
-    console.error("Failed to generate actions:", err);
-  } finally {
-    setGeneratingActions(false);
+    );
   }
-};
+
+  const { metrics, what_deserves_attention, competitive_landscape, emerging_strategic_patterns, next_best_actions } = data;
+
+  return (
+    <div className="space-y-6 pb-12 max-w-[1400px] mx-auto text-[#18181b]">
+      {/* Toast Notification */}
+      {actionSuccessMsg && (
+        <div className="fixed top-20 right-8 z-50 bg-[#181829] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-purple-500/30 animate-in fade-in slide-in-from-top-4 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="text-xs font-semibold">{actionSuccessMsg}</span>
+          <button onClick={() => setActionSuccessMsg(null)} className="text-zinc-400 hover:text-white p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
@@ -260,49 +250,17 @@ const handleGenerateActions = async () => {
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        {/* Large Title */}
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950">
-          {data.headline_title}
-        </h1>
-        {/* Subtitle */}
-        <p className="text-xs sm:text-sm font-medium text-zinc-500">
-          {data.headline_subtitle}
-        </p>
       </div>
 
       {/* 2. TOP METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
-          href="/app/intelligence/amazon"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#6e57dc] hover:bg-[#5842be] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+          href="/app/competitors"
+          className="bg-white rounded-3xl p-5 border border-zinc-200/80 shadow-xs hover:border-purple-300 transition-all flex items-center justify-between group"
         >
-          <span>View Intelligence</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-    </div>
-
-    {/* ==================================================================== */}
-    {/* 2. TOP METRIC CARDS (4 Cards in a Row)                              */}
-    {/* ==================================================================== */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Card 1: Tracked Competitors */}
-      <Link
-        href="/app/competitors"
-        className="bg-white rounded-3xl p-5 border border-zinc-200/80 shadow-xs hover:border-purple-300 transition-all flex items-center justify-between group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-purple-100/80 text-[#6e57dc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-zinc-500">
-              {metrics.tracked_competitors.label}
-              {trackedCompanies.length > 0 && (
-                <span className="text-xs font-bold text-emerald-600 inline-flex items-center">
-                  Tracked
-                </span>
-              )}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-purple-100/80 text-[#6e57dc] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Users className="w-6 h-6" />
             </div>
             <div>
               <div className="text-xs font-semibold text-zinc-500">
@@ -316,14 +274,9 @@ const handleGenerateActions = async () => {
                 <span>{metrics.tracked_competitors.delta}</span>
               </div>
             </div>
-            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-              <span>↑</span>
-              <span>{metrics.tracked_competitors.delta}</span>
-            </div>
           </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-purple-600 transition-colors" />
-      </Link>
+          <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-purple-600 transition-colors" />
+        </Link>
 
         <Link
           href="/app/events"
@@ -345,14 +298,9 @@ const handleGenerateActions = async () => {
                 <span>{metrics.verified_events.delta}</span>
               </div>
             </div>
-            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-              <span>↑</span>
-              <span>{metrics.verified_events.delta}</span>
-            </div>
           </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-blue-600 transition-colors" />
-      </Link>
+          <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-blue-600 transition-colors" />
+        </Link>
 
         <Link
           href="/app/intelligence/amazon"
@@ -362,17 +310,21 @@ const handleGenerateActions = async () => {
             <div className="w-12 h-12 rounded-2xl bg-emerald-100/80 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <div className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-0.5">
-              {metrics.high_priority_developments.value}
-            </div>
-            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-              <span>↑</span>
-              <span>{metrics.high_priority_developments.delta}</span>
+            <div>
+              <div className="text-xs font-semibold text-zinc-500">
+                {metrics.high_priority_developments.label}
+              </div>
+              <div className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-0.5">
+                {metrics.high_priority_developments.value}
+              </div>
+              <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                <span>↑</span>
+                <span>{metrics.high_priority_developments.delta}</span>
+              </div>
             </div>
           </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-emerald-600 transition-colors" />
-      </Link>
+          <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-emerald-600 transition-colors" />
+        </Link>
 
         <Link
           href="/app/actions"
@@ -394,15 +346,10 @@ const handleGenerateActions = async () => {
                 <span>{metrics.pending_actions.delta}</span>
               </div>
             </div>
-            <div className="text-xs font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-              <span>↑</span>
-              <span>{metrics.pending_actions.delta}</span>
-            </div>
           </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-amber-600 transition-colors" />
-      </Link>
-    </div>
+          <ChevronRight className="w-5 h-5 text-zinc-300 group-hover:text-amber-600 transition-colors" />
+        </Link>
+      </div>
 
       {/* 3. ROW 2: What Deserves Attention & Competitive Landscape */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -420,14 +367,6 @@ const handleGenerateActions = async () => {
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <Link
-            href="/app/events"
-            className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1"
-          >
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
 
           <div className="divide-y divide-zinc-100">
             {what_deserves_attention.map((item) => {
@@ -438,16 +377,16 @@ const handleGenerateActions = async () => {
                   ? "bg-amber-50 text-amber-800 border-amber-200/80"
                   : "bg-emerald-50 text-emerald-700 border-emerald-200/80";
 
-            const deptIcon =
-              item.department === "Sales" ? (
-                <Briefcase className="w-3 h-3 text-zinc-500" />
-              ) : item.department === "Product" ? (
-                <Box className="w-3 h-3 text-zinc-500" />
-              ) : item.department === "Strategy" ? (
-                <Compass className="w-3 h-3 text-zinc-500" />
-              ) : (
-                <Settings className="w-3 h-3 text-zinc-500" />
-              );
+              const deptIcon =
+                item.department === "Sales" ? (
+                  <Briefcase className="w-3 h-3 text-zinc-500" />
+                ) : item.department === "Product" ? (
+                  <Box className="w-3 h-3 text-zinc-500" />
+                ) : item.department === "Strategy" ? (
+                  <Compass className="w-3 h-3 text-zinc-500" />
+                ) : (
+                  <Settings className="w-3 h-3 text-zinc-500" />
+                );
 
               return (
                 <div
@@ -491,10 +430,10 @@ const handleGenerateActions = async () => {
                     </Link>
                   </div>
                 </div>
-                );
+              );
             })}
           </div>
-              </div>
+        </div>
 
         <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-5">
           <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -514,43 +453,32 @@ const handleGenerateActions = async () => {
               {rangeDropdownOpen && (
                 <div className="absolute right-0 mt-1 w-36 bg-white border border-zinc-200 rounded-2xl shadow-xl z-20 py-1 text-xs">
                   <button
-                    onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-700 transition-colors"
+                    onClick={() => {
+                      setTimeRange("6m");
+                      setRangeDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
                   >
-                    <span>{timeRange === "6m" ? "Last 6 Months" : timeRange === "30d" ? "Last 30 Days" : "Last 90 Days"}</span>
-                    <ChevronDown className="w-3 h-3 text-zinc-500" />
+                    Last 6 Months
                   </button>
-                  {rangeDropdownOpen && (
-                    <div className="absolute right-0 mt-1 w-36 bg-white border border-zinc-200 rounded-2xl shadow-xl z-20 py-1 text-xs">
-                      <button
-                        onClick={() => {
-                          setTimeRange("6m");
-                          setRangeDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
-                      >
-                        Last 6 Months
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTimeRange("30d");
-                          setRangeDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
-                      >
-                        Last 30 Days
-                      </button>
-                      <button
-                        onClick={() => {
-                          setTimeRange("90d");
-                          setRangeDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
-                      >
-                        Last 90 Days
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => {
+                      setTimeRange("30d");
+                      setRangeDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
+                  >
+                    Last 30 Days
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTimeRange("90d");
+                      setRangeDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-purple-50 text-zinc-700 font-semibold"
+                  >
+                    Last 90 Days
+                  </button>
                 </div>
               )}
             </div>
@@ -565,6 +493,8 @@ const handleGenerateActions = async () => {
                 />
                 <span>{comp}</span>
               </div>
+            ))}
+          </div>
 
           <div className="space-y-3 pt-2">
             <div className="relative h-44 flex items-end justify-between gap-2 border-b border-zinc-200 px-2 pb-1">
@@ -603,6 +533,8 @@ const handleGenerateActions = async () => {
                   </div>
                   <span className="text-[11px] font-bold text-zinc-500 mt-1">{item.month}</span>
                 </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -615,6 +547,14 @@ const handleGenerateActions = async () => {
               <TrendingUp className="w-5 h-5 text-[#6e57dc]" />
               <h2 className="text-base font-extrabold text-zinc-950">Emerging Strategic Patterns</h2>
             </div>
+            <Link
+              href="/app/trends"
+              className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {emerging_strategic_patterns.map((pat) => (
@@ -630,9 +570,28 @@ const handleGenerateActions = async () => {
                         : "bg-purple-50 text-purple-700 border border-purple-200"
                     }`}
                   >
-                    <span>View All</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                    {pat.tag}
+                  </span>
+
+                  <h3 className="text-xs sm:text-sm font-bold text-zinc-950 group-hover:text-[#6e57dc] transition-colors leading-snug">
+                    {pat.title}
+                  </h3>
+
+                  <div className="text-[11px] font-semibold text-zinc-500">
+                    {pat.companies_text}
+                  </div>
+
+                  <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
+                    <FileText className="w-3 h-3 text-zinc-400" />
+                    <span>
+                      {pat.related_events_count} related events • {pat.competitors_count} competitors
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-zinc-600 leading-relaxed pt-1">
+                    {pat.description}
+                  </p>
                 </div>
 
                 {pat.visual_type === "ai_bot" ? (
@@ -671,44 +630,53 @@ const handleGenerateActions = async () => {
                   <Target className="w-4 h-4 text-purple-600" />
                 );
 
-                        <div className="flex items-center gap-1 text-[10px] text-zinc-400 font-medium">
-                          <FileText className="w-3 h-3 text-zinc-400" />
-                          <span>
-                            {pat.related_events_count} related events • {pat.competitors_count} competitors
-                          </span>
-                        </div>
+              const statusBadgeClass =
+                act.status === "In Progress"
+                  ? "bg-purple-100/80 text-purple-800 border-purple-200"
+                  : act.status === "Planned"
+                  ? "bg-cyan-50 text-cyan-800 border-cyan-200"
+                  : "bg-zinc-100 text-zinc-700 border-zinc-200";
 
-                        <p className="text-xs text-zinc-600 leading-relaxed pt-1">
-                          {pat.description}
-                        </p>
-                      </div>
-
-                      {/* 3D Isometric Art on Right */}
-                      {pat.visual_type === "ai_bot" ? (
-                        <IsometricRobotGraphic />
-                      ) : (
-                        <IsometricTrendGraphic />
-                      )}
+              return (
+                <div
+                  key={act.id}
+                  className="py-3.5 first:pt-1 last:pb-1 flex items-center justify-between gap-3 group cursor-pointer"
+                  onClick={() => setSelectedAction(act)}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-150 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      {actionIcon}
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right: Next Best Actions (5 Cols) */}
-              <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-zinc-200/80 shadow-xs flex flex-col justify-between space-y-5">
-                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-purple-600 fill-purple-600" />
-                    <h2 className="text-base font-extrabold text-zinc-950">Next Best Actions</h2>
+                    <div className="space-y-0.5 truncate">
+                      <h4 className="text-xs sm:text-sm font-bold text-zinc-950 truncate group-hover:text-[#6e57dc] transition-colors">
+                        {act.title}
+                      </h4>
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 font-medium">
+                        <span>{act.department}</span>
+                        <span>•</span>
+                        <span className="font-semibold text-amber-600">{act.priority}</span>
+                      </div>
+                    </div>
                   </div>
-                  <Link
-                    href="/app/actions"
-                    className="text-xs font-bold text-[#6e57dc] hover:underline flex items-center gap-1"
-                  >
-                    <span>View All</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-400">
+                      <Calendar className="w-3 h-3 text-zinc-400" />
+                      <span>{act.due_date}</span>
+                    </div>
+
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeClass}`}
+                    >
+                      {act.status}
+                    </span>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* ACTION EXECUTION MODAL */}
       {selectedAction && (
@@ -723,120 +691,51 @@ const handleGenerateActions = async () => {
                 onClick={() => setSelectedAction(null)}
                 className="p-1 rounded-xl hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-                    const statusBadgeClass =
-                      act.status === "In Progress"
-                        ? "bg-purple-100/80 text-purple-800 border-purple-200"
-                        : act.status === "Planned"
-                          ? "bg-cyan-50 text-cyan-800 border-cyan-200"
-                          : "bg-zinc-100 text-zinc-700 border-zinc-200";
-
-                    return (
-                      <div
-                        key={act.id}
-                        className="py-3.5 first:pt-1 last:pb-1 flex items-center justify-between gap-3 group cursor-pointer"
-                        onClick={() => setSelectedAction(act)}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-150 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                            {actionIcon}
-                          </div>
-                          <div className="space-y-0.5 truncate">
-                            <h4 className="text-xs sm:text-sm font-bold text-zinc-950 truncate group-hover:text-[#6e57dc] transition-colors">
-                              {act.title}
-                            </h4>
-                            <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 font-medium">
-                              <span>{act.department}</span>
-                              <span>•</span>
-                              <span className="font-semibold text-amber-600">{act.priority}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2.5 shrink-0">
-                          <div className="flex items-center gap-1 text-[11px] font-medium text-zinc-400">
-                            <Calendar className="w-3 h-3 text-zinc-400" />
-                            <span>{act.due_date}</span>
-                          </div>
-
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeClass}`}
-                          >
-                            {act.status}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+            <div className="space-y-3">
+              <h3 className="text-sm font-extrabold text-zinc-900 leading-snug">
+                {selectedAction.title}
+              </h3>
+              <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-150 space-y-1.5 text-xs">
+                <div className="flex justify-between text-zinc-600">
+                  <span>Assigned Department:</span>
+                  <strong className="text-zinc-900">{selectedAction.department}</strong>
+                </div>
+                <div className="flex justify-between text-zinc-600">
+                  <span>Priority Tier:</span>
+                  <strong className="text-amber-600">{selectedAction.priority}</strong>
+                </div>
+                <div className="flex justify-between text-zinc-600">
+                  <span>Target Due Date:</span>
+                  <strong className="text-zinc-900">{selectedAction.due_date}</strong>
+                </div>
+                <div className="flex justify-between text-zinc-600">
+                  <span>Current Status:</span>
+                  <strong className="text-purple-700">{selectedAction.status}</strong>
                 </div>
               </div>
             </div>
 
-            {/* ==================================================================== */ }
-            {/* ACTION EXECUTION MODAL                                               */ }
-            {/* ==================================================================== */ }
-            {
-              selectedAction && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-                  <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-5 border border-zinc-200">
-                    <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                      <div className="flex items-center gap-2 text-base font-bold text-zinc-950">
-                        <Target className="w-5 h-5 text-purple-600" />
-                        <span>Execute Next Best Action</span>
-                      </div>
-                      <button
-                        onClick={() => setSelectedAction(null)}
-                        className="p-1 rounded-xl hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-extrabold text-zinc-900 leading-snug">
-                        {selectedAction.title}
-                      </h3>
-                      <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-150 space-y-1.5 text-xs">
-                        <div className="flex justify-between text-zinc-600">
-                          <span>Assigned Department:</span>
-                          <strong className="text-zinc-900">{selectedAction.department}</strong>
-                        </div>
-                        <div className="flex justify-between text-zinc-600">
-                          <span>Priority Tier:</span>
-                          <strong className="text-amber-600">{selectedAction.priority}</strong>
-                        </div>
-                        <div className="flex justify-between text-zinc-600">
-                          <span>Target Due Date:</span>
-                          <strong className="text-zinc-900">{selectedAction.due_date}</strong>
-                        </div>
-                        <div className="flex justify-between text-zinc-600">
-                          <span>Current Status:</span>
-                          <strong className="text-purple-700">{selectedAction.status}</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
-                      <button
-                        onClick={() => setSelectedAction(null)}
-                        className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:text-zinc-900 rounded-xl"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleConfirmAction}
-                        className="px-5 py-2.5 bg-[#6e57dc] hover:bg-[#5842be] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
-                      >
-                        Confirm & Dispatch Action
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            }
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
+              <button
+                onClick={() => setSelectedAction(null)}
+                className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:text-zinc-900 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAction}
+                className="px-5 py-2.5 bg-[#6e57dc] hover:bg-[#5842be] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+              >
+                Confirm & Dispatch Action
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-        );
+  );
 }
