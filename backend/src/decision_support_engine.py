@@ -1588,7 +1588,7 @@ def evaluate_dyadic_competitive_impact(
         why_it_matters = (
             f"Amazon Bazaar creates severe supplier retention risk for {target_company} across core textile and apparel manufacturing belts "
             f"(Surat, Tirupur, Ludhiana). By waiving referral fees on apparel under ₹300, restructuring Prime Lite to ₹399/yr, and deploying "
-            f"3 dedicated Boeing 737 freighters with 110 rail coaches, Amazon is aggressively targeting {target_company}'s supplier base. "
+            f"3 dedicated Boeing 737 freighters with 110 rail coaches, Amazon is aggressively targeting {target_company}'s supplier base to challenge {target_company}'s price leadership. "
             f"If Amazon successfully drains regional apparel manufacturers, {target_company} faces catalog attrition and erosion of its price-floor advantage."
         )
         affected_departments = ["Engineering", "Sales", "Leadership", "Product"]
@@ -2526,6 +2526,7 @@ def synthesize_decision_support_record(
             "id": f"ds_{competitor_name.lower().replace(' ', '_')}",
             "company_name": competitor_name,
             "target_company": target_company,
+            "headline": f"Surveillance Active for {competitor_name}",
             "dimension": "Market Surveillance",
             "impact_category": "Market Surveillance",
             "threat_type": "No significant competitive impact",
@@ -2690,6 +2691,7 @@ def synthesize_decision_support_record(
         "id": f"ds_{competitor_name.lower().replace(' ', '_')}",
         "company_name": competitor_name,
         "target_company": target_company,
+        "headline": primary_event.get("headline") or primary_event.get("title") or what_happened,
         "dimension": cat,
         "impact_category": cat,
         "threat_type": eval_result.get("threat_type", "Direct competitive threat"),
