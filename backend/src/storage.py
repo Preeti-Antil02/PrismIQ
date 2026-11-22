@@ -29,6 +29,7 @@ class MockCursor:
     def __init__(self):
         self.queries: List[Tuple[str, Any]] = []
         self.rowcount = 1
+        self.description = None
 
     def execute(self, query: str, params: Any = None):
         self.queries.append((query, params))
@@ -629,7 +630,9 @@ def load_signals(
             res = []
             for fn in known_tenant_signal_files[tid]:
                 candidate = data_dir / fn
-                if not candidate.exists() and (_backend_root / "data" / fn).exists():
+                if not candidate.exists() and (_backend_root / "published_briefs" / fn).exists():
+                    candidate = _backend_root / "published_briefs" / fn
+                elif not candidate.exists() and (_backend_root / "data" / fn).exists():
                     candidate = _backend_root / "data" / fn
                 if candidate.exists():
                     try:
@@ -935,7 +938,9 @@ def load_events(
             res = []
             for fn in known_tenant_event_files[tid]:
                 candidate = data_dir / fn
-                if not candidate.exists() and (_backend_root / "data" / fn).exists():
+                if not candidate.exists() and (_backend_root / "published_briefs" / fn).exists():
+                    candidate = _backend_root / "published_briefs" / fn
+                elif not candidate.exists() and (_backend_root / "data" / fn).exists():
                     candidate = _backend_root / "data" / fn
                 if candidate.exists():
                     try:
@@ -1974,10 +1979,11 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
             })
         return res
 
-    # Check for any confirmed_competitors_*.json on disk
-    for f in _get_data_dir().glob("confirmed_competitors_*.json"):
+    # Check for tenant-specific confirmed_competitors file on disk
+    tenant_conf = _get_data_dir() / f"confirmed_competitors_{tid}.json"
+    if tid and tid != "00000000-0000-0000-0000-000000000000" and tenant_conf.exists():
         try:
-            with open(f, "r", encoding="utf-8") as fh:
+            with open(tenant_conf, "r", encoding="utf-8") as fh:
                 f_data = json.load(fh)
                 if f_data.get("target_company"):
                     tgt = f_data["target_company"]
