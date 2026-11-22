@@ -212,11 +212,10 @@ export function ComparePage() {
                 <button
                   key={comp.company_name}
                   onClick={() => setSelectedCompetitorName(comp.company_name)}
-                  className={`app-filter-btn ${
-                    selectedCompetitorName.toLowerCase() === comp.company_name.toLowerCase()
-                      ? "app-filter-btn-active"
-                      : ""
-                  }`}
+                  className={`app-filter-btn ${selectedCompetitorName.toLowerCase() === comp.company_name.toLowerCase()
+                    ? "app-filter-btn-active"
+                    : ""
+                    }`}
                 >
                   {comp.company_name}
                 </button>
@@ -230,11 +229,10 @@ export function ComparePage() {
               <button
                 type="button"
                 onClick={() => setActiveView("matrix")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                  activeView === "matrix"
-                    ? "bg-white text-[#17171b] shadow-xs border border-[rgba(20,20,30,0.08)]"
-                    : "text-[#70717a] hover:text-[#17171b]"
-                }`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeView === "matrix"
+                  ? "bg-white text-[#17171b] shadow-xs border border-[rgba(20,20,30,0.08)]"
+                  : "text-[#70717a] hover:text-[#17171b]"
+                  }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 3-State Capability Matrix
@@ -246,11 +244,10 @@ export function ComparePage() {
               <button
                 type="button"
                 onClick={() => setActiveView("dossier")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                  activeView === "dossier"
-                    ? "bg-white text-[#17171b] shadow-xs border border-[rgba(20,20,30,0.08)]"
-                    : "text-[#70717a] hover:text-[#17171b]"
-                }`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeView === "dossier"
+                  ? "bg-white text-[#17171b] shadow-xs border border-[rgba(20,20,30,0.08)]"
+                  : "text-[#70717a] hover:text-[#17171b]"
+                  }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#6e57dc]" />
                 Competitor Dossier Matrix
@@ -262,11 +259,10 @@ export function ComparePage() {
               <button
                 type="button"
                 onClick={() => setActiveView("telemetry")}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                  activeView === "telemetry"
-                    ? "bg-white text-[#17171b] shadow-xs border border-[rgba(20,20,30,0.08)]"
-                    : "text-[#70717a] hover:text-[#17171b]"
-                }`}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeView === "telemetry"
+                  ? "bg-white text-[#17171b] shadow-xs border border-[rgba(20,20,30,0.08)]"
+                  : "text-[#70717a] hover:text-[#17171b]"
+                  }`}
               >
                 <Radio className="w-3.5 h-3.5 text-[#35a9c2]" />
                 Telemetry & Signal Volume
@@ -373,13 +369,12 @@ export function ComparePage() {
                         >
                           <div className="flex items-center gap-2">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                row.targetStatus === "Supported"
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : row.targetStatus === "Unsupported"
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.targetStatus === "Supported"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : row.targetStatus === "Unsupported"
                                   ? "bg-rose-50 text-rose-700 border border-rose-200"
                                   : "bg-zinc-100 text-[#70717a] border border-zinc-200"
-                              }`}
+                                }`}
                             >
                               ● {row.targetStatus}
                             </span>
@@ -401,13 +396,12 @@ export function ComparePage() {
                         >
                           <div className="flex items-center gap-2">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                row.compStatus === "Supported"
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : row.compStatus === "Unsupported"
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.compStatus === "Supported"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : row.compStatus === "Unsupported"
                                   ? "bg-rose-50 text-rose-700 border border-rose-200"
                                   : "bg-zinc-100 text-[#70717a] border border-zinc-200"
-                              }`}
+                                }`}
                             >
                               ● {row.compStatus}
                             </span>
@@ -443,13 +437,12 @@ export function ComparePage() {
                         <div className="text-xs text-[#70717a]">Capability: <strong className="text-[#17171b]">{selectedCellEvidence.dimension}</strong></div>
                         <div>
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              selectedCellEvidence.status === "Supported"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : selectedCellEvidence.status === "Unsupported"
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${selectedCellEvidence.status === "Supported"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : selectedCellEvidence.status === "Unsupported"
                                 ? "bg-rose-50 text-rose-700 border border-rose-200"
                                 : "bg-zinc-100 text-[#70717a] border border-zinc-200"
-                            }`}
+                              }`}
                           >
                             ● {selectedCellEvidence.status}
                           </span>
