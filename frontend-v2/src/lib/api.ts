@@ -2962,5 +2962,200 @@ export async function ingestDirectText(
   return res.json();
 }
 
+// ============================================================================
+// Executive Overview & Competitor Intelligence Detail Types & APIs
+// ============================================================================
+
+export interface OverviewMetricItem {
+  value: number;
+  delta: string;
+  label: string;
+}
+
+export interface OverviewAttentionItem {
+  id: string;
+  competitor: string;
+  logo: string;
+  title: string;
+  description: string;
+  impact: string;
+  impact_level: "High" | "Medium" | "Low";
+  department: string;
+  department_icon?: string;
+  date: string;
+}
+
+export interface OverviewCompetitiveLandscape {
+  time_range: string;
+  competitors: string[];
+  colors: Record<string, string>;
+  months: string[];
+  chart_data: Array<Record<string, any>>;
+}
+
+export interface OverviewStrategicPattern {
+  id: string;
+  tag: string;
+  tag_color: "purple" | "teal" | string;
+  title: string;
+  companies: string[];
+  companies_text: string;
+  related_events_count: number;
+  competitors_count: number;
+  description: string;
+  visual_type: "trend_blocks" | "ai_bot" | string;
+}
+
+export interface OverviewNextBestAction {
+  id: string;
+  title: string;
+  department: string;
+  priority: string;
+  priority_level: "High" | "Medium" | "Low";
+  due_date: string;
+  status: "In Progress" | "Planned" | "Not Started" | string;
+  status_color?: string;
+  icon?: "target" | "barchart" | "handshake" | string;
+}
+
+export interface OverviewPayload {
+  target_company: string;
+  last_updated: string;
+  headline_badge: string;
+  headline_title: string;
+  headline_subtitle: string;
+  metrics: {
+    tracked_competitors: OverviewMetricItem;
+    verified_events: OverviewMetricItem;
+    high_priority_developments: OverviewMetricItem;
+    pending_actions: OverviewMetricItem;
+  };
+  threat_overview?: {
+    score: number;
+    max: number;
+    rating: string;
+    trend: string;
+    trend_label: string;
+    key_drivers: Array<{ name: string; percentage: number }>;
+  };
+  what_deserves_attention: OverviewAttentionItem[];
+  competitive_landscape: OverviewCompetitiveLandscape;
+  emerging_strategic_patterns: OverviewStrategicPattern[];
+  next_best_actions: OverviewNextBestAction[];
+}
+
+export interface IntelligenceDetailPayload {
+  id: string;
+  competitor_name: string;
+  target_company: string;
+  logo: string;
+  urgency_badge: string;
+  threat_badge: string;
+  confidence_badge: string;
+  subtitle: string;
+  last_updated: string;
+  what_happened: {
+    published_date: string;
+    headline: string;
+    paragraph: string;
+    exposed_target_product: string;
+    image_url?: string;
+  };
+  why_it_matters: {
+    key_impact: string;
+    strategic_lens: {
+      affected_products: string;
+      overlapping_segments: string;
+      competitor_advantage: string;
+      business_risk: string;
+      supporting_evidence: string;
+      uncertain_assumptions: string;
+    };
+    full_analysis?: string;
+  };
+  who_is_affected: {
+    departments: Array<{
+      department: string;
+      subtitle: string;
+      details: string;
+      icon?: string;
+    }>;
+  };
+  what_should_we_do: {
+    title: string;
+    subtitle: string;
+    actions: Array<{
+      number: number;
+      title: string;
+      department: string;
+      days: string;
+      business_justification?: string;
+    }>;
+    priority: string;
+    execution_horizon: string;
+  };
+  urgency_and_time_horizon: {
+    time_horizon: string;
+    priority_tier: string;
+    cycle_review_due: string;
+  };
+  verification_and_confidence: {
+    verified_sources_count: number;
+    confidence_score: number;
+    confidence_breakdown?: any;
+    evidence_sources: Array<{
+      id: string;
+      source: string;
+      title: string;
+      url: string;
+      excerpt: string;
+      detected_at: string;
+    }>;
+  };
+}
+
+export async function fetchOverview(
+  company: string = "Flipkart",
+  range: string = "6m",
+  tenantId?: string
+): Promise<OverviewPayload> {
+  const token = getClientAuthToken(tenantId);
+  const params = new URLSearchParams({ company, range });
+  if (tenantId) params.set("tenant_id", tenantId);
+
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/overview?${params.toString()}`
+    : `${API_BASE_URL}/api/overview?${params.toString()}`;
+
+  const res = await fetch(baseUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch overview (${res.status})`);
+  return res.json();
+}
+
+export async function fetchIntelligenceDetail(
+  detailId: string,
+  targetCompany: string = "Flipkart",
+  tenantId?: string
+): Promise<IntelligenceDetailPayload> {
+  const token = getClientAuthToken(tenantId);
+  const params = new URLSearchParams({ target_company: targetCompany });
+  if (tenantId) params.set("tenant_id", tenantId);
+
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/intelligence/${encodeURIComponent(detailId)}?${params.toString()}`
+    : `${API_BASE_URL}/api/intelligence/${encodeURIComponent(detailId)}?${params.toString()}`;
+
+  const res = await fetch(baseUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch intelligence detail for ${detailId} (${res.status})`);
+  return res.json();
+}
+
+
 
 
