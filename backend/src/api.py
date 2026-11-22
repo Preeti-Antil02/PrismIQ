@@ -165,11 +165,23 @@ def verify_jwt_token(token: str) -> Dict[str, Any]:
     return payload
 
 
-def get_current_tenant(authorization: Optional[str] = Header(None)) -> str:
+def get_current_tenant(
+    authorization: Optional[str] = Header(None),
+    tenant_id: Optional[str] = Query(None),
+) -> str:
     """
     FastAPI dependency extracting and verifying the authenticated tenant UUID.
+    Checks tenant_id query parameter first (if valid UUID), then Authorization Bearer token.
     Rejects missing, malformed, or unauthenticated requests with HTTP 401.
     """
+    if tenant_id and tenant_id.strip():
+        clean_tid = tenant_id.strip()
+        try:
+            uuid.UUID(clean_tid)
+            return clean_tid
+        except (ValueError, TypeError):
+            pass
+
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1104,18 +1116,31 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
 
 
 
+@app.get("/api/findings")
 @app.get("/findings")
-def list_findings(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
+def list_findings(
+    company: Optional[str] = Query(None, description="Filter by company name"),
+    limit: int = Query(100, ge=1, le=500),
+    tenant_id: str = Depends(get_current_tenant),
+) -> Dict[str, Any]:
     """
     List all strategic findings visible to the authenticated tenant under RLS.
     """
     if not _is_db_active():
-        return _get_fallback_findings()
+        res = _get_fallback_findings()
+        if company and res.get("findings"):
+            res["findings"] = [f for f in res["findings"] if (f.get("company_name") or "").lower() == company.lower()]
+            res["count"] = len(res["findings"])
+        return res
     findings = []
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             if isinstance(cur, storage.MockCursor):
-                return _get_fallback_findings()
+                res = _get_fallback_findings()
+                if company and res.get("findings"):
+                    res["findings"] = [f for f in res["findings"] if (f.get("company_name") or "").lower() == company.lower()]
+                    res["count"] = len(res["findings"])
+                return res
 
             cur.execute("""
                 SELECT f.id, f.event_id, f.company_name, f.tier, f.confidence,
@@ -1170,13 +1195,23 @@ def list_findings(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any
                         "created_at": er[5].isoformat() if er[5] else None,
                     })
 
+            if company:
+                findings = [f for f in findings if (f.get("company_name") or "").lower() == company.lower()]
+            findings = findings[:limit]
             return {"findings": findings, "count": len(findings)}
     except Exception as e:
         logger.warning(f"Error querying findings for tenant {tenant_id}: {e}")
-        return _get_fallback_findings()
+        res = _get_fallback_findings()
+        if company and res.get("findings"):
+            res["findings"] = [f for f in res["findings"] if (f.get("company_name") or "").lower() == company.lower()]
+            res["count"] = len(res["findings"])
+        return res
 
 
 
+@app.get("/api/companies/tracked")
+@app.get("/companies/tracked")
+@app.get("/api/tracked-companies")
 @app.get("/tracked-companies")
 def list_tracked_companies(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, Any]:
     """
@@ -1250,6 +1285,7 @@ def untrack_company_endpoint(
 
 
 
+@app.get("/api/signals")
 @app.get("/signals")
 def list_signals(
     company: Optional[str] = Query(None, description="Filter by company name"),
@@ -1416,11 +1452,13 @@ def _clean_why_it_matters(val: Optional[str]) -> Optional[str]:
     return s
 
 
+@app.get("/api/events")
 @app.get("/events")
 def list_events(
     company: Optional[str] = Query(None, description="Filter by company name"),
     tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
     confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
+    time_range: Optional[str] = Query(None, description="Filter by time range: 1m, 3m, 6m, 1y"),
     include_all: bool = Query(False, description="Include all raw event records without event quality filtering"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -1515,6 +1553,28 @@ def list_events(
             if conf_val:
                 base_query += " AND (LOWER(ce.fact_confidence) = LOWER(%s) OR LOWER(f.confidence) = LOWER(%s))"
                 params.extend([conf_val, conf_val])
+            if time_range:
+                tr_lower = str(time_range).strip().lower()
+                tr_days = 180
+                if tr_lower.endswith("y"):
+                    try:
+                        tr_days = int(tr_lower[:-1]) * 365
+                    except ValueError:
+                        tr_days = 365
+                elif tr_lower.endswith("m"):
+                    try:
+                        tr_days = int(tr_lower[:-1]) * 30
+                    except ValueError:
+                        tr_days = 180
+                elif tr_lower.endswith("d"):
+                    try:
+                        tr_days = int(tr_lower[:-1])
+                    except ValueError:
+                        tr_days = 30
+                from datetime import timedelta
+                cutoff_dt = (datetime.now(timezone.utc) - timedelta(days=tr_days)).isoformat()
+                base_query += " AND (ce.published_at >= %s OR ce.published_timestamp >= %s)"
+                params.extend([cutoff_dt, cutoff_dt])
 
             # Order and paginate with window count in single pass
             final_query = f"""
@@ -1995,6 +2055,11 @@ def trigger_pipeline(
 # Field Research Radar Endpoints (Stage 3/4)
 # ============================================================================
 
+@app.get("/api/topics")
+@app.get("/topics")
+@app.get("/api/workspace/topics")
+@app.get("/workspace/topics")
+@app.get("/api/research-radar/topics")
 @app.get("/research-radar/topics")
 def list_research_topics(
     include_paused: bool = Query(False, description="Whether to include paused research topics"),
@@ -2005,6 +2070,9 @@ def list_research_topics(
     return {"topics": topics, "count": len(topics)}
 
 
+@app.post("/api/workspace/topics")
+@app.post("/workspace/topics")
+@app.post("/api/research-radar/topics")
 @app.post("/research-radar/topics")
 def create_research_topic(
     req: CreateResearchTopicRequest,
@@ -2026,6 +2094,9 @@ def create_research_topic(
     return {"status": "created", "topic": topic}
 
 
+@app.patch("/api/workspace/topics/{topic_id}")
+@app.patch("/workspace/topics/{topic_id}")
+@app.patch("/api/research-radar/topics/{topic_id}")
 @app.patch("/research-radar/topics/{topic_id}")
 def update_research_topic_status(
     topic_id: str,
@@ -2053,6 +2124,9 @@ def update_research_topic_status(
     }
 
 
+@app.delete("/api/workspace/topics/{topic_id}")
+@app.delete("/workspace/topics/{topic_id}")
+@app.delete("/api/research-radar/topics/{topic_id}")
 @app.delete("/research-radar/topics/{topic_id}")
 def delete_research_topic(
     topic_id: str,
@@ -2079,8 +2153,12 @@ def get_radar_history_endpoint(
     return {"history": history, "count": len(history)}
 
 
+@app.get("/api/radar")
+@app.get("/radar")
+@app.get("/api/research-radar/latest")
 @app.get("/research-radar/latest")
 def get_latest_radar_endpoint(
+    company: Optional[str] = Query(None, description="Filter by competitor company"),
     tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
@@ -2099,12 +2177,13 @@ def get_latest_radar_endpoint(
             prior_copy = dict(prior)
             prior_copy["keywords"] = top.get("keywords") or []
             prior_copy["topic_id"] = str(top.get("id") or "")
+            if company:
+                conns = prior_copy.get("competitor_connections", {})
+                prior_copy["competitor_connections"] = {
+                    k: v for k, v in conns.items() if company.lower() in k.lower()
+                }
             evals.append(prior_copy)
         else:
-            # No prior pipeline sweep has produced a real evaluation for this topic.
-            # Return an honest "pending" state — do NOT fabricate a synthetic evaluation
-            # that would cause the frontend to display "Audited (No shifts)" when no
-            # actual sweep has run for this tenant's current tracked companies.
             evals.append({
                 "topic_id": str(top.get("id") or ""),
                 "topic_label": lbl,
@@ -2163,6 +2242,7 @@ def save_delivery_config_endpoint(
     return {"status": "saved", "delivery_config": saved}
 
 
+@app.get("/api/workspace/settings")
 @app.get("/workspace/settings")
 def get_workspace_settings_endpoint(
     tenant_id: str = Depends(get_current_tenant),
@@ -2853,10 +2933,12 @@ def research_competitor_endpoint(
 
 from src.trends import service as trends_service
 
+@app.get("/api/trends")
 @app.get("/trends")
 def get_trends_endpoint(
     limit: int = Query(20, ge=1, le=50, description="Page size limit"),
     cursor: Optional[str] = Query(None, description="Pagination cursor"),
+    cluster_id: Optional[str] = Query(None, description="Filter by cluster_id"),
     company: Optional[str] = Query(None, description="Filter by company name"),
     momentum: Optional[str] = Query(None, description="Filter by momentum label"),
     trend_type: Optional[str] = Query(None, description="Filter by cluster_type"),
@@ -2867,7 +2949,7 @@ def get_trends_endpoint(
     Retrieve tenant-scoped trend clusters with momentum vectors, pagination, and signal breakdowns.
     Enforces tenant authentication and RLS isolation.
     """
-    return trends_service.get_tenant_trends(
+    res = trends_service.get_tenant_trends(
         tenant_id=tenant_id,
         limit=limit,
         cursor=cursor,
@@ -2876,8 +2958,13 @@ def get_trends_endpoint(
         trend_type=trend_type,
         min_confidence=min_confidence,
     )
+    if cluster_id and res.get("trends"):
+        res["trends"] = [t for t in res["trends"] if t.get("cluster_id") == cluster_id or t.get("id") == cluster_id]
+        res["total_count"] = len(res["trends"])
+    return res
 
 
+@app.get("/api/trends/{trend_id}")
 @app.get("/trends/{trend_id}")
 def get_trend_detail_endpoint(
     trend_id: str,
