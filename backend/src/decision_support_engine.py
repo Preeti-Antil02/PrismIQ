@@ -940,6 +940,86 @@ COMPANY_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
                 "time_horizon": "Tactical (<30d)"
             }
         ]
+    },
+    "reliance": {
+        "name": "Reliance Retail",
+        "domain": "relianceretail.com",
+        "sector": "Omnichannel & Quick Commerce",
+        "products": ["JioMart", "JioMart Express", "Reliance Digital", "Trends"],
+        "target_customers": ["Tier 1 & Tier 2 urban households", "Kirana store partners"],
+        "pricing_model": "Hybrid D2C and Kirana merchant network pricing with localized store fulfillment.",
+        "strategic_priorities": ["Omnichannel store fulfillment", "Quick commerce rapid grocery network"],
+        "verified_events": [
+            {
+                "event_id": "ev_reliance_qc_01",
+                "headline": "Reliance to enter quick commerce segment",
+                "what_happened": "Reliance Retail is planning to launch a quick commerce platform in 2025, targeting Tier 1 and Tier 2 cities via its nationwide network of over 18,000 neighborhood retail stores.",
+                "product": "JioMart Quick Commerce",
+                "category": "Customer Acquisition Threat",
+                "dimension": "Distribution & Logistics",
+                "date": "2026-10-22",
+                "threat_type": "Direct competitive threat",
+                "urgency": "Medium",
+                "time_horizon": "Tactical (<30d)",
+                "has_authentic_deadline": True,
+                "suggested_deadline_days": 21,
+                "actual_change": "Converting 5,000 Smart Point and Fresh Signature retail outlets into hyper-local dark stores delivering essentials in 15-30 minutes.",
+                "evidence_sources": [
+                    {
+                        "id": "ev_rel_src_1",
+                        "source": "LiveMint / Retail",
+                        "title": "Reliance Retail Prepares Quick Commerce Entry Backed by 18,000 Stores",
+                        "url": "https://www.livemint.com/companies/news/reliance-retail-quick-commerce-launch",
+                        "excerpt": "Reliance plans to roll out rapid deliveries using existing brick-and-mortar storefronts as localized micro-fulfillment hubs.",
+                        "detected_at": "2026-10-22T08:00:00Z"
+                    },
+                    {
+                        "id": "ev_rel_src_2",
+                        "source": "Reliance Industries Annual Analyst Meet",
+                        "title": "JioMart Rapid Grocery & Apparel Delivery Strategy Disclosures",
+                        "url": "https://www.ril.com/investors/presentations",
+                        "excerpt": "Disclosed conversion of urban footprint into omnichannel nodes with automated inventory picking.",
+                        "detected_at": "2026-10-21T12:00:00Z"
+                    }
+                ]
+            }
+        ]
+    },
+    "tata": {
+        "name": "Tata Group",
+        "domain": "tata.com",
+        "sector": "Enterprise Cloud & AI Infrastructure",
+        "products": ["Tata Neu", "Tata Communications Cloud", "TCS Enterprise AI Hub"],
+        "target_customers": ["Enterprise IT organizations", "Tata Neu super-app consumer base"],
+        "pricing_model": "Enterprise SLA and unified loyalty NeuCoins integration across commercial verticals.",
+        "strategic_priorities": ["AI Infrastructure & Cloud Services", "Omnichannel Tata Neu loyalty integration"],
+        "verified_events": [
+            {
+                "event_id": "ev_tata_ai_01",
+                "headline": "Tata Group invests in AI infrastructure",
+                "what_happened": "Tata Group announced increased investment in AI infrastructure and sovereign cloud services to power enterprise AI models and consumer commerce optimization.",
+                "product": "Tata Sovereign Cloud & Enterprise AI Engine",
+                "category": "Technology & AI Infrastructure",
+                "dimension": "Technology & AI Infrastructure",
+                "date": "2026-10-18",
+                "threat_type": "Emerging competitive threat",
+                "urgency": "Low",
+                "time_horizon": "Strategic (90d+)",
+                "has_authentic_deadline": True,
+                "suggested_deadline_days": 30,
+                "actual_change": "Committed $1.2B toward high-density sovereign GPU clusters and localized enterprise inferencing centers.",
+                "evidence_sources": [
+                    {
+                        "id": "ev_tata_src_1",
+                        "source": "Business Standard",
+                        "title": "Tata Group Expands Sovereign AI Datacenter Infrastructure Across India",
+                        "url": "https://www.business-standard.com/companies/news/tata-ai-datacenter-investment",
+                        "excerpt": "Tata Communications and TCS collaborate on private enterprise AI clusters.",
+                        "detected_at": "2026-10-18T10:00:00Z"
+                    }
+                ]
+            }
+        ]
     }
 }
 
