@@ -1,5 +1,8 @@
-import { redirect } from "next/navigation";
+"use client";
 
-export default function OverviewRedirect() {
-  redirect("/app");
+import * as React from "react";
+import { OverviewPage } from "@/components/app/OverviewPage";
+
+export default function OverviewRoutePage() {
+  return <OverviewPage />;
 }
