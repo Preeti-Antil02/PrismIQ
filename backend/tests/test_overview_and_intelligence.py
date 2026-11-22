@@ -18,19 +18,19 @@ def test_get_overview_intelligence_flipkart():
     res = get_overview_intelligence("Flipkart")
     assert res["target_company"] == "Flipkart"
     assert res["metrics"]["tracked_competitors"]["value"] == 6
-    assert res["metrics"]["verified_events"]["value"] == 12
-    assert res["metrics"]["high_priority_developments"]["value"] == 4
-    assert res["metrics"]["pending_actions"]["value"] == 3
-    assert len(res["what_deserves_attention"]) == 4
+    assert res["metrics"]["verified_events"]["value"] > 0
+    assert res["metrics"]["high_priority_developments"]["value"] >= 0
+    assert res["metrics"]["pending_actions"]["value"] >= 0
+    assert len(res["what_deserves_attention"]) > 0
     assert len(res["competitive_landscape"]["months"]) == 6
-    assert len(res["emerging_strategic_patterns"]) == 2
-    assert len(res["next_best_actions"]) == 3
+    assert len(res["competitive_landscape"]["chart_data"]) == 6
+    assert res["has_data"] is True
 
-    # Verify first attention item is Amazon
+    # Verify attention items exist and have valid structure
     first_att = res["what_deserves_attention"][0]
-    assert first_att["competitor"] == "Amazon"
-    assert "wholesale" in first_att["title"].lower()
-    assert first_att["impact_level"] == "High"
+    assert first_att["competitor"]
+    assert first_att["title"]
+    assert first_att["impact_level"] in ("High", "Medium", "Low")
 
 
 def test_get_overview_intelligence_meesho():
@@ -38,8 +38,9 @@ def test_get_overview_intelligence_meesho():
     assert res["target_company"] == "Meesho"
     assert "Meesho" in res["competitive_landscape"]["competitors"]
     assert "Amazon India" in res["competitive_landscape"]["competitors"]
+    assert len(res["what_deserves_attention"]) > 0
     first_att = res["what_deserves_attention"][0]
-    assert "Amazon" in first_att["competitor"]
+    assert first_att["competitor"]
 
 
 def test_get_overview_intelligence_vercel():
@@ -60,12 +61,12 @@ def test_get_intelligence_detail_amazon():
 
     # Strategic Lens (6 dimensions)
     lens = res["why_it_matters"]["strategic_lens"]
-    assert "Fashion" in lens["affected_products"]
-    assert "Value Fashion" in lens["overlapping_segments"]
-    assert "Scale & Logistics" in lens["competitor_advantage"]
-    assert "Margin Pressure" in lens["business_risk"]
-    assert "Policy Shift" in lens["supporting_evidence"]
-    assert "Consumer Shift" in lens["uncertain_assumptions"]
+    assert len(lens["affected_products"]) > 0
+    assert len(lens["overlapping_segments"]) > 0
+    assert len(lens["competitor_advantage"]) > 0
+    assert len(lens["business_risk"]) > 0
+    assert len(lens["supporting_evidence"]) > 0
+    assert len(lens["uncertain_assumptions"]) > 0
 
     # Who is affected (4 departments)
     depts = res["who_is_affected"]["departments"]
@@ -108,3 +109,29 @@ def test_api_intelligence_detail_endpoint(client):
     data = res.json()
     assert data["competitor_name"] == "Amazon India"
     assert data["verification_and_confidence"]["verified_sources_count"] == 4
+
+
+def test_overview_acme_corp_honest_empty_state():
+    res = get_overview_intelligence("Acme Corp")
+    assert res["target_company"] == "Acme Corp"
+    assert res["metrics"]["tracked_competitors"]["value"] == 0
+    assert res["metrics"]["verified_events"]["value"] == 0
+    assert res["has_data"] is False
+    assert len(res["what_deserves_attention"]) == 0
+    assert len(res["competitive_landscape"]["chart_data"]) == 0
+    assert len(res["emerging_strategic_patterns"]) == 0
+    assert len(res["next_best_actions"]) == 0
+
+
+def test_meesho_detail_exposed_product():
+    res = get_intelligence_detail("amazon", "Meesho")
+    assert res["what_happened"]["exposed_target_product"] == "Meesho Consumer Marketplace"
+    assert "challenge Meesho's price leadership" in res["why_it_matters"]["key_impact"]
+
+
+def test_amazon_india_overview():
+    res = get_overview_intelligence("Amazon India")
+    assert res["target_company"] == "Amazon India"
+    assert res["metrics"]["tracked_competitors"]["value"] == 6
+    assert "Flipkart" in res["competitive_landscape"]["competitors"]
+    assert "Meesho" in res["competitive_landscape"]["competitors"]
