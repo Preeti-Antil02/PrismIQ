@@ -1,0 +1,57 @@
+[
+  {
+    "company_name": "Meesho",
+    "is_target": true,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "meesho.com",
+    "industry_category": "Enterprise Technology",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Primary subject entity for competitive benchmarking and strategic intelligence."
+  },
+  {
+    "company_name": "Amazon India",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "amazonindia.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Meesho."
+  },
+  {
+    "company_name": "Flipkart",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "flipkart.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Meesho."
+  },
+  {
+    "company_name": "Shopsy",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "shopsy.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Meesho."
+  },
+  {
+    "company_name": "Ajio",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "ajio.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Meesho."
+  }
+]
