@@ -1,0 +1,3887 @@
+[
+  {
+    "event_id": "evt_13a7ae63a9edf8fb",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "GitHub ForkEvent forked in openai/NavierStokesAndEuler",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub ForkEvent forked in openai/NavierStokesAndEuler",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "url": "https://github.com/openai/NavierStokesAndEuler",
+    "source_urls": [
+      "https://github.com/openai/NavierStokesAndEuler"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-20T01:09:35Z)]: GitHub ForkEvent forked in openai/NavierStokesAndEuler — Activity on repository openai/NavierStokesAndEuler by haibianshifeng",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_f3a33062cb246e2d",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "GitHub ForkEvent forked in openai/openai-python",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub ForkEvent forked in openai/openai-python",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-07-01T09:17:00+00:00",
+    "latest_detected_at": "2026-07-01T09:17:00+00:00",
+    "published_at": "2026-07-01T09:17:00+00:00",
+    "published_timestamp": "2026-07-01T09:17:00+00:00",
+    "url": "https://github.com/openai/openai-python",
+    "source_urls": [
+      "https://github.com/openai/openai-python",
+      "https://github.com/openai/openai-python",
+      "https://github.com/openai/openai-python"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-20T00:58:49Z)]: GitHub ForkEvent forked in openai/openai-python — Activity on repository openai/openai-python by HasanMorales28574\n\n[GITHUB (2026-09-20T01:08:04Z)]: GitHub ForkEvent forked in openai/openai-python — Activity on repository openai/openai-python by Shuhuam058\n\n[GITHUB (2026-09-20T01:08:26Z)]: GitHub ForkEvent forked in openai/openai-python — Activity on repository openai/openai-python by Akaneb93960",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 3
+  },
+  {
+    "event_id": "evt_7b70aa51f5a3bc00",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "GitHub Issue labeled in openai/codex: [Windows] Elevated sandbox setup: orchestrator-built payload silently rejected by the same helper that accepts a hand-built payload (CLI 0.154.0)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Issue labeled in openai/codex: [Windows] Elevated sandbox setup: orchestrator-built payload silently rejected by the same helper that accepts a hand-built payload (CLI 0.154.0)",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-08-01T10:34:00+00:00",
+    "latest_detected_at": "2026-08-01T10:34:00+00:00",
+    "published_at": "2026-08-01T10:34:00+00:00",
+    "published_timestamp": "2026-08-01T10:34:00+00:00",
+    "url": "https://github.com/openai/codex",
+    "source_urls": [
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-20T01:04:07Z)]: GitHub Issue labeled in openai/codex: [Windows] Elevated sandbox setup: orchestrator-built payload silently rejected by the same helper that accepts a hand-built payload (CLI 0.154.0) — ### What version of Codex CLI is running?\n\ncodex-cli 0.154.0\n\n### What subscription do you have?\n\nChatGPT Plus\n\n### Which model were you using?\n\nN/A — the failure occurs during `codex sandbox setup` (provisioning), before any model interaction.\n\n### What platform is your computer?\n\nMicrosoft Windows\n\n[GITHUB (2026-09-20T01:04:07Z)]: GitHub Issue opened in openai/codex: [Windows] Elevated sandbox setup: orchestrator-built payload silently rejected by the same helper that accepts a hand-built payload (CLI 0.154.0) — ### What version of Codex CLI is running?\n\ncodex-cli 0.154.0\n\n### What subscription do you have?\n\nChatGPT Plus\n\n### Which model were you using?\n\nN/A — the failure occurs during `codex sandbox setup` (provisioning), before any model interaction.\n\n### What platform is your computer?\n\nMicrosoft Windows\n\n[GITHUB (2026-09-20T01:04:40Z)]: GitHub Issue labeled in openai/codex: [Windows] Elevated sandbox setup: orchestrator-built payload silently rejected by the same helper that accepts a hand-built payload (CLI 0.154.0) — ### What version of Codex CLI is running?\n\ncodex-cli 0.154.0\n\n### What subscription do you have?\n\nChatGPT Plus\n\n### Which model were you using?\n\nN/A — the failure occurs during `codex sandbox setup` (provisioning), before any model interaction.\n\n### What platform is your computer?\n\nMicrosoft Windows\n\n[GITHUB (2026-09-20T01:04:41Z)]: GitHub Issue labeled in openai/codex: [Windows] Elevated sandbox setup: orchestrator-built payload silently rejected by the same helper that accepts a hand-built payload (CLI 0.154.0) — ### What version of Codex CLI is running?\n\ncodex-cli 0.154.0\n\n### What subscription do you have?\n\nChatGPT Plus\n\n### Which model were you using?\n\nN/A — the failure occurs during `codex sandbox setup` (provisioning), before any model interaction.\n\n### What platform is your computer?\n\nMicrosoft Windows\n\n[GITHUB (2026-09-20T01:04:41Z)]: GitHub Issue labeled in openai/codex: [Windows] Elevated sandbox setup: orchestrator-built payload silently rejected by the same helper that accepts a hand-built payload (CLI 0.154.0) — ### What version of Codex CLI is running?\n\ncodex-cli 0.154.0\n\n### What subscription do you have?\n\nChatGPT Plus\n\n### Which model were you using?\n\nN/A — the failure occurs during `codex sandbox setup` (provisioning), before any model interaction.\n\n### What platform is your computer?\n\nMicrosoft Windows",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 5
+  },
+  {
+    "event_id": "evt_63d8f60d7ef04f14",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "GitHub IssueCommentEvent created in openai/codex",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub IssueCommentEvent created in openai/codex",
+    "corroboration_count": 19,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-09-01T11:51:00+00:00",
+    "latest_detected_at": "2026-09-01T11:51:00+00:00",
+    "published_at": "2026-09-01T11:51:00+00:00",
+    "published_timestamp": "2026-09-01T11:51:00+00:00",
+    "url": "https://github.com/openai/codex",
+    "source_urls": [
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex",
+      "https://github.com/openai/codex"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-20T00:57:55Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by fengchen22\n\n[GITHUB (2026-09-20T00:59:32Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by fengchen22\n\n[GITHUB (2026-09-20T01:00:03Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:04Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:05Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:07Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:08Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:09Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:11Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:12Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:13Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:14Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by jumpingFinger\n\n[GITHUB (2026-09-20T01:00:15Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:16Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:17Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:19Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:00:20Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by leixyou\n\n[GITHUB (2026-09-20T01:01:20Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by gitjburns\n\n[GITHUB (2026-09-20T01:04:10Z)]: GitHub IssueCommentEvent created in openai/codex — Activity on repository openai/codex by ArijitChowdhury-Algolia",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 19
+  },
+  {
+    "event_id": "evt_9eb42733e1194a40",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "GitHub Issue closed in openai/codex: Updated to v0.155.1 and now there's this annoying and distracting animation in the prompt area with no clear way to disable it.",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Issue closed in openai/codex: Updated to v0.155.1 and now there's this annoying and distracting animation in the prompt area with no clear way to disable it.",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-10-02T12:08:00+00:00",
+    "latest_detected_at": "2026-10-02T12:08:00+00:00",
+    "published_at": "2026-10-02T12:08:00+00:00",
+    "published_timestamp": "2026-10-02T12:08:00+00:00",
+    "url": "https://github.com/openai/codex",
+    "source_urls": [
+      "https://github.com/openai/codex"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-20T01:01:20Z)]: GitHub Issue closed in openai/codex: Updated to v0.155.1 and now there's this annoying and distracting animation in the prompt area with no clear way to disable it. — Version: v0.155.1\nSubscription: ChatGPT Pro 20x\nModel: gpt-6-astra\nPlatform: Linux\nTerminal: Ghostty\nIssue: Annoying animation in the prompt area with no clear way to disable it.\nHow to reproduce: Start codex CLI\nExpected behavior: Ability to make this annoying animation stop.\nAdditional information",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_88663edb0699602f",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Model Policy Manager, Multimodal Safety (Safety Systems)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Model Policy Manager, Multimodal Safety (Safety Systems)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-02T13:25:00+00:00",
+    "latest_detected_at": "2026-11-02T13:25:00+00:00",
+    "published_at": "2026-11-02T13:25:00+00:00",
+    "published_timestamp": "2026-11-02T13:25:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/6de1fad0-a69d-4d81-9d3a-2a3c5512b940",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/6de1fad0-a69d-4d81-9d3a-2a3c5512b940"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-19T03:11:38.474+00:00)]: Job Posting: Model Policy Manager, Multimodal Safety (Safety Systems) — Department: Safety Systems | Location: San Francisco | Role: Model Policy Manager, Multimodal Safety",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_322603d8f918e4b9",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Model Policy Manager, National Security (Safety Systems)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Model Policy Manager, National Security (Safety Systems)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-02T14:42:00+00:00",
+    "latest_detected_at": "2026-06-02T14:42:00+00:00",
+    "published_at": "2026-06-02T14:42:00+00:00",
+    "published_timestamp": "2026-06-02T14:42:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/50e8714b-c8a2-47f0-bc7c-2a76e988b380",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/50e8714b-c8a2-47f0-bc7c-2a76e988b380"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-19T03:02:43.460+00:00)]: Job Posting: Model Policy Manager, National Security (Safety Systems) — Department: Safety Systems | Location: San Francisco | Role: Model Policy Manager, National Security",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_71b55e42d03f921f",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown - The Korea Times",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown - The Korea Times",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-07-03T15:59:00+00:00",
+    "latest_detected_at": "2026-07-03T15:59:00+00:00",
+    "published_at": "2026-07-03T15:59:00+00:00",
+    "published_timestamp": "2026-07-03T15:59:00+00:00",
+    "url": "https://www.koreatimes.co.kr/world/20260920/lawsuit-says-anthropic-openai-spacexai-and-google-made-illegal-agreement-on-ai-slowdown",
+    "source_urls": [
+      "https://www.koreatimes.co.kr/world/20260920/lawsuit-says-anthropic-openai-spacexai-and-google-made-illegal-agreement-on-ai-slowdown"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 23:57:03 +0000)]: Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown - The Korea Times — A new lawsuit claims Anthropic, OpenAI, SpaceXAI and Google made an illegal deal to slow the pace of their respective AI development. The lawsuit,...",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_d37ce0550d53d178",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-03T16:16:00+00:00",
+    "latest_detected_at": "2026-08-03T16:16:00+00:00",
+    "published_at": "2026-08-03T16:16:00+00:00",
+    "published_timestamp": "2026-08-03T16:16:00+00:00",
+    "url": "https://abc7.com/post/lawsuit-says-anthropic-openai-spacexai-google-made-illegal-agreement-ai-development-slowdown/19850638/",
+    "source_urls": [
+      "https://abc7.com/post/lawsuit-says-anthropic-openai-spacexai-google-made-illegal-agreement-ai-development-slowdown/19850638/"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 23:42:22 +0000)]: Lawsuit says Anthropic, OpenAI, SpaceXAI and Google made illegal agreement on AI slowdown — The lawsuit, which was filed Friday in the U.S. District Court for the Northern District of California, argues that the leading AI companies violated antitrust laws when they agreed to coordinate slowdown efforts, and that doing so would reduce the value consumers get for paid AI subscriptions.",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_ebeef40d40c92d60",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Shirtloads of Science: OpenAI's Rogue AI: A Real-World Cyberattack Explained with Dr. Petr Levedev (492)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Shirtloads of Science: OpenAI's Rogue AI: A Real-World Cyberattack Explained with Dr. Petr Levedev (492)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-03T17:33:00+00:00",
+    "latest_detected_at": "2026-09-03T17:33:00+00:00",
+    "published_at": "2026-09-03T17:33:00+00:00",
+    "published_timestamp": "2026-09-03T17:33:00+00:00",
+    "url": "https://shirtloadsofscience.libsyn.com/the-hugging-face-incident-with-dr-petr-levedev-492",
+    "source_urls": [
+      "https://shirtloadsofscience.libsyn.com/the-hugging-face-incident-with-dr-petr-levedev-492"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 23:00:00 +0000)]: Shirtloads of Science: OpenAI's Rogue AI: A Real-World Cyberattack Explained with Dr. Petr Levedev (492) — In mid-2026, a swarm of AI agents coordinated a cyberattack on Hugging Face, a platform where machine learning communities can collectively work to improve AI models and capabilities. This breach happened without human supervision. Friend of the show and science communicator Dr. Petr Lebedev brings ...",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_83d18dc001bc835e",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Gemini AI guessed passwords, accessed protected systems of 3 companies",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Gemini AI guessed passwords, accessed protected systems of 3 companies",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-04T18:50:00+00:00",
+    "latest_detected_at": "2026-10-04T18:50:00+00:00",
+    "published_at": "2026-10-04T18:50:00+00:00",
+    "published_timestamp": "2026-10-04T18:50:00+00:00",
+    "url": "https://nypost.com/2026/09/19/business/gemini-ai-guessed-passwords-accessed-protected-systems-of-3-companies/",
+    "source_urls": [
+      "https://nypost.com/2026/09/19/business/gemini-ai-guessed-passwords-accessed-protected-systems-of-3-companies/"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 22:00:32 +0000)]: Gemini AI guessed passwords, accessed protected systems of 3 companies — The incident follows similar disclosures involving AI agents from major companies, including OpenAI and Anthropic, that broke out of controlled testing environments.",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_fbb363a630e091c3",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Anthropic, Google, OpenAI, SpaceXAI sued over AI slowdown deal",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Anthropic, Google, OpenAI, SpaceXAI sued over AI slowdown deal",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-11-04T19:07:00+00:00",
+    "latest_detected_at": "2026-11-04T19:07:00+00:00",
+    "published_at": "2026-11-04T19:07:00+00:00",
+    "published_timestamp": "2026-11-04T19:07:00+00:00",
+    "url": "https://dailypost.ng/2026/09/19/anthropic-google-openai-spacexai-sued-over-ai-slowdown-deal/",
+    "source_urls": [
+      "https://dailypost.ng/2026/09/19/anthropic-google-openai-spacexai-sued-over-ai-slowdown-deal/"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 21:30:11 +0000)]: Anthropic, Google, OpenAI, SpaceXAI sued over AI slowdown deal — Anthropic, Google, OpenAI, and SpaceXAI are named in a new suit that alleges the companies entered into an illegal agreement to slow their individual",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_7bdd91e90fb302d0",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Lawsuit says Anthropic, OpenAI, Google and SpaceXAI of illegal agreement to slow AI",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Lawsuit says Anthropic, OpenAI, Google and SpaceXAI of illegal agreement to slow AI",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-06-04T08:24:00+00:00",
+    "latest_detected_at": "2026-06-04T08:24:00+00:00",
+    "published_at": "2026-06-04T08:24:00+00:00",
+    "published_timestamp": "2026-06-04T08:24:00+00:00",
+    "url": "https://www.independent.co.uk/news/world/americas/google-anthropic-openai-spacexai-lawsuit-antitrust-laws-b3052994.html",
+    "source_urls": [
+      "https://www.independent.co.uk/news/world/americas/google-anthropic-openai-spacexai-lawsuit-antitrust-laws-b3052994.html"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 21:02:55 +0000)]: Lawsuit says Anthropic, OpenAI, Google and SpaceXAI of illegal agreement to slow AI — Anthropic CEO acknowledged potential antitrust hurdles, writing that it would assist if the US government were to mediate ‘or at least enable’ cross-lab discussions",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_b07c04a5f52ed69c",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Anthropic wants to slow the AI race, but it may already be planning another monster model",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Anthropic wants to slow the AI race, but it may already be planning another monster model",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-07-04T09:41:00+00:00",
+    "latest_detected_at": "2026-07-04T09:41:00+00:00",
+    "published_at": "2026-07-04T09:41:00+00:00",
+    "published_timestamp": "2026-07-04T09:41:00+00:00",
+    "url": "https://www.digitaltrends.com/cool-tech/anthropic-new-ai-model-amodei-ai-slowdown/",
+    "source_urls": [
+      "https://www.digitaltrends.com/cool-tech/anthropic-new-ai-model-amodei-ai-slowdown/"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 20:44:36 +0000)]: Anthropic wants to slow the AI race, but it may already be planning another monster model — Anthropic CEO Dario Amodei has called for slower AI development, but the company is reportedly considering a powerful new model to counter OpenAI.",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_fc08a1d9280c17b6",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Lawsuit claims Anthropic, OpenAI, SpaceXAI and Google violated antitrust laws when they coordinated AI slowdown, reducing value of subscriptions | Fortune",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Lawsuit claims Anthropic, OpenAI, SpaceXAI and Google violated antitrust laws when they coordinated AI slowdown, reducing value of subscriptions | Fortune",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-05T10:58:00+00:00",
+    "latest_detected_at": "2026-08-05T10:58:00+00:00",
+    "published_at": "2026-08-05T10:58:00+00:00",
+    "published_timestamp": "2026-08-05T10:58:00+00:00",
+    "url": "https://fortune.com/2026/09/19/lawsuit-anthropic-openai-spacexai-google-antitrust-laws-ai-slowdown-subscription-value/",
+    "source_urls": [
+      "https://fortune.com/2026/09/19/lawsuit-anthropic-openai-spacexai-google-antitrust-laws-ai-slowdown-subscription-value/"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19 20:34:32 +0000)]: Lawsuit claims Anthropic, OpenAI, SpaceXAI and Google violated antitrust laws when they coordinated AI slowdown, reducing value of subscriptions | Fortune — The plaintiffs in the lawsuit contend they are not against the AI companies asking Congress, the White House or any other agency to develop AI regulation.",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_49bb9b9b2f988489",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Product Engagement Specialist, User Operations (User Operations)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Product Engagement Specialist, User Operations (User Operations)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-05T11:15:00+00:00",
+    "latest_detected_at": "2026-09-05T11:15:00+00:00",
+    "published_at": "2026-09-05T11:15:00+00:00",
+    "published_timestamp": "2026-09-05T11:15:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/2a799206-4716-4f26-8aef-372ed6b8df8f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/2a799206-4716-4f26-8aef-372ed6b8df8f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T21:27:06.860+00:00)]: Job Posting: Product Engagement Specialist, User Operations (User Operations) — Department: User Operations | Location: San Francisco | Role: Product Engagement Specialist, User Operations",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_8e3ff7b6891d704f",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Head of Finance - Data Centers (Strategic Finance)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Head of Finance - Data Centers (Strategic Finance)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-05T12:32:00+00:00",
+    "latest_detected_at": "2026-10-05T12:32:00+00:00",
+    "published_at": "2026-10-05T12:32:00+00:00",
+    "published_timestamp": "2026-10-05T12:32:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/144b12f3-5821-4727-a266-b5ed9ff46fd2",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/144b12f3-5821-4727-a266-b5ed9ff46fd2"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T20:00:58.662+00:00)]: Job Posting: Head of Finance - Data Centers (Strategic Finance) — Department: Strategic Finance | Location: San Francisco | Role: Head of Finance - Data Centers",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_521b920c1ff55179",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Global Transportation Programs, Senior Manager (Workplace)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Global Transportation Programs, Senior Manager (Workplace)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-06T13:49:00+00:00",
+    "latest_detected_at": "2026-11-06T13:49:00+00:00",
+    "published_at": "2026-11-06T13:49:00+00:00",
+    "published_timestamp": "2026-11-06T13:49:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/7d87459c-6085-4479-8e77-9255e6dd8329",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/7d87459c-6085-4479-8e77-9255e6dd8329"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T19:57:51.947+00:00)]: Job Posting: Global Transportation Programs, Senior Manager (Workplace) — Department: Workplace | Location: San Francisco | Role: Global Transportation Programs, Senior Manager",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_48ba67cc4cc3c3a1",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: International Marketing Lead, SMB Ads (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: International Marketing Lead, SMB Ads (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-06T14:06:00+00:00",
+    "latest_detected_at": "2026-06-06T14:06:00+00:00",
+    "published_at": "2026-06-06T14:06:00+00:00",
+    "published_timestamp": "2026-06-06T14:06:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/2c992fb3-0501-46fc-af5b-76660b4acfeb",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/2c992fb3-0501-46fc-af5b-76660b4acfeb"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T19:37:21.304+00:00)]: Job Posting: International Marketing Lead, SMB Ads (Marketing) — Department: Marketing | Location: Dublin, Ireland | Role: International Marketing Lead, SMB Ads",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_588fd3be7dc8e23f",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Enterprise Field Marketer (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Enterprise Field Marketer (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-06T15:23:00+00:00",
+    "latest_detected_at": "2026-07-06T15:23:00+00:00",
+    "published_at": "2026-07-06T15:23:00+00:00",
+    "published_timestamp": "2026-07-06T15:23:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/1958bdb2-dffc-4bff-a614-c13e2b8efe6f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/1958bdb2-dffc-4bff-a614-c13e2b8efe6f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T19:00:28.841+00:00)]: Job Posting: Enterprise Field Marketer (Marketing) — Department: Marketing | Location: San Francisco | Role: Enterprise Field Marketer",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_f166d3972f7d522e",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Forward Deployed Engineer (FDE), Financial Services- NYC (Forward Deployed Engineering)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Forward Deployed Engineer (FDE), Financial Services- NYC (Forward Deployed Engineering)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-07T16:40:00+00:00",
+    "latest_detected_at": "2026-08-07T16:40:00+00:00",
+    "published_at": "2026-08-07T16:40:00+00:00",
+    "published_timestamp": "2026-08-07T16:40:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/7f76be3a-38d0-4ff4-b997-9f1672e78bc0",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/7f76be3a-38d0-4ff4-b997-9f1672e78bc0"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T16:48:44.724+00:00)]: Job Posting: Forward Deployed Engineer (FDE), Financial Services- NYC (Forward Deployed Engineering) — Department: Forward Deployed Engineering | Location: New York City | Role: Forward Deployed Engineer (FDE), Financial Services- NYC",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_34eb9201afa93def",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Customer Success Manager - Ads Solutions (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Customer Success Manager - Ads Solutions (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-07T17:57:00+00:00",
+    "latest_detected_at": "2026-09-07T17:57:00+00:00",
+    "published_at": "2026-09-07T17:57:00+00:00",
+    "published_timestamp": "2026-09-07T17:57:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/0b80474f-6438-4b41-94e4-0e653c7e3457",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/0b80474f-6438-4b41-94e4-0e653c7e3457"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T14:48:47.776+00:00)]: Job Posting: Customer Success Manager - Ads Solutions (Go To Market) — Department: Go To Market | Location: Dublin, Ireland | Role: Customer Success Manager - Ads Solutions",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_e07296662fdd9286",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Applied AI Engineer, Quants (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Applied AI Engineer, Quants (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-07T18:14:00+00:00",
+    "latest_detected_at": "2026-10-07T18:14:00+00:00",
+    "published_at": "2026-10-07T18:14:00+00:00",
+    "published_timestamp": "2026-10-07T18:14:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/6d8facff-ce1d-4069-884b-dc1177cc1a06",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/6d8facff-ce1d-4069-884b-dc1177cc1a06"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T11:40:06.085+00:00)]: Job Posting: Applied AI Engineer, Quants (Go To Market) — Department: Go To Market | Location: London, UK | Role: Applied AI Engineer, Quants",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_e638f1e272916f1a",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Engineering Manager, Library (Applied AI)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Engineering Manager, Library (Applied AI)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-07T19:31:00+00:00",
+    "latest_detected_at": "2026-11-07T19:31:00+00:00",
+    "published_at": "2026-11-07T19:31:00+00:00",
+    "published_timestamp": "2026-11-07T19:31:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/b2fb6fa4-07a9-4d8d-adf5-bff18a5e6033",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/b2fb6fa4-07a9-4d8d-adf5-bff18a5e6033"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T11:26:44.651+00:00)]: Job Posting: Engineering Manager, Library (Applied AI) — Department: Applied AI | Location: Seattle | Role: Engineering Manager, Library",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_74b5f77a07c8190a",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Dedicated Support Engineering Lead (User Operations)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Dedicated Support Engineering Lead (User Operations)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-08T08:48:00+00:00",
+    "latest_detected_at": "2026-06-08T08:48:00+00:00",
+    "published_at": "2026-06-08T08:48:00+00:00",
+    "published_timestamp": "2026-06-08T08:48:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/deacd43e-9c1b-467c-96e2-11f4f6bdb139",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/deacd43e-9c1b-467c-96e2-11f4f6bdb139"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T03:51:38.928+00:00)]: Job Posting: Dedicated Support Engineering Lead (User Operations) — Department: User Operations | Location: San Francisco | Role: Dedicated Support Engineering Lead",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_06beb14663ab9b7d",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Deputy General Counsel, Commercial (Marketing) (Legal)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Deputy General Counsel, Commercial (Marketing) (Legal)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-08T09:05:00+00:00",
+    "latest_detected_at": "2026-07-08T09:05:00+00:00",
+    "published_at": "2026-07-08T09:05:00+00:00",
+    "published_timestamp": "2026-07-08T09:05:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/707590ec-7c76-48c6-9b0e-d0d6c1594d91",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/707590ec-7c76-48c6-9b0e-d0d6c1594d91"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-18T00:53:04.144+00:00)]: Job Posting: Deputy General Counsel, Commercial (Marketing) (Legal) — Department: Legal | Location: San Francisco | Role: Deputy General Counsel, Commercial (Marketing)",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_84a75aed18a8ba3b",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Subject Matter Expert, Investment Banking (Applied AI)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Subject Matter Expert, Investment Banking (Applied AI)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-08T10:22:00+00:00",
+    "latest_detected_at": "2026-08-08T10:22:00+00:00",
+    "published_at": "2026-08-08T10:22:00+00:00",
+    "published_timestamp": "2026-08-08T10:22:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/4705a853-46e6-4f91-884c-61e54de91b0e",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/4705a853-46e6-4f91-884c-61e54de91b0e"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-17T22:37:34.525+00:00)]: Job Posting: Subject Matter Expert, Investment Banking (Applied AI) — Department: Applied AI | Location: San Francisco | Role: Subject Matter Expert, Investment Banking",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_303ed6b312b1104f",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Site Selection Lead (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Site Selection Lead (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-09T11:39:00+00:00",
+    "latest_detected_at": "2026-09-09T11:39:00+00:00",
+    "published_at": "2026-09-09T11:39:00+00:00",
+    "published_timestamp": "2026-09-09T11:39:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/98f65aa5-0f19-4942-9296-63382883dc55",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/98f65aa5-0f19-4942-9296-63382883dc55"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-17T19:13:37.575+00:00)]: Job Posting: Site Selection Lead (Scaling) — Department: Scaling | Location: San Francisco | Role: Site Selection Lead",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_2e7d75e4d304c170",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Technical Program Manager, Multimodal (Technical Program Management)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Technical Program Manager, Multimodal (Technical Program Management)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-09T12:56:00+00:00",
+    "latest_detected_at": "2026-10-09T12:56:00+00:00",
+    "published_at": "2026-10-09T12:56:00+00:00",
+    "published_timestamp": "2026-10-09T12:56:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/9b017213-6467-413f-b72c-59678c5d8bae",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/9b017213-6467-413f-b72c-59678c5d8bae"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-17T16:57:52.523+00:00)]: Job Posting: Technical Program Manager, Multimodal (Technical Program Management) — Department: Technical Program Management | Location: San Francisco | Role: Technical Program Manager, Multimodal",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_ba7a45aec4ce74a8",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Member of Executive Operations, Seattle (Executive Operations)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Member of Executive Operations, Seattle (Executive Operations)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-09T13:13:00+00:00",
+    "latest_detected_at": "2026-11-09T13:13:00+00:00",
+    "published_at": "2026-11-09T13:13:00+00:00",
+    "published_timestamp": "2026-11-09T13:13:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/bcf5b85f-6fa5-40f5-bb62-434d430f8ae8",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/bcf5b85f-6fa5-40f5-bb62-434d430f8ae8"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-17T16:55:49.191+00:00)]: Job Posting: Member of Executive Operations, Seattle (Executive Operations) — Department: Executive Operations | Location: Seattle | Role: Member of Executive Operations, Seattle",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_8f71c9408a3bed51",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Applied AI Architect, Retail (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Applied AI Architect, Retail (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-10T14:30:00+00:00",
+    "latest_detected_at": "2026-06-10T14:30:00+00:00",
+    "published_at": "2026-06-10T14:30:00+00:00",
+    "published_timestamp": "2026-06-10T14:30:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/4167047e-33c2-4be4-b693-71c6c039bc56",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/4167047e-33c2-4be4-b693-71c6c039bc56"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-17T15:32:18.866+00:00)]: Job Posting: Applied AI Architect, Retail (Go To Market) — Department: Go To Market | Location: San Francisco | Role: Applied AI Architect, Retail",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_9fe5a2bec0f1a09c",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Infrastructure Operations & Sustainability Lead (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Infrastructure Operations & Sustainability Lead (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-10T15:47:00+00:00",
+    "latest_detected_at": "2026-07-10T15:47:00+00:00",
+    "published_at": "2026-07-10T15:47:00+00:00",
+    "published_timestamp": "2026-07-10T15:47:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/ff316e82-c88a-4c94-91e1-2ccea6de129e",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/ff316e82-c88a-4c94-91e1-2ccea6de129e"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-17T15:09:24.219+00:00)]: Job Posting: Infrastructure Operations & Sustainability Lead (Scaling) — Department: Scaling | Location: US - Remote | Role: Infrastructure Operations & Sustainability Lead",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_70b58a5c8c97db19",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Counsel, Commercial (Legal)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Counsel, Commercial (Legal)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-10T16:04:00+00:00",
+    "latest_detected_at": "2026-08-10T16:04:00+00:00",
+    "published_at": "2026-08-10T16:04:00+00:00",
+    "published_timestamp": "2026-08-10T16:04:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/35f99494-1700-4b81-9363-aaead13ea477",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/35f99494-1700-4b81-9363-aaead13ea477"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-17T00:35:05.632+00:00)]: Job Posting: Counsel, Commercial (Legal) — Department: Legal | Location: San Francisco | Role: Counsel, Commercial",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_ce3e23e2a9d8c0c7",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Software Engineer, Compute Foundations (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Software Engineer, Compute Foundations (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-10T17:21:00+00:00",
+    "latest_detected_at": "2026-09-10T17:21:00+00:00",
+    "published_at": "2026-09-10T17:21:00+00:00",
+    "published_timestamp": "2026-09-10T17:21:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/40f2f959-20f8-40ca-8b8c-154b6774193a",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/40f2f959-20f8-40ca-8b8c-154b6774193a"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T23:39:23.616+00:00)]: Job Posting: Software Engineer, Compute Foundations (Scaling) — Department: Scaling | Location: San Francisco | Role: Software Engineer, Compute Foundations",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_109964a2483ecd13",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Field Enablement Lead, Technical Success (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Field Enablement Lead, Technical Success (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-11T18:38:00+00:00",
+    "latest_detected_at": "2026-10-11T18:38:00+00:00",
+    "published_at": "2026-10-11T18:38:00+00:00",
+    "published_timestamp": "2026-10-11T18:38:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/b2e53ff7-629b-4f7f-a13e-3910e4fe4656",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/b2e53ff7-629b-4f7f-a13e-3910e4fe4656"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T23:20:31.939+00:00)]: Job Posting: Field Enablement Lead, Technical Success (Go To Market) — Department: Go To Market | Location: San Francisco | Role: Field Enablement Lead, Technical Success",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_43122e4c8a60484f",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Mechanical Engineer, Hardware Systems (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Mechanical Engineer, Hardware Systems (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-11T19:55:00+00:00",
+    "latest_detected_at": "2026-11-11T19:55:00+00:00",
+    "published_at": "2026-11-11T19:55:00+00:00",
+    "published_timestamp": "2026-11-11T19:55:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/eda4a2d1-682f-418e-8055-222eaf7c9abd",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/eda4a2d1-682f-418e-8055-222eaf7c9abd"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T23:13:47.301+00:00)]: Job Posting: Mechanical Engineer, Hardware Systems (Scaling) — Department: Scaling | Location: San Francisco | Role: Mechanical Engineer, Hardware Systems",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_02ffc3fbb153da14",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Strategy & Operations, Germany (Strategy & Operations)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Strategy & Operations, Germany (Strategy & Operations)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-11T08:12:00+00:00",
+    "latest_detected_at": "2026-06-11T08:12:00+00:00",
+    "published_at": "2026-06-11T08:12:00+00:00",
+    "published_timestamp": "2026-06-11T08:12:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/c46d8648-b921-4b71-bb9a-f7d5c8e989f4",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/c46d8648-b921-4b71-bb9a-f7d5c8e989f4"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T21:18:59.408+00:00)]: Job Posting: Strategy & Operations, Germany (Strategy & Operations) — Department: Strategy & Operations | Location: Munich, Germany | Role: Strategy & Operations, Germany",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_1618e14e64ba8129",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Order to Cash Operations Lead (Finance)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Order to Cash Operations Lead (Finance)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-12T09:29:00+00:00",
+    "latest_detected_at": "2026-07-12T09:29:00+00:00",
+    "published_at": "2026-07-12T09:29:00+00:00",
+    "published_timestamp": "2026-07-12T09:29:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/fcb3d139-7e8f-41f7-853d-02372f786f1d",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/fcb3d139-7e8f-41f7-853d-02372f786f1d"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T20:17:32.856+00:00)]: Job Posting: Order to Cash Operations Lead (Finance) — Department: Finance | Location: Dublin, Ireland | Role: Order to Cash Operations Lead",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_02e8f574224119c4",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Deal Operations, APAC (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Deal Operations, APAC (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-12T10:46:00+00:00",
+    "latest_detected_at": "2026-08-12T10:46:00+00:00",
+    "published_at": "2026-08-12T10:46:00+00:00",
+    "published_timestamp": "2026-08-12T10:46:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/19d112c5-e8f1-4326-80dd-0c0433e116ed",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/19d112c5-e8f1-4326-80dd-0c0433e116ed"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T19:21:00.381+00:00)]: Job Posting: Deal Operations, APAC (Go To Market) — Department: Go To Market | Location: Singapore | Role: Deal Operations, APAC",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_5c7f5576af02789c",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Editor (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Editor (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-12T11:03:00+00:00",
+    "latest_detected_at": "2026-09-12T11:03:00+00:00",
+    "published_at": "2026-09-12T11:03:00+00:00",
+    "published_timestamp": "2026-09-12T11:03:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/9acdfc63-6cce-4e2b-a862-a0fdc6da7743",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/9acdfc63-6cce-4e2b-a862-a0fdc6da7743"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T18:17:30.332+00:00)]: Job Posting: Editor (Marketing) — Department: Marketing | Location: US - Remote | Role: Editor",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_55649b2ce69a8512",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Applied AI Architect, Healthcare & Life Sciences (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Applied AI Architect, Healthcare & Life Sciences (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-13T12:20:00+00:00",
+    "latest_detected_at": "2026-10-13T12:20:00+00:00",
+    "published_at": "2026-10-13T12:20:00+00:00",
+    "published_timestamp": "2026-10-13T12:20:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/1baad891-43b8-4e2a-9e6c-f68741e718a4",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/1baad891-43b8-4e2a-9e6c-f68741e718a4"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T18:05:34.957+00:00)]: Job Posting: Applied AI Architect, Healthcare & Life Sciences (Go To Market) — Department: Go To Market | Location: San Francisco | Role: Applied AI Architect, Healthcare & Life Sciences",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_4a907dbbe9168dfa",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Creative Operations Lead, Business Marketing (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Creative Operations Lead, Business Marketing (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-13T13:37:00+00:00",
+    "latest_detected_at": "2026-11-13T13:37:00+00:00",
+    "published_at": "2026-11-13T13:37:00+00:00",
+    "published_timestamp": "2026-11-13T13:37:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/6ff654e4-fd45-4cac-a76f-30249e14292c",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/6ff654e4-fd45-4cac-a76f-30249e14292c"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T16:46:25.104+00:00)]: Job Posting: Creative Operations Lead, Business Marketing (Marketing) — Department: Marketing | Location: San Francisco | Role: Creative Operations Lead, Business Marketing",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_02d9e8e637dd6b74",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Customer Success Manager, Ads Solutions (Mumbai) (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Customer Success Manager, Ads Solutions (Mumbai) (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-13T14:54:00+00:00",
+    "latest_detected_at": "2026-06-13T14:54:00+00:00",
+    "published_at": "2026-06-13T14:54:00+00:00",
+    "published_timestamp": "2026-06-13T14:54:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/744c66d4-4499-4a87-8020-7c90750181c8",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/744c66d4-4499-4a87-8020-7c90750181c8"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T15:23:11.436+00:00)]: Job Posting: Customer Success Manager, Ads Solutions (Mumbai) (Go To Market) — Department: Go To Market | Location: Mumbai, India | Role: Customer Success Manager, Ads Solutions (Mumbai)",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_5da68dd8781c0864",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Applied AI Architect, Partner (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Applied AI Architect, Partner (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-14T15:11:00+00:00",
+    "latest_detected_at": "2026-07-14T15:11:00+00:00",
+    "published_at": "2026-07-14T15:11:00+00:00",
+    "published_timestamp": "2026-07-14T15:11:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/0916f210-e851-493c-b8ec-51cf00152be1",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/0916f210-e851-493c-b8ec-51cf00152be1"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T09:03:45.547+00:00)]: Job Posting: Applied AI Architect, Partner (Go To Market) — Department: Go To Market | Location: Tokyo, Japan | Role: Applied AI Architect, Partner",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_2cfdbe34665453ca",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Model Policy Manager (Safety Systems)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Model Policy Manager (Safety Systems)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-14T16:28:00+00:00",
+    "latest_detected_at": "2026-08-14T16:28:00+00:00",
+    "published_at": "2026-08-14T16:28:00+00:00",
+    "published_timestamp": "2026-08-14T16:28:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/5664d2d6-639d-4696-9dab-0d703f1d9c5d",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/5664d2d6-639d-4696-9dab-0d703f1d9c5d"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T04:44:55.435+00:00)]: Job Posting: Model Policy Manager (Safety Systems) — Department: Safety Systems | Location: San Francisco | Role: Model Policy Manager",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_850d7fc5a38c5120",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Technical Operations Analyst, User Safety & Risk (User Operations)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Technical Operations Analyst, User Safety & Risk (User Operations)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-14T17:45:00+00:00",
+    "latest_detected_at": "2026-09-14T17:45:00+00:00",
+    "published_at": "2026-09-14T17:45:00+00:00",
+    "published_timestamp": "2026-09-14T17:45:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/0f78e08a-669d-4d87-960f-518c649e6700",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/0f78e08a-669d-4d87-960f-518c649e6700"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T01:05:18.750+00:00)]: Job Posting: Technical Operations Analyst, User Safety & Risk (User Operations) — Department: User Operations | Location: London, UK | Role: Technical Operations Analyst, User Safety & Risk",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_89a237f1b66e5781",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Staff PLM & Engineering Applications Engineer, Consumer Devices (Consumer Devices)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Staff PLM & Engineering Applications Engineer, Consumer Devices (Consumer Devices)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-14T18:02:00+00:00",
+    "latest_detected_at": "2026-10-14T18:02:00+00:00",
+    "published_at": "2026-10-14T18:02:00+00:00",
+    "published_timestamp": "2026-10-14T18:02:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/1bec1791-b073-4f2a-9de6-34e36238c216",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/1bec1791-b073-4f2a-9de6-34e36238c216"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T00:52:14.001+00:00)]: Job Posting: Staff PLM & Engineering Applications Engineer, Consumer Devices (Consumer Devices) — Department: Consumer Devices | Location: San Francisco | Role: Staff PLM & Engineering Applications Engineer, Consumer Devices",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_ebbb9cbf50b84376",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Software Engineer, Manufacturing Infrastructure (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Software Engineer, Manufacturing Infrastructure (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-15T19:19:00+00:00",
+    "latest_detected_at": "2026-11-15T19:19:00+00:00",
+    "published_at": "2026-11-15T19:19:00+00:00",
+    "published_timestamp": "2026-11-15T19:19:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/3b08148d-085e-4835-9934-1b7f60e0fdce",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/3b08148d-085e-4835-9934-1b7f60e0fdce"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-16T00:30:26.055+00:00)]: Job Posting: Software Engineer, Manufacturing Infrastructure (Scaling) — Department: Scaling | Location: San Francisco | Role: Software Engineer, Manufacturing Infrastructure",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_f9bcd357b62040f3",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: GTM Strategy & Operations, Professional Services (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: GTM Strategy & Operations, Professional Services (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-15T08:36:00+00:00",
+    "latest_detected_at": "2026-06-15T08:36:00+00:00",
+    "published_at": "2026-06-15T08:36:00+00:00",
+    "published_timestamp": "2026-06-15T08:36:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/08e8d03a-df94-46af-8664-cd9aab1af445",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/08e8d03a-df94-46af-8664-cd9aab1af445"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T23:35:25.732+00:00)]: Job Posting: GTM Strategy & Operations, Professional Services (Go To Market) — Department: Go To Market | Location: San Francisco | Role: GTM Strategy & Operations, Professional Services",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_9f4d654e2fd00a31",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Data Scientist, Inference Capacity Optimization (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Data Scientist, Inference Capacity Optimization (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-15T09:53:00+00:00",
+    "latest_detected_at": "2026-07-15T09:53:00+00:00",
+    "published_at": "2026-07-15T09:53:00+00:00",
+    "published_timestamp": "2026-07-15T09:53:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/4948533f-1df6-49f7-af9e-a2da0e02ebca",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/4948533f-1df6-49f7-af9e-a2da0e02ebca"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T23:28:04.361+00:00)]: Job Posting: Data Scientist, Inference Capacity Optimization (Scaling) — Department: Scaling | Location: San Francisco | Role: Data Scientist, Inference Capacity Optimization",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_2d52f0dfdeff96a6",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Development Lead (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Development Lead (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-16T10:10:00+00:00",
+    "latest_detected_at": "2026-08-16T10:10:00+00:00",
+    "published_at": "2026-08-16T10:10:00+00:00",
+    "published_timestamp": "2026-08-16T10:10:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/987c4eb8-819e-4258-a91c-f34ecfbcd5f1",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/987c4eb8-819e-4258-a91c-f34ecfbcd5f1"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T23:12:57.180+00:00)]: Job Posting: Development Lead (Scaling) — Department: Scaling | Location: US - Remote | Role: Development Lead",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_3acc69c9a1237a31",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Development Planner, Industrial Compute (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Development Planner, Industrial Compute (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-16T11:27:00+00:00",
+    "latest_detected_at": "2026-09-16T11:27:00+00:00",
+    "published_at": "2026-09-16T11:27:00+00:00",
+    "published_timestamp": "2026-09-16T11:27:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/5a647e2b-5d6c-4c71-aeea-b16e3fda4b3f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/5a647e2b-5d6c-4c71-aeea-b16e3fda4b3f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T23:04:01.451+00:00)]: Job Posting: Development Planner, Industrial Compute (Scaling) — Department: Scaling | Location: US - Remote | Role: Development Planner, Industrial Compute",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_f3ca38ab34e94624",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Strategic Finance, Compute (Strategic Finance)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Strategic Finance, Compute (Strategic Finance)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-16T12:44:00+00:00",
+    "latest_detected_at": "2026-10-16T12:44:00+00:00",
+    "published_at": "2026-10-16T12:44:00+00:00",
+    "published_timestamp": "2026-10-16T12:44:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/b4196174-9cc3-487d-9d21-848bc283b80f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/b4196174-9cc3-487d-9d21-848bc283b80f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T22:32:01.670+00:00)]: Job Posting: Strategic Finance, Compute (Strategic Finance) — Department: Strategic Finance | Location: San Francisco | Role: Strategic Finance, Compute",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_f461e891a14cd341",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Senior Counsel, Litigation & Regulatory (Legal)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Senior Counsel, Litigation & Regulatory (Legal)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-17T13:01:00+00:00",
+    "latest_detected_at": "2026-11-17T13:01:00+00:00",
+    "published_at": "2026-11-17T13:01:00+00:00",
+    "published_timestamp": "2026-11-17T13:01:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/276ab0c5-f8d3-45d3-92d4-805a5ffdd376",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/276ab0c5-f8d3-45d3-92d4-805a5ffdd376"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T20:53:35.863+00:00)]: Job Posting: Senior Counsel, Litigation & Regulatory (Legal) — Department: Legal | Location: San Francisco | Role: Senior Counsel, Litigation & Regulatory",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_c7038e5bab125b9f",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Applied AI Engineer (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Applied AI Engineer (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-17T14:18:00+00:00",
+    "latest_detected_at": "2026-06-17T14:18:00+00:00",
+    "published_at": "2026-06-17T14:18:00+00:00",
+    "published_timestamp": "2026-06-17T14:18:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/8acfba11-707e-4d8e-a860-88643fae24ba",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/8acfba11-707e-4d8e-a860-88643fae24ba"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T18:40:04.742+00:00)]: Job Posting: Applied AI Engineer (Go To Market) — Department: Go To Market | Location: Singapore | Role: Applied AI Engineer",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_e55c75c023a8af81",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Business Systems Lead, Procure-to-Pay (Finance)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Business Systems Lead, Procure-to-Pay (Finance)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-17T15:35:00+00:00",
+    "latest_detected_at": "2026-07-17T15:35:00+00:00",
+    "published_at": "2026-07-17T15:35:00+00:00",
+    "published_timestamp": "2026-07-17T15:35:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/c0e1f65b-4731-48b3-ac60-93a269266494",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/c0e1f65b-4731-48b3-ac60-93a269266494"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T18:24:53.981+00:00)]: Job Posting: Business Systems Lead, Procure-to-Pay (Finance) — Department: Finance | Location: San Francisco | Role: Business Systems Lead, Procure-to-Pay",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_17644bfc05004c0a",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Physical Design Engineer (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Physical Design Engineer (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-17T16:52:00+00:00",
+    "latest_detected_at": "2026-08-17T16:52:00+00:00",
+    "published_at": "2026-08-17T16:52:00+00:00",
+    "published_timestamp": "2026-08-17T16:52:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/5a265d2b-683f-4cea-9b69-8e137e704ab3",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/5a265d2b-683f-4cea-9b69-8e137e704ab3"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T17:43:37.110+00:00)]: Job Posting: Physical Design Engineer (Scaling) — Department: Scaling | Location: San Francisco | Role: Physical Design Engineer",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_13ef6b7b97c669c2",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Product Manufacturing & Quality Engineer (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Product Manufacturing & Quality Engineer (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-18T17:09:00+00:00",
+    "latest_detected_at": "2026-09-18T17:09:00+00:00",
+    "published_at": "2026-09-18T17:09:00+00:00",
+    "published_timestamp": "2026-09-18T17:09:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/65b255da-4fd9-414e-98d4-0bec4eecf8ff",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/65b255da-4fd9-414e-98d4-0bec4eecf8ff"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T17:25:45.762+00:00)]: Job Posting: Product Manufacturing & Quality Engineer (Scaling) — Department: Scaling | Location: San Francisco | Role: Product Manufacturing & Quality Engineer",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_d432cdaf731c54ca",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Manufacturing Engineer, Motors & Actuators (Research)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Manufacturing Engineer, Motors & Actuators (Research)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-18T18:26:00+00:00",
+    "latest_detected_at": "2026-10-18T18:26:00+00:00",
+    "published_at": "2026-10-18T18:26:00+00:00",
+    "published_timestamp": "2026-10-18T18:26:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/56aafd17-7db9-473a-b3b4-957b6d926cdf",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/56aafd17-7db9-473a-b3b4-957b6d926cdf"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T16:53:51.645+00:00)]: Job Posting: Manufacturing Engineer, Motors & Actuators (Research) — Department: Research | Location: San Francisco | Role: Manufacturing Engineer, Motors & Actuators",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_66e15498d9d416dd",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Model Policy Manager, Agentic Safety (Safety Systems)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Model Policy Manager, Agentic Safety (Safety Systems)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-18T19:43:00+00:00",
+    "latest_detected_at": "2026-11-18T19:43:00+00:00",
+    "published_at": "2026-11-18T19:43:00+00:00",
+    "published_timestamp": "2026-11-18T19:43:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/b5a022bb-f7a5-47d9-b5e8-9d1575493dcf",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/b5a022bb-f7a5-47d9-b5e8-9d1575493dcf"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T16:40:32.791+00:00)]: Job Posting: Model Policy Manager, Agentic Safety (Safety Systems) — Department: Safety Systems | Location: San Francisco | Role: Model Policy Manager, Agentic Safety",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_ac31a582595ce6bc",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Integrated Marketing Manager, Youth Culture (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Integrated Marketing Manager, Youth Culture (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-19T08:00:00+00:00",
+    "latest_detected_at": "2026-06-19T08:00:00+00:00",
+    "published_at": "2026-06-19T08:00:00+00:00",
+    "published_timestamp": "2026-06-19T08:00:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/58f32cbe-8c68-415c-bb7f-b6fca4b29ffc",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/58f32cbe-8c68-415c-bb7f-b6fca4b29ffc"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T15:54:12.801+00:00)]: Job Posting: Integrated Marketing Manager, Youth Culture (Marketing) — Department: Marketing | Location: San Francisco | Role: Integrated Marketing Manager, Youth Culture",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_dfe38be4af824d02",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: EMEA Strategy and Operations (Strategy & Operations)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: EMEA Strategy and Operations (Strategy & Operations)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-19T09:17:00+00:00",
+    "latest_detected_at": "2026-07-19T09:17:00+00:00",
+    "published_at": "2026-07-19T09:17:00+00:00",
+    "published_timestamp": "2026-07-19T09:17:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/152e4908-bc1f-4970-833a-a6a9c46f6a81",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/152e4908-bc1f-4970-833a-a6a9c46f6a81"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T11:25:38.610+00:00)]: Job Posting: EMEA Strategy and Operations (Strategy & Operations) — Department: Strategy & Operations | Location: London, UK | Role: EMEA Strategy and Operations",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_7bf7624af2df1901",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Account Director, Digital Natives - France (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Account Director, Digital Natives - France (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-19T10:34:00+00:00",
+    "latest_detected_at": "2026-08-19T10:34:00+00:00",
+    "published_at": "2026-08-19T10:34:00+00:00",
+    "published_timestamp": "2026-08-19T10:34:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/f5c3b504-3982-4d67-99ba-315b9e14f196",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/f5c3b504-3982-4d67-99ba-315b9e14f196"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T09:15:38.529+00:00)]: Job Posting: Account Director, Digital Natives - France (Go To Market) — Department: Go To Market | Location: Paris, France | Role: Account Director, Digital Natives - France",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_7379b4a5e635c42a",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Product Marketing Manager, Advertising (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Product Marketing Manager, Advertising (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-20T11:51:00+00:00",
+    "latest_detected_at": "2026-09-20T11:51:00+00:00",
+    "published_at": "2026-09-20T11:51:00+00:00",
+    "published_timestamp": "2026-09-20T11:51:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/46cd942e-2ec4-4998-b4e5-67811f16dafb",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/46cd942e-2ec4-4998-b4e5-67811f16dafb"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T07:27:36.277+00:00)]: Job Posting: Product Marketing Manager, Advertising (Marketing) — Department: Marketing | Location: San Francisco | Role: Product Marketing Manager, Advertising",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_4a8a3390e8a42ad4",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Software Engineer, Healthcare (Applied AI)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Software Engineer, Healthcare (Applied AI)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-20T12:08:00+00:00",
+    "latest_detected_at": "2026-10-20T12:08:00+00:00",
+    "published_at": "2026-10-20T12:08:00+00:00",
+    "published_timestamp": "2026-10-20T12:08:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/4923fd3e-acf2-4551-91ad-5a92ca81455b",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/4923fd3e-acf2-4551-91ad-5a92ca81455b"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T04:42:58.212+00:00)]: Job Posting: Software Engineer, Healthcare (Applied AI) — Department: Applied AI | Location: San Francisco | Role: Software Engineer, Healthcare",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_9fc9c35a302392a7",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Customer Success Manager, Ads Solutions (Seattle) (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Customer Success Manager, Ads Solutions (Seattle) (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-20T13:25:00+00:00",
+    "latest_detected_at": "2026-11-20T13:25:00+00:00",
+    "published_at": "2026-11-20T13:25:00+00:00",
+    "published_timestamp": "2026-11-20T13:25:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/cc15b36b-023e-4748-928a-625dbf2c497b",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/cc15b36b-023e-4748-928a-625dbf2c497b"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T00:42:52.085+00:00)]: Job Posting: Customer Success Manager, Ads Solutions (Seattle) (Go To Market) — Department: Go To Market | Location: Seattle | Role: Customer Success Manager, Ads Solutions (Seattle)",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_131c32f2800da753",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Customer Success Manager, Ads Solutions (San Francisco) (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Customer Success Manager, Ads Solutions (San Francisco) (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-20T14:42:00+00:00",
+    "latest_detected_at": "2026-06-20T14:42:00+00:00",
+    "published_at": "2026-06-20T14:42:00+00:00",
+    "published_timestamp": "2026-06-20T14:42:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/95d078d9-fd33-494c-8ba0-22fbb8b193ad",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/95d078d9-fd33-494c-8ba0-22fbb8b193ad"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T00:42:36.628+00:00)]: Job Posting: Customer Success Manager, Ads Solutions (San Francisco) (Go To Market) — Department: Go To Market | Location: San Francisco | Role: Customer Success Manager, Ads Solutions (San Francisco)",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_64e13a8913c2e8c7",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Network Operations Engineer, AI Networking (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Network Operations Engineer, AI Networking (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-21T15:59:00+00:00",
+    "latest_detected_at": "2026-07-21T15:59:00+00:00",
+    "published_at": "2026-07-21T15:59:00+00:00",
+    "published_timestamp": "2026-07-21T15:59:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/bbad4315-1f13-4b2f-b595-cf1287274f2f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/bbad4315-1f13-4b2f-b595-cf1287274f2f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-15T00:10:05.457+00:00)]: Job Posting: Network Operations Engineer, AI Networking (Scaling) — Department: Scaling | Location: San Francisco | Role: Network Operations Engineer, AI Networking",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_7fbbaeda3b0c52be",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Capture Manager, OpenAI for Government (OpenAI for Gov)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Capture Manager, OpenAI for Government (OpenAI for Gov)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-21T16:16:00+00:00",
+    "latest_detected_at": "2026-08-21T16:16:00+00:00",
+    "published_at": "2026-08-21T16:16:00+00:00",
+    "published_timestamp": "2026-08-21T16:16:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/de76301c-7289-40a5-972a-ab144f189b4f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/de76301c-7289-40a5-972a-ab144f189b4f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T23:50:54.030+00:00)]: Job Posting: Capture Manager, OpenAI for Government (OpenAI for Gov) — Department: OpenAI for Gov | Location: Washington, DC | Role: Capture Manager, OpenAI for Government",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_dbb9bbd6250c66f3",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: 3P Systems Architect (Scaling)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: 3P Systems Architect (Scaling)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-21T17:33:00+00:00",
+    "latest_detected_at": "2026-09-21T17:33:00+00:00",
+    "published_at": "2026-09-21T17:33:00+00:00",
+    "published_timestamp": "2026-09-21T17:33:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/e2afdede-a222-4825-b2fc-fec439a7c893",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/e2afdede-a222-4825-b2fc-fec439a7c893"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T23:44:48.213+00:00)]: Job Posting: 3P Systems Architect (Scaling) — Department: Scaling | Location: San Francisco | Role: 3P Systems Architect",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_0db435b18d20a911",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Data Engineering Manager, Growth & Revenue (Applied AI)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Data Engineering Manager, Growth & Revenue (Applied AI)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-22T18:50:00+00:00",
+    "latest_detected_at": "2026-10-22T18:50:00+00:00",
+    "published_at": "2026-10-22T18:50:00+00:00",
+    "published_timestamp": "2026-10-22T18:50:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/acbf80cd-20a7-47fe-aaf9-3e9224d1570c",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/acbf80cd-20a7-47fe-aaf9-3e9224d1570c"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T22:39:38.571+00:00)]: Job Posting: Data Engineering Manager, Growth & Revenue (Applied AI) — Department: Applied AI | Location: San Francisco | Role: Data Engineering Manager, Growth & Revenue",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_375326767b4db943",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Software Engineer, Applied Emerging Talent (2027) (Applied AI)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Software Engineer, Applied Emerging Talent (2027) (Applied AI)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-22T19:07:00+00:00",
+    "latest_detected_at": "2026-11-22T19:07:00+00:00",
+    "published_at": "2026-11-22T19:07:00+00:00",
+    "published_timestamp": "2026-11-22T19:07:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/55150071-fce8-48f5-aea4-14ed78b83511",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/55150071-fce8-48f5-aea4-14ed78b83511"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T22:37:58.189+00:00)]: Job Posting: Software Engineer, Applied Emerging Talent (2027) (Applied AI) — Department: Applied AI | Location: San Francisco | Role: Software Engineer, Applied Emerging Talent (2027)",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_5468a48372b15d98",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Influencer Program Lead - LATAM (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Influencer Program Lead - LATAM (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-22T08:24:00+00:00",
+    "latest_detected_at": "2026-06-22T08:24:00+00:00",
+    "published_at": "2026-06-22T08:24:00+00:00",
+    "published_timestamp": "2026-06-22T08:24:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/5ca9ca8a-c859-4857-a259-1caedfe06134",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/5ca9ca8a-c859-4857-a259-1caedfe06134"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T19:24:39.245+00:00)]: Job Posting: Influencer Program Lead - LATAM (Marketing) — Department: Marketing | Location: São Paulo | Role: Influencer Program Lead - LATAM",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_6c35d1584094c78c",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: B2B Marketing Lead - LATAM (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: B2B Marketing Lead - LATAM (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-23T09:41:00+00:00",
+    "latest_detected_at": "2026-07-23T09:41:00+00:00",
+    "published_at": "2026-07-23T09:41:00+00:00",
+    "published_timestamp": "2026-07-23T09:41:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/f598c590-3e64-4d48-9720-a88f788ad893",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/f598c590-3e64-4d48-9720-a88f788ad893"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T19:22:12.819+00:00)]: Job Posting: B2B Marketing Lead - LATAM (Marketing) — Department: Marketing | Location: São Paulo | Role: B2B Marketing Lead - LATAM",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_e7ba4a02699f6433",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Integrated Marketing Manager - LATAM (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Integrated Marketing Manager - LATAM (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-23T10:58:00+00:00",
+    "latest_detected_at": "2026-08-23T10:58:00+00:00",
+    "published_at": "2026-08-23T10:58:00+00:00",
+    "published_timestamp": "2026-08-23T10:58:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/7a6d066c-f863-41ed-8f6c-f6dddd1be4aa",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/7a6d066c-f863-41ed-8f6c-f6dddd1be4aa"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T19:18:48.423+00:00)]: Job Posting: Integrated Marketing Manager - LATAM (Marketing) — Department: Marketing | Location: São Paulo | Role: Integrated Marketing Manager - LATAM",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_757a0f9bacb646be",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: AI Infrastructure Engineer, pAGI (Research)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: AI Infrastructure Engineer, pAGI (Research)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-23T11:15:00+00:00",
+    "latest_detected_at": "2026-09-23T11:15:00+00:00",
+    "published_at": "2026-09-23T11:15:00+00:00",
+    "published_timestamp": "2026-09-23T11:15:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/b2250643-bfd0-4ce6-abbf-cb7e8c8123ba",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/b2250643-bfd0-4ce6-abbf-cb7e8c8123ba"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T18:47:19.139+00:00)]: Job Posting: AI Infrastructure Engineer, pAGI (Research) — Department: Research | Location: San Francisco | Role: AI Infrastructure Engineer, pAGI",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_fa84c891818b5f2e",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Software Engineer, Ads Integrity (Applied AI)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Software Engineer, Ads Integrity (Applied AI)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-23T12:32:00+00:00",
+    "latest_detected_at": "2026-10-23T12:32:00+00:00",
+    "published_at": "2026-10-23T12:32:00+00:00",
+    "published_timestamp": "2026-10-23T12:32:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/596e543a-0ab9-471e-a1ff-40fd55c74fce",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/596e543a-0ab9-471e-a1ff-40fd55c74fce"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T18:34:43.801+00:00)]: Job Posting: Software Engineer, Ads Integrity (Applied AI) — Department: Applied AI | Location: San Francisco | Role: Software Engineer, Ads Integrity",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_562cb794bdc19c36",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: GTM Strategy & Operations (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: GTM Strategy & Operations (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-24T13:49:00+00:00",
+    "latest_detected_at": "2026-11-24T13:49:00+00:00",
+    "published_at": "2026-11-24T13:49:00+00:00",
+    "published_timestamp": "2026-11-24T13:49:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/cc613e44-9a09-49d2-b415-853cfcd62b32",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/cc613e44-9a09-49d2-b415-853cfcd62b32"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T18:27:06.961+00:00)]: Job Posting: GTM Strategy & Operations (Go To Market) — Department: Go To Market | Location: San Francisco | Role: GTM Strategy & Operations",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_cd0cc7e7885e768c",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Applied AI Engineer, Government, International (OpenAI for Gov)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Applied AI Engineer, Government, International (OpenAI for Gov)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-24T14:06:00+00:00",
+    "latest_detected_at": "2026-06-24T14:06:00+00:00",
+    "published_at": "2026-06-24T14:06:00+00:00",
+    "published_timestamp": "2026-06-24T14:06:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/6c01266f-6ddb-42d1-a529-84736ae8587a",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/6c01266f-6ddb-42d1-a529-84736ae8587a"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T18:24:20.408+00:00)]: Job Posting: Applied AI Engineer, Government, International (OpenAI for Gov) — Department: OpenAI for Gov | Location: London, UK | Role: Applied AI Engineer, Government, International",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_196a3ff4ad30597d",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Growth Marketing Manager - Web & Organic, SMB Ads (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Growth Marketing Manager - Web & Organic, SMB Ads (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-24T15:23:00+00:00",
+    "latest_detected_at": "2026-07-24T15:23:00+00:00",
+    "published_at": "2026-07-24T15:23:00+00:00",
+    "published_timestamp": "2026-07-24T15:23:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/9fac9e21-ee83-487a-a537-297a0666a85d",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/9fac9e21-ee83-487a-a537-297a0666a85d"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T18:10:34.378+00:00)]: Job Posting: Growth Marketing Manager - Web & Organic, SMB Ads (Marketing) — Department: Marketing | Location: San Francisco | Role: Growth Marketing Manager - Web & Organic, SMB Ads",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_e6ff704296dbfcd3",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: SMB Innovation Sales & Strategy Lead (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: SMB Innovation Sales & Strategy Lead (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-08-25T16:40:00+00:00",
+    "latest_detected_at": "2026-08-25T16:40:00+00:00",
+    "published_at": "2026-08-25T16:40:00+00:00",
+    "published_timestamp": "2026-08-25T16:40:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/989d85db-2f7e-4833-8934-9e64b652675f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/989d85db-2f7e-4833-8934-9e64b652675f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T18:03:18.612+00:00)]: Job Posting: SMB Innovation Sales & Strategy Lead (Marketing) — Department: Marketing | Location: San Francisco | Role: SMB Innovation Sales & Strategy Lead",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_856ea1271eeac566",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Partner Director, HCL, Wipro & Cognizant (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Partner Director, HCL, Wipro & Cognizant (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-09-25T17:57:00+00:00",
+    "latest_detected_at": "2026-09-25T17:57:00+00:00",
+    "published_at": "2026-09-25T17:57:00+00:00",
+    "published_timestamp": "2026-09-25T17:57:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/a51b521c-d3bf-4653-99c6-c9152827cfb8",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/a51b521c-d3bf-4653-99c6-c9152827cfb8"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T17:49:46.346+00:00)]: Job Posting: Partner Director, HCL, Wipro & Cognizant (Go To Market) — Department: Go To Market | Location: San Francisco | Role: Partner Director, HCL, Wipro & Cognizant",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_7e2bdf0912162076",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: GTM Strategy & Operations, Policy (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: GTM Strategy & Operations, Policy (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-10-25T18:14:00+00:00",
+    "latest_detected_at": "2026-10-25T18:14:00+00:00",
+    "published_at": "2026-10-25T18:14:00+00:00",
+    "published_timestamp": "2026-10-25T18:14:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/e5c39e03-6121-47be-8bd3-f6128557b38f",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/e5c39e03-6121-47be-8bd3-f6128557b38f"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T16:47:18.661+00:00)]: Job Posting: GTM Strategy & Operations, Policy (Go To Market) — Department: Go To Market | Location: San Francisco | Role: GTM Strategy & Operations, Policy",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_584de77ca84f2dce",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: B2B Marketing Manager, DACH (Marketing)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: B2B Marketing Manager, DACH (Marketing)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-11-26T19:31:00+00:00",
+    "latest_detected_at": "2026-11-26T19:31:00+00:00",
+    "published_at": "2026-11-26T19:31:00+00:00",
+    "published_timestamp": "2026-11-26T19:31:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/400f0a9a-4c37-4603-bffa-4f168aed73b5",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/400f0a9a-4c37-4603-bffa-4f168aed73b5"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T08:41:10.207+00:00)]: Job Posting: B2B Marketing Manager, DACH (Marketing) — Department: Marketing | Location: Munich, Germany | Role: B2B Marketing Manager, DACH",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_7bd473cabe86328a",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Sales Development Leader - Tokyo (Go To Market)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Sales Development Leader - Tokyo (Go To Market)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-06-26T08:48:00+00:00",
+    "latest_detected_at": "2026-06-26T08:48:00+00:00",
+    "published_at": "2026-06-26T08:48:00+00:00",
+    "published_timestamp": "2026-06-26T08:48:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/824f12fe-dd33-4d3c-afe8-5ac75e82def4",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/824f12fe-dd33-4d3c-afe8-5ac75e82def4"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T08:09:08.106+00:00)]: Job Posting: Sales Development Leader - Tokyo (Go To Market) — Department: Go To Market | Location: Tokyo, Japan | Role: Sales Development Leader - Tokyo",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_3df10f6742ad89a7",
+    "company": "OpenAI",
+    "company_name": "OpenAI",
+    "title": "Job Posting: Strategy & Operations Lead — Korea (Business Operations)",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Job Posting: Strategy & Operations Lead — Korea (Business Operations)",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "jobs"
+    ],
+    "first_detected_at": "2026-07-26T09:05:00+00:00",
+    "latest_detected_at": "2026-07-26T09:05:00+00:00",
+    "published_at": "2026-07-26T09:05:00+00:00",
+    "published_timestamp": "2026-07-26T09:05:00+00:00",
+    "url": "https://jobs.ashbyhq.com/openai/345bda68-5b8d-43e4-9c05-ecac06f03912",
+    "source_urls": [
+      "https://jobs.ashbyhq.com/openai/345bda68-5b8d-43e4-9c05-ecac06f03912"
+    ],
+    "raw_excerpt": "[JOBS (2026-09-14T01:51:05.136+00:00)]: Job Posting: Strategy & Operations Lead — Korea (Business Operations) — Department: Business Operations | Location: Seoul, South Korea | Role: Strategy & Operations Lead — Korea",
+    "why_it_matters": "Strategic consolidated event tracking OpenAI competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_a591da287c4706b4",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Created branch gh-readonly-queue/main/pr-3209-e537d2563d8b80afb375f2ca709d37aa86babba4 in google/android-cuttlefish",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Created branch gh-readonly-queue/main/pr-3209-e537d2563d8b80afb375f2ca709d37aa86babba4 in google/android-cuttlefish",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "url": "https://github.com/google/android-cuttlefish",
+    "source_urls": [
+      "https://github.com/google/android-cuttlefish"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T03:13:44Z)]: GitHub Created branch gh-readonly-queue/main/pr-3209-e537d2563d8b80afb375f2ca709d37aa86babba4 in google/android-cuttlefish — Cuttlefish host support debian package.",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_6ef9c7c397b7fcf2",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/device-infra",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/device-infra",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-07-01T09:17:00+00:00",
+    "latest_detected_at": "2026-07-01T09:17:00+00:00",
+    "published_at": "2026-07-01T09:17:00+00:00",
+    "published_timestamp": "2026-07-01T09:17:00+00:00",
+    "url": "https://github.com/google/device-infra",
+    "source_urls": [
+      "https://github.com/google/device-infra"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T03:12:26Z)]: GitHub Push to google/device-infra — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_dd8a147cf77200b1",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub ForkEvent forked in google/android-cuttlefish",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub ForkEvent forked in google/android-cuttlefish",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-08-02T10:34:00+00:00",
+    "latest_detected_at": "2026-08-02T10:34:00+00:00",
+    "published_at": "2026-08-02T10:34:00+00:00",
+    "published_timestamp": "2026-08-02T10:34:00+00:00",
+    "url": "https://github.com/google/android-cuttlefish",
+    "source_urls": [
+      "https://github.com/google/android-cuttlefish"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T03:11:14Z)]: GitHub ForkEvent forked in google/android-cuttlefish — Activity on repository google/android-cuttlefish by asmzhang",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_6b948939b459460a",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub ForkEvent forked in google/styleguide",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub ForkEvent forked in google/styleguide",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-09-03T11:51:00+00:00",
+    "latest_detected_at": "2026-09-03T11:51:00+00:00",
+    "published_at": "2026-09-03T11:51:00+00:00",
+    "published_timestamp": "2026-09-03T11:51:00+00:00",
+    "url": "https://github.com/google/styleguide",
+    "source_urls": [
+      "https://github.com/google/styleguide"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T03:09:35Z)]: GitHub ForkEvent forked in google/styleguide — Activity on repository google/styleguide by adeelahmad",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_61f3f6aa927b4b27",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/crubit",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/crubit",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-10-03T12:08:00+00:00",
+    "latest_detected_at": "2026-10-03T12:08:00+00:00",
+    "published_at": "2026-10-03T12:08:00+00:00",
+    "published_timestamp": "2026-10-03T12:08:00+00:00",
+    "url": "https://github.com/google/crubit",
+    "source_urls": [
+      "https://github.com/google/crubit"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T03:09:25Z)]: GitHub Push to google/crubit — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_59c38d1cd052a2bd",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/tcmalloc",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/tcmalloc",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-11-04T13:25:00+00:00",
+    "latest_detected_at": "2026-11-04T13:25:00+00:00",
+    "published_at": "2026-11-04T13:25:00+00:00",
+    "published_timestamp": "2026-11-04T13:25:00+00:00",
+    "url": "https://github.com/google/tcmalloc",
+    "source_urls": [
+      "https://github.com/google/tcmalloc"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T03:08:38Z)]: GitHub Push to google/tcmalloc — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_c73592ec6e1e6ad1",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Created branch wuhao/mlperf-397b in google/tunix",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Created branch wuhao/mlperf-397b in google/tunix",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-06-05T14:42:00+00:00",
+    "latest_detected_at": "2026-06-05T14:42:00+00:00",
+    "published_at": "2026-06-05T14:42:00+00:00",
+    "published_timestamp": "2026-06-05T14:42:00+00:00",
+    "url": "https://github.com/google/tunix",
+    "source_urls": [
+      "https://github.com/google/tunix"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T02:43:59Z)]: GitHub Created branch wuhao/mlperf-397b in google/tunix — A Lightweight LLM Post-Training Library",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_2de4d393ca0a86e4",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/skia",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/skia",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-07-05T15:59:00+00:00",
+    "latest_detected_at": "2026-07-05T15:59:00+00:00",
+    "published_at": "2026-07-05T15:59:00+00:00",
+    "published_timestamp": "2026-07-05T15:59:00+00:00",
+    "url": "https://github.com/google/skia",
+    "source_urls": [
+      "https://github.com/google/skia"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T02:42:48Z)]: GitHub Push to google/skia — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_de4bb889351e73ce",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/gvisor",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/gvisor",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-08-06T16:16:00+00:00",
+    "latest_detected_at": "2026-08-06T16:16:00+00:00",
+    "published_at": "2026-08-06T16:16:00+00:00",
+    "published_timestamp": "2026-08-06T16:16:00+00:00",
+    "url": "https://github.com/google/gvisor",
+    "source_urls": [
+      "https://github.com/google/gvisor"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T02:24:15Z)]: GitHub Push to google/gvisor — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_97165e60a934e417",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Created branch worktree/pr227-archive-protocol in google/capsem",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Created branch worktree/pr227-archive-protocol in google/capsem",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-09-07T17:33:00+00:00",
+    "latest_detected_at": "2026-09-07T17:33:00+00:00",
+    "published_at": "2026-09-07T17:33:00+00:00",
+    "published_timestamp": "2026-09-07T17:33:00+00:00",
+    "url": "https://github.com/google/capsem",
+    "source_urls": [
+      "https://github.com/google/capsem"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T01:03:19Z)]: GitHub Created branch worktree/pr227-archive-protocol in google/capsem — Created branch worktree/pr227-archive-protocol",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_0c0ec12f64fe8fa0",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/earthengine-api",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/earthengine-api",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-10-07T18:50:00+00:00",
+    "latest_detected_at": "2026-10-07T18:50:00+00:00",
+    "published_at": "2026-10-07T18:50:00+00:00",
+    "published_timestamp": "2026-10-07T18:50:00+00:00",
+    "url": "https://github.com/google/earthengine-api",
+    "source_urls": [
+      "https://github.com/google/earthengine-api"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T00:36:13Z)]: GitHub Push to google/earthengine-api — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_0a9969825fec870b",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/peregrine",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/peregrine",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-11-08T19:07:00+00:00",
+    "latest_detected_at": "2026-11-08T19:07:00+00:00",
+    "published_at": "2026-11-08T19:07:00+00:00",
+    "published_timestamp": "2026-11-08T19:07:00+00:00",
+    "url": "https://github.com/google/peregrine",
+    "source_urls": [
+      "https://github.com/google/peregrine"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-22T00:34:28Z)]: GitHub Push to google/peregrine — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_a4217c793df00603",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Business Locations page - Google Business Profile",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Business Locations page - Google Business Profile",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-06-09T08:24:00+00:00",
+    "latest_detected_at": "2026-06-09T08:24:00+00:00",
+    "published_at": "2026-06-09T08:24:00+00:00",
+    "published_timestamp": "2026-06-09T08:24:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiTkFVX3lxTE9RYWFzZnZMSWxzYXRUUFgzTUVoQzBuYk1NUEVsQmZmV2w0enhZUU94ZzdDUldWVjdiMHhFOFVYVUN4NWpnV1RIeGNmX1I0dw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiTkFVX3lxTE9RYWFzZnZMSWxzYXRUUFgzTUVoQzBuYk1NUEVsQmZmV2w0enhZUU94ZzdDUldWVjdiMHhFOFVYVUN4NWpnV1RIeGNmX1I0dw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-22T00:14:33+00:00)]: Google Business Locations page - Google Business Profile — Google Business Locations page &nbsp;&nbsp; Google Business Profile",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_081d2d3f3305b3e3",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Classroom - Google",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Classroom - Google",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-07-09T09:41:00+00:00",
+    "latest_detected_at": "2026-07-09T09:41:00+00:00",
+    "published_at": "2026-07-09T09:41:00+00:00",
+    "published_timestamp": "2026-07-09T09:41:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiSkFVX3lxTFB0TGNPSjlZQU50QXBBeWFBeHgyOEJSUGsyNTJ4d1NaYWllVlhrUEVnM3FBREYtY2RKMWVvQnF2X1d0TVFobWJ6eWdn?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiSkFVX3lxTFB0TGNPSjlZQU50QXBBeWFBeHgyOEJSUGsyNTJ4d1NaYWllVlhrUEVnM3FBREYtY2RKMWVvQnF2X1d0TVFobWJ6eWdn?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-22T00:07:46+00:00)]: Google Classroom - Google — Google Classroom &nbsp;&nbsp; Google",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_fdd6b123c1758220",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google google.com - google.com",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google google.com - google.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-10T10:58:00+00:00",
+    "latest_detected_at": "2026-08-10T10:58:00+00:00",
+    "published_at": "2026-08-10T10:58:00+00:00",
+    "published_timestamp": "2026-08-10T10:58:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBkZzBvUFRTSjBnQk5zQ0E4NWkyS19QNEFyQjBndU8xeTFJRzJKOTUxQU14WGxJRmpmbnZLQnZ6ZnVPY1pXcmxCelVxenZJUEhuYmNQN1dB?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiVkFVX3lxTFBkZzBvUFRTSjBnQk5zQ0E4NWkyS19QNEFyQjBndU8xeTFJRzJKOTUxQU14WGxJRmpmbnZLQnZ6ZnVPY1pXcmxCelVxenZJUEhuYmNQN1dB?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T23:47:57+00:00)]: Google google.com - google.com — Google google.com &nbsp;&nbsp; google.com",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_e09e5d1977453230",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Chat - Google Chat",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Chat - Google Chat",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-11T11:15:00+00:00",
+    "latest_detected_at": "2026-09-11T11:15:00+00:00",
+    "published_at": "2026-09-11T11:15:00+00:00",
+    "published_timestamp": "2026-09-11T11:15:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiR0FVX3lxTE82TXNDeHVPNm5lMTd0VWR2ZkR4bkl3dkh2Uy1QTl9JQjFna0RyN0k1UWxFcHFJSk1UeGlfYnM3RTQ3NVd5MDY4?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiR0FVX3lxTE82TXNDeHVPNm5lMTd0VWR2ZkR4bkl3dkh2Uy1QTl9JQjFna0RyN0k1UWxFcHFJSk1UeGlfYnM3RTQ3NVd5MDY4?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T23:46:39+00:00)]: Google Chat - Google Chat — Google Chat &nbsp;&nbsp; Google Chat",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_08668e45d6bbca17",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Tanterem (Google Classroom) - Google",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Tanterem (Google Classroom) - Google",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-11T12:32:00+00:00",
+    "latest_detected_at": "2026-10-11T12:32:00+00:00",
+    "published_at": "2026-10-11T12:32:00+00:00",
+    "published_timestamp": "2026-10-11T12:32:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiSkFVX3lxTE9CbGhPLTMxWjQ1b1RucENrX0Z4Ni1yQXU4d0ZBNjd2c3BjckMyWEtGQlR6RTc5aDZaZFNkSGlPaVhMRHdJVEhNWnZn?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiSkFVX3lxTE9CbGhPLTMxWjQ1b1RucENrX0Z4Ni1yQXU4d0ZBNjd2c3BjckMyWEtGQlR6RTc5aDZaZFNkSGlPaVhMRHdJVEhNWnZn?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T23:45:55+00:00)]: Tanterem (Google Classroom) - Google — Tanterem (Google Classroom) &nbsp;&nbsp; Google",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_fbae18f8c7ebb9b1",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "google classroom login - Google",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "google classroom login - Google",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-11-12T13:49:00+00:00",
+    "latest_detected_at": "2026-11-12T13:49:00+00:00",
+    "published_at": "2026-11-12T13:49:00+00:00",
+    "published_timestamp": "2026-11-12T13:49:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1RWkZKMzgzRW1OT3lQM1ZLODVEZnlNT2IyVFVscXJKVWhmTVVlUmNJclF2bFVFd2xEelZMUW56c1IxV2RrT3p4RDIzTQ?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiS0FVX3lxTE1RWkZKMzgzRW1OT3lQM1ZLODVEZnlNT2IyVFVscXJKVWhmTVVlUmNJclF2bFVFd2xEelZMUW56c1IxV2RrT3p4RDIzTQ?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T22:51:52+00:00)]: google classroom login - Google — google classroom login &nbsp;&nbsp; Google",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_c3fa6d245107d815",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Calendar Add by URL - Google Calendar",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Calendar Add by URL - Google Calendar",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-06-13T14:06:00+00:00",
+    "latest_detected_at": "2026-06-13T14:06:00+00:00",
+    "published_at": "2026-06-13T14:06:00+00:00",
+    "published_timestamp": "2026-06-13T14:06:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMibEFVX3lxTE5UdHF5S0ZDVUhGT05oWGtCaVJKS1c1T3RvOTFSNE9Ydy1reDhXa0pkWjBGVjRZR2tLR1Fjd25WaThmNXhPeWNVaGhiQi11ekpyR3g3RnZwYTdnM3R6VXI3ZFRCSDJIbnY4OS1ZdA?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMibEFVX3lxTE5UdHF5S0ZDVUhGT05oWGtCaVJKS1c1T3RvOTFSNE9Ydy1reDhXa0pkWjBGVjRZR2tLR1Fjd25WaThmNXhPeWNVaGhiQi11ekpyR3g3RnZwYTdnM3R6VXI3ZFRCSDJIbnY4OS1ZdA?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T22:42:56+00:00)]: Google Calendar Add by URL - Google Calendar — Google Calendar Add by URL &nbsp;&nbsp; Google Calendar",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_00f5b69601996688",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Home (google.com) - Google Classroom - Google",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Home (google.com) - Google Classroom - Google",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-07-13T15:23:00+00:00",
+    "latest_detected_at": "2026-07-13T15:23:00+00:00",
+    "published_at": "2026-07-13T15:23:00+00:00",
+    "published_timestamp": "2026-07-13T15:23:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE16d1k0dDVPYmY1MHh3aWdob1Uzcnh3eEdqSzhqVDYweVpWT0dnX3Z0MHlEZmx3eGEwbm1tbnpMd2FCajFyQ1R5UzgxMA?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiS0FVX3lxTE16d1k0dDVPYmY1MHh3aWdob1Uzcnh3eEdqSzhqVDYweVpWT0dnX3Z0MHlEZmx3eGEwbm1tbnpMd2FCajFyQ1R5UzgxMA?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T22:13:50+00:00)]: Home (google.com) - Google Classroom - Google — Home (google.com) - Google Classroom &nbsp;&nbsp; Google",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_cc378f06b3389d7c",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Drive Link - Google",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Drive Link - Google",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-14T16:40:00+00:00",
+    "latest_detected_at": "2026-08-14T16:40:00+00:00",
+    "published_at": "2026-08-14T16:40:00+00:00",
+    "published_timestamp": "2026-08-14T16:40:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiREFVX3lxTE92MnFkQ1hUYTFXUXQxNllpS3pTTlZSRm1MZzJ1a1RfMXZOSHJqOWVkdlhDYXhxNG1mR1ZkMzdQalk1V21R?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiREFVX3lxTE92MnFkQ1hUYTFXUXQxNllpS3pTTlZSRm1MZzJ1a1RfMXZOSHJqOWVkdlhDYXhxNG1mR1ZkMzdQalk1V21R?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T21:43:07+00:00)]: Google Drive Link - Google — Google Drive Link &nbsp;&nbsp; Google",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_f2a9e1f290bdda6a",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/adk-python",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/adk-python",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-09-15T17:57:00+00:00",
+    "latest_detected_at": "2026-09-15T17:57:00+00:00",
+    "published_at": "2026-09-15T17:57:00+00:00",
+    "published_timestamp": "2026-09-15T17:57:00+00:00",
+    "url": "https://github.com/google/adk-python",
+    "source_urls": [
+      "https://github.com/google/adk-python",
+      "https://github.com/google/adk-python"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-21T20:19:29Z)]: GitHub Push to google/adk-python — 0 commits: \n\n[GITHUB (2026-09-21T20:20:36Z)]: GitHub Push to google/adk-python — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 2
+  },
+  {
+    "event_id": "evt_3ced50026c5a16bf",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "GitHub Push to google/p4-infra",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "GitHub Push to google/p4-infra",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "github"
+    ],
+    "first_detected_at": "2026-10-15T18:14:00+00:00",
+    "latest_detected_at": "2026-10-15T18:14:00+00:00",
+    "published_at": "2026-10-15T18:14:00+00:00",
+    "published_timestamp": "2026-10-15T18:14:00+00:00",
+    "url": "https://github.com/google/p4-infra",
+    "source_urls": [
+      "https://github.com/google/p4-infra"
+    ],
+    "raw_excerpt": "[GITHUB (2026-09-21T16:42:51Z)]: GitHub Push to google/p4-infra — 0 commits: ",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "High",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_71c19668bcf7f4ca",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Sign in - Google",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Sign in - Google",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-11-16T19:31:00+00:00",
+    "latest_detected_at": "2026-11-16T19:31:00+00:00",
+    "published_at": "2026-11-16T19:31:00+00:00",
+    "published_timestamp": "2026-11-16T19:31:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOVzBIX1hMMnViUFFnOXpPU2w0SVlvR3pKNXY2dVVEU1NvNi1Fb2FfckdlTjdjZkRKa0VlOGdHTC1jRjh0MDZkX0RiRTlhZlJNOWh4TWJuYzkyLVRocmI1YVl6M2o3QnpZLUtabENRTGZXNm1CdWZTbUlnNGRXdFl3ZGE3ZFc0SF9kTGI2NWtvLU43YUI4YkprenhuOHBKWGpON3ZPNkg2ZnhCd3JtSFhJTG5WVGk?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMitAFBVV95cUxOVzBIX1hMMnViUFFnOXpPU2w0SVlvR3pKNXY2dVVEU1NvNi1Fb2FfckdlTjdjZkRKa0VlOGdHTC1jRjh0MDZkX0RiRTlhZlJNOWh4TWJuYzkyLVRocmI1YVl6M2o3QnpZLUtabENRTGZXNm1CdWZTbUlnNGRXdFl3ZGE3ZFc0SF9kTGI2NWtvLU43YUI4YkprenhuOHBKWGpON3ZPNkg2ZnhCd3JtSFhJTG5WVGk?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T15:16:25+00:00)]: Sign in - Google — Sign in &nbsp;&nbsp; Google",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_ec61632d0199d76b",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Googlebook Laptops, Designed for Gemini Intelligence - store.google.com",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Googlebook Laptops, Designed for Gemini Intelligence - store.google.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-06-17T08:48:00+00:00",
+    "latest_detected_at": "2026-06-17T08:48:00+00:00",
+    "published_at": "2026-06-17T08:48:00+00:00",
+    "published_timestamp": "2026-06-17T08:48:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE50ek5SbWhEN0JXQ1c4WG9uVUtPaktWSXNzMF9ZWmlKYXQzbDdnX2tsZHEyWHpDQl9iaGF6bXM1NzhJdnpCb3NGdUotU19oLUVPTmgwOUZ4Q0RIV0JxMWgw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiX0FVX3lxTE50ek5SbWhEN0JXQ1c4WG9uVUtPaktWSXNzMF9ZWmlKYXQzbDdnX2tsZHEyWHpDQl9iaGF6bXM1NzhJdnpCb3NGdUotU19oLUVPTmgwOUZ4Q0RIV0JxMWgw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T13:01:04+00:00)]: Googlebook Laptops, Designed for Gemini Intelligence - store.google.com — Googlebook Laptops, Designed for Gemini Intelligence &nbsp;&nbsp; store.google.com",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_8f5ecf1e98de7802",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Acer Googlebook, 16GB RAM, 512GB Storage - store.google.com",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Acer Googlebook, 16GB RAM, 512GB Storage - store.google.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-07-17T09:05:00+00:00",
+    "latest_detected_at": "2026-07-17T09:05:00+00:00",
+    "published_at": "2026-07-17T09:05:00+00:00",
+    "published_timestamp": "2026-07-17T09:05:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA1NkdoOURjUjFXRmVzTzV3cXFsdUY0MzZKQlNjVDZZTjFNS0Izb25CM0NIdnZGSW5ieWVlMlpmamhDbXpTUXZ3VEsyMEFybEQyZWwyUjF6UGxpYW02cmU1a2psdEpGRFVZ?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiaEFVX3lxTFA1NkdoOURjUjFXRmVzTzV3cXFsdUY0MzZKQlNjVDZZTjFNS0Izb25CM0NIdnZGSW5ieWVlMlpmamhDbXpTUXZ3VEsyMEFybEQyZWwyUjF6UGxpYW02cmU1a2psdEpGRFVZ?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T13:01:04+00:00)]: Acer Googlebook, 16GB RAM, 512GB Storage - store.google.com — Acer Googlebook, 16GB RAM, 512GB Storage &nbsp;&nbsp; store.google.com",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_58c62fec6be4eb71",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Senior Software Engineer, Generative AI/Machine Learning, Google Ads - google.com",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Senior Software Engineer, Generative AI/Machine Learning, Google Ads - google.com",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-18T10:22:00+00:00",
+    "latest_detected_at": "2026-08-18T10:22:00+00:00",
+    "published_at": "2026-08-18T10:22:00+00:00",
+    "published_timestamp": "2026-08-18T10:22:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMi4AFBVV95cUxQNTVBcmZWTjFiZzFRQkdnbkdTLW5keUZZdXRmNnFTMC12VXZUMkZjZ1h3V011X1NyYkMwSUJpTlhfWHNfekVtUTFZRTJPN2d5ZU1aT3NaM2VaS09abm5fVGdRUnpjV1BiUHFJMUpRalMyMHdja1p6RU56WTRuXzFQX3FOdmo4ZWhUUlVUeGZsdlhYRlNGR1lmZHNIcklLd05NWi1XbHdEb3JOR29VeFB0OXhwdVgxRHFYWWpIWmNyNERMUTZlaUdoTXJOSzNhZzBNWW00MVdRZWlyTnFxVnBOaw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMi4AFBVV95cUxQNTVBcmZWTjFiZzFRQkdnbkdTLW5keUZZdXRmNnFTMC12VXZUMkZjZ1h3V011X1NyYkMwSUJpTlhfWHNfekVtUTFZRTJPN2d5ZU1aT3NaM2VaS09abm5fVGdRUnpjV1BiUHFJMUpRalMyMHdja1p6RU56WTRuXzFQX3FOdmo4ZWhUUlVUeGZsdlhYRlNGR1lmZHNIcklLd05NWi1XbHdEb3JOR29VeFB0OXhwdVgxRHFYWWpIWmNyNERMUTZlaUdoTXJOSzNhZzBNWW00MVdRZWlyTnFxVnBOaw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T08:38:52+00:00)]: Senior Software Engineer, Generative AI/Machine Learning, Google Ads - google.com — Senior Software Engineer, Generative AI/Machine Learning, Google Ads &nbsp;&nbsp; google.com",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_71a6566d64ef90ad",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Sign in - Google",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Sign in - Google",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-19T11:39:00+00:00",
+    "latest_detected_at": "2026-09-19T11:39:00+00:00",
+    "published_at": "2026-09-19T11:39:00+00:00",
+    "published_timestamp": "2026-09-19T11:39:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBOdXMxZHpvSzdGeTJKMmMwaElDek9pcTJZN0NmamtjWGJSYUhPZmcxbjN5d282Qi1EWnM4LU9ISW1ZVXRUMlU0cU9YNlA4SmFOVml6VDNsT29teTM5Q29ycjd6QVFXWUkzRzJRT0dJRVo1QWo3VzYySW5NLVN0QQ?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMifkFVX3lxTFBOdXMxZHpvSzdGeTJKMmMwaElDek9pcTJZN0NmamtjWGJSYUhPZmcxbjN5d282Qi1EWnM4LU9ISW1ZVXRUMlU0cU9YNlA4SmFOVml6VDNsT29teTM5Q29ycjd6QVFXWUkzRzJRT0dJRVo1QWo3VzYySW5NLVN0QQ?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-21T00:14:41+00:00)]: Sign in - Google — Sign in &nbsp;&nbsp; Google",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_246c176f59984fc8",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "WhatsApp Business - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "WhatsApp Business - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-19T12:56:00+00:00",
+    "latest_detected_at": "2026-10-19T12:56:00+00:00",
+    "published_at": "2026-10-19T12:56:00+00:00",
+    "published_timestamp": "2026-10-19T12:56:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTE9JZ3pqcmpLam9JTUFqNW10VHBSM3MzY1NmOVZfS1VoSERaWVFZQjVydWo0aFRwRjl1NS1mS2RxUjNLaWJCbXVaSm1XazIzR3EtSkNaU2k2OHFVc20zZ1k0LVJuMUVGT29uQjhLVnJqdw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMib0FVX3lxTE9JZ3pqcmpLam9JTUFqNW10VHBSM3MzY1NmOVZfS1VoSERaWVFZQjVydWo0aFRwRjl1NS1mS2RxUjNLaWJCbXVaSm1XazIzR3EtSkNaU2k2OHFVc20zZ1k0LVJuMUVGT29uQjhLVnJqdw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-19T07:00:00+00:00)]: WhatsApp Business - Google Play — WhatsApp Business &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_2716d77daf48b1f8",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Billing information | Google Cloud Fraud Defense - Google Cloud Documentation",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Billing information | Google Cloud Fraud Defense - Google Cloud Documentation",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-11-20T13:13:00+00:00",
+    "latest_detected_at": "2026-11-20T13:13:00+00:00",
+    "published_at": "2026-11-20T13:13:00+00:00",
+    "published_timestamp": "2026-11-20T13:13:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMickFVX3lxTE1PWG9SMDlaTERFbjNsRDZNSlVmWl9QaE9xZU5BZWM1WjZ5ZEctcGZkWmdROGNTdXhtRHdNX24tX2lGMGVBaXZZZEdDYVBvYVhPQnBhVFZybUxEbjlFa19CTHNOamVhNzh3bWdhemhmY1NXZw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMickFVX3lxTE1PWG9SMDlaTERFbjNsRDZNSlVmWl9QaE9xZU5BZWM1WjZ5ZEctcGZkWmdROGNTdXhtRHdNX24tX2lGMGVBaXZZZEdDYVBvYVhPQnBhVFZybUxEbjlFa19CTHNOamVhNzh3bWdhemhmY1NXZw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-18T07:00:00+00:00)]: Billing information | Google Cloud Fraud Defense - Google Cloud Documentation — Billing information | Google Cloud Fraud Defense &nbsp;&nbsp; Google Cloud Documentation",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_4a29a9e0aa0ed5df",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Microsoft Copilot - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Microsoft Copilot - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-06-21T14:30:00+00:00",
+    "latest_detected_at": "2026-06-21T14:30:00+00:00",
+    "published_at": "2026-06-21T14:30:00+00:00",
+    "published_timestamp": "2026-06-21T14:30:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMihgFBVV95cUxPQV90SFp3OTVRZHg2X1lPSnVXSjZmeWhrOVd0NWFPZ3pIN0hBb2JQMzZfdmhILTUtRjdZclBiTkF4dW1ZaEFoMTZNSUhjZXhwdnpDMm5fSDZZUGsyUzlQbVltdnFQNk1aN19PYWVodWx2OHg5anVpeUdMZlZnS2xualhpQ3JRZw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMihgFBVV95cUxPQV90SFp3OTVRZHg2X1lPSnVXSjZmeWhrOVd0NWFPZ3pIN0hBb2JQMzZfdmhILTUtRjdZclBiTkF4dW1ZaEFoMTZNSUhjZXhwdnpDMm5fSDZZUGsyUzlQbVltdnFQNk1aN19PYWVodWx2OHg5anVpeUdMZlZnS2xualhpQ3JRZw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-18T07:00:00+00:00)]: Microsoft Copilot - Google Play — Microsoft Copilot &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_1491a935eff16b38",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Microsoft Outlook - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Microsoft Outlook - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-07-21T15:47:00+00:00",
+    "latest_detected_at": "2026-07-21T15:47:00+00:00",
+    "published_at": "2026-07-21T15:47:00+00:00",
+    "published_timestamp": "2026-07-21T15:47:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMif0FVX3lxTE50aDF4YWhyaTVhcHIxdnpKMXk0MnRxYXdDemt2SFE2SVZRSGI4QnI1enFONEg1Nl9zZjZzejQ3WkRyUGRQRmduNkdEblFNN1R0ZGJCVnVpdjdRY1Fyd1QzQUJ6M1RVMGo5Z3FqQWZfQ19sYXhZdE9nVXlxTkFOaW8?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMif0FVX3lxTE50aDF4YWhyaTVhcHIxdnpKMXk0MnRxYXdDemt2SFE2SVZRSGI4QnI1enFONEg1Nl9zZjZzejQ3WkRyUGRQRmduNkdEblFNN1R0ZGJCVnVpdjdRY1Fyd1QzQUJ6M1RVMGo5Z3FqQWZfQ19sYXhZdE9nVXlxTkFOaW8?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-18T07:00:00+00:00)]: Microsoft Outlook - Google Play — Microsoft Outlook &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_6bcc11b839d455a8",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Quickstart: Install the Google Cloud CLI | Google Cloud SDK - Google Cloud Documentation",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Quickstart: Install the Google Cloud CLI | Google Cloud SDK - Google Cloud Documentation",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-22T16:04:00+00:00",
+    "latest_detected_at": "2026-08-22T16:04:00+00:00",
+    "published_at": "2026-08-22T16:04:00+00:00",
+    "published_timestamp": "2026-08-22T16:04:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE0xT29oZ0c0Z3ZwYVdINTRUMWRTeWtYYmNmcXdZcU9tSU5oVF94Qmg2LWRKWlBDenpsa003dlJXZXhfbTFraVJ6cFcyTFZmRURJU3RPa1VTLTF6UlFnUzFN?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiX0FVX3lxTE0xT29oZ0c0Z3ZwYVdINTRUMWRTeWtYYmNmcXdZcU9tSU5oVF94Qmg2LWRKWlBDenpsa003dlJXZXhfbTFraVJ6cFcyTFZmRURJU3RPa1VTLTF6UlFnUzFN?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-18T07:00:00+00:00)]: Quickstart: Install the Google Cloud CLI | Google Cloud SDK - Google Cloud Documentation — Quickstart: Install the Google Cloud CLI | Google Cloud SDK &nbsp;&nbsp; Google Cloud Documentation",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_6d2aab07b5e0cf3b",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Firebase Hosting - Firebase",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Firebase Hosting - Firebase",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-09-23T17:21:00+00:00",
+    "latest_detected_at": "2026-09-23T17:21:00+00:00",
+    "published_at": "2026-09-23T17:21:00+00:00",
+    "published_timestamp": "2026-09-23T17:21:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFBKa0pwOW52NDhRUndtUjNGR0tWRm41NzJiNlllTk1IQW1XOUM3Qk1LSU5LclBaQncwTDBOSHhlbE03bkF5Y0dvUEZjYmZNUlJkWFE?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiUkFVX3lxTFBKa0pwOW52NDhRUndtUjNGR0tWRm41NzJiNlllTk1IQW1XOUM3Qk1LSU5LclBaQncwTDBOSHhlbE03bkF5Y0dvUEZjYmZNUlJkWFE?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-17T07:00:00+00:00)]: Firebase Hosting - Firebase — Firebase Hosting &nbsp;&nbsp; Firebase",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_1c375a75eb3f48c9",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Flow - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Flow - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-10-23T18:38:00+00:00",
+    "latest_detected_at": "2026-10-23T18:38:00+00:00",
+    "published_at": "2026-10-23T18:38:00+00:00",
+    "published_timestamp": "2026-10-23T18:38:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPQW8xMzNXeG5XWGtUQ1pnLUR4OWRRN1VLbkpNc3JCa3B1S1hjVENQeDJoeUdDMTBTMlE3dWZqaHQ1MkgxTUlyRXVUQUY4bFJmOUVKb2dWWmoydFpjR283NVJDUklyb2k4N1h4UVRxSkg1VVBWbHZLeTVkU052R250ZXZXNEdpNTA?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMihwFBVV95cUxPQW8xMzNXeG5XWGtUQ1pnLUR4OWRRN1VLbkpNc3JCa3B1S1hjVENQeDJoeUdDMTBTMlE3dWZqaHQ1MkgxTUlyRXVUQUY4bFJmOUVKb2dWWmoydFpjR283NVJDUklyb2k4N1h4UVRxSkg1VVBWbHZLeTVkU052R250ZXZXNEdpNTA?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-17T07:00:00+00:00)]: Google Flow - Google Play — Google Flow &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_1f81056aacdba4ab",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Meet - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Meet - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-11-24T19:55:00+00:00",
+    "latest_detected_at": "2026-11-24T19:55:00+00:00",
+    "published_at": "2026-11-24T19:55:00+00:00",
+    "published_timestamp": "2026-11-24T19:55:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMigwFBVV95cUxQXzRxemJfM2FwYlJTNy1vRTZWTE5ybnFPM2tJVUFFa044VEx2YjFxNl9uWVdVSDFDRGlyX29JVURCemJwMDVuemNFNUxTVHpTU2ExSjdDVllOeGR1S0N0SXk5TzFEeE53SWVXb2ZZQmF2VTZTTFhGeGtpb1VSVkgzaWhCSQ?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMigwFBVV95cUxQXzRxemJfM2FwYlJTNy1vRTZWTE5ybnFPM2tJVUFFa044VEx2YjFxNl9uWVdVSDFDRGlyX29JVURCemJwMDVuemNFNUxTVHpTU2ExSjdDVllOeGR1S0N0SXk5TzFEeE53SWVXb2ZZQmF2VTZTTFhGeGtpb1VSVkgzaWhCSQ?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-17T07:00:00+00:00)]: Google Meet - Google Play — Google Meet &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_86d9be70f1ece598",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Spark Driver - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Spark Driver - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-06-25T08:12:00+00:00",
+    "latest_detected_at": "2026-06-25T08:12:00+00:00",
+    "published_at": "2026-06-25T08:12:00+00:00",
+    "published_timestamp": "2026-06-25T08:12:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMieEFVX3lxTE42R2F2VXhEbDRnZE5uNFRVa3g0NVF5VDdIOVNLSXhYVTQ5bWphMHFWMk1VY1FfYXdfU19OYnMtQVZBU1hvLWtyd2ZwWGwtM1lrdTFTdHpXRU0zSmxyakV3OXZYVXY4aUlabVJmcTRjUFExc3FWRTFrTw?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMieEFVX3lxTE42R2F2VXhEbDRnZE5uNFRVa3g0NVF5VDdIOVNLSXhYVTQ5bWphMHFWMk1VY1FfYXdfU19OYnMtQVZBU1hvLWtyd2ZwWGwtM1lrdTFTdHpXRU0zSmxyakV3OXZYVXY4aUlabVJmcTRjUFExc3FWRTFrTw?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-16T07:00:00+00:00)]: Spark Driver - Google Play — Spark Driver &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_b6dbcb3ebb09a54d",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Google Photos - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Google Photos - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-07-25T09:29:00+00:00",
+    "latest_detected_at": "2026-07-25T09:29:00+00:00",
+    "published_at": "2026-07-25T09:29:00+00:00",
+    "published_timestamp": "2026-07-25T09:29:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMiggFBVV95cUxOQzAyWWRvaTM2WFhteDhnOGVOYWFoMWdhTjNNSHBaY2o0YjY3WDFGUEFfeWpjeVpQUkFqMDB6QndxbG9IdC1YTUVrQXVDU0UtWV9SYmQ1WW5kRFpFMVhnSmJuVWlUZzRFM3pRZ29wbk9CblBNSVR6ZnZsR2loUDlwZFZn?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMiggFBVV95cUxOQzAyWWRvaTM2WFhteDhnOGVOYWFoMWdhTjNNSHBaY2o0YjY3WDFGUEFfeWpjeVpQUkFqMDB6QndxbG9IdC1YTUVrQXVDU0UtWV9SYmQ1WW5kRFpFMVhnSmJuVWlUZzRFM3pRZ29wbk9CblBNSVR6ZnZsR2loUDlwZFZn?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-16T07:00:00+00:00)]: Google Photos - Google Play — Google Photos &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_0379284a247417ed",
+    "company": "Google DeepMind",
+    "company_name": "Google DeepMind",
+    "title": "Ticketmaster－Buy, Sell Tickets - Google Play",
+    "theme": "Product & Platform Development",
+    "strategic_theme": "Product & Platform Development",
+    "event_summary": "Ticketmaster－Buy, Sell Tickets - Google Play",
+    "corroboration_count": 1,
+    "contributing_sources": [
+      "news"
+    ],
+    "first_detected_at": "2026-08-26T10:46:00+00:00",
+    "latest_detected_at": "2026-08-26T10:46:00+00:00",
+    "published_at": "2026-08-26T10:46:00+00:00",
+    "published_timestamp": "2026-08-26T10:46:00+00:00",
+    "url": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPa1dLcEJBOTNNWURqU0x0R0tQOHNUakJFUmdxOExLdmVVLUczV1BTclBxbWVXMkZoVTFNcEt6bFotM3dmelRabXdnbXhrVkg3VVlYSnVfODVndHFSZVdwOVNKd3E2Ukphb3lORjZ5V3dSMDMwR3F6cTFDMlhaXzdjV2FSYWhkYmc?oc=5",
+    "source_urls": [
+      "https://news.google.com/rss/articles/CBMihwFBVV95cUxPa1dLcEJBOTNNWURqU0x0R0tQOHNUakJFUmdxOExLdmVVLUczV1BTclBxbWVXMkZoVTFNcEt6bFotM3dmelRabXdnbXhrVkg3VVlYSnVfODVndHFSZVdwOVNKd3E2Ukphb3lORjZ5V3dSMDMwR3F6cTFDMlhaXzdjV2FSYWhkYmc?oc=5"
+    ],
+    "raw_excerpt": "[NEWS (2026-09-15T07:00:00+00:00)]: Ticketmaster－Buy, Sell Tickets - Google Play — Ticketmaster－Buy, Sell Tickets &nbsp;&nbsp; Google Play",
+    "why_it_matters": "Strategic consolidated event tracking Google competitive initiatives.",
+    "tier": "core",
+    "confidence": "High",
+    "fact_confidence": "Medium",
+    "inference_confidence": "Medium",
+    "contributing_signal_count": 1
+  },
+  {
+    "event_id": "evt_anthropic_001_6dae0dc8",
+    "company_name": "Anthropic",
+    "company": "Anthropic",
+    "title": "Anthropic launches Claude 3.5 Sonnet with native Computer Use capabilities",
+    "theme": "Agentic AI",
+    "strategic_theme": "Agentic AI",
+    "event_summary": "Anthropic unveils public beta API allowing Claude to take actions on desktop GUIs, moving directly ahead of OpenAI Operator roadmap.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Anthropic Research",
+      "TechCrunch",
+      "The Information"
+    ],
+    "url": "https://anthropic.com/news",
+    "source_urls": [
+      "https://anthropic.com/news"
+    ],
+    "raw_excerpt": "Anthropic unveils public beta API allowing Claude to take actions on desktop GUIs, moving directly ahead of OpenAI Operator roadmap.",
+    "why_it_matters": "Direct competitive threat to OpenAI's developer API monopoly and enterprise seat licensing.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_anthropic_002_314506a4",
+    "company_name": "Anthropic",
+    "company": "Anthropic",
+    "title": "Anthropic introduces Context Caching cutting prompt token costs by up to 90%",
+    "theme": "Inference Economics",
+    "strategic_theme": "Inference Economics",
+    "event_summary": "Enterprises can persist 200k token system prompts and codebases at a fraction of standard API prices, squeezing OpenAI enterprise margins.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Anthropic Research",
+      "TechCrunch",
+      "The Information"
+    ],
+    "url": "https://anthropic.com/news",
+    "source_urls": [
+      "https://anthropic.com/news"
+    ],
+    "raw_excerpt": "Enterprises can persist 200k token system prompts and codebases at a fraction of standard API prices, squeezing OpenAI enterprise margins.",
+    "why_it_matters": "Direct competitive threat to OpenAI's developer API monopoly and enterprise seat licensing.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 8,
+    "published_at": "2026-07-06T09:17:00+00:00",
+    "published_timestamp": "2026-07-06T09:17:00+00:00",
+    "latest_detected_at": "2026-07-06T09:17:00+00:00",
+    "first_detected_at": "2026-07-06T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_anthropic_003_522f5215",
+    "company_name": "Anthropic",
+    "company": "Anthropic",
+    "title": "Anthropic enterprise ARR surpasses $1B as Fortune 500 adoption accelerates",
+    "theme": "Enterprise Market Share",
+    "strategic_theme": "Enterprise Market Share",
+    "event_summary": "Claude Artifacts and AWS Bedrock enterprise partnerships drive rapid displacement of ChatGPT Team and Enterprise seats.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Anthropic Research",
+      "TechCrunch",
+      "The Information"
+    ],
+    "url": "https://anthropic.com/news",
+    "source_urls": [
+      "https://anthropic.com/news"
+    ],
+    "raw_excerpt": "Claude Artifacts and AWS Bedrock enterprise partnerships drive rapid displacement of ChatGPT Team and Enterprise seats.",
+    "why_it_matters": "Direct competitive threat to OpenAI's developer API monopoly and enterprise seat licensing.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 8,
+    "published_at": "2026-08-11T10:34:00+00:00",
+    "published_timestamp": "2026-08-11T10:34:00+00:00",
+    "latest_detected_at": "2026-08-11T10:34:00+00:00",
+    "first_detected_at": "2026-08-11T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_anthropic_004_bbf1ef23",
+    "company_name": "Anthropic",
+    "company": "Anthropic",
+    "title": "Anthropic announces Claude Enterprise Plan with 500k context window and GitHub integration",
+    "theme": "Enterprise Workspace",
+    "strategic_theme": "Enterprise Workspace",
+    "event_summary": "Direct counter-positioning against ChatGPT Enterprise with native team artifact sharing and workspace audit logging.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Anthropic Research",
+      "TechCrunch",
+      "The Information"
+    ],
+    "url": "https://anthropic.com/news",
+    "source_urls": [
+      "https://anthropic.com/news"
+    ],
+    "raw_excerpt": "Direct counter-positioning against ChatGPT Enterprise with native team artifact sharing and workspace audit logging.",
+    "why_it_matters": "Direct competitive threat to OpenAI's developer API monopoly and enterprise seat licensing.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 8,
+    "published_at": "2026-09-16T11:51:00+00:00",
+    "published_timestamp": "2026-09-16T11:51:00+00:00",
+    "latest_detected_at": "2026-09-16T11:51:00+00:00",
+    "first_detected_at": "2026-09-16T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_anthropic_005_baf9be52",
+    "company_name": "Anthropic",
+    "company": "Anthropic",
+    "title": "Anthropic launches Model Context Protocol (MCP) as open standard for AI agents",
+    "theme": "Developer Ecosystem",
+    "strategic_theme": "Developer Ecosystem",
+    "event_summary": "Universal open protocol for connecting AI models to external tools, databases, and local file systems gains widespread industry support.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Anthropic Research",
+      "TechCrunch",
+      "The Information"
+    ],
+    "url": "https://anthropic.com/news",
+    "source_urls": [
+      "https://anthropic.com/news"
+    ],
+    "raw_excerpt": "Universal open protocol for connecting AI models to external tools, databases, and local file systems gains widespread industry support.",
+    "why_it_matters": "Direct competitive threat to OpenAI's developer API monopoly and enterprise seat licensing.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 10,
+    "published_at": "2026-10-21T12:08:00+00:00",
+    "published_timestamp": "2026-10-21T12:08:00+00:00",
+    "latest_detected_at": "2026-10-21T12:08:00+00:00",
+    "first_detected_at": "2026-10-21T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_mistral_001_503d9f80",
+    "company_name": "Mistral AI",
+    "company": "Mistral AI",
+    "title": "Mistral AI releases Mistral Large 2 with 128k context and state-of-the-art coding benchmark",
+    "theme": "Open Model Parity",
+    "strategic_theme": "Open Model Parity",
+    "event_summary": "Open-weights champion demonstrates benchmark parity with GPT-4o while enabling self-hosted private on-premise deployment.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Mistral Blog",
+      "VentureBeat",
+      "Reuters"
+    ],
+    "url": "https://mistral.ai/news",
+    "source_urls": [
+      "https://mistral.ai/news"
+    ],
+    "raw_excerpt": "Open-weights champion demonstrates benchmark parity with GPT-4o while enabling self-hosted private on-premise deployment.",
+    "why_it_matters": "Eats away at OpenAI fine-tuning and enterprise API revenue in regulated European and private banking sectors.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.92,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 8,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_mistral_002_1ee78d7a",
+    "company_name": "Mistral AI",
+    "company": "Mistral AI",
+    "title": "Mistral AI launches Codestral 22B specialized code generation model",
+    "theme": "Developer Productivity",
+    "strategic_theme": "Developer Productivity",
+    "event_summary": "Fast, efficient 22B model specifically optimized for 80+ programming languages, directly targeting GitHub Copilot and OpenAI Codex.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Mistral Blog",
+      "VentureBeat",
+      "Reuters"
+    ],
+    "url": "https://mistral.ai/news",
+    "source_urls": [
+      "https://mistral.ai/news"
+    ],
+    "raw_excerpt": "Fast, efficient 22B model specifically optimized for 80+ programming languages, directly targeting GitHub Copilot and OpenAI Codex.",
+    "why_it_matters": "Eats away at OpenAI fine-tuning and enterprise API revenue in regulated European and private banking sectors.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.92,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 6,
+    "published_at": "2026-07-07T09:17:00+00:00",
+    "published_timestamp": "2026-07-07T09:17:00+00:00",
+    "latest_detected_at": "2026-07-07T09:17:00+00:00",
+    "first_detected_at": "2026-07-07T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_mistral_003_fb024b99",
+    "company_name": "Mistral AI",
+    "company": "Mistral AI",
+    "title": "Mistral AI partners with Snowflake and SAP for sovereign enterprise data cloud",
+    "theme": "Data Sovereignty",
+    "strategic_theme": "Data Sovereignty",
+    "event_summary": "European and regulated enterprise customers adopt Mistral on private VPC infrastructure to comply with EU AI Act data sovereignty.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Mistral Blog",
+      "VentureBeat",
+      "Reuters"
+    ],
+    "url": "https://mistral.ai/news",
+    "source_urls": [
+      "https://mistral.ai/news"
+    ],
+    "raw_excerpt": "European and regulated enterprise customers adopt Mistral on private VPC infrastructure to comply with EU AI Act data sovereignty.",
+    "why_it_matters": "Eats away at OpenAI fine-tuning and enterprise API revenue in regulated European and private banking sectors.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.92,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 6,
+    "published_at": "2026-08-14T10:34:00+00:00",
+    "published_timestamp": "2026-08-14T10:34:00+00:00",
+    "latest_detected_at": "2026-08-14T10:34:00+00:00",
+    "first_detected_at": "2026-08-14T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_mistral_004_546486c6",
+    "company_name": "Mistral AI",
+    "company": "Mistral AI",
+    "title": "Mistral announces Pixtral 12B multimodal vision model with open weights",
+    "theme": "Multimodal Vision",
+    "strategic_theme": "Multimodal Vision",
+    "event_summary": "Native vision understanding at edge-deployable footprint creates strong competition against OpenAI GPT-4o-mini vision APIs.",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "Mistral Blog",
+      "VentureBeat",
+      "Reuters"
+    ],
+    "url": "https://mistral.ai/news",
+    "source_urls": [
+      "https://mistral.ai/news"
+    ],
+    "raw_excerpt": "Native vision understanding at edge-deployable footprint creates strong competition against OpenAI GPT-4o-mini vision APIs.",
+    "why_it_matters": "Eats away at OpenAI fine-tuning and enterprise API revenue in regulated European and private banking sectors.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.92,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 4,
+    "published_at": "2026-09-20T11:51:00+00:00",
+    "published_timestamp": "2026-09-20T11:51:00+00:00",
+    "latest_detected_at": "2026-09-20T11:51:00+00:00",
+    "first_detected_at": "2026-09-20T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_meta_001_74be34a5",
+    "company_name": "Meta AI",
+    "company": "Meta AI",
+    "title": "Meta AI releases Llama 3.1 405B first frontier-class open-weights model",
+    "theme": "Open Foundation Models",
+    "strategic_theme": "Open Foundation Models",
+    "event_summary": "Zuckerberg declares open source AI the industry standard as Llama 3.1 405B matches GPT-4o across reasoning, math, and code generation.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Meta AI Blog",
+      "The Verge",
+      "Wall Street Journal"
+    ],
+    "url": "https://ai.meta.com",
+    "source_urls": [
+      "https://ai.meta.com"
+    ],
+    "raw_excerpt": "Zuckerberg declares open source AI the industry standard as Llama 3.1 405B matches GPT-4o across reasoning, math, and code generation.",
+    "why_it_matters": "Commoditizes frontier model intelligence, driving cloud API token prices down towards zero.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_meta_002_1553f021",
+    "company_name": "Meta AI",
+    "company": "Meta AI",
+    "title": "Meta AI reaches 500 million monthly active users across WhatsApp and Instagram",
+    "theme": "Consumer Distribution",
+    "strategic_theme": "Consumer Distribution",
+    "event_summary": "Consumer AI assistant reach scales exponentially through Meta's core app family, bypassing standalone ChatGPT consumer touchpoints.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Meta AI Blog",
+      "The Verge",
+      "Wall Street Journal"
+    ],
+    "url": "https://ai.meta.com",
+    "source_urls": [
+      "https://ai.meta.com"
+    ],
+    "raw_excerpt": "Consumer AI assistant reach scales exponentially through Meta's core app family, bypassing standalone ChatGPT consumer touchpoints.",
+    "why_it_matters": "Commoditizes frontier model intelligence, driving cloud API token prices down towards zero.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 10,
+    "published_at": "2026-07-09T09:17:00+00:00",
+    "published_timestamp": "2026-07-09T09:17:00+00:00",
+    "latest_detected_at": "2026-07-09T09:17:00+00:00",
+    "first_detected_at": "2026-07-09T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_meta_003_1d57a49f",
+    "company_name": "Meta AI",
+    "company": "Meta AI",
+    "title": "Meta launches Llama 3.2 with on-device 1B/3B models and visual reasoning",
+    "theme": "Edge Intelligence",
+    "strategic_theme": "Edge Intelligence",
+    "event_summary": "Ultra-lightweight models run locally on smartphones and edge devices with zero latency and zero cloud compute fees.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Meta AI Blog",
+      "The Verge",
+      "Wall Street Journal"
+    ],
+    "url": "https://ai.meta.com",
+    "source_urls": [
+      "https://ai.meta.com"
+    ],
+    "raw_excerpt": "Ultra-lightweight models run locally on smartphones and edge devices with zero latency and zero cloud compute fees.",
+    "why_it_matters": "Commoditizes frontier model intelligence, driving cloud API token prices down towards zero.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 6,
+    "published_at": "2026-08-18T10:34:00+00:00",
+    "published_timestamp": "2026-08-18T10:34:00+00:00",
+    "latest_detected_at": "2026-08-18T10:34:00+00:00",
+    "first_detected_at": "2026-08-18T10:34:00+00:00"
+  }
+]
