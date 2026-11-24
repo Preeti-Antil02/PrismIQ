@@ -1,0 +1,542 @@
+[
+  {
+    "event_id": "evt_fk_amz_001_7926650a",
+    "company_name": "Amazon India",
+    "company": "Amazon India",
+    "title": "Amazon India launches Prime Same-Day delivery in 50 Tier-1 and Tier-2 cities",
+    "theme": "Logistics & Fulfillment",
+    "strategic_theme": "Logistics & Fulfillment",
+    "event_summary": "Amazon expands rapid fulfillment network with 150 automated micro-fulfillment hubs across India, directly challenging Flipkart Minutes.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Economic Times",
+      "Livemint",
+      "Business Standard"
+    ],
+    "url": "https://economictimes.indiatimes.com",
+    "source_urls": [
+      "https://economictimes.indiatimes.com"
+    ],
+    "raw_excerpt": "Amazon expands rapid fulfillment network with 150 automated micro-fulfillment hubs across India, directly challenging Flipkart Minutes.",
+    "why_it_matters": "Direct marketplace battle for premium and electronics GMV market share in India.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 8,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_amz_002_5d1b919f",
+    "company_name": "Amazon India",
+    "company": "Amazon India",
+    "title": "Amazon Great Indian Festival breaks record with 1.4B customer visits",
+    "theme": "Festive GMV & Sales",
+    "strategic_theme": "Festive GMV & Sales",
+    "event_summary": "Festive season sales surge 26% driven by premium smartphone exchange bonuses and zero-cost EMI penetration.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Economic Times",
+      "Livemint",
+      "Business Standard"
+    ],
+    "url": "https://economictimes.indiatimes.com",
+    "source_urls": [
+      "https://economictimes.indiatimes.com"
+    ],
+    "raw_excerpt": "Festive season sales surge 26% driven by premium smartphone exchange bonuses and zero-cost EMI penetration.",
+    "why_it_matters": "Direct marketplace battle for premium and electronics GMV market share in India.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 8,
+    "published_at": "2026-07-07T09:17:00+00:00",
+    "published_timestamp": "2026-07-07T09:17:00+00:00",
+    "latest_detected_at": "2026-07-07T09:17:00+00:00",
+    "first_detected_at": "2026-07-07T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_amz_003_35b0deda",
+    "company_name": "Amazon India",
+    "company": "Amazon India",
+    "title": "Amazon Bazaar reaches 2M daily active value shoppers across Bharat tier-3 towns",
+    "theme": "Value Commerce",
+    "strategic_theme": "Value Commerce",
+    "event_summary": "Amazon's sub-₹300 zero-commission storefront accelerates rural merchant recruitment, contesting Flipkart's Shopsy and Meesho.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Economic Times",
+      "Livemint",
+      "Business Standard"
+    ],
+    "url": "https://economictimes.indiatimes.com",
+    "source_urls": [
+      "https://economictimes.indiatimes.com"
+    ],
+    "raw_excerpt": "Amazon's sub-₹300 zero-commission storefront accelerates rural merchant recruitment, contesting Flipkart's Shopsy and Meesho.",
+    "why_it_matters": "Direct marketplace battle for premium and electronics GMV market share in India.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 6,
+    "published_at": "2026-08-14T10:34:00+00:00",
+    "published_timestamp": "2026-08-14T10:34:00+00:00",
+    "latest_detected_at": "2026-08-14T10:34:00+00:00",
+    "first_detected_at": "2026-08-14T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_amz_004_73329f8e",
+    "company_name": "Amazon India",
+    "company": "Amazon India",
+    "title": "Amazon Pay UPI surpasses 100M monthly active transacting users",
+    "theme": "Fintech & Payments",
+    "strategic_theme": "Fintech & Payments",
+    "event_summary": "Deep integration into checkout flow captures 32% of total transaction share during festive e-commerce sales.",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "Economic Times",
+      "Livemint",
+      "Business Standard"
+    ],
+    "url": "https://economictimes.indiatimes.com",
+    "source_urls": [
+      "https://economictimes.indiatimes.com"
+    ],
+    "raw_excerpt": "Deep integration into checkout flow captures 32% of total transaction share during festive e-commerce sales.",
+    "why_it_matters": "Direct marketplace battle for premium and electronics GMV market share in India.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 4,
+    "published_at": "2026-09-20T11:51:00+00:00",
+    "published_timestamp": "2026-09-20T11:51:00+00:00",
+    "latest_detected_at": "2026-09-20T11:51:00+00:00",
+    "first_detected_at": "2026-09-20T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_rel_001_4059cee7",
+    "company_name": "Reliance Retail",
+    "company": "Reliance Retail",
+    "title": "Reliance Retail rolls out 500 JioMart quick-delivery dark stores across 100 cities",
+    "theme": "Quick Commerce",
+    "strategic_theme": "Quick Commerce",
+    "event_summary": "JioMart levers Reliance Fresh network to guarantee 20-minute delivery on groceries and home essentials at wholesale prices.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Reuters India",
+      "Financial Express",
+      "Inc42"
+    ],
+    "url": "https://financialexpress.com",
+    "source_urls": [
+      "https://financialexpress.com"
+    ],
+    "raw_excerpt": "JioMart levers Reliance Fresh network to guarantee 20-minute delivery on groceries and home essentials at wholesale prices.",
+    "why_it_matters": "Omnichannel grocery and fashion powerhouse threatens Flipkart's grocery and lifestyle margins.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.88,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_rel_002_6384d8b9",
+    "company_name": "Reliance Retail",
+    "company": "Reliance Retail",
+    "title": "Ajio festive fashion GMV doubles driven by exclusive global high-street brands",
+    "theme": "Fashion E-Commerce",
+    "strategic_theme": "Fashion E-Commerce",
+    "event_summary": "Reliance digital fashion hub reports 45% of total orders originate from Tier-2 and Tier-3 youth shoppers.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Reuters India",
+      "Financial Express",
+      "Inc42"
+    ],
+    "url": "https://financialexpress.com",
+    "source_urls": [
+      "https://financialexpress.com"
+    ],
+    "raw_excerpt": "Reliance digital fashion hub reports 45% of total orders originate from Tier-2 and Tier-3 youth shoppers.",
+    "why_it_matters": "Omnichannel grocery and fashion powerhouse threatens Flipkart's grocery and lifestyle margins.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.88,
+    "contributing_signal_count": 6,
+    "published_at": "2026-07-07T09:17:00+00:00",
+    "published_timestamp": "2026-07-07T09:17:00+00:00",
+    "latest_detected_at": "2026-07-07T09:17:00+00:00",
+    "first_detected_at": "2026-07-07T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_rel_003_561e18a7",
+    "company_name": "Reliance Retail",
+    "company": "Reliance Retail",
+    "title": "Reliance Retail acquires regional logistics platform to streamline omnichannel dispatch",
+    "theme": "Omnichannel Supply Chain",
+    "strategic_theme": "Omnichannel Supply Chain",
+    "event_summary": "Acquisition strengthens direct-from-store delivery for 18,000 physical retail outlets across India.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Reuters India",
+      "Financial Express",
+      "Inc42"
+    ],
+    "url": "https://financialexpress.com",
+    "source_urls": [
+      "https://financialexpress.com"
+    ],
+    "raw_excerpt": "Acquisition strengthens direct-from-store delivery for 18,000 physical retail outlets across India.",
+    "why_it_matters": "Omnichannel grocery and fashion powerhouse threatens Flipkart's grocery and lifestyle margins.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.88,
+    "contributing_signal_count": 6,
+    "published_at": "2026-08-14T10:34:00+00:00",
+    "published_timestamp": "2026-08-14T10:34:00+00:00",
+    "latest_detected_at": "2026-08-14T10:34:00+00:00",
+    "first_detected_at": "2026-08-14T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_rel_004_198dc6ee",
+    "company_name": "Reliance Retail",
+    "company": "Reliance Retail",
+    "title": "JioMart announces 0% seller commission on local grocery suppliers",
+    "theme": "Merchant Onboarding",
+    "strategic_theme": "Merchant Onboarding",
+    "event_summary": "Aggressive seller subsidy aims to lock in mom-and-pop kirana merchant catalog exclusivity.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Reuters India",
+      "Financial Express",
+      "Inc42"
+    ],
+    "url": "https://financialexpress.com",
+    "source_urls": [
+      "https://financialexpress.com"
+    ],
+    "raw_excerpt": "Aggressive seller subsidy aims to lock in mom-and-pop kirana merchant catalog exclusivity.",
+    "why_it_matters": "Omnichannel grocery and fashion powerhouse threatens Flipkart's grocery and lifestyle margins.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.88,
+    "contributing_signal_count": 6,
+    "published_at": "2026-09-20T11:51:00+00:00",
+    "published_timestamp": "2026-09-20T11:51:00+00:00",
+    "latest_detected_at": "2026-09-20T11:51:00+00:00",
+    "first_detected_at": "2026-09-20T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_msh_001_3e612443",
+    "company_name": "Meesho",
+    "company": "Meesho",
+    "title": "Meesho Surges 9% After UBS Raises Target Price To ₹260 on festive volume",
+    "theme": "Logistics Disruption",
+    "strategic_theme": "Logistics Disruption",
+    "event_summary": "UBS highlights Meesho's zero-commission model and Valmo logistics network delivering 30% lower unit delivery costs.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Inc42",
+      "Economic Times",
+      "Entrackr"
+    ],
+    "url": "https://inc42.com",
+    "source_urls": [
+      "https://inc42.com"
+    ],
+    "raw_excerpt": "UBS highlights Meesho's zero-commission model and Valmo logistics network delivering 30% lower unit delivery costs.",
+    "why_it_matters": "Erosion of Tier-2/3 customer conversion and active merchant defection risk.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.91,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 8,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_msh_002_2b5c9a7d",
+    "company_name": "Meesho",
+    "company": "Meesho",
+    "title": "Meesho records 1.45B annual transacting customer orders in Tier-2/3 heartland",
+    "theme": "Value Commerce",
+    "strategic_theme": "Value Commerce",
+    "event_summary": "Hyper-growth in unbranded apparel and home accessories forces Flipkart to defend budget shoppers.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Inc42",
+      "Economic Times",
+      "Entrackr"
+    ],
+    "url": "https://inc42.com",
+    "source_urls": [
+      "https://inc42.com"
+    ],
+    "raw_excerpt": "Hyper-growth in unbranded apparel and home accessories forces Flipkart to defend budget shoppers.",
+    "why_it_matters": "Erosion of Tier-2/3 customer conversion and active merchant defection risk.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.91,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 8,
+    "published_at": "2026-07-09T09:17:00+00:00",
+    "published_timestamp": "2026-07-09T09:17:00+00:00",
+    "latest_detected_at": "2026-07-09T09:17:00+00:00",
+    "first_detected_at": "2026-07-09T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_msh_003_151433e5",
+    "company_name": "Meesho",
+    "company": "Meesho",
+    "title": "Meesho's Valmo logistics network handles 40% of all platform shipments",
+    "theme": "Logistics Infrastructure",
+    "strategic_theme": "Logistics Infrastructure",
+    "event_summary": "Decentralized 3PL routing bypasses legacy courier networks, locking in ₹35 per parcel cost advantage.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Inc42",
+      "Economic Times",
+      "Entrackr"
+    ],
+    "url": "https://inc42.com",
+    "source_urls": [
+      "https://inc42.com"
+    ],
+    "raw_excerpt": "Decentralized 3PL routing bypasses legacy courier networks, locking in ₹35 per parcel cost advantage.",
+    "why_it_matters": "Erosion of Tier-2/3 customer conversion and active merchant defection risk.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.91,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 6,
+    "published_at": "2026-08-18T10:34:00+00:00",
+    "published_timestamp": "2026-08-18T10:34:00+00:00",
+    "latest_detected_at": "2026-08-18T10:34:00+00:00",
+    "first_detected_at": "2026-08-18T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_tata_001_3fc55279",
+    "company_name": "Tata Neu",
+    "company": "Tata Neu",
+    "title": "Tata Neu integrates BigBasket bbnow instant delivery into unified rewards ecosystem",
+    "theme": "Super App Ecosystem",
+    "strategic_theme": "Super App Ecosystem",
+    "event_summary": "Tata digital super app achieves 25M monthly active shoppers across electronics, fashion, and instant grocery.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Mint",
+      "Business Standard",
+      "Economic Times"
+    ],
+    "url": "https://livemint.com",
+    "source_urls": [
+      "https://livemint.com"
+    ],
+    "raw_excerpt": "Tata digital super app achieves 25M monthly active shoppers across electronics, fashion, and instant grocery.",
+    "why_it_matters": "High-trust corporate conglomerate consolidating premium urban consumer loyalty.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.89,
+    "inference_confidence": 0.84,
+    "contributing_signal_count": 6,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_tata_002_41cc6773",
+    "company_name": "Tata Neu",
+    "company": "Tata Neu",
+    "title": "Tata Digital plans $1B capital infusion to expand fulfillment hubs and Croma omnichannel",
+    "theme": "Capital Expansion",
+    "strategic_theme": "Capital Expansion",
+    "event_summary": "Aggressive investment in consumer tech ecosystem targets Flipkart electronics and white goods dominance.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Mint",
+      "Business Standard",
+      "Economic Times"
+    ],
+    "url": "https://livemint.com",
+    "source_urls": [
+      "https://livemint.com"
+    ],
+    "raw_excerpt": "Aggressive investment in consumer tech ecosystem targets Flipkart electronics and white goods dominance.",
+    "why_it_matters": "High-trust corporate conglomerate consolidating premium urban consumer loyalty.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.89,
+    "inference_confidence": 0.84,
+    "contributing_signal_count": 6,
+    "published_at": "2026-07-09T09:17:00+00:00",
+    "published_timestamp": "2026-07-09T09:17:00+00:00",
+    "latest_detected_at": "2026-07-09T09:17:00+00:00",
+    "first_detected_at": "2026-07-09T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_tata_003_5e713799",
+    "company_name": "Tata Neu",
+    "company": "Tata Neu",
+    "title": "Tata 1mg achieves 30-minute prescription delivery across top 15 metros",
+    "theme": "Category Expansion",
+    "strategic_theme": "Category Expansion",
+    "event_summary": "Health and pharmacy category integration adds high-frequency daily engagement to Tata Neu ecosystem.",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "Mint",
+      "Business Standard",
+      "Economic Times"
+    ],
+    "url": "https://livemint.com",
+    "source_urls": [
+      "https://livemint.com"
+    ],
+    "raw_excerpt": "Health and pharmacy category integration adds high-frequency daily engagement to Tata Neu ecosystem.",
+    "why_it_matters": "High-trust corporate conglomerate consolidating premium urban consumer loyalty.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.89,
+    "inference_confidence": 0.84,
+    "contributing_signal_count": 4,
+    "published_at": "2026-08-18T10:34:00+00:00",
+    "published_timestamp": "2026-08-18T10:34:00+00:00",
+    "latest_detected_at": "2026-08-18T10:34:00+00:00",
+    "first_detected_at": "2026-08-18T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_001_3428341b",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart Minutes launches in Bengaluru and Delhi NCR with 10-minute dark stores",
+    "theme": "Quick Commerce Launch",
+    "strategic_theme": "Quick Commerce Launch",
+    "event_summary": "Flipkart steps directly into quick commerce with dedicated hyperlocal micro-warehouses and zero delivery fees on orders above ₹199.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Flipkart steps directly into quick commerce with dedicated hyperlocal micro-warehouses and zero delivery fees on orders above ₹199.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_002_2ee9c49e",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart Big Billion Days 2026 sets record GMV with 35% surge in tier-2 electronics",
+    "theme": "Flagship Festival GMV",
+    "strategic_theme": "Flagship Festival GMV",
+    "event_summary": "Annual flagship sale drives over 1.2B customer visits with Flipkart VIP loyalty members converting at 3x rate.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Annual flagship sale drives over 1.2B customer visits with Flipkart VIP loyalty members converting at 3x rate.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 10,
+    "published_at": "2026-07-07T09:17:00+00:00",
+    "published_timestamp": "2026-07-07T09:17:00+00:00",
+    "latest_detected_at": "2026-07-07T09:17:00+00:00",
+    "first_detected_at": "2026-07-07T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_003_17ff4ac3",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart Ekart expands 3PL merchant logistics services to external brand partners",
+    "theme": "3PL Infrastructure",
+    "strategic_theme": "3PL Infrastructure",
+    "event_summary": "Supply chain arm monetizes nationwide logistics network by offering warehousing and first-mile pickup to non-marketplace sellers.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Supply chain arm monetizes nationwide logistics network by offering warehousing and first-mile pickup to non-marketplace sellers.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 8,
+    "published_at": "2026-08-14T10:34:00+00:00",
+    "published_timestamp": "2026-08-14T10:34:00+00:00",
+    "latest_detected_at": "2026-08-14T10:34:00+00:00",
+    "first_detected_at": "2026-08-14T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_004_54a370d8",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart partners with regional textile consortiums to onboard 200,000 craft weavers",
+    "theme": "Merchant Sourcing",
+    "strategic_theme": "Merchant Sourcing",
+    "event_summary": "Direct-from-manufacturer initiative strengthens everyday low price catalog in women's ethnic apparel.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Direct-from-manufacturer initiative strengthens everyday low price catalog in women's ethnic apparel.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 6,
+    "published_at": "2026-09-20T11:51:00+00:00",
+    "published_timestamp": "2026-09-20T11:51:00+00:00",
+    "latest_detected_at": "2026-09-20T11:51:00+00:00",
+    "first_detected_at": "2026-09-20T11:51:00+00:00"
+  }
+]
