@@ -1,0 +1,57 @@
+[
+  {
+    "company_name": "Vercel",
+    "is_target": true,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "vercel.com",
+    "industry_category": "Enterprise Technology",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Primary subject entity for competitive benchmarking and strategic intelligence."
+  },
+  {
+    "company_name": "Cloudflare",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "cloudflare.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Vercel."
+  },
+  {
+    "company_name": "Netlify",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "netlify.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Vercel."
+  },
+  {
+    "company_name": "AWS Amplify",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "awsamplify.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Vercel."
+  },
+  {
+    "company_name": "Supabase",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "supabase.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Vercel."
+  }
+]
