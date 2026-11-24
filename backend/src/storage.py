@@ -916,23 +916,36 @@ def load_events(
 
     tid = (tenant_id or "").strip()
     if tid:
-        tenant_file = data_dir / f"events_{tid}.json"
-        if tenant_file.exists():
-            try:
-                with open(tenant_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    if isinstance(data, list) and data:
-                        return data
-                    elif isinstance(data, dict) and data.get("events"):
-                        return data["events"]
-            except Exception:
-                pass
+        for pdir in (data_dir, _backend_root / "published_briefs", _backend_root / "data"):
+            tenant_file = pdir / f"events_{tid}.json"
+            if tenant_file.exists():
+                try:
+                    with open(tenant_file, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if isinstance(data, list) and data:
+                            return data
+                        elif isinstance(data, dict) and data.get("events"):
+                            return data["events"]
+                except Exception:
+                    pass
 
         known_tenant_event_files = {
-            "c8f13b91-46ef-4682-9975-f85764d8a12e": ["events_20260908_025629.json"],
-            "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": ["events_20260920_010955.json", "events_20260922_031846.json"],
-            "8553449a-c998-4727-be01-9aeb724038cb": ["events_8553449a-c998-4727-be01-9aeb724038cb.json"],
-            "7b90477d-2524-4cf9-8e47-f389ec890ff7": ["events_8553449a-c998-4727-be01-9aeb724038cb.json"],
+            "c8f13b91-46ef-4682-9975-f85764d8a12e": [
+                "events_c8f13b91-46ef-4682-9975-f85764d8a12e.json",
+                "events_20260908_025629.json",
+            ],
+            "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": [
+                "events_6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f.json",
+                "events_20260920_010955.json",
+                "events_20260922_031846.json",
+            ],
+            "8553449a-c998-4727-be01-9aeb724038cb": [
+                "events_8553449a-c998-4727-be01-9aeb724038cb.json",
+            ],
+            "7b90477d-2524-4cf9-8e47-f389ec890ff7": [
+                "events_7b90477d-2524-4cf9-8e47-f389ec890ff7.json",
+                "events_8553449a-c998-4727-be01-9aeb724038cb.json",
+            ],
         }
         if tid in known_tenant_event_files:
             res = []
@@ -1878,7 +1891,7 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
                            primary_domain, industry_category, tier, confidence, rationale, source
                     FROM tenant_tracked_companies
                     WHERE status = 'active'
-                      AND (tenant_id = %s::uuid OR tenant_id IS NULL)
+                      AND tenant_id = %s::uuid
                     ORDER BY is_target DESC, company_name ASC;
                 """, (tid,))
                 rows = cur.fetchall()
@@ -1908,44 +1921,44 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
         except Exception as e:
             logger.warning(f"Failed to query tenant tracked companies from Postgres: {e}")
 
-    # Known built-in tenants baseline registry
+    # Known built-in tenants baseline registry with canonical competitors
     known_tenants: Dict[str, Dict[str, Any]] = {
         "c8f13b91-46ef-4682-9975-f85764d8a12e": {
             "target_company": "Vercel",
-            "competitors": ["Cloudflare Pages", "Cloudflare Workers", "Netlify", "Stripe"],
+            "competitors": ["Cloudflare", "Netlify", "AWS Amplify", "Supabase"],
         },
         "7b90477d-2524-4cf9-8e47-f389ec890ff7": {
             "target_company": "Flipkart",
-            "competitors": ["Amazon India", "Meesho", "Myntra", "Ajio", "Shopsy"],
+            "competitors": ["Amazon India", "Meesho", "Reliance Retail", "Tata Neu"],
         },
         "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": {
             "target_company": "OpenAI",
-            "competitors": ["Anthropic", "Google DeepMind", "Meta AI"],
+            "competitors": ["Anthropic", "Google DeepMind", "Mistral AI", "Meta AI"],
         },
         "8553449a-c998-4727-be01-9aeb724038cb": {
             "target_company": "Meesho",
-            "competitors": ["Flipkart", "Amazon India", "Shopsy", "Ajio"],
+            "competitors": ["Amazon India", "Flipkart", "Shopsy", "Ajio"],
         },
     }
 
-    # Fallback to per-tenant local flat file
-    tenant_file = _get_data_dir() / f"tracked_companies_{tid}.json"
-    if tenant_file.exists():
-        try:
-            with open(tenant_file, "r", encoding="utf-8") as tf:
-                data = json.load(tf)
-                valid = [c for c in data if c.get("status", "active") == "active"]
-                # If this is a known tenant, ensure the file actually belongs to the target company
-                if valid:
-                    file_target = next((c.get("company_name", "").lower() for c in valid if c.get("is_target")), "")
-                    if tid in known_tenants:
-                        expected_target = known_tenants[tid]["target_company"].lower()
-                        if file_target == expected_target:
+    # Fallback to per-tenant local flat file across data and published_briefs
+    for pdir in (_get_data_dir(), _backend_root / "published_briefs", _backend_root / "data"):
+        tenant_file = pdir / f"tracked_companies_{tid}.json"
+        if tenant_file.exists():
+            try:
+                with open(tenant_file, "r", encoding="utf-8") as tf:
+                    data = json.load(tf)
+                    valid = [c for c in data if c.get("status", "active") == "active"]
+                    if valid:
+                        file_target = next((c.get("company_name", "").lower() for c in valid if c.get("is_target")), "")
+                        if tid in known_tenants:
+                            expected_target = known_tenants[tid]["target_company"].lower()
+                            if file_target == expected_target:
+                                return valid
+                        else:
                             return valid
-                    else:
-                        return valid
-        except Exception as e:
-            logger.warning(f"Failed to read local tracked companies for {tid}: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to read local tracked companies for {tid}: {e}")
 
     if tid in known_tenants:
         info = known_tenants[tid]
