@@ -343,7 +343,7 @@ export function CompetitorIntelligenceDetailView({ detailId = "amazon" }: { deta
           setError(null);
           // Initialize action statuses from backend data
           const initialStatuses: Record<string, string> = {};
-          res.what_should_we_do.actions.forEach((act) => {
+          (res?.what_should_we_do?.actions || []).forEach((act) => {
             const key = act.id || `act_${act.number}`;
             initialStatuses[key] = act.status || "In Progress";
           });
@@ -812,7 +812,7 @@ export function CompetitorIntelligenceDetailView({ detailId = "amazon" }: { deta
 
             {/* 4 Contextual Department Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {data.who_is_affected.departments.map((dept) => {
+              {(data.who_is_affected?.departments || []).map((dept) => {
                 const icon =
                   dept.department === "Engineering" ? (
                     <Settings className="w-5 h-5 text-blue-600" />
@@ -912,7 +912,7 @@ export function CompetitorIntelligenceDetailView({ detailId = "amazon" }: { deta
 
             {/* Action Cards with Dropdown Toggle and Clickable Next Step */}
             <div className="space-y-4">
-              {data.what_should_we_do.actions.map((act) => {
+              {(data.what_should_we_do?.actions || []).map((act) => {
                 const actionKey = act.id || `act_${act.number}`;
                 const currentStatus = actionStatuses[actionKey] || act.status || "In Progress";
                 const isDeptMatch = !activeDepartmentFilter || act.department.toLowerCase() === activeDepartmentFilter.toLowerCase();
@@ -1086,7 +1086,7 @@ export function CompetitorIntelligenceDetailView({ detailId = "amazon" }: { deta
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Time Horizon</div>
                   <div className="text-xs font-extrabold text-zinc-900 mt-0.5">
-                    {data.urgency_and_time_horizon.time_horizon}
+                    {data.urgency_and_time_horizon?.time_horizon || "Tactical (<30d)"}
                   </div>
                 </div>
               </div>
@@ -1099,7 +1099,7 @@ export function CompetitorIntelligenceDetailView({ detailId = "amazon" }: { deta
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Priority Tier</div>
                   <div className="text-xs font-extrabold text-zinc-900 mt-0.5">
-                    {data.urgency_and_time_horizon.priority_tier}
+                    {data.urgency_and_time_horizon?.priority_tier || data.urgency_badge || "High Urgency"}
                   </div>
                 </div>
               </div>
@@ -1112,7 +1112,7 @@ export function CompetitorIntelligenceDetailView({ detailId = "amazon" }: { deta
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Cycle Review Due</div>
                   <div className="text-xs font-extrabold text-zinc-900 mt-0.5">
-                    {data.urgency_and_time_horizon.cycle_review_due}
+                    {data.urgency_and_time_horizon?.cycle_review_due || "Cycle Review Due"}
                   </div>
                 </div>
               </div>
@@ -1137,13 +1137,13 @@ export function CompetitorIntelligenceDetailView({ detailId = "amazon" }: { deta
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div className="text-xs font-bold text-emerald-950 leading-tight">
-                  {data.verification_and_confidence.verified_sources_count} Verified Primary Sources
+                  {data.verification_and_confidence?.verified_sources_count ?? 1} Verified Primary Sources
                 </div>
               </div>
 
               {/* Element 2: Circular Donut Gauge */}
               <div className="p-4 rounded-2xl bg-teal-50/40 border border-teal-200/70 flex flex-col items-center justify-center text-center space-y-1 h-full">
-                <CircularGaugeDonut score={data.verification_and_confidence.confidence_score} />
+                <CircularGaugeDonut score={data.verification_and_confidence?.confidence_score ?? 84} />
                 <div className="text-[11px] font-bold text-zinc-700">Calibrated Confidence</div>
               </div>
 
