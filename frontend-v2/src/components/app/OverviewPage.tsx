@@ -293,35 +293,42 @@ export function OverviewPage() {
     );
   }
 
-  const { metrics, what_deserves_attention, competitive_landscape, emerging_strategic_patterns, next_best_actions } = data;
+  const metrics = data.metrics || {
+    tracked_competitors: { value: 0, delta: "", label: "Tracked Competitors" },
+    verified_events: { value: 0, delta: "", label: "Verified Events" },
+    high_priority_developments: { value: 0, delta: "", label: "High-Priority Developments" },
+    pending_actions: { value: 0, delta: "", label: "Pending Actions" },
+  };
+  const what_deserves_attention = data.what_deserves_attention || [];
+  const competitive_landscape = data.competitive_landscape || {
+    competitors: [],
+    colors: {},
+    chart_data: [],
+  };
+  const emerging_strategic_patterns = data.emerging_strategic_patterns || [];
+  const next_best_actions = data.next_best_actions || [];
 
-  // Overview cockpit displays 1 distinct item per competitor (matching reference design)
-  const attentionItems = React.useMemo(() => {
-    if (!what_deserves_attention || what_deserves_attention.length === 0) return [];
-    const seen = new Set<string>();
-    const diverse: typeof what_deserves_attention = [];
+  // Overview cockpit displays 1 distinct item per competitor (matching reference design, purely synchronous calculation)
+  const seenCompetitors = new Set<string>();
+  const attentionItems: typeof what_deserves_attention = [];
 
-    // First pass: pick 1 item per unique competitor
+  for (const item of what_deserves_attention) {
+    const key = (item.competitor || "").toLowerCase().trim();
+    if (!seenCompetitors.has(key)) {
+      seenCompetitors.add(key);
+      attentionItems.push(item);
+    }
+    if (attentionItems.length >= 4) break;
+  }
+
+  if (attentionItems.length < 4) {
     for (const item of what_deserves_attention) {
-      const key = (item.competitor || "").toLowerCase().trim();
-      if (!seen.has(key)) {
-        seen.add(key);
-        diverse.push(item);
+      if (!attentionItems.some((d) => d.id === item.id)) {
+        attentionItems.push(item);
       }
-      if (diverse.length >= 4) break;
+      if (attentionItems.length >= 4) break;
     }
-
-    // Second pass: fill up to 4 if fewer than 4 competitors exist
-    if (diverse.length < 4) {
-      for (const item of what_deserves_attention) {
-        if (!diverse.some((d) => d.id === item.id)) {
-          diverse.push(item);
-        }
-        if (diverse.length >= 4) break;
-      }
-    }
-    return diverse.slice(0, 4);
-  }, [what_deserves_attention]);
+  }
 
   const patternItems = (emerging_strategic_patterns || []).slice(0, 2);
   const actionItems = (next_best_actions || []).slice(0, 3);
@@ -382,12 +389,12 @@ export function OverviewPage() {
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.tracked_competitors.label}</div>
+              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.tracked_competitors?.label || "Tracked Competitors"}</div>
               <div className="text-2xl font-black text-zinc-950 tracking-tight leading-none mt-1 mb-0.5">
-                {metrics.tracked_competitors.value}
+                {metrics.tracked_competitors?.value ?? 0}
               </div>
               <div className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                <span>{metrics.tracked_competitors.delta}</span>
+                <span>{metrics.tracked_competitors?.delta || ""}</span>
               </div>
             </div>
           </div>
@@ -404,12 +411,12 @@ export function OverviewPage() {
               <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.verified_events.label}</div>
+              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.verified_events?.label || "Verified Events"}</div>
               <div className="text-2xl font-black text-zinc-950 tracking-tight leading-none mt-1 mb-0.5">
-                {metrics.verified_events.value}
+                {metrics.verified_events?.value ?? 0}
               </div>
               <div className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                <span>{metrics.verified_events.delta}</span>
+                <span>{metrics.verified_events?.delta || ""}</span>
               </div>
             </div>
           </div>
@@ -426,12 +433,12 @@ export function OverviewPage() {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.high_priority_developments.label}</div>
+              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.high_priority_developments?.label || "High-Priority Developments"}</div>
               <div className="text-2xl font-black text-zinc-950 tracking-tight leading-none mt-1 mb-0.5">
-                {metrics.high_priority_developments.value}
+                {metrics.high_priority_developments?.value ?? 0}
               </div>
               <div className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                <span>{metrics.high_priority_developments.delta}</span>
+                <span>{metrics.high_priority_developments?.delta || ""}</span>
               </div>
             </div>
           </div>
@@ -448,12 +455,12 @@ export function OverviewPage() {
               <Target className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.pending_actions.label}</div>
+              <div className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{metrics.pending_actions?.label || "Pending Actions"}</div>
               <div className="text-2xl font-black text-zinc-950 tracking-tight leading-none mt-1 mb-0.5">
-                {metrics.pending_actions.value}
+                {metrics.pending_actions?.value ?? 0}
               </div>
               <div className="text-[11px] font-semibold text-zinc-500 flex items-center gap-1">
-                <span>{metrics.pending_actions.delta}</span>
+                <span>{metrics.pending_actions?.delta || ""}</span>
               </div>
             </div>
           </div>
