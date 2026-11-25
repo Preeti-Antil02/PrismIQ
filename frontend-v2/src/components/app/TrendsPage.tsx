@@ -241,22 +241,24 @@ export function TrendsPage() {
     setError(null);
     try {
       const [trendsRes, compsRes] = await Promise.all([
-        fetchTrends({ limit: 50, tenantId }),
-        fetchTrackedCompanies(tenantId),
+        fetchTrends({ limit: 50, tenantId, company: targetCompany }),
+        fetchTrackedCompanies(tenantId, targetCompany),
       ]);
       const list = trendsRes.trends || [];
       setTrends(list);
       setCompanies(compsRes || []);
 
-      if (list.length > 0 && !selectedTrendId) {
-        setSelectedTrendId(list[0].cluster_id);
+      if (list.length > 0) {
+        setSelectedTrendId((prev) => (list.some((t) => t.cluster_id === prev) ? prev : list[0].cluster_id));
+      } else {
+        setSelectedTrendId(null);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load trend dynamics");
     } finally {
       setLoading(false);
     }
-  }, [selectedTrendId, tenantId]);
+  }, [targetCompany, tenantId]);
 
   React.useEffect(() => {
     loadTrends();

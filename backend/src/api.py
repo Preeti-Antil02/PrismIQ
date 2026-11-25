@@ -174,7 +174,7 @@ def get_current_tenant(
     Checks tenant_id query parameter first (if valid UUID), then Authorization Bearer token.
     Rejects missing, malformed, or unauthenticated requests with HTTP 401.
     """
-    if tenant_id and tenant_id.strip():
+    if tenant_id and isinstance(tenant_id, str) and tenant_id.strip():
         clean_tid = tenant_id.strip()
         try:
             uuid.UUID(clean_tid)
@@ -586,6 +586,8 @@ def _get_fallback_signals(
     confidence: Any = None,
     limit: Any = 50,
     offset: Any = 0,
+    tenant_id: Optional[str] = None,
+    target_company: Optional[str] = None,
 ) -> Dict[str, Any]:
     company_str = str(company).strip() if isinstance(company, str) and company.strip() and company != "ALL" else None
     source_str = str(source).strip() if isinstance(source, str) and source.strip() and source != "ALL" else None
@@ -594,15 +596,25 @@ def _get_fallback_signals(
     lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
     off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
 
-    raw_signals = storage.load_signals()
+    raw_signals = storage.load_signals(tenant_id=tenant_id)
+    tracked_comps: Set[str] = set()
+    if tenant_id:
+        tracked_comps = {c["company_name"].lower() for c in storage.get_tenant_tracked_companies(tenant_id) if c.get("company_name")}
+    if target_company:
+        tracked_comps.add(target_company.lower().strip())
+
     formatted = []
     for i, s in enumerate(raw_signals):
-        cname = s.get("company") or s.get("company_name", "Vercel")
+        cname = s.get("company") or s.get("company_name", "")
+        if not cname:
+            continue
         src = s.get("source", "news")
         s_tier = s.get("tier", "Should-Know")
         s_conf = s.get("confidence") or s.get("fact_confidence", "High")
 
         if company_str and cname.lower() != company_str.lower():
+            continue
+        elif not company_str and tracked_comps and cname.lower() not in tracked_comps:
             continue
         if source_str and src.lower() != source_str.lower():
             continue
@@ -643,6 +655,8 @@ def _get_fallback_events(
     confidence: Any = None,
     limit: Any = 50,
     offset: Any = 0,
+    tenant_id: Optional[str] = None,
+    target_company: Optional[str] = None,
 ) -> Dict[str, Any]:
     company_str = str(company).strip() if isinstance(company, str) and company.strip() and company != "ALL" else None
     tier_str = str(tier).strip() if isinstance(tier, str) and tier.strip() and tier != "ALL" else None
@@ -650,14 +664,24 @@ def _get_fallback_events(
     lim_val = int(limit) if isinstance(limit, (int, str)) and not hasattr(limit, "default") else 50
     off_val = int(offset) if isinstance(offset, (int, str)) and not hasattr(offset, "default") else 0
 
-    raw_events = storage.load_events()
+    raw_events = storage.load_events(tenant_id=tenant_id)
+    tracked_comps: Set[str] = set()
+    if tenant_id:
+        tracked_comps = {c["company_name"].lower() for c in storage.get_tenant_tracked_companies(tenant_id) if c.get("company_name")}
+    if target_company:
+        tracked_comps.add(target_company.lower().strip())
+
     formatted = []
     for i, e in enumerate(raw_events):
-        cname = e.get("company") or e.get("company_name", "Vercel")
+        cname = e.get("company") or e.get("company_name", "")
+        if not cname:
+            continue
         e_tier = e.get("tier", "Must-Know")
         e_conf = e.get("confidence") or e.get("fact_confidence", "High")
 
         if company_str and cname.lower() != company_str.lower():
+            continue
+        elif not company_str and tracked_comps and cname.lower() not in tracked_comps:
             continue
         if tier_str and e_tier.lower() != tier_str.lower():
             continue
@@ -1289,6 +1313,7 @@ def untrack_company_endpoint(
 @app.get("/signals")
 def list_signals(
     company: Optional[str] = Query(None, description="Filter by company name"),
+    target_company: Optional[str] = Query(None, description="Target company to scope ecosystem"),
     source: Optional[str] = Query(None, description="Filter by signal source: news, github, jobs, pricing, research"),
     tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
     confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
@@ -1304,11 +1329,11 @@ def list_signals(
     - Also computes noise-suppressed count for honest disclosure.
     """
     if not _is_db_active():
-        return _get_fallback_signals(company, source, tier, confidence, limit, offset)
+        return _get_fallback_signals(company, source, tier, confidence, limit, offset, tenant_id=tenant_id, target_company=target_company)
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             if isinstance(cur, storage.MockCursor):
-                return _get_fallback_signals(company, source, tier, confidence, limit, offset)
+                return _get_fallback_signals(company, source, tier, confidence, limit, offset, tenant_id=tenant_id, target_company=target_company)
 
             # Query total noise suppressed count for tenant's tracked companies
             cur.execute("""
@@ -1438,7 +1463,7 @@ def list_signals(
                 local_sigs = [s for s in local_sigs if (s.get("company") or s.get("company_name", "")).lower() == company.lower()]
             return {"signals": local_sigs[offset:offset+limit], "count": len(local_sigs), "noise_suppressed_count": 0}
         except Exception:
-            return _get_fallback_signals(company, source, tier, confidence, limit, offset)
+            return _get_fallback_signals(company, source, tier, confidence, limit, offset, tenant_id=tenant_id, target_company=target_company)
 
 
 def _clean_why_it_matters(val: Optional[str]) -> Optional[str]:
@@ -1456,6 +1481,7 @@ def _clean_why_it_matters(val: Optional[str]) -> Optional[str]:
 @app.get("/events")
 def list_events(
     company: Optional[str] = Query(None, description="Filter by company name"),
+    target_company: Optional[str] = Query(None, description="Target company to scope ecosystem"),
     tier: Optional[str] = Query(None, description="Filter by tier: Must-Know, Should-Know, Nice-to-Know"),
     confidence: Optional[str] = Query(None, description="Filter by confidence: High, Medium, Low"),
     time_range: Optional[str] = Query(None, description="Filter by time range: 1m, 3m, 6m, 1y"),
@@ -1474,11 +1500,11 @@ def list_events(
     - Routine standalone GitHub noise and single IC job postings remain in Signals, not Events.
     """
     if not _is_db_active():
-        return _get_fallback_events(company, tier, confidence, limit, offset)
+        return _get_fallback_events(company, tier, confidence, limit, offset, tenant_id=tenant_id, target_company=target_company)
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             if isinstance(cur, storage.MockCursor):
-                return _get_fallback_events(company, tier, confidence, limit, offset)
+                return _get_fallback_events(company, tier, confidence, limit, offset, tenant_id=tenant_id, target_company=target_company)
 
             base_query = """
                 SELECT DISTINCT ON (ce.event_id)
@@ -1651,7 +1677,7 @@ def list_events(
                 local_evts = [e for e in local_evts if (e.get("company") or e.get("company_name", "")).lower() == company.lower()]
             return {"events": local_evts[offset:offset+limit], "count": len(local_evts)}
         except Exception:
-            return _get_fallback_events(company, tier, confidence, limit, offset)
+            return _get_fallback_events(company, tier, confidence, limit, offset, tenant_id=tenant_id, target_company=target_company)
 
 
 @app.get("/events/{event_id}")
@@ -2940,6 +2966,7 @@ def get_trends_endpoint(
     cursor: Optional[str] = Query(None, description="Pagination cursor"),
     cluster_id: Optional[str] = Query(None, description="Filter by cluster_id"),
     company: Optional[str] = Query(None, description="Filter by company name"),
+    target_company: Optional[str] = Query(None, description="Target company name for company-scoped isolation"),
     momentum: Optional[str] = Query(None, description="Filter by momentum label"),
     trend_type: Optional[str] = Query(None, description="Filter by cluster_type"),
     min_confidence: Optional[float] = Query(None, description="Filter by minimum relevance/confidence"),
@@ -2949,11 +2976,13 @@ def get_trends_endpoint(
     Retrieve tenant-scoped trend clusters with momentum vectors, pagination, and signal breakdowns.
     Enforces tenant authentication and RLS isolation.
     """
+    resolved_target = target_company or company
     res = trends_service.get_tenant_trends(
         tenant_id=tenant_id,
         limit=limit,
         cursor=cursor,
         company=company,
+        target_company=resolved_target,
         momentum=momentum,
         trend_type=trend_type,
         min_confidence=min_confidence,

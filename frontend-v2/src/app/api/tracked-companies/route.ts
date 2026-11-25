@@ -8,7 +8,10 @@ const BACKEND_BASE = (
 ).replace(/\/+$/, "");
 
 export async function GET(req: NextRequest) {
-  const backendUrl = `${BACKEND_BASE}/tracked-companies`;
+  const backendUrl = new URL(`${BACKEND_BASE}/tracked-companies`);
+  req.nextUrl.searchParams.forEach((val, key) => {
+    backendUrl.searchParams.set(key, val);
+  });
   const incomingAuth = req.headers.get("authorization");
   const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 

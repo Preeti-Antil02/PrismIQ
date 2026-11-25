@@ -104,7 +104,8 @@ export function NextBestActionsView({
         teamFilter !== "ALL" ? teamFilter : undefined,
         statusFilter !== "ALL" ? statusFilter : undefined,
         undefined,
-        effectiveTenantId
+        effectiveTenantId,
+        effectiveTarget
       );
       if (res.actions && res.actions.length > 0) {
         setActions(res.actions);
@@ -300,7 +301,7 @@ export function NextBestActionsView({
     } finally {
       setLoading(false);
     }
-  }, [teamFilter, statusFilter, effectiveTenantId]);
+  }, [teamFilter, statusFilter, effectiveTenantId, effectiveTarget]);
 
   React.useEffect(() => {
     loadActions();

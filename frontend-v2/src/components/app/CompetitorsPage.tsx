@@ -101,11 +101,11 @@ export function CompetitorsPage() {
     try {
       const [compsRes, eventsRes, signalsRes, findingsRes, radarRes] =
         await Promise.allSettled([
-          fetchTrackedCompanies(tenantId),
-          fetchEvents({ limit: 150, tenantId }),
-          fetchSignals({ limit: 300, tenantId }),
+          fetchTrackedCompanies(tenantId, targetCompany),
+          fetchEvents({ limit: 150, tenantId, target_company: targetCompany }),
+          fetchSignals({ limit: 300, tenantId, target_company: targetCompany }),
           fetchFindings(tenantId),
-          fetchLatestRadar(tenantId),
+          fetchLatestRadar(tenantId, targetCompany),
         ]);
 
       if (compsRes.status === "fulfilled") setCompanies(compsRes.value || []);
@@ -118,7 +118,7 @@ export function CompetitorsPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, targetCompany]);
 
   // Load unified competitor evolution timeline in a single API call (Merges Points 1, 2 & 3)
   const openCompanyIntelligence = React.useCallback(async (companyName: string) => {
@@ -146,7 +146,7 @@ export function CompetitorsPage() {
     } finally {
       setProfileLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, targetCompany]);
 
   React.useEffect(() => {
     loadData();

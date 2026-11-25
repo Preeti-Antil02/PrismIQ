@@ -352,12 +352,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             tenant_id: newTenantId,
           })
         );
+        localStorage.setItem("prismiq_target_company", targetName);
         setWorkspaceMenuOpen(false);
-        // Navigate directly to overview so the selected target company opens and loads
-        window.location.href = "/app/overview";
+        const targetPath = pathname && pathname.startsWith("/app") ? pathname : "/app/overview";
+        window.location.href = targetPath;
       }
     },
-    [allWorkspaces]
+    [allWorkspaces, pathname]
   );
 
   // Start onboarding a brand new target company

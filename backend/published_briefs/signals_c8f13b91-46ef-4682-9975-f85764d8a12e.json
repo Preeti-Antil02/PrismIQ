@@ -2748,7 +2748,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_amplify_001_20d16858",
+    "id": "sig_evt_amplify_001_6bd99336",
     "company_name": "AWS Amplify",
     "source": "AWS News Blog",
     "title": "AWS Amplify Gen 2 launches with zero-config Next.js 15 Server Action support",
@@ -2760,7 +2760,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_amplify_002_7e95a549",
+    "id": "sig_evt_amplify_002_5982423c",
     "company_name": "AWS Amplify",
     "source": "AWS News Blog",
     "title": "AWS Amplify integrates Amazon Bedrock models with 1-click frontend hooks",
@@ -2772,7 +2772,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_amplify_003_34c0cbe6",
+    "id": "sig_evt_amplify_003_12762cb8",
     "company_name": "AWS Amplify",
     "source": "AWS News Blog",
     "title": "AWS cuts Amplify hosting data transfer egress fees by 40% globally",
@@ -2784,7 +2784,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_amplify_004_26d84ae2",
+    "id": "sig_evt_amplify_004_53fd95f2",
     "company_name": "AWS Amplify",
     "source": "AWS News Blog",
     "title": "AWS Amplify Studio adds visual schema generation for complex DynamoDB architectures",
@@ -2796,7 +2796,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_amplify_005_2bf2b87a",
+    "id": "sig_evt_amplify_005_56fe7bf5",
     "company_name": "AWS Amplify",
     "source": "AWS News Blog",
     "title": "AWS Amplify announces automated multi-region failover for enterprise edge static assets",
@@ -2808,7 +2808,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_supa_001_2d4474f4",
+    "id": "sig_evt_supa_001_4c06c9ae",
     "company_name": "Supabase",
     "source": "Supabase Official Blog",
     "title": "Supabase launches Realtime Broadcast v2 with sub-15ms regional latency",
@@ -2820,7 +2820,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_supa_002_1b0fed08",
+    "id": "sig_evt_supa_002_54cc2cd3",
     "company_name": "Supabase",
     "source": "Supabase Official Blog",
     "title": "Supabase Vector Indexing reaches 1M queries/sec milestone on Postgres",
@@ -2832,7 +2832,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_supa_003_2ef55b2e",
+    "id": "sig_evt_supa_003_5268375a",
     "company_name": "Supabase",
     "source": "Supabase Official Blog",
     "title": "Supabase Edge Functions add WebAssembly and Python runtime support",
@@ -2844,7 +2844,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_supa_004_24807e3c",
+    "id": "sig_evt_supa_004_e08534ee",
     "company_name": "Supabase",
     "source": "Supabase Official Blog",
     "title": "Supabase partners with enterprise Kubernetes platforms for hybrid deployment",
@@ -2856,7 +2856,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_supa_005_266a6a20",
+    "id": "sig_evt_supa_005_5667b024",
     "company_name": "Supabase",
     "source": "Supabase Official Blog",
     "title": "Supabase introduces Zero-Downtime Database Branching for production preview",
@@ -2868,7 +2868,7 @@
     "confidence": "High"
   },
   {
-    "id": "sig_evt_supa_006_59d12597",
+    "id": "sig_evt_supa_006_12c333b0",
     "company_name": "Supabase",
     "source": "Supabase Official Blog",
     "title": "Supabase launches native MCP server integration for agentic AI IDEs",

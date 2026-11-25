@@ -357,6 +357,116 @@ COMPANY_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
             }
         ]
     },
+    "mistral ai": {
+        "name": "Mistral AI",
+        "domain": "mistral.ai",
+        "sector": "Frontier AI & LLMs",
+        "products": [
+            "Mistral Large 2", "Codestral 22B", "Pixtral 12B",
+            "La Plateforme API", "Mistral On-Premise", "Le Chat"
+        ],
+        "target_customers": ["European enterprise and government buyers", "Software engineering organizations", "Privacy-sensitive healthcare and banking institutions"],
+        "pricing_model": "Open-weights model licensing alongside usage-based cloud API tokens ($2.00-$6.00/1M tokens) with sovereign VPC deployments.",
+        "strategic_priorities": ["State-of-the-art open weights coding performance", "European AI sovereignty and EU AI Act compliance", "Efficient edge and private enterprise cloud hosting"],
+        "competitors": ["OpenAI", "Anthropic", "Google DeepMind", "Meta AI"],
+        "verified_events": [
+            {
+                "event_id": "ev_mistral_large_01",
+                "headline": "Mistral AI releases Mistral Large 2 with 128k context window and state-of-the-art coding benchmark.",
+                "dimension": "Product Capability Threat",
+                "category": "Product Capability Threat",
+                "threat_type": "Direct competitive threat",
+                "product": "Mistral Large 2 & Codestral 22B",
+                "date": "2026-10-23",
+                "what_happened": "Mistral AI unveiled Mistral Large 2 featuring a 128k context window and competitive benchmark parity with GPT-4o across reasoning, math, and code generation, offered under an open research and commercial deployment license.",
+                "actual_change": "Released 123B parameter frontier model matching proprietary model performance with self-hosted private VPC and on-premise deployment options.",
+                "has_authentic_deadline": False,
+                "evidence_sources": [
+                    {
+                        "id": "ev_mistral_src_1",
+                        "source": "Mistral AI Official Blog",
+                        "title": "Mistral Large 2: Frontier Intelligence with State-of-the-Art Code Generation",
+                        "url": "https://mistral.ai/news/mistral-large-2407/",
+                        "excerpt": "Mistral Large 2 achieves 84.0% on MMLU and 92.0% on HumanEval, rivaling GPT-4o and Claude 3.5 Sonnet on core code benchmarks.",
+                        "detected_at": "2026-10-23T10:00:00Z"
+                    },
+                    {
+                        "id": "ev_mistral_src_2",
+                        "source": "VentureBeat / Enterprise AI",
+                        "title": "Mistral challenges OpenAI in regulated European banking sector",
+                        "url": "https://venturebeat.com/ai/mistral-large-2-enterprise-cloud/",
+                        "excerpt": "European financial institutions standardize on Mistral models for private data governance and compliance with EU AI Act mandates.",
+                        "detected_at": "2026-10-24T14:30:00Z"
+                    },
+                    {
+                        "id": "ev_mistral_src_3",
+                        "source": "Hacker News Technical Discussion",
+                        "title": "Codestral 22B: Fast inference for 80+ programming languages",
+                        "url": "https://news.ycombinator.com/item?id=40512345",
+                        "excerpt": "Sub-20ms latency and native fill-in-the-middle support make Codestral a drop-in replacement for Copilot backends.",
+                        "detected_at": "2026-10-25T08:15:00Z"
+                    }
+                ],
+                "urgency": "High",
+                "time_horizon": "Tactical (<30d)"
+            }
+        ]
+    },
+    "mistral": {
+        "name": "Mistral AI",
+        "domain": "mistral.ai",
+        "sector": "Frontier AI & LLMs",
+        "products": [
+            "Mistral Large 2", "Codestral 22B", "Pixtral 12B",
+            "La Plateforme API", "Mistral On-Premise", "Le Chat"
+        ],
+        "target_customers": ["European enterprise and government buyers", "Software engineering organizations", "Privacy-sensitive healthcare and banking institutions"],
+        "pricing_model": "Open-weights model licensing alongside usage-based cloud API tokens ($2.00-$6.00/1M tokens) with sovereign VPC deployments.",
+        "strategic_priorities": ["State-of-the-art open weights coding performance", "European AI sovereignty and EU AI Act compliance", "Efficient edge and private enterprise cloud hosting"],
+        "competitors": ["OpenAI", "Anthropic", "Google DeepMind", "Meta AI"],
+        "verified_events": [
+            {
+                "event_id": "ev_mistral_large_01",
+                "headline": "Mistral AI releases Mistral Large 2 with 128k context window and state-of-the-art coding benchmark.",
+                "dimension": "Product Capability Threat",
+                "category": "Product Capability Threat",
+                "threat_type": "Direct competitive threat",
+                "product": "Mistral Large 2 & Codestral 22B",
+                "date": "2026-10-23",
+                "what_happened": "Mistral AI unveiled Mistral Large 2 featuring a 128k context window and competitive benchmark parity with GPT-4o across reasoning, math, and code generation, offered under an open research and commercial deployment license.",
+                "actual_change": "Released 123B parameter frontier model matching proprietary model performance with self-hosted private VPC and on-premise deployment options.",
+                "has_authentic_deadline": False,
+                "evidence_sources": [
+                    {
+                        "id": "ev_mistral_src_1",
+                        "source": "Mistral AI Official Blog",
+                        "title": "Mistral Large 2: Frontier Intelligence with State-of-the-Art Code Generation",
+                        "url": "https://mistral.ai/news/mistral-large-2407/",
+                        "excerpt": "Mistral Large 2 achieves 84.0% on MMLU and 92.0% on HumanEval, rivaling GPT-4o and Claude 3.5 Sonnet on core code benchmarks.",
+                        "detected_at": "2026-10-23T10:00:00Z"
+                    },
+                    {
+                        "id": "ev_mistral_src_2",
+                        "source": "VentureBeat / Enterprise AI",
+                        "title": "Mistral challenges OpenAI in regulated European banking sector",
+                        "url": "https://venturebeat.com/ai/mistral-large-2-enterprise-cloud/",
+                        "excerpt": "European financial institutions standardize on Mistral models for private data governance and compliance with EU AI Act mandates.",
+                        "detected_at": "2026-10-24T14:30:00Z"
+                    },
+                    {
+                        "id": "ev_mistral_src_3",
+                        "source": "Hacker News Technical Discussion",
+                        "title": "Codestral 22B: Fast inference for 80+ programming languages",
+                        "url": "https://news.ycombinator.com/item?id=40512345",
+                        "excerpt": "Sub-20ms latency and native fill-in-the-middle support make Codestral a drop-in replacement for Copilot backends.",
+                        "detected_at": "2026-10-25T08:15:00Z"
+                    }
+                ],
+                "urgency": "High",
+                "time_horizon": "Tactical (<30d)"
+            }
+        ]
+    },
     "meesho": {
         "name": "Meesho",
         "domain": "meesho.io",

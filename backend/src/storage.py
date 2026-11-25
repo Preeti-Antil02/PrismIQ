@@ -610,21 +610,23 @@ def load_signals(
 
     tid = (tenant_id or "").strip()
     if tid:
-        tenant_file = data_dir / f"signals_{tid}.json"
-        if tenant_file.exists():
-            try:
-                with open(tenant_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    if isinstance(data, list) and data:
-                        return data
-            except Exception:
-                pass
+        for pdir in (data_dir, _backend_root / "published_briefs", _backend_root / "data"):
+            tenant_file = pdir / f"signals_{tid}.json"
+            if tenant_file.exists():
+                try:
+                    with open(tenant_file, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if isinstance(data, list) and data:
+                            return data
+                except Exception:
+                    pass
 
         known_tenant_signal_files = {
-            "c8f13b91-46ef-4682-9975-f85764d8a12e": ["signals_20260908_025527.json", "signals.json"],
-            "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": ["signals_20260920_010953.json", "signals_20260920_011108.json", "signals_20260922_031844.json"],
+            "00000000-0000-0000-0000-000000000001": ["signals_00000000-0000-0000-0000-000000000001.json"],
+            "c8f13b91-46ef-4682-9975-f85764d8a12e": ["signals_c8f13b91-46ef-4682-9975-f85764d8a12e.json", "signals_20260908_025527.json", "signals.json"],
+            "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": ["signals_6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f.json", "signals_20260920_010953.json", "signals_20260920_011108.json", "signals_20260922_031844.json"],
             "8553449a-c998-4727-be01-9aeb724038cb": ["signals_8553449a-c998-4727-be01-9aeb724038cb.json"],
-            "7b90477d-2524-4cf9-8e47-f389ec890ff7": ["signals_8553449a-c998-4727-be01-9aeb724038cb.json"],
+            "7b90477d-2524-4cf9-8e47-f389ec890ff7": ["signals_7b90477d-2524-4cf9-8e47-f389ec890ff7.json", "signals_8553449a-c998-4727-be01-9aeb724038cb.json"],
         }
         if tid in known_tenant_signal_files:
             res = []
@@ -930,6 +932,9 @@ def load_events(
                     pass
 
         known_tenant_event_files = {
+            "00000000-0000-0000-0000-000000000001": [
+                "events_00000000-0000-0000-0000-000000000001.json",
+            ],
             "c8f13b91-46ef-4682-9975-f85764d8a12e": [
                 "events_c8f13b91-46ef-4682-9975-f85764d8a12e.json",
                 "events_20260908_025629.json",
@@ -1849,6 +1854,11 @@ def get_entity_anchors() -> Dict[str, Dict[str, Optional[str]]]:
 
 
 KNOWN_TENANT_WORKSPACES = {
+    "00000000-0000-0000-0000-000000000001": {
+        "target": "Acme Corp",
+        "competitors": ["Salesforce", "HubSpot", "Microsoft"],
+        "sector": "Enterprise CRM & Cloud",
+    },
     "8553449a-c998-4727-be01-9aeb724038cb": {
         "target": "Meesho",
         "competitors": ["Flipkart", "Amazon India", "Shopsy", "Ajio"],
@@ -1856,24 +1866,19 @@ KNOWN_TENANT_WORKSPACES = {
     },
     "c8f13b91-46ef-4682-9975-f85764d8a12e": {
         "target": "Vercel",
-        "competitors": ["Netlify", "Cloudflare Pages", "AWS Amplify"],
+        "competitors": ["Cloudflare", "Netlify", "AWS Amplify", "Supabase", "Fastly"],
         "sector": "Frontend Cloud & DX",
     },
     "7b90477d-2524-4cf9-8e47-f389ec890ff7": {
         "target": "Flipkart",
-        "competitors": ["Amazon India", "Meesho", "Myntra"],
+        "competitors": ["Amazon India", "Meesho", "Reliance Retail", "Tata Neu", "Shopsy"],
         "sector": "E-Commerce",
     },
     "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f": {
         "target": "OpenAI",
-        "competitors": ["Anthropic", "Google DeepMind", "Meta AI"],
+        "competitors": ["Anthropic", "Google DeepMind", "Mistral AI", "Meta AI"],
         "sector": "Frontier AI & LLMs",
     },
-    "00000000-0000-0000-0000-000000000000": {
-        "target": "Vercel",
-        "competitors": ["Netlify", "Cloudflare Pages", "Amazon", "Meesho"],
-        "sector": "Frontend Cloud & DX",
-    }
 }
 
 def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
@@ -1923,6 +1928,10 @@ def get_tenant_tracked_companies(tenant_id: str) -> List[Dict[str, Any]]:
 
     # Known built-in tenants baseline registry with canonical competitors
     known_tenants: Dict[str, Dict[str, Any]] = {
+        "00000000-0000-0000-0000-000000000001": {
+            "target_company": "Acme Corp",
+            "competitors": ["Salesforce", "HubSpot", "Microsoft"],
+        },
         "c8f13b91-46ef-4682-9975-f85764d8a12e": {
             "target_company": "Vercel",
             "competitors": ["Cloudflare", "Netlify", "AWS Amplify", "Supabase"],

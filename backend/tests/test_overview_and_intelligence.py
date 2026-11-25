@@ -111,9 +111,9 @@ def test_api_intelligence_detail_endpoint(client):
     assert data["verification_and_confidence"]["verified_sources_count"] == 4
 
 
-def test_overview_acme_corp_honest_empty_state():
-    res = get_overview_intelligence("Acme Corp")
-    assert res["target_company"] == "Acme Corp"
+def test_overview_unconfigured_honest_empty_state():
+    res = get_overview_intelligence("Unknown Corp")
+    assert res["target_company"] == "Unknown Corp"
     assert res["metrics"]["tracked_competitors"]["value"] == 0
     assert res["metrics"]["verified_events"]["value"] == 0
     assert res["has_data"] is False
@@ -121,6 +121,14 @@ def test_overview_acme_corp_honest_empty_state():
     assert len(res["competitive_landscape"]["chart_data"]) == 0
     assert len(res["emerging_strategic_patterns"]) == 0
     assert len(res["next_best_actions"]) == 0
+
+
+def test_overview_acme_corp_pipeline_data():
+    res = get_overview_intelligence("Acme Corp")
+    assert res["target_company"] == "Acme Corp"
+    assert res["metrics"]["tracked_competitors"]["value"] == 3
+    assert res["metrics"]["verified_events"]["value"] >= 20
+    assert res["has_data"] is True
 
 
 def test_meesho_detail_exposed_product():

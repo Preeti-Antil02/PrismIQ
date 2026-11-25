@@ -114,11 +114,11 @@ export default function CompetitorProfilePage() {
     setError(null);
     try {
       const [companies, signalsRes, eventsRes, findingsRes, radarRes] = await Promise.all([
-        fetchTrackedCompanies(tenantId),
-        fetchSignals({ company: companyId, limit: 200, tenantId }),
-        fetchEvents({ company: companyId, limit: 200, tenantId }),
+        fetchTrackedCompanies(tenantId, targetCompany),
+        fetchSignals({ company: companyId, limit: 200, tenantId, target_company: targetCompany }),
+        fetchEvents({ company: companyId, limit: 200, tenantId, target_company: targetCompany }),
         fetchFindings(tenantId),
-        fetchLatestRadar(tenantId),
+        fetchLatestRadar(tenantId, targetCompany),
       ]);
 
       const decodedCompanyId = decodeURIComponent(companyId || "").trim();
@@ -179,7 +179,7 @@ export default function CompetitorProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [companyId, tenantId]);
+  }, [companyId, tenantId, targetCompany]);
 
   React.useEffect(() => {
     loadData();

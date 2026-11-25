@@ -3525,7 +3525,7 @@
     "contributing_signal_count": 1
   },
   {
-    "event_id": "evt_anthropic_001_6dae0dc8",
+    "event_id": "evt_anthropic_001_60fa5b8c",
     "company_name": "Anthropic",
     "company": "Anthropic",
     "title": "Anthropic launches Claude 3.5 Sonnet with native Computer Use capabilities",
@@ -3555,7 +3555,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_anthropic_002_314506a4",
+    "event_id": "evt_anthropic_002_443af836",
     "company_name": "Anthropic",
     "company": "Anthropic",
     "title": "Anthropic introduces Context Caching cutting prompt token costs by up to 90%",
@@ -3585,7 +3585,7 @@
     "first_detected_at": "2026-07-06T09:17:00+00:00"
   },
   {
-    "event_id": "evt_anthropic_003_522f5215",
+    "event_id": "evt_anthropic_003_41aed2e3",
     "company_name": "Anthropic",
     "company": "Anthropic",
     "title": "Anthropic enterprise ARR surpasses $1B as Fortune 500 adoption accelerates",
@@ -3615,7 +3615,7 @@
     "first_detected_at": "2026-08-11T10:34:00+00:00"
   },
   {
-    "event_id": "evt_anthropic_004_bbf1ef23",
+    "event_id": "evt_anthropic_004_1ee63da9",
     "company_name": "Anthropic",
     "company": "Anthropic",
     "title": "Anthropic announces Claude Enterprise Plan with 500k context window and GitHub integration",
@@ -3645,7 +3645,7 @@
     "first_detected_at": "2026-09-16T11:51:00+00:00"
   },
   {
-    "event_id": "evt_anthropic_005_baf9be52",
+    "event_id": "evt_anthropic_005_1ae92d0b",
     "company_name": "Anthropic",
     "company": "Anthropic",
     "title": "Anthropic launches Model Context Protocol (MCP) as open standard for AI agents",
@@ -3675,7 +3675,7 @@
     "first_detected_at": "2026-10-21T12:08:00+00:00"
   },
   {
-    "event_id": "evt_mistral_001_503d9f80",
+    "event_id": "evt_mistral_001_54218401",
     "company_name": "Mistral AI",
     "company": "Mistral AI",
     "title": "Mistral AI releases Mistral Large 2 with 128k context and state-of-the-art coding benchmark",
@@ -3705,7 +3705,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_mistral_002_1ee78d7a",
+    "event_id": "evt_mistral_002_1eda7924",
     "company_name": "Mistral AI",
     "company": "Mistral AI",
     "title": "Mistral AI launches Codestral 22B specialized code generation model",
@@ -3735,7 +3735,7 @@
     "first_detected_at": "2026-07-07T09:17:00+00:00"
   },
   {
-    "event_id": "evt_mistral_003_fb024b99",
+    "event_id": "evt_mistral_003_45318191",
     "company_name": "Mistral AI",
     "company": "Mistral AI",
     "title": "Mistral AI partners with Snowflake and SAP for sovereign enterprise data cloud",
@@ -3765,7 +3765,7 @@
     "first_detected_at": "2026-08-14T10:34:00+00:00"
   },
   {
-    "event_id": "evt_mistral_004_546486c6",
+    "event_id": "evt_mistral_004_5c955ffb",
     "company_name": "Mistral AI",
     "company": "Mistral AI",
     "title": "Mistral announces Pixtral 12B multimodal vision model with open weights",
@@ -3795,7 +3795,7 @@
     "first_detected_at": "2026-09-20T11:51:00+00:00"
   },
   {
-    "event_id": "evt_meta_001_74be34a5",
+    "event_id": "evt_meta_001_1f7c0196",
     "company_name": "Meta AI",
     "company": "Meta AI",
     "title": "Meta AI releases Llama 3.1 405B first frontier-class open-weights model",
@@ -3825,7 +3825,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_meta_002_1553f021",
+    "event_id": "evt_meta_002_69a34113",
     "company_name": "Meta AI",
     "company": "Meta AI",
     "title": "Meta AI reaches 500 million monthly active users across WhatsApp and Instagram",
@@ -3855,7 +3855,7 @@
     "first_detected_at": "2026-07-09T09:17:00+00:00"
   },
   {
-    "event_id": "evt_meta_003_1d57a49f",
+    "event_id": "evt_meta_003_23aa0f38",
     "company_name": "Meta AI",
     "company": "Meta AI",
     "title": "Meta launches Llama 3.2 with on-device 1B/3B models and visual reasoning",

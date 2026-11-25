@@ -319,8 +319,8 @@ export function SignalsPage() {
     setError(null);
     try {
       const [signalsRes, compsRes, corrRes] = await Promise.all([
-        fetchSignals({ limit: 200, tenantId }),
-        fetchTrackedCompanies(tenantId),
+        fetchSignals({ limit: 200, tenantId, target_company: targetCompany }),
+        fetchTrackedCompanies(tenantId, targetCompany),
         fetchSignalCorrelations(
           selectedCorrelationCompany !== "ALL" ? selectedCorrelationCompany : undefined,
           undefined,
@@ -347,7 +347,7 @@ export function SignalsPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId, selectedCorrelationCompany, selectedCorrelationChannel]);
+  }, [tenantId, targetCompany, selectedCorrelationCompany, selectedCorrelationChannel]);
 
   React.useEffect(() => {
     loadData();

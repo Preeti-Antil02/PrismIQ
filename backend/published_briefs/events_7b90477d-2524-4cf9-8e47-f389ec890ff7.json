@@ -1,6 +1,6 @@
 [
   {
-    "event_id": "evt_fk_amz_001_7926650a",
+    "event_id": "evt_fk_amz_001_99064dd9",
     "company_name": "Amazon India",
     "company": "Amazon India",
     "title": "Amazon India launches Prime Same-Day delivery in 50 Tier-1 and Tier-2 cities",
@@ -30,7 +30,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_fk_amz_002_5d1b919f",
+    "event_id": "evt_fk_amz_002_69ca65c8",
     "company_name": "Amazon India",
     "company": "Amazon India",
     "title": "Amazon Great Indian Festival breaks record with 1.4B customer visits",
@@ -54,13 +54,13 @@
     "fact_confidence": 0.94,
     "inference_confidence": 0.9,
     "contributing_signal_count": 8,
-    "published_at": "2026-07-07T09:17:00+00:00",
-    "published_timestamp": "2026-07-07T09:17:00+00:00",
-    "latest_detected_at": "2026-07-07T09:17:00+00:00",
-    "first_detected_at": "2026-07-07T09:17:00+00:00"
+    "published_at": "2026-07-05T09:17:00+00:00",
+    "published_timestamp": "2026-07-05T09:17:00+00:00",
+    "latest_detected_at": "2026-07-05T09:17:00+00:00",
+    "first_detected_at": "2026-07-05T09:17:00+00:00"
   },
   {
-    "event_id": "evt_fk_amz_003_35b0deda",
+    "event_id": "evt_fk_amz_003_4a8eb028",
     "company_name": "Amazon India",
     "company": "Amazon India",
     "title": "Amazon Bazaar reaches 2M daily active value shoppers across Bharat tier-3 towns",
@@ -84,13 +84,13 @@
     "fact_confidence": 0.94,
     "inference_confidence": 0.9,
     "contributing_signal_count": 6,
-    "published_at": "2026-08-14T10:34:00+00:00",
-    "published_timestamp": "2026-08-14T10:34:00+00:00",
-    "latest_detected_at": "2026-08-14T10:34:00+00:00",
-    "first_detected_at": "2026-08-14T10:34:00+00:00"
+    "published_at": "2026-08-09T10:34:00+00:00",
+    "published_timestamp": "2026-08-09T10:34:00+00:00",
+    "latest_detected_at": "2026-08-09T10:34:00+00:00",
+    "first_detected_at": "2026-08-09T10:34:00+00:00"
   },
   {
-    "event_id": "evt_fk_amz_004_73329f8e",
+    "event_id": "evt_fk_amz_004_514c7891",
     "company_name": "Amazon India",
     "company": "Amazon India",
     "title": "Amazon Pay UPI surpasses 100M monthly active transacting users",
@@ -114,13 +114,73 @@
     "fact_confidence": 0.94,
     "inference_confidence": 0.9,
     "contributing_signal_count": 4,
-    "published_at": "2026-09-20T11:51:00+00:00",
-    "published_timestamp": "2026-09-20T11:51:00+00:00",
-    "latest_detected_at": "2026-09-20T11:51:00+00:00",
-    "first_detected_at": "2026-09-20T11:51:00+00:00"
+    "published_at": "2026-09-14T11:51:00+00:00",
+    "published_timestamp": "2026-09-14T11:51:00+00:00",
+    "latest_detected_at": "2026-09-14T11:51:00+00:00",
+    "first_detected_at": "2026-09-14T11:51:00+00:00"
   },
   {
-    "event_id": "evt_fk_rel_001_4059cee7",
+    "event_id": "evt_fk_amz_005_6a954a99",
+    "company_name": "Amazon India",
+    "company": "Amazon India",
+    "title": "Amazon India deploys EV delivery fleet of 10,000 electric two-wheelers in metros",
+    "theme": "Green Logistics",
+    "strategic_theme": "Green Logistics",
+    "event_summary": "Electric fleet reduces last-mile parcel transit cost by 18% in high-density delivery zones.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Economic Times",
+      "Livemint",
+      "Business Standard"
+    ],
+    "url": "https://economictimes.indiatimes.com",
+    "source_urls": [
+      "https://economictimes.indiatimes.com"
+    ],
+    "raw_excerpt": "Electric fleet reduces last-mile parcel transit cost by 18% in high-density delivery zones.",
+    "why_it_matters": "Direct marketplace battle for premium and electronics GMV market share in India.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 6,
+    "published_at": "2026-10-18T12:08:00+00:00",
+    "published_timestamp": "2026-10-18T12:08:00+00:00",
+    "latest_detected_at": "2026-10-18T12:08:00+00:00",
+    "first_detected_at": "2026-10-18T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_amz_006_8901ec46",
+    "company_name": "Amazon India",
+    "company": "Amazon India",
+    "title": "Amazon launches regional fulfillment center in Lucknow spanning 500,000 sq ft",
+    "theme": "Fulfillment Infrastructure",
+    "strategic_theme": "Fulfillment Infrastructure",
+    "event_summary": "Expands storage capacity ahead of Uttar Pradesh festive peak, cutting North India shipping times.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Economic Times",
+      "Livemint",
+      "Business Standard"
+    ],
+    "url": "https://economictimes.indiatimes.com",
+    "source_urls": [
+      "https://economictimes.indiatimes.com"
+    ],
+    "raw_excerpt": "Expands storage capacity ahead of Uttar Pradesh festive peak, cutting North India shipping times.",
+    "why_it_matters": "Direct marketplace battle for premium and electronics GMV market share in India.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.94,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 6,
+    "published_at": "2026-11-22T13:25:00+00:00",
+    "published_timestamp": "2026-11-22T13:25:00+00:00",
+    "latest_detected_at": "2026-11-22T13:25:00+00:00",
+    "first_detected_at": "2026-11-22T13:25:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_rel_001_745d6746",
     "company_name": "Reliance Retail",
     "company": "Reliance Retail",
     "title": "Reliance Retail rolls out 500 JioMart quick-delivery dark stores across 100 cities",
@@ -150,7 +210,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_fk_rel_002_6384d8b9",
+    "event_id": "evt_fk_rel_002_318bfe8d",
     "company_name": "Reliance Retail",
     "company": "Reliance Retail",
     "title": "Ajio festive fashion GMV doubles driven by exclusive global high-street brands",
@@ -174,13 +234,13 @@
     "fact_confidence": 0.93,
     "inference_confidence": 0.88,
     "contributing_signal_count": 6,
-    "published_at": "2026-07-07T09:17:00+00:00",
-    "published_timestamp": "2026-07-07T09:17:00+00:00",
-    "latest_detected_at": "2026-07-07T09:17:00+00:00",
-    "first_detected_at": "2026-07-07T09:17:00+00:00"
+    "published_at": "2026-07-06T09:17:00+00:00",
+    "published_timestamp": "2026-07-06T09:17:00+00:00",
+    "latest_detected_at": "2026-07-06T09:17:00+00:00",
+    "first_detected_at": "2026-07-06T09:17:00+00:00"
   },
   {
-    "event_id": "evt_fk_rel_003_561e18a7",
+    "event_id": "evt_fk_rel_003_1c7e2ee1",
     "company_name": "Reliance Retail",
     "company": "Reliance Retail",
     "title": "Reliance Retail acquires regional logistics platform to streamline omnichannel dispatch",
@@ -204,13 +264,13 @@
     "fact_confidence": 0.93,
     "inference_confidence": 0.88,
     "contributing_signal_count": 6,
-    "published_at": "2026-08-14T10:34:00+00:00",
-    "published_timestamp": "2026-08-14T10:34:00+00:00",
-    "latest_detected_at": "2026-08-14T10:34:00+00:00",
-    "first_detected_at": "2026-08-14T10:34:00+00:00"
+    "published_at": "2026-08-11T10:34:00+00:00",
+    "published_timestamp": "2026-08-11T10:34:00+00:00",
+    "latest_detected_at": "2026-08-11T10:34:00+00:00",
+    "first_detected_at": "2026-08-11T10:34:00+00:00"
   },
   {
-    "event_id": "evt_fk_rel_004_198dc6ee",
+    "event_id": "evt_fk_rel_004_65e4e3f1",
     "company_name": "Reliance Retail",
     "company": "Reliance Retail",
     "title": "JioMart announces 0% seller commission on local grocery suppliers",
@@ -234,13 +294,43 @@
     "fact_confidence": 0.93,
     "inference_confidence": 0.88,
     "contributing_signal_count": 6,
-    "published_at": "2026-09-20T11:51:00+00:00",
-    "published_timestamp": "2026-09-20T11:51:00+00:00",
-    "latest_detected_at": "2026-09-20T11:51:00+00:00",
-    "first_detected_at": "2026-09-20T11:51:00+00:00"
+    "published_at": "2026-09-16T11:51:00+00:00",
+    "published_timestamp": "2026-09-16T11:51:00+00:00",
+    "latest_detected_at": "2026-09-16T11:51:00+00:00",
+    "first_detected_at": "2026-09-16T11:51:00+00:00"
   },
   {
-    "event_id": "evt_fk_msh_001_3e612443",
+    "event_id": "evt_fk_rel_005_2a32980a",
+    "company_name": "Reliance Retail",
+    "company": "Reliance Retail",
+    "title": "Reliance launches Tira luxury beauty app with AR virtual try-on tech",
+    "theme": "Specialty Retail",
+    "strategic_theme": "Specialty Retail",
+    "event_summary": "Beauty and personal care expansion directly takes on Flipkart's Myntra Beauty division.",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "Reuters India",
+      "Financial Express",
+      "Inc42"
+    ],
+    "url": "https://financialexpress.com",
+    "source_urls": [
+      "https://financialexpress.com"
+    ],
+    "raw_excerpt": "Beauty and personal care expansion directly takes on Flipkart's Myntra Beauty division.",
+    "why_it_matters": "Omnichannel grocery and fashion powerhouse threatens Flipkart's grocery and lifestyle margins.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.88,
+    "contributing_signal_count": 4,
+    "published_at": "2026-10-21T12:08:00+00:00",
+    "published_timestamp": "2026-10-21T12:08:00+00:00",
+    "latest_detected_at": "2026-10-21T12:08:00+00:00",
+    "first_detected_at": "2026-10-21T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_msh_001_500884fb",
     "company_name": "Meesho",
     "company": "Meesho",
     "title": "Meesho Surges 9% After UBS Raises Target Price To ₹260 on festive volume",
@@ -270,7 +360,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_fk_msh_002_2b5c9a7d",
+    "event_id": "evt_fk_msh_002_69d8afc5",
     "company_name": "Meesho",
     "company": "Meesho",
     "title": "Meesho records 1.45B annual transacting customer orders in Tier-2/3 heartland",
@@ -294,13 +384,13 @@
     "fact_confidence": 0.91,
     "inference_confidence": 0.87,
     "contributing_signal_count": 8,
-    "published_at": "2026-07-09T09:17:00+00:00",
-    "published_timestamp": "2026-07-09T09:17:00+00:00",
-    "latest_detected_at": "2026-07-09T09:17:00+00:00",
-    "first_detected_at": "2026-07-09T09:17:00+00:00"
+    "published_at": "2026-07-06T09:17:00+00:00",
+    "published_timestamp": "2026-07-06T09:17:00+00:00",
+    "latest_detected_at": "2026-07-06T09:17:00+00:00",
+    "first_detected_at": "2026-07-06T09:17:00+00:00"
   },
   {
-    "event_id": "evt_fk_msh_003_151433e5",
+    "event_id": "evt_fk_msh_003_1056c35e",
     "company_name": "Meesho",
     "company": "Meesho",
     "title": "Meesho's Valmo logistics network handles 40% of all platform shipments",
@@ -324,13 +414,73 @@
     "fact_confidence": 0.91,
     "inference_confidence": 0.87,
     "contributing_signal_count": 6,
-    "published_at": "2026-08-18T10:34:00+00:00",
-    "published_timestamp": "2026-08-18T10:34:00+00:00",
-    "latest_detected_at": "2026-08-18T10:34:00+00:00",
-    "first_detected_at": "2026-08-18T10:34:00+00:00"
+    "published_at": "2026-08-11T10:34:00+00:00",
+    "published_timestamp": "2026-08-11T10:34:00+00:00",
+    "latest_detected_at": "2026-08-11T10:34:00+00:00",
+    "first_detected_at": "2026-08-11T10:34:00+00:00"
   },
   {
-    "event_id": "evt_fk_tata_001_3fc55279",
+    "event_id": "evt_fk_msh_004_1042556f",
+    "company_name": "Meesho",
+    "company": "Meesho",
+    "title": "Meesho introduces AI Smart Catalog Generator for small-town merchant listings",
+    "theme": "Merchant Tech",
+    "strategic_theme": "Merchant Tech",
+    "event_summary": "Automates catalog image enhancement and multi-lingual descriptions, reducing listing time from 2 days to 5 minutes.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Inc42",
+      "Economic Times",
+      "Entrackr"
+    ],
+    "url": "https://inc42.com",
+    "source_urls": [
+      "https://inc42.com"
+    ],
+    "raw_excerpt": "Automates catalog image enhancement and multi-lingual descriptions, reducing listing time from 2 days to 5 minutes.",
+    "why_it_matters": "Erosion of Tier-2/3 customer conversion and active merchant defection risk.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.91,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 6,
+    "published_at": "2026-09-16T11:51:00+00:00",
+    "published_timestamp": "2026-09-16T11:51:00+00:00",
+    "latest_detected_at": "2026-09-16T11:51:00+00:00",
+    "first_detected_at": "2026-09-16T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_msh_005_771c546d",
+    "company_name": "Meesho",
+    "company": "Meesho",
+    "title": "Meesho expands festive working capital credit for 100,000 regional sellers",
+    "theme": "Fintech Credit",
+    "strategic_theme": "Fintech Credit",
+    "event_summary": "Partnership with NBFCs provides instant collateral-free inventory advances during peak demand.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Inc42",
+      "Economic Times",
+      "Entrackr"
+    ],
+    "url": "https://inc42.com",
+    "source_urls": [
+      "https://inc42.com"
+    ],
+    "raw_excerpt": "Partnership with NBFCs provides instant collateral-free inventory advances during peak demand.",
+    "why_it_matters": "Erosion of Tier-2/3 customer conversion and active merchant defection risk.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.91,
+    "inference_confidence": 0.87,
+    "contributing_signal_count": 6,
+    "published_at": "2026-10-21T12:08:00+00:00",
+    "published_timestamp": "2026-10-21T12:08:00+00:00",
+    "latest_detected_at": "2026-10-21T12:08:00+00:00",
+    "first_detected_at": "2026-10-21T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_tata_001_7bb6974c",
     "company_name": "Tata Neu",
     "company": "Tata Neu",
     "title": "Tata Neu integrates BigBasket bbnow instant delivery into unified rewards ecosystem",
@@ -360,7 +510,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_fk_tata_002_41cc6773",
+    "event_id": "evt_fk_tata_002_340c12c5",
     "company_name": "Tata Neu",
     "company": "Tata Neu",
     "title": "Tata Digital plans $1B capital infusion to expand fulfillment hubs and Croma omnichannel",
@@ -384,13 +534,13 @@
     "fact_confidence": 0.89,
     "inference_confidence": 0.84,
     "contributing_signal_count": 6,
-    "published_at": "2026-07-09T09:17:00+00:00",
-    "published_timestamp": "2026-07-09T09:17:00+00:00",
-    "latest_detected_at": "2026-07-09T09:17:00+00:00",
-    "first_detected_at": "2026-07-09T09:17:00+00:00"
+    "published_at": "2026-07-05T09:17:00+00:00",
+    "published_timestamp": "2026-07-05T09:17:00+00:00",
+    "latest_detected_at": "2026-07-05T09:17:00+00:00",
+    "first_detected_at": "2026-07-05T09:17:00+00:00"
   },
   {
-    "event_id": "evt_fk_tata_003_5e713799",
+    "event_id": "evt_fk_tata_003_46821f30",
     "company_name": "Tata Neu",
     "company": "Tata Neu",
     "title": "Tata 1mg achieves 30-minute prescription delivery across top 15 metros",
@@ -414,13 +564,103 @@
     "fact_confidence": 0.89,
     "inference_confidence": 0.84,
     "contributing_signal_count": 4,
-    "published_at": "2026-08-18T10:34:00+00:00",
-    "published_timestamp": "2026-08-18T10:34:00+00:00",
-    "latest_detected_at": "2026-08-18T10:34:00+00:00",
-    "first_detected_at": "2026-08-18T10:34:00+00:00"
+    "published_at": "2026-08-09T10:34:00+00:00",
+    "published_timestamp": "2026-08-09T10:34:00+00:00",
+    "latest_detected_at": "2026-08-09T10:34:00+00:00",
+    "first_detected_at": "2026-08-09T10:34:00+00:00"
   },
   {
-    "event_id": "evt_fk_own_001_3428341b",
+    "event_id": "evt_fk_tata_004_3f44541e",
+    "company_name": "Tata Neu",
+    "company": "Tata Neu",
+    "title": "Tata Neu launches NeuPass Black VIP tier with complimentary airport lounge and hotel upgrades",
+    "theme": "Loyalty Rewards",
+    "strategic_theme": "Loyalty Rewards",
+    "event_summary": "Premium consumer loyalty tier targets high-net-worth urban shoppers with luxury conglomerate perks.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Mint",
+      "Business Standard",
+      "Economic Times"
+    ],
+    "url": "https://livemint.com",
+    "source_urls": [
+      "https://livemint.com"
+    ],
+    "raw_excerpt": "Premium consumer loyalty tier targets high-net-worth urban shoppers with luxury conglomerate perks.",
+    "why_it_matters": "High-trust corporate conglomerate consolidating premium urban consumer loyalty.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.89,
+    "inference_confidence": 0.84,
+    "contributing_signal_count": 6,
+    "published_at": "2026-09-14T11:51:00+00:00",
+    "published_timestamp": "2026-09-14T11:51:00+00:00",
+    "latest_detected_at": "2026-09-14T11:51:00+00:00",
+    "first_detected_at": "2026-09-14T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_tata_005_1f619f05",
+    "company_name": "Tata Neu",
+    "company": "Tata Neu",
+    "title": "Tata Cliq Luxury partners with European designer labels for exclusive festive fashion drops",
+    "theme": "Luxury Commerce",
+    "strategic_theme": "Luxury Commerce",
+    "event_summary": "High-margin luxury e-commerce division captures affluent metro shoppers away from Flipkart and Amazon.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Mint",
+      "Business Standard",
+      "Economic Times"
+    ],
+    "url": "https://livemint.com",
+    "source_urls": [
+      "https://livemint.com"
+    ],
+    "raw_excerpt": "High-margin luxury e-commerce division captures affluent metro shoppers away from Flipkart and Amazon.",
+    "why_it_matters": "High-trust corporate conglomerate consolidating premium urban consumer loyalty.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.89,
+    "inference_confidence": 0.84,
+    "contributing_signal_count": 6,
+    "published_at": "2026-10-18T12:08:00+00:00",
+    "published_timestamp": "2026-10-18T12:08:00+00:00",
+    "latest_detected_at": "2026-10-18T12:08:00+00:00",
+    "first_detected_at": "2026-10-18T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_tata_006_5b32d91f",
+    "company_name": "Tata Neu",
+    "company": "Tata Neu",
+    "title": "Tata Electronics expands local smartphone manufacturing capacity by 200%",
+    "theme": "Supply Chain Integration",
+    "strategic_theme": "Supply Chain Integration",
+    "event_summary": "Integrated domestic supply chain provides Croma and Tata Neu priority allocation of latest flagship devices.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Mint",
+      "Business Standard",
+      "Economic Times"
+    ],
+    "url": "https://livemint.com",
+    "source_urls": [
+      "https://livemint.com"
+    ],
+    "raw_excerpt": "Integrated domestic supply chain provides Croma and Tata Neu priority allocation of latest flagship devices.",
+    "why_it_matters": "High-trust corporate conglomerate consolidating premium urban consumer loyalty.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.89,
+    "inference_confidence": 0.84,
+    "contributing_signal_count": 8,
+    "published_at": "2026-11-22T13:25:00+00:00",
+    "published_timestamp": "2026-11-22T13:25:00+00:00",
+    "latest_detected_at": "2026-11-22T13:25:00+00:00",
+    "first_detected_at": "2026-11-22T13:25:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_001_7d9698cb",
     "company_name": "Flipkart",
     "company": "Flipkart",
     "title": "Flipkart Minutes launches in Bengaluru and Delhi NCR with 10-minute dark stores",
@@ -450,7 +690,7 @@
     "first_detected_at": "2026-06-01T08:00:00+00:00"
   },
   {
-    "event_id": "evt_fk_own_002_2ee9c49e",
+    "event_id": "evt_fk_own_002_b423f251",
     "company_name": "Flipkart",
     "company": "Flipkart",
     "title": "Flipkart Big Billion Days 2026 sets record GMV with 35% surge in tier-2 electronics",
@@ -474,13 +714,13 @@
     "fact_confidence": 0.96,
     "inference_confidence": 0.92,
     "contributing_signal_count": 10,
-    "published_at": "2026-07-07T09:17:00+00:00",
-    "published_timestamp": "2026-07-07T09:17:00+00:00",
-    "latest_detected_at": "2026-07-07T09:17:00+00:00",
-    "first_detected_at": "2026-07-07T09:17:00+00:00"
+    "published_at": "2026-07-03T09:17:00+00:00",
+    "published_timestamp": "2026-07-03T09:17:00+00:00",
+    "latest_detected_at": "2026-07-03T09:17:00+00:00",
+    "first_detected_at": "2026-07-03T09:17:00+00:00"
   },
   {
-    "event_id": "evt_fk_own_003_17ff4ac3",
+    "event_id": "evt_fk_own_003_d6704639",
     "company_name": "Flipkart",
     "company": "Flipkart",
     "title": "Flipkart Ekart expands 3PL merchant logistics services to external brand partners",
@@ -504,13 +744,13 @@
     "fact_confidence": 0.96,
     "inference_confidence": 0.92,
     "contributing_signal_count": 8,
-    "published_at": "2026-08-14T10:34:00+00:00",
-    "published_timestamp": "2026-08-14T10:34:00+00:00",
-    "latest_detected_at": "2026-08-14T10:34:00+00:00",
-    "first_detected_at": "2026-08-14T10:34:00+00:00"
+    "published_at": "2026-08-06T10:34:00+00:00",
+    "published_timestamp": "2026-08-06T10:34:00+00:00",
+    "latest_detected_at": "2026-08-06T10:34:00+00:00",
+    "first_detected_at": "2026-08-06T10:34:00+00:00"
   },
   {
-    "event_id": "evt_fk_own_004_54a370d8",
+    "event_id": "evt_fk_own_004_58ec5287",
     "company_name": "Flipkart",
     "company": "Flipkart",
     "title": "Flipkart partners with regional textile consortiums to onboard 200,000 craft weavers",
@@ -534,9 +774,159 @@
     "fact_confidence": 0.96,
     "inference_confidence": 0.92,
     "contributing_signal_count": 6,
-    "published_at": "2026-09-20T11:51:00+00:00",
-    "published_timestamp": "2026-09-20T11:51:00+00:00",
-    "latest_detected_at": "2026-09-20T11:51:00+00:00",
-    "first_detected_at": "2026-09-20T11:51:00+00:00"
+    "published_at": "2026-09-09T11:51:00+00:00",
+    "published_timestamp": "2026-09-09T11:51:00+00:00",
+    "latest_detected_at": "2026-09-09T11:51:00+00:00",
+    "first_detected_at": "2026-09-09T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_005_1db4e2c8",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart launches GenAI shopping assistant 'Flippi' powered by localized vernacular LLMs",
+    "theme": "AI Commerce",
+    "strategic_theme": "AI Commerce",
+    "event_summary": "Multilingual conversational product search in Hindi, Tamil, and Telugu lifts Tier-2 checkout conversion by 22%.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Multilingual conversational product search in Hindi, Tamil, and Telugu lifts Tier-2 checkout conversion by 22%.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 8,
+    "published_at": "2026-10-12T12:08:00+00:00",
+    "published_timestamp": "2026-10-12T12:08:00+00:00",
+    "latest_detected_at": "2026-10-12T12:08:00+00:00",
+    "first_detected_at": "2026-10-12T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_006_6bee67df",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart Reset re-commerce platform expands certified refurbished smartphone exchange",
+    "theme": "Re-Commerce Expansion",
+    "strategic_theme": "Re-Commerce Expansion",
+    "event_summary": "Circular economy initiative captures value-seeking smartphone upgrade demand with doorstep verification.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Circular economy initiative captures value-seeking smartphone upgrade demand with doorstep verification.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 6,
+    "published_at": "2026-11-15T13:25:00+00:00",
+    "published_timestamp": "2026-11-15T13:25:00+00:00",
+    "latest_detected_at": "2026-11-15T13:25:00+00:00",
+    "first_detected_at": "2026-11-15T13:25:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_007_274230b7",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart SuperCoin loyalty program expands redemption network to 50,000 offline retail outlets",
+    "theme": "Loyalty Coalition",
+    "strategic_theme": "Loyalty Coalition",
+    "event_summary": "Cross-brand coalition loyalty drives higher repeat retention and shopping frequency across Tier-1/2 metros.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Cross-brand coalition loyalty drives higher repeat retention and shopping frequency across Tier-1/2 metros.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 6,
+    "published_at": "2026-06-18T14:42:00+00:00",
+    "published_timestamp": "2026-06-18T14:42:00+00:00",
+    "latest_detected_at": "2026-06-18T14:42:00+00:00",
+    "first_detected_at": "2026-06-18T14:42:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_008_148d613a",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart Wholesale expands B2B kirana credit terms with 14-day interest-free inventory credit",
+    "theme": "B2B Wholesale",
+    "strategic_theme": "B2B Wholesale",
+    "event_summary": "Strengthens institutional retail supply chain to compete with Reliance JioMart wholesale distribution.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Strengthens institutional retail supply chain to compete with Reliance JioMart wholesale distribution.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 6,
+    "published_at": "2026-07-21T15:59:00+00:00",
+    "published_timestamp": "2026-07-21T15:59:00+00:00",
+    "latest_detected_at": "2026-07-21T15:59:00+00:00",
+    "first_detected_at": "2026-07-21T15:59:00+00:00"
+  },
+  {
+    "event_id": "evt_fk_own_009_71d5a70a",
+    "company_name": "Flipkart",
+    "company": "Flipkart",
+    "title": "Flipkart partners with Axis Bank to launch co-branded RuPay credit card on UPI",
+    "theme": "Fintech & Cards",
+    "strategic_theme": "Fintech & Cards",
+    "event_summary": "Offers unlimited 5% cashback on all Flipkart transactions with instant digital onboarding.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Flipkart Press",
+      "Economic Times",
+      "PTI"
+    ],
+    "url": "https://flipkart.com",
+    "source_urls": [
+      "https://flipkart.com"
+    ],
+    "raw_excerpt": "Offers unlimited 5% cashback on all Flipkart transactions with instant digital onboarding.",
+    "why_it_matters": "Primary subject enterprise initiatives to defend market leadership against Amazon and quick commerce.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 8,
+    "published_at": "2026-08-24T16:16:00+00:00",
+    "published_timestamp": "2026-08-24T16:16:00+00:00",
+    "latest_detected_at": "2026-08-24T16:16:00+00:00",
+    "first_detected_at": "2026-08-24T16:16:00+00:00"
   }
 ]

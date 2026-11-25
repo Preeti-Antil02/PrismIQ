@@ -25,10 +25,11 @@ def decode_cursor(cursor: str) -> Optional[Tuple[float, str]]:
         pass
     return None
 
-def _get_fallback_clusters(tenant_id: str) -> List[Dict[str, Any]]:
+def _get_fallback_clusters(tenant_id: str, target_company: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Fallback loader when trend database tables are not yet backfilled.
     Loads stratified clusters from local JSON and filters/scores by tenant tracked companies.
+    Strictly excludes any cluster with zero overlap with this company's ecosystem.
     """
     candidate_paths = [
         os.path.join(os.path.dirname(__file__), "..", "..", "published_briefs", "trends_clusters.json"),
@@ -63,26 +64,28 @@ def _get_fallback_clusters(tenant_id: str) -> List[Dict[str, Any]]:
         # Fallback to tenant-specific tracked companies
         tracked = [c.get("company_name", "") for c in storage.get_tenant_tracked_companies(tenant_id)]
 
-    tracked_set = set([c.lower() for c in tracked])
+    tracked_names = {c.lower() for c in tracked if c}
+    if target_company:
+        tracked_names.add(target_company.lower().strip())
 
     scored = []
     for c in clusters:
         comp_involved = [m.get("company", "") for m in c.get("members", []) if m.get("company")]
         comp_set = set([comp.lower() for comp in comp_involved])
-        overlap = list(tracked_set & comp_set)
+        overlap = list(tracked_names & comp_set)
         
-        # Calculate relevance score: base on overlap and story count
-        relevance = 0.5
-        if overlap:
-            relevance = 0.7 + (0.05 * len(overlap))
-        elif tracked_set:
-            # If tenant has tracked companies and no overlap, skip
-            relevance = 0.1
+        # Strict Filtering Rule: NEVER return clusters that have ZERO overlap with this company's ecosystem!
+        if not overlap:
+            continue
+
+        relevance = 0.7 + (0.05 * len(overlap))
 
         item = dict(c)
         item["relevance_score"] = round(min(1.0, relevance), 2)
         item["matched_tracked_companies"] = overlap
-        item["companies_involved"] = sorted(list(set(comp_involved)))
+        # Only surface companies that belong to the active company's tracked ecosystem
+        ecosystem_comps = [comp for comp in sorted(list(set(comp_involved))) if comp.lower() in tracked_names]
+        item["companies_involved"] = ecosystem_comps if ecosystem_comps else overlap
         scored.append(item)
 
     scored.sort(key=lambda x: (x.get("relevance_score", 0), x.get("raw_event_count", 0)), reverse=True)
@@ -93,6 +96,7 @@ def get_tenant_trends(
     limit: int = 20,
     cursor: Optional[str] = None,
     company: Optional[str] = None,
+    target_company: Optional[str] = None,
     momentum: Optional[str] = None,
     trend_type: Optional[str] = None,
     min_confidence: Optional[float] = None
@@ -105,6 +109,7 @@ def get_tenant_trends(
     has_more = False
     next_cursor = None
     total_count = 0
+    resolved_target = target_company or company
 
     cursor_score, cursor_id = decode_cursor(cursor) if cursor else (None, None)
 
@@ -199,11 +204,11 @@ def get_tenant_trends(
 
     # 2. Local Fallback if DB empty or not yet migrated
     if not trends_list and total_count == 0:
-        fallback_clusters = _get_fallback_clusters(tenant_id)
+        fallback_clusters = _get_fallback_clusters(tenant_id, target_company=resolved_target)
         
         # Filter
         filtered = fallback_clusters
-        if company:
+        if company and company.lower() != (resolved_target or "").lower():
             filtered = [c for c in filtered if any(company.lower() in comp.lower() for comp in c.get("companies_involved", []))]
         if momentum:
             filtered = [c for c in filtered if c.get("momentum_label") == momentum or (c.get("momentum", {}).get("label") == momentum)]
@@ -211,6 +216,10 @@ def get_tenant_trends(
             filtered = [c for c in filtered if c.get("cluster_type") == trend_type]
 
         total_count = len(filtered)
+
+        # If no trends exist for the company, return empty honest state
+        if total_count == 0:
+            return {"trends": [], "total_count": 0, "has_more": False, "next_cursor": None}
 
         # Pagination
         start_idx = 0

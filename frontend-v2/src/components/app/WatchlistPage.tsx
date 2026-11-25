@@ -62,14 +62,14 @@ export function WatchlistPage() {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchTrackedCompanies(tenantId);
+      const list = await fetchTrackedCompanies(tenantId, targetCompany);
       setCompanies(list || []);
     } catch (err: any) {
       setError(err.message || "Failed to load watchlist");
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, targetCompany]);
 
   React.useEffect(() => {
     loadCompanies();

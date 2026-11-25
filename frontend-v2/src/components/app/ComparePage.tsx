@@ -77,11 +77,11 @@ export function ComparePage() {
     try {
       const [compsRes, eventsRes, signalsRes, findingsRes, radarRes] =
         await Promise.allSettled([
-          fetchTrackedCompanies(tenantId),
-          fetchEvents({ limit: 150, tenantId }),
-          fetchSignals({ limit: 300, tenantId }),
+          fetchTrackedCompanies(tenantId, targetCompany),
+          fetchEvents({ limit: 150, tenantId, target_company: targetCompany }),
+          fetchSignals({ limit: 300, tenantId, target_company: targetCompany }),
           fetchFindings(tenantId),
-          fetchLatestRadar(tenantId),
+          fetchLatestRadar(tenantId, targetCompany),
         ]);
 
       if (compsRes.status === "fulfilled") {

@@ -83,6 +83,7 @@ export async function fetchSignals(params?: {
   offset?: number;
   forceFailure?: boolean;
   tenantId?: string;
+  target_company?: string;
 }): Promise<SignalsApiResponse> {
   // Check forced dev failure state if requested
   if (params?.forceFailure) {
@@ -98,6 +99,10 @@ export async function fetchSignals(params?: {
   }
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
+    url.searchParams.set("target_company", params.company);
+  } else if (params?.target_company) {
+    url.searchParams.set("company", params.target_company);
+    url.searchParams.set("target_company", params.target_company);
   }
   if (params?.source && params.source !== "ALL") {
     url.searchParams.set("source", params.source.toLowerCase());
@@ -199,6 +204,7 @@ export async function fetchEvents(params?: {
   offset?: number;
   forceFailure?: boolean;
   tenantId?: string;
+  target_company?: string;
 }): Promise<EventsApiResponse> {
   if (params?.forceFailure) {
     throw new Error("Simulated network disconnection for verification of error state.");
@@ -213,6 +219,10 @@ export async function fetchEvents(params?: {
   }
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
+    url.searchParams.set("target_company", params.company);
+  } else if (params?.target_company) {
+    url.searchParams.set("company", params.target_company);
+    url.searchParams.set("target_company", params.target_company);
   }
   if (params?.tier && params.tier !== "ALL") {
     url.searchParams.set("tier", params.tier);
@@ -279,11 +289,15 @@ export async function fetchEventDetail(eventId: string, tenantId?: string): Prom
   throw new Error(`Event '${eventId}' not found.`);
 }
 
-export async function fetchTrackedCompanies(tenantId?: string): Promise<TrackedCompany[]> {
+export async function fetchTrackedCompanies(tenantId?: string, company?: string): Promise<TrackedCompany[]> {
   const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/companies/tracked" : `${API_BASE_URL}/companies/tracked`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  if (company) {
+    url.searchParams.set("company", company);
+    url.searchParams.set("target_company", company);
+  }
 
   try {
     const res = await fetch(url.toString(), {
@@ -449,11 +463,15 @@ export interface RadarApiResponse {
   count: number;
 }
 
-export async function fetchLatestRadar(tenantId?: string): Promise<RadarApiResponse> {
+export async function fetchLatestRadar(tenantId?: string, company?: string): Promise<RadarApiResponse> {
   const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/radar" : `${API_BASE_URL}/radar`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  if (company) {
+    url.searchParams.set("company", company);
+    url.searchParams.set("target_company", company);
+  }
 
   try {
     const res = await fetch(url.toString(), {
@@ -478,6 +496,11 @@ export async function fetchLatestRadar(tenantId?: string): Promise<RadarApiRespo
     evaluations: [],
     count: 0,
   };
+}
+
+export async function fetchRadarEvaluations(tenantId?: string, company?: string): Promise<RadarEvaluation[]> {
+  const res = await fetchLatestRadar(tenantId, company);
+  return res.evaluations || [];
 }
 
 
@@ -1807,6 +1830,7 @@ export async function fetchTrends(params?: {
   limit?: number;
   cursor?: string;
   company?: string;
+  target_company?: string;
   momentum?: string;
   trend_type?: string;
   tenantId?: string;
@@ -1816,7 +1840,13 @@ export async function fetchTrends(params?: {
   if (params?.tenantId) q.set("tenant_id", params.tenantId);
   if (params?.limit) q.set("limit", String(params.limit));
   if (params?.cursor) q.set("cursor", params.cursor);
-  if (params?.company) q.set("company", params.company);
+  if (params?.company) {
+    q.set("company", params.company);
+    q.set("target_company", params.company);
+  } else if (params?.target_company) {
+    q.set("company", params.target_company);
+    q.set("target_company", params.target_company);
+  }
   if (params?.momentum) q.set("momentum", params.momentum);
   if (params?.trend_type) q.set("trend_type", params.trend_type);
 
@@ -2765,10 +2795,16 @@ export async function fetchNextBestActions(
   team?: string,
   status?: string,
   competitorName?: string,
-  tenantId?: string
+  tenantId?: string,
+  targetCompany?: string
 ): Promise<{ actions: NextBestAction[]; count: number }> {
   const token = getClientAuthToken(tenantId);
   const q = new URLSearchParams();
+  if (tenantId) q.set("tenant_id", tenantId);
+  if (targetCompany) {
+    q.set("company", targetCompany);
+    q.set("target_company", targetCompany);
+  }
   if (team && team !== "ALL") q.set("team", team);
   if (status && status !== "ALL") q.set("status", status);
   if (competitorName && competitorName !== "ALL") q.set("competitor_name", competitorName);
@@ -3065,7 +3101,7 @@ export async function fetchOverview(
   tenantId?: string
 ): Promise<OverviewPayload> {
   const token = getClientAuthToken(tenantId);
-  const params = new URLSearchParams({ company, range });
+  const params = new URLSearchParams({ company, range, target_company: company });
   if (tenantId) params.set("tenant_id", tenantId);
 
   const baseUrl = typeof window !== "undefined"

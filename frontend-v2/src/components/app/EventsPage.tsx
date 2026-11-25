@@ -65,8 +65,8 @@ export function EventsPage() {
     setError(null);
     try {
       const [eventsRes, compsRes] = await Promise.all([
-        fetchEvents({ limit: 200, tenantId }),
-        fetchTrackedCompanies(tenantId),
+        fetchEvents({ limit: 200, tenantId, target_company: targetCompany }),
+        fetchTrackedCompanies(tenantId, targetCompany),
       ]);
       setEvents(eventsRes.events || []);
       setCompanies(compsRes || []);
@@ -75,7 +75,7 @@ export function EventsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId, targetCompany]);
 
   React.useEffect(() => {
     loadData();
