@@ -33,10 +33,89 @@ import {
   type OverviewAttentionItem,
   type OverviewNextBestAction,
 } from "@/lib/api";
-import { CompetitorLogoRender } from "./intelligence/CompetitorIntelligenceDetailView";
 
 // ============================================================================
-// 3D Isometric SVG Graphics for Emerging Strategic Patterns (Compact Cockpit)
+// Clean Competitor Brand Logo Renderers (Matching Reference Design)
+// ============================================================================
+
+function CleanBrandLogo({ name, className = "w-full h-full" }: { name: string; className?: string }) {
+  const norm = (name || "").toLowerCase();
+
+  if (norm.includes("amazon")) {
+    return (
+      <div className={`flex flex-col items-center justify-center leading-none select-none ${className}`}>
+        <span className="text-[12px] font-black tracking-tight text-[#111827]">amazon</span>
+        <svg viewBox="0 0 50 12" className="w-8 h-2 -mt-0.5" fill="none">
+          <path d="M2 3 Q 25 12 46 2" stroke="#FF9900" strokeWidth="2.5" strokeLinecap="round" />
+          <polygon points="43,0 48,2 45,6" fill="#FF9900" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (norm.includes("flipkart")) {
+    return (
+      <div className={`flex items-center justify-center gap-1 font-bold italic text-[#2874f0] select-none ${className}`}>
+        <span className="text-xs not-italic font-black text-[#2874f0]">Flipkart</span>
+        <div className="w-3.5 h-3.5 bg-[#ffe500] rounded-xs flex items-center justify-center text-[8px] text-blue-900 font-black not-italic shadow-2xs">
+          🛍
+        </div>
+      </div>
+    );
+  }
+
+  if (norm.includes("reliance")) {
+    return (
+      <div className={`flex items-center justify-center gap-1 font-bold text-[#0f2e6b] select-none ${className}`}>
+        <span className="text-[11px] font-extrabold text-[#0f2e6b]">Reliance</span>
+      </div>
+    );
+  }
+
+  if (norm.includes("tata")) {
+    return (
+      <div className={`flex items-center justify-center font-bold tracking-wider text-[#005a9c] select-none ${className}`}>
+        <span className="text-xs font-black tracking-widest text-[#005a9c]">TATA</span>
+      </div>
+    );
+  }
+
+  if (norm.includes("shopsy")) {
+    return (
+      <div className={`flex items-center justify-center gap-1 font-bold text-[#842cd8] select-none ${className}`}>
+        <div className="w-3.5 h-3.5 rounded-xs bg-[#842cd8] flex items-center justify-center text-white font-black text-[9px]">
+          S
+        </div>
+        <span className="text-[10px] font-extrabold text-[#842cd8]">shopsy</span>
+      </div>
+    );
+  }
+
+  if (norm.includes("ajio")) {
+    return (
+      <div className={`flex items-center justify-center select-none ${className}`}>
+        <span className="text-xs font-black tracking-wider text-[#1e293b]">AJIO</span>
+      </div>
+    );
+  }
+
+  if (norm.includes("meesho")) {
+    return (
+      <div className={`flex items-center justify-center select-none ${className}`}>
+        <span className="text-xs font-black tracking-tight text-[#f43397] lowercase">meesho</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-[10px]">
+      {(name || "CO").substring(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
+// ============================================================================
+// 3D Isometric SVG Graphics for Emerging Strategic Patterns
 // ============================================================================
 
 function IsometricTrendGraphic() {
@@ -216,6 +295,11 @@ export function OverviewPage() {
 
   const { metrics, what_deserves_attention, competitive_landscape, emerging_strategic_patterns, next_best_actions } = data;
 
+  // Overview cockpit displays top 4 items to keep single-screen density matching reference design
+  const attentionItems = (what_deserves_attention || []).slice(0, 4);
+  const patternItems = (emerging_strategic_patterns || []).slice(0, 2);
+  const actionItems = (next_best_actions || []).slice(0, 3);
+
   return (
     <div className="space-y-4 pb-6 w-full text-[#18181b]">
       {/* Toast Notification */}
@@ -355,7 +439,7 @@ export function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* Left Column: What Deserves Attention */}
         <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-2">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2 mb-1">
             <div className="flex items-center gap-2">
               <Star className="w-4 h-4 text-purple-600 fill-purple-600" />
               <h2 className="text-sm sm:text-base font-extrabold text-zinc-950">What Deserves Attention</h2>
@@ -369,9 +453,9 @@ export function OverviewPage() {
             </Link>
           </div>
 
-          {what_deserves_attention && what_deserves_attention.length > 0 ? (
+          {attentionItems && attentionItems.length > 0 ? (
             <div className="divide-y divide-zinc-100 flex-1 flex flex-col justify-around">
-              {what_deserves_attention.map((item) => {
+              {attentionItems.map((item) => {
                 const impactBg =
                   item.impact_level === "High"
                     ? "bg-rose-50 text-rose-700 border-rose-200/80"
@@ -395,10 +479,10 @@ export function OverviewPage() {
                     key={item.id}
                     className="py-2.5 first:pt-1 last:pb-1 flex items-center justify-between gap-3 group min-w-0"
                   >
-                    {/* Left: Logo & Headline (min-w-0 prevents flex blowout) */}
+                    {/* Left: Clean Logo & Headline */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-14 h-9 rounded-lg bg-white border border-zinc-200/80 flex items-center justify-center p-1 shrink-0 shadow-2xs">
-                        <CompetitorLogoRender name={item.competitor} className="w-full h-full object-contain" />
+                        <CleanBrandLogo name={item.competitor} />
                       </div>
 
                       <div className="min-w-0 flex-1 space-y-0.5">
@@ -450,8 +534,9 @@ export function OverviewPage() {
 
         {/* Right Column: Competitive Landscape */}
         <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
+          {/* Header Row */}
           <div>
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5 mb-2">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-2 mb-1.5">
               <div className="flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-purple-600" />
                 <h2 className="text-sm sm:text-base font-extrabold text-zinc-950">Competitive Landscape</h2>
@@ -499,8 +584,8 @@ export function OverviewPage() {
               </div>
             </div>
 
-            {/* Competitor Legend with Click-to-Filter */}
-            <div className="flex flex-wrap items-center justify-end gap-2 text-xs font-semibold pt-0.5 pb-2">
+            {/* Competitor Legend with Click-to-Filter directly below header */}
+            <div className="flex flex-wrap items-center justify-end gap-2 text-xs font-semibold pt-1 pb-1">
               {competitive_landscape.competitors.map((comp) => {
                 const isSelected = highlightedCompetitor === comp;
                 const isDimmed = highlightedCompetitor && !isSelected;
@@ -528,10 +613,10 @@ export function OverviewPage() {
             </div>
           </div>
 
-          {/* Dynamic Compact Bar Chart (Fixed Height to prevent void) */}
+          {/* Dynamic Full-Height Bar Chart (Expands vertically to eliminate blank space) */}
           {competitive_landscape.chart_data && competitive_landscape.chart_data.length > 0 ? (
-            <div className="space-y-1.5 pt-1">
-              <div className="relative h-44 sm:h-48 flex items-end justify-between gap-1.5 border-b border-zinc-200 px-2 pb-1">
+            <div className="flex-1 w-full flex flex-col justify-end pt-3 pb-1 min-h-[200px]">
+              <div className="relative w-full flex-1 flex items-end justify-between gap-1.5 border-b border-zinc-200 px-2 pb-1 min-h-[160px]">
                 {(() => {
                   const maxVal = Math.max(
                     ...competitive_landscape.chart_data.flatMap((d) =>
@@ -601,7 +686,7 @@ export function OverviewPage() {
               </div>
             </div>
           ) : (
-            <div className="h-44 sm:h-48 flex flex-col items-center justify-center text-center p-4 bg-zinc-50/60 rounded-xl border border-dashed border-zinc-200">
+            <div className="flex-1 min-h-[160px] flex flex-col items-center justify-center text-center p-4 bg-zinc-50/60 rounded-xl border border-dashed border-zinc-200">
               <BarChart2 className="w-6 h-6 text-zinc-300 mb-1" />
               <p className="text-xs font-bold text-zinc-700">Insufficient historical activity data</p>
               <p className="text-[11px] text-zinc-500 max-w-xs mt-0.5">
@@ -616,7 +701,7 @@ export function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         {/* Left Column: Emerging Strategic Patterns */}
         <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 shadow-2xs flex flex-col justify-between space-y-3">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-[#6e57dc]" />
               <h2 className="text-sm sm:text-base font-extrabold text-zinc-950">Emerging Strategic Patterns</h2>
@@ -630,9 +715,9 @@ export function OverviewPage() {
             </Link>
           </div>
 
-          {emerging_strategic_patterns && emerging_strategic_patterns.length > 0 ? (
+          {patternItems && patternItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-              {emerging_strategic_patterns.map((pat) => (
+              {patternItems.map((pat) => (
                 <div
                   key={pat.id}
                   className="p-3.5 sm:p-4 rounded-2xl bg-[#f9faff] border border-indigo-100/70 hover:border-indigo-300 transition-all flex items-start justify-between gap-2.5 group min-w-0"
@@ -690,7 +775,7 @@ export function OverviewPage() {
 
         {/* Right Column: Next Best Actions */}
         <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 shadow-2xs flex flex-col justify-between space-y-3">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-purple-600 fill-purple-600" />
               <h2 className="text-sm sm:text-base font-extrabold text-zinc-950">Next Best Actions</h2>
@@ -704,9 +789,9 @@ export function OverviewPage() {
             </Link>
           </div>
 
-          {next_best_actions && next_best_actions.length > 0 ? (
+          {actionItems && actionItems.length > 0 ? (
             <div className="divide-y divide-zinc-100 flex-1 flex flex-col justify-around">
-              {next_best_actions.map((act) => {
+              {actionItems.map((act) => {
                 const actionIcon =
                   act.icon === "barchart" ? (
                     <BarChart3 className="w-4 h-4 text-blue-600" />
