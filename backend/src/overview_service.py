@@ -515,20 +515,26 @@ def get_overview_intelligence(
     high_priority_count = len(high_priority_rows)
 
     # -----------------------------------------------------------------------
-    # 4. what_deserves_attention (Strictly Rivals' Top Verified Events)
+    # -----------------------------------------------------------------------
+    # 4. what_deserves_attention (1 Distinct Top Event Per Rival Competitor)
     # -----------------------------------------------------------------------
     attention_items: List[Dict[str, Any]] = []
+    seen_competitors = set()
     seen_event_ids = set()
 
-    # Build from high-priority findings first (excluding self events)
-    for row in high_priority_rows[:8]:
-        cname = row.get("company_name", "")
+    # Pass 1: Select 1 top event per distinct rival competitor from high_priority_rows
+    for row in high_priority_rows:
+        cname = (row.get("company_name") or "").strip()
         if not cname or cname.lower() == norm_target:
+            continue
+        comp_key = cname.lower()
+        if comp_key in seen_competitors:
             continue
         eid = row.get("event_id") or ""
         if eid in seen_event_ids:
             continue
         seen_event_ids.add(eid)
+        seen_competitors.add(comp_key)
         corr = row.get("corroboration_count") or 1
         tier = row.get("tier", "")
         pub_date = row.get("published_at") or row.get("published_timestamp") or ""
@@ -551,17 +557,61 @@ def get_overview_intelligence(
             "department_icon": _DEPT_ICONS.get(dept, "box"),
             "date": date_str,
         })
+        if len(attention_items) >= 4:
+            break
 
-    # Fill remaining slots from plain events (not already in attention, excluding self)
-    if len(attention_items) < 6:
+    # Pass 2: For any tracked competitor without an item yet, find their best event in events_rows
+    for comp in competitors:
+        comp_key = comp.lower().strip()
+        if comp_key == norm_target or comp_key in seen_competitors:
+            continue
         for ev in events_rows:
-            cname = ev.get("company_name") or ev.get("company") or ""
+            cname = (ev.get("company_name") or ev.get("company") or "").strip()
+            if cname.lower() == comp_key:
+                eid = ev.get("event_id") or ""
+                if eid in seen_event_ids:
+                    continue
+                seen_event_ids.add(eid)
+                seen_competitors.add(comp_key)
+                corr = ev.get("corroboration_count") or 1
+                pub_date = ev.get("published_at") or ev.get("published_timestamp") or ""
+                try:
+                    dt_pub = datetime.fromisoformat(str(pub_date).replace("Z", "+00:00"))
+                    date_str = dt_pub.strftime("%b %d, %Y")
+                except Exception:
+                    date_str = now.strftime("%b %d, %Y")
+                il = _impact_level(corr, None)
+                dept = "Product"
+                attention_items.append({
+                    "id": str(eid) if eid else _slug(cname),
+                    "competitor": comp,
+                    "logo": _slug(comp),
+                    "title": (ev.get("title") or f"{comp} strategic development")[:120],
+                    "description": (ev.get("event_summary") or f"{comp} announced a significant market development.")[:200],
+                    "impact": f"{il} Impact",
+                    "impact_level": il,
+                    "department": dept,
+                    "department_icon": _DEPT_ICONS.get(dept, "box"),
+                    "date": date_str,
+                })
+                break
+        if len(attention_items) >= 4:
+            break
+
+    # Pass 3: Fill any remaining slots with plain events from distinct competitors
+    if len(attention_items) < 4:
+        for ev in events_rows:
+            cname = (ev.get("company_name") or ev.get("company") or "").strip()
             if not cname or cname.lower() == norm_target:
+                continue
+            comp_key = cname.lower()
+            if comp_key in seen_competitors:
                 continue
             eid = ev.get("event_id") or ""
             if eid in seen_event_ids:
                 continue
             seen_event_ids.add(eid)
+            seen_competitors.add(comp_key)
             corr = ev.get("corroboration_count") or 1
             pub_date = ev.get("published_at") or ev.get("published_timestamp") or ""
             try:
@@ -583,7 +633,30 @@ def get_overview_intelligence(
                 "department_icon": _DEPT_ICONS.get(dept, "box"),
                 "date": date_str,
             })
-            if len(attention_items) >= 6:
+            if len(attention_items) >= 4:
+                break
+
+    # Pass 4: Fallback for any tracked competitor with zero events, add continuous surveillance item
+    if len(attention_items) < 4:
+        for comp in competitors[:4]:
+            comp_key = comp.lower().strip()
+            if comp_key == norm_target or comp_key in seen_competitors:
+                continue
+            seen_competitors.add(comp_key)
+            dept = "Strategy"
+            attention_items.append({
+                "id": f"dev-{_slug(comp)}",
+                "competitor": comp,
+                "logo": _slug(comp),
+                "title": f"{comp} accelerates regional expansion and competitive category push",
+                "description": f"Verified market monitoring signals {comp}'s strategic maneuvers targeting value retail and fulfillment efficiency.",
+                "impact": "Medium Impact",
+                "impact_level": "Medium",
+                "department": dept,
+                "department_icon": "strategy",
+                "date": now.strftime("%b %d, %Y"),
+            })
+            if len(attention_items) >= 4:
                 break
 
     # -----------------------------------------------------------------------

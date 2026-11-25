@@ -295,8 +295,34 @@ export function OverviewPage() {
 
   const { metrics, what_deserves_attention, competitive_landscape, emerging_strategic_patterns, next_best_actions } = data;
 
-  // Overview cockpit displays top 4 items to keep single-screen density matching reference design
-  const attentionItems = (what_deserves_attention || []).slice(0, 4);
+  // Overview cockpit displays 1 distinct item per competitor (matching reference design)
+  const attentionItems = React.useMemo(() => {
+    if (!what_deserves_attention || what_deserves_attention.length === 0) return [];
+    const seen = new Set<string>();
+    const diverse: typeof what_deserves_attention = [];
+
+    // First pass: pick 1 item per unique competitor
+    for (const item of what_deserves_attention) {
+      const key = (item.competitor || "").toLowerCase().trim();
+      if (!seen.has(key)) {
+        seen.add(key);
+        diverse.push(item);
+      }
+      if (diverse.length >= 4) break;
+    }
+
+    // Second pass: fill up to 4 if fewer than 4 competitors exist
+    if (diverse.length < 4) {
+      for (const item of what_deserves_attention) {
+        if (!diverse.some((d) => d.id === item.id)) {
+          diverse.push(item);
+        }
+        if (diverse.length >= 4) break;
+      }
+    }
+    return diverse.slice(0, 4);
+  }, [what_deserves_attention]);
+
   const patternItems = (emerging_strategic_patterns || []).slice(0, 2);
   const actionItems = (next_best_actions || []).slice(0, 3);
 
@@ -533,7 +559,7 @@ export function OverviewPage() {
         </div>
 
         {/* Right Column: Competitive Landscape */}
-        <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 shadow-2xs flex flex-col justify-between overflow-hidden">
           {/* Header Row */}
           <div>
             <div className="flex items-center justify-between border-b border-zinc-100 pb-2 mb-1.5">
@@ -613,10 +639,10 @@ export function OverviewPage() {
             </div>
           </div>
 
-          {/* Dynamic Full-Height Bar Chart (Expands vertically to eliminate blank space) */}
+          {/* Dynamic Full-Height Bar Chart (Constrained to fit without overflowing) */}
           {competitive_landscape.chart_data && competitive_landscape.chart_data.length > 0 ? (
-            <div className="flex-1 w-full flex flex-col justify-end pt-3 pb-1 min-h-[200px]">
-              <div className="relative w-full flex-1 flex items-end justify-between gap-1.5 border-b border-zinc-200 px-2 pb-1 min-h-[160px]">
+            <div className="flex-1 w-full flex flex-col justify-end pt-3 pb-1 min-h-[200px] overflow-hidden">
+              <div className="relative w-full flex-1 flex items-end justify-between border-b border-zinc-200 pl-6 pr-2 pb-1 min-h-[160px]">
                 {(() => {
                   const maxVal = Math.max(
                     ...competitive_landscape.chart_data.flatMap((d) =>
@@ -628,18 +654,18 @@ export function OverviewPage() {
                   const midLow = Math.round(maxVal / 3);
 
                   return (
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none -left-2 pr-2 text-[10px] font-semibold text-zinc-400">
-                      <div className="border-b border-zinc-100 w-full flex justify-between">
-                        <span>{maxVal}</span>
+                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none left-0 right-0 text-[10px] font-semibold text-zinc-400">
+                      <div className="border-b border-zinc-100 w-full flex items-center">
+                        <span className="w-5 shrink-0 text-left">{maxVal}</span>
                       </div>
-                      <div className="border-b border-zinc-100 w-full flex justify-between">
-                        <span>{midHigh}</span>
+                      <div className="border-b border-zinc-100 w-full flex items-center">
+                        <span className="w-5 shrink-0 text-left">{midHigh}</span>
                       </div>
-                      <div className="border-b border-zinc-100 w-full flex justify-between">
-                        <span>{midLow}</span>
+                      <div className="border-b border-zinc-100 w-full flex items-center">
+                        <span className="w-5 shrink-0 text-left">{midLow}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>0</span>
+                      <div className="w-full flex items-center">
+                        <span className="w-5 shrink-0 text-left">0</span>
                       </div>
                     </div>
                   );
@@ -654,8 +680,8 @@ export function OverviewPage() {
                   );
 
                   return (
-                    <div key={item.month || idx} className="flex-1 flex flex-col items-center gap-0.5 z-10 h-full justify-end">
-                      <div className="w-full flex items-end justify-center gap-1 sm:gap-1.5 h-full pb-0.5">
+                    <div key={item.month || idx} className="flex-1 min-w-0 flex flex-col items-center justify-end z-10 h-full">
+                      <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1 h-full pb-0.5 px-0.5">
                         {competitive_landscape.competitors.map((comp) => {
                           const val = Number(item[comp]) || 0;
                           const heightPercent = Math.min(100, Math.max(6, Math.round((val / maxVal) * 100)));
@@ -672,14 +698,14 @@ export function OverviewPage() {
                                 height: `${heightPercent}%`,
                                 backgroundColor: color,
                               }}
-                              className={`w-2 sm:w-2.5 rounded-t-[3px] transition-all cursor-pointer shadow-2xs ${
+                              className={`w-1.5 sm:w-2 max-w-[7px] rounded-t-[2px] transition-all cursor-pointer shadow-2xs shrink-0 ${
                                 isDimmed ? "opacity-25" : "opacity-100 hover:brightness-110"
                               } ${isSelected ? "ring-2 ring-purple-400 ring-offset-1" : ""}`}
                             />
                           );
                         })}
                       </div>
-                      <span className="text-[10px] sm:text-[11px] font-bold text-zinc-500 mt-1">{item.month}</span>
+                      <span className="text-[10px] sm:text-[11px] font-bold text-zinc-500 mt-1 truncate">{item.month}</span>
                     </div>
                   );
                 })}
