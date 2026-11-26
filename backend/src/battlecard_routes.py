@@ -58,10 +58,14 @@ class ReviewClaimDriftRequest(BaseModel):
 # Helpers
 # ============================================================================
 
-def _get_tenant(authorization: Optional[str] = Header(None)) -> str:
+def _get_tenant(
+    authorization: Optional[str] = Header(None),
+    tenant_id: Optional[str] = Query(None),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
+) -> str:
     """Import and defer to get_current_tenant in api.py."""
     from .api import get_current_tenant
-    return get_current_tenant(authorization)
+    return get_current_tenant(authorization=authorization, tenant_id=tenant_id, x_tenant_id=x_tenant_id)
 
 
 def _resolve_competitor_name(comp_id: str, tenant_id: str) -> str:

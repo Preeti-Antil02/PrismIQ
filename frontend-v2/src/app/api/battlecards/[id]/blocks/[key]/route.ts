@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -12,9 +12,6 @@ export async function PATCH(
   context: { params: Promise<{ id: string; key: string }> }
 ) {
   const { id, key } = await context.params;
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-
   const url = `${BACKEND_BASE}/api/battlecards/${encodeURIComponent(id)}/blocks/${encodeURIComponent(key)}`;
 
   try {
@@ -23,7 +20,7 @@ export async function PATCH(
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...getProxyAuthHeaders(req, typeof body?.tenant_id === "string" ? body.tenant_id : undefined),
       },
       body: JSON.stringify(body),
     });

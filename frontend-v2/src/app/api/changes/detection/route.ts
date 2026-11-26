@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -17,20 +17,15 @@ export async function GET(req: NextRequest) {
   if (company) query.set("company", company);
   if (impact) query.set("impact", impact);
   if (category) query.set("category", category);
+  const tid = searchParams.get("tenant_id");
+  if (tid) query.set("tenant_id", tid);
 
   const qs = query.toString() ? `?${query.toString()}` : "";
   const backendUrl = `${BACKEND_BASE}/changes/detection${qs}`;
 
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-  const incomingTenant = req.headers.get("x-tenant-id");
-
   try {
     const res = await fetch(backendUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(incomingTenant ? { "X-Tenant-ID": incomingTenant } : {}),
-      },
+      headers: getProxyAuthHeaders(req),
       cache: "no-store",
     });
 

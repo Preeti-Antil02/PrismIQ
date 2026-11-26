@@ -58,6 +58,23 @@ const API_BASE_URL = (
   "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
 
+function getTenantHeaders(
+  tenantId?: string,
+  includeJsonContentType: boolean = true
+): Record<string, string> {
+  const token = getClientAuthToken(tenantId);
+  const resolvedTid =
+    tenantId ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("prismiq_active_tenant_id") || undefined
+      : undefined);
+  return {
+    Authorization: `Bearer ${token}`,
+    ...(includeJsonContentType ? { "Content-Type": "application/json" } : {}),
+    ...(resolvedTid ? { "X-Tenant-ID": resolvedTid } : {}),
+  };
+}
+
 function getFilteredBaselineSignals(_params?: {
   company?: string;
   source?: string;
@@ -90,7 +107,6 @@ export async function fetchSignals(params?: {
     throw new Error("Simulated network disconnection for verification of error state.");
   }
 
-  const token = getClientAuthToken(params?.tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/signals" : `${API_BASE_URL}/signals`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
 
@@ -122,10 +138,7 @@ export async function fetchSignals(params?: {
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(params?.tenantId),
       cache: "no-store",
     });
 
@@ -210,7 +223,6 @@ export async function fetchEvents(params?: {
     throw new Error("Simulated network disconnection for verification of error state.");
   }
 
-  const token = getClientAuthToken(params?.tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/events" : `${API_BASE_URL}/events`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
 
@@ -239,10 +251,7 @@ export async function fetchEvents(params?: {
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(params?.tenantId),
       cache: "no-store",
     });
 
@@ -341,17 +350,13 @@ export interface BriefDetail {
 }
 
 export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/briefs" : `${API_BASE_URL}/briefs`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
 
@@ -369,17 +374,13 @@ export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
 }
 
 export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/briefs/latest" : `${API_BASE_URL}/briefs/latest`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
 
@@ -402,17 +403,13 @@ export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> 
 }
 
 export async function fetchBriefById(briefId: string, tenantId?: string): Promise<BriefDetail> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/briefs/${briefId}` : `${API_BASE_URL}/briefs/${briefId}`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
 
@@ -895,7 +892,6 @@ export async function discoverCompetitors(
   description?: string,
   forceRefresh?: boolean
 ): Promise<DiscoveryResponse> {
-  const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/discover" : `${API_BASE_URL}/api/onboarding/discover`;
   const payload: Record<string, any> = { target_company: targetCompany };
   if (website && website.trim()) {
@@ -910,7 +906,7 @@ export async function discoverCompetitors(
 
   let res = await fetch(baseUrl, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(),
     body: JSON.stringify(payload),
   });
 
@@ -925,7 +921,11 @@ export async function discoverCompetitors(
       }
       res = await fetch(baseUrl, {
         method: "POST",
-        headers: { Authorization: `Bearer ${freshToken}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${freshToken}`,
+          "Content-Type": "application/json",
+          ...(activeTenant ? { "X-Tenant-ID": activeTenant } : {}),
+        },
         body: JSON.stringify(payload),
       });
     } else {
@@ -941,11 +941,10 @@ export async function discoverCompetitors(
 }
 
 export async function confirmCompetitors(targetCompany: string, competitors: string[]): Promise<any> {
-  const token = getClientAuthToken();
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/confirm" : `${API_BASE_URL}/api/onboarding/confirm`;
   let res = await fetch(baseUrl, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(),
     body: JSON.stringify({ target_company: targetCompany, confirmed_competitors: competitors }),
   });
 
@@ -960,7 +959,11 @@ export async function confirmCompetitors(targetCompany: string, competitors: str
       }
       res = await fetch(baseUrl, {
         method: "POST",
-        headers: { Authorization: `Bearer ${freshToken}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${freshToken}`,
+          "Content-Type": "application/json",
+          ...(activeTenant ? { "X-Tenant-ID": activeTenant } : {}),
+        },
         body: JSON.stringify({ target_company: targetCompany, confirmed_competitors: competitors }),
       });
     } else {
@@ -1067,13 +1070,12 @@ export interface WorkspaceConfig {
 }
 
 export async function fetchWorkspaceConfig(tenantId?: string): Promise<WorkspaceConfig> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/config" : `${API_BASE_URL}/workspace/config`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
   try {
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
     if (res.ok) {
@@ -1125,11 +1127,12 @@ export interface PipelineProgress {
 }
 
 export async function fetchPipelineStatus(tenantId?: string): Promise<PipelineProgress> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/pipeline/status" : `${API_BASE_URL}/api/pipeline/status`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
   try {
-    const res = await fetch(baseUrl, {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    const res = await fetch(url.toString(), {
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
     if (!res.ok) {
@@ -1162,12 +1165,11 @@ export async function triggerPipelineRun(
   sources?: string[],
   tenantId?: string
 ): Promise<{ status: string; message: string }> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/pipeline/trigger" : `${API_BASE_URL}/api/pipeline/trigger`;
   const res = await fetch(baseUrl, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ is_first_run: isFirstRun, sources }),
+    headers: getTenantHeaders(tenantId),
+    body: JSON.stringify({ is_first_run: isFirstRun, sources, ...(tenantId ? { tenant_id: tenantId } : {}) }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -2319,8 +2321,8 @@ export async function fetchCustomerFeedback(
   sentiment?: string,
   tenantId?: string
 ): Promise<{ feedback: CustomerFeedbackRecord[]; count: number }> {
-  const token = getClientAuthToken(tenantId);
   const q = new URLSearchParams();
+  if (tenantId) q.set("tenant_id", tenantId);
   if (companyName) q.set("company_name", companyName);
   if (category) q.set("category", category);
   if (sentiment) q.set("sentiment", sentiment);
@@ -2331,7 +2333,7 @@ export async function fetchCustomerFeedback(
     : `${API_BASE_URL}/api/customer-voice/feedback${qs}`;
 
   const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to load customer feedback (${res.status})`);
@@ -2343,8 +2345,8 @@ export async function fetchCustomerThemes(
   onlyOpportunities?: boolean,
   tenantId?: string
 ): Promise<{ themes: CustomerFeedbackTheme[]; count: number }> {
-  const token = getClientAuthToken(tenantId);
   const q = new URLSearchParams();
+  if (tenantId) q.set("tenant_id", tenantId);
   if (companyName) q.set("company_name", companyName);
   if (onlyOpportunities) q.set("only_opportunities", "true");
   const qs = q.toString() ? `?${q.toString()}` : "";
@@ -2354,7 +2356,7 @@ export async function fetchCustomerThemes(
     : `${API_BASE_URL}/api/customer-voice/themes${qs}`;
 
   const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to load customer voice themes (${res.status})`);
@@ -2366,18 +2368,18 @@ export async function fetchCompetitiveComparison(
   competitorName: string,
   tenantId?: string
 ): Promise<CompetitiveComparisonReport> {
-  const token = getClientAuthToken(tenantId);
   const q = new URLSearchParams({
     target_company: targetCompany,
     competitor_name: competitorName,
   });
+  if (tenantId) q.set("tenant_id", tenantId);
 
   const baseUrl = typeof window !== "undefined"
     ? `/api/customer-voice/competitive-comparison?${q.toString()}`
     : `${API_BASE_URL}/api/customer-voice/competitive-comparison?${q.toString()}`;
 
   const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to load competitive comparison (${res.status})`);
@@ -2389,367 +2391,16 @@ export async function ingestCustomerVoice(
   defaultCompany: string,
   tenantId?: string
 ): Promise<{ status: string; saved_count: number; records: any[] }> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined"
     ? `/api/customer-voice/ingest`
     : `${API_BASE_URL}/api/customer-voice/ingest`;
 
   const res = await fetch(baseUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify({ default_company: defaultCompany, records }),
   });
   if (!res.ok) throw new Error(`Failed to ingest customer feedback (${res.status})`);
-  return res.json();
-}
-
-// ----------------------------------------------------------------------------
-// Win/Loss Intelligence
-// ----------------------------------------------------------------------------
-
-export interface WinLossDeal {
-  id: string;
-  deal_name: string;
-  outcome: "won" | "lost" | "churned" | "no_decision";
-  deal_value: number;
-  close_date: string;
-  primary_competitor: string;
-  competitors_involved: string[];
-  customer_segment?: string;
-  industry?: string;
-  buyer_objections: string[];
-  decision_factors?: string[];
-  notes?: string;
-  created_at: string;
-}
-
-export interface WinLossAnalytics {
-  competitor_name?: string;
-  total_deals: number;
-  sample_size: number;
-  has_sufficient_data: boolean;
-  status: "valid_sample" | "insufficient_data" | "no_data";
-  confidence: "High" | "Medium" | "Low";
-  sample_size_warning?: string | null;
-  win_rate_percentage: number | null;
-  win_rate_percent: number | null;
-  won_deals: number;
-  lost_deals: number;
-  outcomes: {
-    won: number;
-    lost: number;
-    churned: number;
-    no_decision: number;
-  };
-  financials: {
-    total_pipeline_value: number;
-    won_value: number;
-    lost_value: number;
-  };
-  competitor_breakdown: Record<string, {
-    total_deals: number;
-    won: number;
-    lost: number;
-    win_rate_percentage: number | null;
-    status: string;
-    sample_size: number;
-    total_deal_value: number;
-  }>;
-  top_loss_factors: Array<{ factor: string; frequency: number; sample_percentage: number }>;
-  top_win_factors: Array<{ factor: string; frequency: number; sample_percentage: number }>;
-  emerging_patterns: Array<{ pattern: string; recent_loss_count: number; urgency: string }>;
-}
-
-export async function fetchWinLossAnalytics(
-  competitorName?: string,
-  tenantId?: string
-): Promise<WinLossAnalytics> {
-  const token = getClientAuthToken(tenantId);
-  const q = new URLSearchParams();
-  if (competitorName && competitorName !== "ALL") q.set("competitor_name", competitorName);
-  const qs = q.toString() ? `?${q.toString()}` : "";
-
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/win-loss/analytics${qs}`
-    : `${API_BASE_URL}/api/win-loss/analytics${qs}`;
-
-  const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load win/loss analytics (${res.status})`);
-  const data = await res.json();
-  return data.analytics || data;
-}
-
-export async function fetchWinLossDeals(
-  competitorName?: string,
-  outcome?: string,
-  tenantId?: string
-): Promise<{ deals: WinLossDeal[]; count: number }> {
-  const token = getClientAuthToken(tenantId);
-  const q = new URLSearchParams();
-  if (competitorName && competitorName !== "ALL") q.set("primary_competitor", competitorName);
-  if (outcome && outcome !== "ALL") q.set("outcome", outcome);
-  const qs = q.toString() ? `?${q.toString()}` : "";
-
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/win-loss/deals${qs}`
-    : `${API_BASE_URL}/api/win-loss/deals${qs}`;
-
-  const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load win/loss deals (${res.status})`);
-  return res.json();
-}
-
-export async function createWinLossDeal(
-  deal: {
-    deal_name: string;
-    outcome: string;
-    deal_value?: number;
-    primary_competitor?: string;
-    competitors_involved?: string[];
-    customer_segment?: string;
-    buyer_objections?: string[];
-    notes?: string;
-    winning_factor?: string;
-    loss_factor?: string;
-  },
-  tenantId?: string
-): Promise<{ status: string; deal: WinLossDeal }> {
-  const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/win-loss/deals`
-    : `${API_BASE_URL}/api/win-loss/deals`;
-
-  const res = await fetch(baseUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(deal),
-  });
-  if (!res.ok) throw new Error(`Failed to create deal record (${res.status})`);
-  return res.json();
-}
-
-// ----------------------------------------------------------------------------
-// Sales Call Intelligence
-// ----------------------------------------------------------------------------
-
-export interface CallIntelligenceItem {
-  id: string;
-  call_id: string;
-  item_type: "competitor_mention" | "buyer_objection" | "pricing_discussion" | "feature_comparison" | "customer_requirement" | "buying_signal" | "competitor_advantage" | "product_gap" | "potential_deal_risk" | "recommended_response";
-  competitor_name?: string;
-  speaker?: string;
-  verbatim_quote: string;
-  confidence: "High" | "Medium" | "Low";
-  linked_claim_id?: string;
-  timestamp_offset?: string;
-  analysis?: string;
-}
-
-export interface SalesCallRecord {
-  id: string;
-  call_title: string;
-  deal_id?: string;
-  call_date?: string;
-  participants: Array<{ name?: string; role?: string } | any>;
-  transcript_text?: string;
-  competitors_mentioned: string[];
-  summary?: string;
-  created_at: string;
-}
-
-export async function uploadSalesCall(
-  payload: {
-    call_title: string;
-    transcript: string;
-    deal_id?: string;
-    known_competitors?: string[];
-  },
-  tenantId?: string
-): Promise<{ status: string; call: SalesCallRecord; items_count: number; items: CallIntelligenceItem[] }> {
-  const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/sales-calls/upload`
-    : `${API_BASE_URL}/api/sales-calls/upload`;
-
-  const res = await fetch(baseUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error(`Failed to upload sales call transcript (${res.status})`);
-  return res.json();
-}
-
-export async function fetchSalesCalls(
-  dealId?: string,
-  competitor?: string,
-  tenantId?: string
-): Promise<{ calls: SalesCallRecord[]; count: number }> {
-  const token = getClientAuthToken(tenantId);
-  const q = new URLSearchParams();
-  if (dealId) q.set("deal_id", dealId);
-  if (competitor) q.set("competitor", competitor);
-  const qs = q.toString() ? `?${q.toString()}` : "";
-
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/sales-calls${qs}`
-    : `${API_BASE_URL}/api/sales-calls${qs}`;
-
-  const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load sales calls (${res.status})`);
-  return res.json();
-}
-
-export async function fetchSalesCallDetail(
-  callId: string,
-  tenantId?: string
-): Promise<{ call: SalesCallRecord; intelligence_items: CallIntelligenceItem[] }> {
-  const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/sales-calls/${encodeURIComponent(callId)}`
-    : `${API_BASE_URL}/api/sales-calls/${encodeURIComponent(callId)}`;
-
-  const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load sales call detail (${res.status})`);
-  return res.json();
-}
-
-// ----------------------------------------------------------------------------
-// Deal Intelligence
-// ----------------------------------------------------------------------------
-
-export interface HistoricalProofPoint {
-  competitor: string;
-  historical_deals_count: number;
-  sample_size: number;
-  wins_against: number;
-  won_deals: number;
-  losses_against: number;
-  lost_deals: number;
-  winning_factors: string[];
-  loss_factors: string[];
-  has_sufficient_data: boolean;
-  data_note: string;
-  recent_deals?: Array<{ deal_name: string; outcome: string; value: number; close_date?: string }>;
-}
-
-export interface DealDossier {
-  id: string;
-  tenant_id?: string;
-  deal_id?: string;
-  deal_name: string;
-  competitors_involved: string[];
-  threat_level: "Critical" | "High" | "Medium" | "Low";
-  competitive_threat: "Critical" | "High" | "Medium" | "Low";
-  primary_objections: Array<{ objection: string; competitor: string; speaker?: string; source?: string }>;
-  customer_objections: string[];
-  product_gaps: Array<{ gap: string; competitor: string; source?: string }>;
-  competitive_advantages: Array<{ advantage: string; competitor: string; source?: string }>;
-  recommended_sales_response: {
-    strategy: string;
-    playbook_scripts: Array<{
-      competitor: string;
-      buyer_objection_scenario: string;
-      recommended_rebuttal: string;
-      action_guide: string;
-      claim_id?: string;
-    }>;
-  };
-  recommended_sales_responses: Array<{
-    competitor: string;
-    buyer_objection_scenario: string;
-    recommended_rebuttal: string;
-    action_guide: string;
-    claim_id?: string;
-  }>;
-  relevant_historical_wins_losses: HistoricalProofPoint[];
-  historical_proof_points: HistoricalProofPoint[];
-  supporting_claim_ids: string[];
-  deal_value?: number;
-  customer_requirements?: string[];
-  created_at: string;
-}
-
-export async function generateDealIntelligence(
-  payload: {
-    deal_name: string;
-    deal_id?: string;
-    competitors_involved?: string[];
-    customer_segment?: string;
-    deal_notes?: string;
-    deal_value?: number;
-    customer_requirements?: string[];
-  },
-  tenantId?: string
-): Promise<{ status: string; dossier: DealDossier }> {
-  const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/deals/intelligence`
-    : `${API_BASE_URL}/api/deals/intelligence`;
-
-  const res = await fetch(baseUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error(`Failed to generate deal intelligence (${res.status})`);
-  return res.json();
-}
-
-export async function fetchDealDossiers(
-  tenantId?: string
-): Promise<{ dossiers: DealDossier[]; count: number }> {
-  const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/deals/dossiers`
-    : `${API_BASE_URL}/api/deals/dossiers`;
-
-  const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load deal dossiers (${res.status})`);
-  return res.json();
-}
-
-export async function fetchDealDossier(
-  dealId: string,
-  tenantId?: string
-): Promise<{ dossier: DealDossier }> {
-  const token = getClientAuthToken(tenantId);
-  const baseUrl = typeof window !== "undefined"
-    ? `/api/deals/${encodeURIComponent(dealId)}/intelligence`
-    : `${API_BASE_URL}/api/deals/${encodeURIComponent(dealId)}/intelligence`;
-
-  const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Failed to load deal intelligence dossier (${res.status})`);
   return res.json();
 }
 
@@ -2772,7 +2423,6 @@ export interface NextBestAction {
   status: "pending" | "accepted" | "dismissed" | "completed" | "irrelevant";
   review_status: "pending" | "accepted" | "dismissed" | "completed" | "irrelevant";
   related_competitor: string;
-  related_deal_id?: string;
   supporting_evidence: Array<Record<string, any>>;
   created_at: string;
   updated_at: string;
@@ -2815,7 +2465,7 @@ export async function fetchNextBestActions(
     : `${API_BASE_URL}/api/next-best-actions${qs}`;
 
   const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to load Next Best Actions (${res.status})`);
@@ -2827,17 +2477,13 @@ export async function generateNextBestActions(
   targetCompany?: string,
   tenantId?: string
 ): Promise<{ status: string; actions: NextBestAction[]; count: number }> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined"
     ? `/api/next-best-actions/generate`
     : `${API_BASE_URL}/api/next-best-actions/generate`;
 
   const res = await fetch(baseUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify({
       competitor_name: competitorName,
       target_company: targetCompany || "Our Company",
@@ -2852,17 +2498,13 @@ export async function updateNextBestActionStatus(
   payload: { status: string; notes?: string; user_id?: string; changed_by?: string },
   tenantId?: string
 ): Promise<{ status: string; action: NextBestAction }> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined"
     ? `/api/next-best-actions/${encodeURIComponent(actionId)}/status`
     : `${API_BASE_URL}/api/next-best-actions/${encodeURIComponent(actionId)}/status`;
 
   const res = await fetch(baseUrl, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Failed to update recommendation status (${res.status})`);
@@ -2873,13 +2515,12 @@ export async function fetchActionAudits(
   actionId: string,
   tenantId?: string
 ): Promise<{ audits: ActionStatusAudit[]; count: number }> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined"
     ? `/api/next-best-actions/${encodeURIComponent(actionId)}/audits`
     : `${API_BASE_URL}/api/next-best-actions/${encodeURIComponent(actionId)}/audits`;
 
   const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to load action review audits (${res.status})`);
@@ -2894,17 +2535,13 @@ export async function ingestDirectText(
   payload: { title: string; text: string; source_type?: string; company_name?: string },
   tenantId?: string
 ): Promise<{ status: string; document: any }> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined"
     ? `/api/ingest/direct-text`
     : `${API_BASE_URL}/api/ingest/direct-text`;
 
   const res = await fetch(baseUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Failed to ingest direct text (${res.status})`);
@@ -3100,7 +2737,6 @@ export async function fetchOverview(
   range: string = "6m",
   tenantId?: string
 ): Promise<OverviewPayload> {
-  const token = getClientAuthToken(tenantId);
   const params = new URLSearchParams({ company, range, target_company: company });
   if (tenantId) params.set("tenant_id", tenantId);
 
@@ -3109,7 +2745,7 @@ export async function fetchOverview(
     : `${API_BASE_URL}/api/overview?${params.toString()}`;
 
   const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch overview (${res.status})`);
@@ -3121,7 +2757,6 @@ export async function fetchIntelligenceDetail(
   targetCompany: string = "Flipkart",
   tenantId?: string
 ): Promise<IntelligenceDetailPayload> {
-  const token = getClientAuthToken(tenantId);
   const params = new URLSearchParams({ target_company: targetCompany });
   if (tenantId) params.set("tenant_id", tenantId);
 
@@ -3130,7 +2765,7 @@ export async function fetchIntelligenceDetail(
     : `${API_BASE_URL}/api/intelligence/${encodeURIComponent(detailId)}?${params.toString()}`;
 
   const res = await fetch(baseUrl, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch intelligence detail for ${detailId} (${res.status})`);

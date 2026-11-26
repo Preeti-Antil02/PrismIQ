@@ -27,11 +27,7 @@ import {
   ExternalLink,
   Plus,
   MessageSquare,
-  Trophy,
-  Briefcase,
   Target,
-  ShieldCheck,
-  PieChart,
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { createTenantToken, isValidUuid, DEFAULT_TENANT_ID } from "@/lib/auth";
@@ -161,18 +157,9 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: "REVENUE INTELLIGENCE",
-    items: [
-      { name: "Win/Loss", href: "/app/win-loss", icon: Trophy },
-      { name: "Deal Room", href: "/app/deal-room", icon: Briefcase },
-    ],
-  },
-  {
     title: "EXECUTION",
     items: [
       { name: "Action Center", href: "/app/actions", icon: Target },
-      { name: "Evidence Center", href: "/app/evidence", icon: ShieldCheck },
-      { name: "Impact & ROI", href: "/app/impact", icon: PieChart },
     ],
   },
   {
@@ -213,6 +200,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = React.useState(false);
   const [activeTenantId, setActiveTenantId] = React.useState<string>(DEFAULT_TENANT_ID);
+  const [workspaceHydrated, setWorkspaceHydrated] = React.useState(false);
   const [customWorkspaces, setCustomWorkspaces] = React.useState<
     Array<{ tenant_id: string; name: string; target: string; sector: string }>
   >([]);
@@ -223,6 +211,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem("prismiq_active_tenant_id");
       if (stored && isValidUuid(stored)) {
         setActiveTenantId(stored);
+      } else {
+        const storedTok = localStorage.getItem("prismiq_tenant_token");
+        if (storedTok && storedTok.includes(".")) {
+          const payloadJson = window.atob(storedTok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"));
+          const payload = JSON.parse(payloadJson);
+          if (payload?.sub && isValidUuid(payload.sub)) {
+            localStorage.setItem("prismiq_active_tenant_id", payload.sub);
+            setActiveTenantId(payload.sub);
+          }
+        }
       }
       const raw = localStorage.getItem("prismiq_custom_workspaces");
       if (raw) {
@@ -230,6 +228,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }
     } catch {
       // ignore
+    } finally {
+      setWorkspaceHydrated(true);
     }
   }, []);
 
@@ -317,11 +317,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [activeTenantId]);
 
   React.useEffect(() => {
+    if (!workspaceHydrated) return;
     refreshConfig();
     checkPipeline();
     const interval = setInterval(checkPipeline, 15000);
     return () => clearInterval(interval);
-  }, [activeTenantId, refreshConfig, checkPipeline]);
+  }, [workspaceHydrated, activeTenantId, refreshConfig, checkPipeline]);
 
   // Target company name - prioritize workspace configuration and known/custom workspace registry
   const targetCompany = React.useMemo(() => {
@@ -370,6 +371,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       const token = createTenantToken(newTid);
       localStorage.setItem("prismiq_tenant_token", token);
       localStorage.removeItem("prismiq_onboarding_state");
+      localStorage.removeItem("prismiq_target_company");
       localStorage.setItem(
         "prismiq_user",
         JSON.stringify({

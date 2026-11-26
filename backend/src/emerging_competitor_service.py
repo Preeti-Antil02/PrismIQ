@@ -3,7 +3,7 @@ Emerging Competitor Detection Service for PrismIQ Batch 4.
 Identifies potential emerging competitors from:
 - Monitored signals
 - Market developments & news
-- Customer feedback and sales deal mentions
+- Customer feedback
 - Product capability comparisons
 
 Capabilities:
@@ -20,7 +20,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from . import batch2_storage, batch3_storage, batch4_storage, storage
+from . import batch2_storage, batch4_storage, storage
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def normalize_company_name(name: str) -> str:
 
 class EmergingCompetitorService:
     """
-    Scans signals, customer voice, and deal activity to surface emerging competitors with human approval gating.
+    Scans signals and customer voice to surface emerging competitors with human approval gating.
     """
 
     def __init__(self, tenant_id: str = "00000000-0000-0000-0000-000000000000"):
@@ -55,7 +55,7 @@ class EmergingCompetitorService:
 
     def discover_candidates(self) -> List[Dict[str, Any]]:
         """
-        Scan workspace signals, customer feedback, and deal records for untracked entities.
+        Scan workspace signals and customer feedback for untracked entities.
         Deduplicates aliases, evaluates evidence grounding, computes relevance, and stores candidates.
         """
         # 1. Get currently tracked companies to prevent duplicate rediscovery
@@ -66,10 +66,9 @@ class EmergingCompetitorService:
         existing_cands = batch4_storage.list_emerging_candidates(self.tenant_id, limit=200)
         cand_map_by_norm = {normalize_company_name(c["company_name"]): c for c in existing_cands}
 
-        # 3. Pull signals, feedbacks, deals
+        # 3. Pull signals, feedbacks
         signals = storage.load_signals(tenant_id=self.tenant_id) or []
         feedbacks = batch2_storage.list_feedback_records(tenant_id=self.tenant_id, limit=200) or []
-        deals = batch3_storage.list_deals(tenant_id=self.tenant_id, limit=200) or []
 
         # Candidate accumulator: normalized_name -> dict
         discovered: Dict[str, Dict[str, Any]] = {}
@@ -88,7 +87,6 @@ class EmergingCompetitorService:
                     "display_name": ent,
                     "normalized": norm,
                     "signals": [],
-                    "deal_mentions": [],
                     "feedback_mentions": [],
                     "domains": set(),
                 }
@@ -110,56 +108,28 @@ class EmergingCompetitorService:
                     "display_name": ent,
                     "normalized": norm,
                     "signals": [],
-                    "deal_mentions": [],
                     "feedback_mentions": [],
                     "domains": set(),
                 }
             discovered[norm]["feedback_mentions"].append(fb)
 
-        # Scan sales deals
-        for d in deals:
-            competitors = d.get("associated_competitors") or []
-            if isinstance(competitors, str):
-                competitors = [competitors]
-            for ent in competitors:
-                ent = str(ent).strip()
-                if not ent:
-                    continue
-                norm = normalize_company_name(ent)
-                if norm in tracked_normalized:
-                    continue
-
-                if norm not in discovered:
-                    discovered[norm] = {
-                        "display_name": ent,
-                        "normalized": norm,
-                        "signals": [],
-                        "deal_mentions": [],
-                        "feedback_mentions": [],
-                        "domains": set(),
-                    }
-                discovered[norm]["deal_mentions"].append(d)
-
         results = []
         for norm, data in discovered.items():
             sig_count = len(data["signals"])
             fb_count = len(data["feedback_mentions"])
-            deal_count = len(data["deal_mentions"])
-            total_citations = sig_count + fb_count + deal_count
+            total_citations = sig_count + fb_count
 
             if total_citations == 0:
                 continue
 
             # Grounded relevance calculation without hallucinated scores
             # Bounded strictly between 10.0 and 100.0
-            relevance = min(100.0, 20.0 + sig_count * 15.0 + deal_count * 25.0 + fb_count * 20.0)
+            relevance = min(100.0, 20.0 + sig_count * 15.0 + fb_count * 20.0)
 
             # Build evidence explanation
             parts = []
             if sig_count > 0:
                 parts.append(f"{sig_count} external market signal(s)")
-            if deal_count > 0:
-                parts.append(f"{deal_count} active sales deal mention(s)")
             if fb_count > 0:
                 parts.append(f"{fb_count} customer feedback citation(s)")
 
@@ -168,8 +138,6 @@ class EmergingCompetitorService:
             sources = []
             for s in data["signals"][:3]:
                 sources.append({"type": "signal", "id": s.get("id"), "title": s.get("title")})
-            for d in data["deal_mentions"][:3]:
-                sources.append({"type": "deal", "id": d.get("id"), "name": d.get("deal_name")})
             for f in data["feedback_mentions"][:3]:
                 sources.append({"type": "feedback", "id": f.get("id"), "summary": str(f.get("feedback_text", ""))[:80]})
 

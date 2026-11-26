@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -8,15 +8,14 @@ const BACKEND_BASE = (
 ).replace(/\/+$/, "");
 
 export async function GET(req: NextRequest) {
-  const backendUrl = `${BACKEND_BASE}/research-radar/latest`;
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
+  const backendUrl = new URL(`${BACKEND_BASE}/research-radar/latest`);
+  req.nextUrl.searchParams.forEach((val, key) => {
+    backendUrl.searchParams.set(key, val);
+  });
 
   try {
-    const res = await fetch(backendUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const res = await fetch(backendUrl.toString(), {
+      headers: getProxyAuthHeaders(req),
       cache: "no-store",
     });
 

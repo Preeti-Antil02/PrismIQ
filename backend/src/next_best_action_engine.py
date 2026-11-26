@@ -1,8 +1,8 @@
 """
 Next Best Action Engine for PrismIQ Batch 2.
 Synthesizes cross-functional, evidence-grounded recommendations for
-Sales, Product, Marketing, and Leadership based on Customer Voice,
-Win/Loss trends, Sales Conversations, and Battlecard Drift.
+Sales, Product, Marketing, Leadership, and Engineering based on Customer Voice,
+Verified Claims, and Competitive Drift.
 """
 
 import logging
@@ -29,25 +29,14 @@ class NextBestActionEngine:
         competitor_name: Optional[str] = None,
         target_company: str = "Our Company",
         force_refresh: bool = False,
-        deal_id: Optional[str] = None,
         **kwargs,
     ) -> List[Dict[str, Any]]:
         """
-        Scan customer voice, win/loss patterns, calls, and drift to produce recommendations
+        Scan customer voice, verified claims, and competitive drift to produce recommendations
         across Sales, Product, Marketing, Leadership, and Engineering.
         """
         generated: List[Dict[str, Any]] = []
         comp_filter = (competitor_name or "").strip()
-
-        # If deal_id supplied, inspect deal competitors
-        if deal_id and not comp_filter:
-            try:
-                from . import batch3_storage
-                deal = batch3_storage.get_deal(deal_id, self.tenant_id)
-                if deal and deal.get("associated_competitors"):
-                    comp_filter = deal["associated_competitors"][0]
-            except Exception:
-                pass
 
         # -------------------------------------------------------------------
         # 1. Product Team Recommendations (Feature Gaps & Customer Complaints)
@@ -97,30 +86,47 @@ class NextBestActionEngine:
                 })
 
         # -------------------------------------------------------------------
-        # 2. Sales Team Recommendations (Objections & Deal Risks)
+        # 2. Sales Team Recommendations (Switching Signals & Claims Counters)
         # -------------------------------------------------------------------
-        call_items = batch2_storage.list_call_intelligence_items(self.tenant_id, competitor_name=comp_filter or None)
-        if not call_items and comp_filter:
-            call_items = batch2_storage.list_call_intelligence_items(self.tenant_id)
-
-        objection_items = [i for i in call_items if i.get("item_type") in ("buyer_objection", "pricing_discussion", "deal_risk")]
-
-        for itm in objection_items[:3]:
-            comp = comp_filter or itm.get("competitor_name") or "Competitor"
-            quote = itm.get("verbatim_quote", "")
+        switching_or_pricing = [
+            f for f in feedback_records
+            if f.get("category") in ("reason_for_switching", "reason_for_choosing_competitor", "pricing_complaint", "dislike")
+        ]
+        for fb in switching_or_pricing[:2]:
+            comp = comp_filter or fb.get("company_name") or "Competitor"
+            quote = fb.get("raw_quote", "")
             generated.append({
                 "team": "Sales",
                 "affected_team": "sales",
                 "category": "objection_response",
                 "title": f"Deploy objection counter against {comp}",
-                "what_happened": f"Prospect raised objection in recent sales call: '{quote[:80]}...'",
-                "why_it_matters": f"Unaddressed objections against {comp} correlate with increased sales cycle latency.",
+                "what_happened": f"Customer voice captured competitive switching/pricing friction for {comp}: '{quote[:80]}...'",
+                "why_it_matters": f"Unaddressed buyer objections against {comp} increase competitive evaluation friction.",
                 "recommended_action": f"Arm reps with the verified Battlecard Objection Playbook for {comp}.",
                 "urgency": "High",
                 "confidence": "High",
                 "related_competitor": comp,
                 "review_status": "pending",
-                "supporting_evidence": [{"quote": quote, "source": "Sales Call Transcript", "speaker": itm.get("speaker")}],
+                "supporting_evidence": [{"quote": quote, "source": "Customer Voice"}],
+            })
+
+        if not switching_or_pricing and feedback_records:
+            fb0 = feedback_records[0]
+            comp = comp_filter or fb0.get("company_name") or "Competitor"
+            quote = fb0.get("raw_quote", "")
+            generated.append({
+                "team": "Sales",
+                "affected_team": "sales",
+                "category": "objection_response",
+                "title": f"Align field sales battlecard messaging against {comp}",
+                "what_happened": f"Recorded competitive customer signal involving {comp}.",
+                "why_it_matters": f"Ensures sales teams address live {comp} positioning accurately.",
+                "recommended_action": f"Review the latest {comp} Battlecard talking points with field reps.",
+                "urgency": "Medium",
+                "confidence": "Medium",
+                "related_competitor": comp,
+                "review_status": "pending",
+                "supporting_evidence": [{"quote": quote, "source": "Customer Voice"}],
             })
 
         # -------------------------------------------------------------------
@@ -149,61 +155,42 @@ class NextBestActionEngine:
             })
 
         # -------------------------------------------------------------------
-        # 4. Leadership Team Recommendations (Strategic Risk & Win/Loss)
+        # 4. Leadership Team Recommendations (Strategic Competitive Patterns)
         # -------------------------------------------------------------------
-        deals = batch2_storage.list_win_loss_deals(self.tenant_id, primary_competitor=comp_filter or None, limit=100)
-        if not deals and comp_filter:
-            deals = batch2_storage.list_win_loss_deals(self.tenant_id, limit=100)
-
-        lost_deals = [d for d in deals if d.get("outcome") == "lost"]
-        if len(lost_deals) >= 1:
-            comp = comp_filter or lost_deals[0].get("primary_competitor", "Competitor")
-            total_lost_val = sum(d.get("deal_value", 0) for d in lost_deals)
+        negative_themes = [th for th in themes if th.get("is_competitive_opportunity") or int(th.get("occurrence_count", 0)) >= 2]
+        if negative_themes or len(product_complaints) >= 2:
+            lead_th = negative_themes[0] if negative_themes else None
+            comp = comp_filter or (lead_th.get("company_name") if lead_th else product_complaints[0].get("company_name", "Competitor"))
+            sample = lead_th.get("sample_size", len(product_complaints)) if lead_th else len(product_complaints)
             generated.append({
                 "team": "Leadership",
                 "affected_team": "leadership",
                 "category": "market_risk",
-                "title": f"Review emerging competitive headwind across {len(lost_deals)} lost deals against {comp}",
-                "what_happened": f"Recorded {len(lost_deals)} deal losses representing ${total_lost_val:,.0f} in pipeline value.",
-                "why_it_matters": f"Requires executive review of packaging, discounting authority, and core roadmap alignment.",
-                "recommended_action": "Conduct monthly win/loss review with Sales and Product leadership to address top loss factors.",
+                "title": f"Review strategic competitive positioning against {comp}",
+                "what_happened": f"Aggregated {sample} customer voice signals indicating recurring market pressure around {comp}.",
+                "why_it_matters": f"Requires executive alignment on packaging, differentiation, and roadmap priorities.",
+                "recommended_action": f"Conduct monthly strategic review with Sales and Product leadership regarding {comp} market positioning.",
                 "urgency": "High",
                 "confidence": "High",
                 "related_competitor": comp,
                 "review_status": "pending",
-                "supporting_evidence": [{"deal_count": len(lost_deals), "value": total_lost_val, "source": "Win/Loss Deal History"}],
+                "supporting_evidence": [{"sample_size": sample, "source": "Customer Voice Themes"}],
             })
 
         # -------------------------------------------------------------------
         # 5. Engineering Team Recommendations (Technical Blockers & Integrations)
-        # Relevant when a deal or explicit technical integration blocker is present
         # -------------------------------------------------------------------
-        if deal_id or kwargs.get("include_engineering"):
+        if kwargs.get("include_engineering"):
             tech_requirements = [
-                i for i in call_items
-                if i.get("item_type") in ("customer_requirement", "decision_criteria", "product_gap")
-                or any(kw in str(i.get("verbatim_quote", "")).lower() for kw in [
-                    "soc2", "sso", "saml", "api", "connector", "webhook", "latency", "compliance", "integration", "servicenow"
+                f for f in feedback_records
+                if any(kw in str(f.get("raw_quote", "")).lower() for kw in [
+                    "soc2", "sso", "saml", "api", "connector", "webhook", "latency", "compliance", "integration"
                 ])
             ]
-            if deal_id:
-                try:
-                    from . import batch3_storage
-                    deal_obj = batch3_storage.get_deal(deal_id, self.tenant_id)
-                    if deal_obj:
-                        for req in (deal_obj.get("customer_requirements") or deal_obj.get("buyer_objections") or []):
-                            if any(kw in str(req).lower() for kw in ["soc2", "sso", "saml", "api", "connector", "integration", "compliance"]):
-                                tech_requirements.append({
-                                    "verbatim_quote": req,
-                                    "speaker": "Prospect",
-                                    "competitor_name": comp_filter or (deal_obj.get("associated_competitors") or ["Competitor"])[0],
-                                })
-                except Exception:
-                    pass
 
             for req in tech_requirements[:2]:
-                quote = req.get("verbatim_quote", "")
-                comp = comp_filter or req.get("competitor_name") or "Competitor"
+                quote = req.get("raw_quote", "")
+                comp = comp_filter or req.get("company_name") or "Competitor"
                 clean_q = quote[:60].strip()
                 generated.append({
                     "team": "Engineering",
@@ -212,27 +199,20 @@ class NextBestActionEngine:
                     "affected_team": "engineering",
                     "category": "technical_blocker",
                     "title": f"Review technical integration & compliance requirement: '{clean_q}...'",
-                    "description": f"Perform engineering review on technical requirement '{quote}' to eliminate deal execution blocker.",
-                    "recommended_action": f"Perform engineering review on technical requirement '{quote}' to eliminate deal execution blocker.",
-                    "reason": f"Prospect specified '{quote}' as a mandatory decision criterion. Lack of verified support directly increases deal stall risk.",
-                    "why_it_matters": f"Prospect specified '{quote}' as a mandatory decision criterion. Lack of verified support directly increases deal stall risk.",
+                    "description": f"Perform engineering review on technical requirement '{quote}' to eliminate adoption blocker.",
+                    "recommended_action": f"Perform engineering review on technical requirement '{quote}' to eliminate adoption blocker.",
+                    "reason": f"Customer feedback highlighted '{quote}' as a key technical requirement.",
+                    "why_it_matters": f"Customer feedback highlighted '{quote}' as a key technical requirement.",
                     "what_happened": f"Customer identified technical specification: '{quote}'.",
                     "priority": "High",
                     "urgency": "High",
                     "confidence": "High",
                     "related_competitor": comp,
-                    "related_deal_id": deal_id,
                     "status": "Pending",
                     "review_status": "pending",
-                    "supporting_evidence": [{"quote": quote, "source": "Customer Technical Requirement", "speaker": req.get("speaker")}],
-                    "evidence_references": [{"quote": quote, "source": "Customer Technical Requirement", "speaker": req.get("speaker")}],
+                    "supporting_evidence": [{"quote": quote, "source": "Customer Voice Technical Requirement"}],
+                    "evidence_references": [{"quote": quote, "source": "Customer Voice Technical Requirement"}],
                 })
-
-        # Attach deal_id to generated actions if provided
-        if deal_id:
-            for g in generated:
-                if not g.get("related_deal_id"):
-                    g["related_deal_id"] = deal_id
 
         # Save to database / memory with deduplication
         if generated:

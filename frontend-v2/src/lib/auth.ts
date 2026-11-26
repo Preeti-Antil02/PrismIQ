@@ -29,10 +29,34 @@ export function getStoredUser(): AuthUser | null {
   return null;
 }
 
+export function extractTokenSub(token?: string | null): string | null {
+  if (!token || typeof token !== "string") return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payloadJson =
+      typeof window !== "undefined" && window.atob
+        ? window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+        : Buffer.from(parts[1], "base64url").toString("utf-8");
+    const payload = JSON.parse(payloadJson);
+    return typeof payload?.sub === "string" && payload.sub.trim() ? payload.sub.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function setStoredAuth(token: string, user: AuthUser): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("prismiq_tenant_token", token);
   localStorage.setItem("prismiq_user", JSON.stringify(user));
+  const resolvedTid = isValidUuid(user?.tenant_id)
+    ? user.tenant_id!.trim()
+    : isValidUuid(user?.id)
+    ? user.id.trim()
+    : extractTokenSub(token);
+  if (resolvedTid && isValidUuid(resolvedTid)) {
+    localStorage.setItem("prismiq_active_tenant_id", resolvedTid);
+  }
 }
 
 export function clearStoredAuth(): void {
@@ -40,6 +64,8 @@ export function clearStoredAuth(): void {
   localStorage.removeItem("prismiq_tenant_token");
   localStorage.removeItem("prismiq_user");
   localStorage.removeItem("prismiq_onboarding_state");
+  localStorage.removeItem("prismiq_active_tenant_id");
+  localStorage.removeItem("prismiq_target_company");
 }
 
 export function isTokenExpired(token?: string | null): boolean {
@@ -93,76 +119,63 @@ export function createTenantToken(tenantId: string, email?: string): string {
 }
 
 export function getClientAuthToken(tenantId?: string): string {
-  // 1. If explicit tenantId provided, always construct token for that specific tenant
+  const emailHint = getStoredUser()?.email;
+
+  // 1. If explicit tenantId provided, return matching stored token or construct token for that tenant
   if (tenantId) {
-    const tid = isValidUuid(tenantId) ? tenantId : DEFAULT_TENANT_ID;
+    const tid = isValidUuid(tenantId) ? tenantId.trim() : DEFAULT_TENANT_ID;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("prismiq_tenant_token");
+      if (stored && !isTokenExpired(stored) && extractTokenSub(stored) === tid) {
+        return stored;
+      }
+      const token = createTenantToken(tid, emailHint);
+      const rawActive = localStorage.getItem("prismiq_active_tenant_id");
+      if (!rawActive || rawActive === tid) {
+        localStorage.setItem("prismiq_active_tenant_id", tid);
+        localStorage.setItem("prismiq_tenant_token", token);
+      }
+      return token;
+    }
     return createTenantToken(tid);
   }
 
-  // 2. In browser environment, ensure stored token matches active tenant ID and is unexpired
+  // 2. In browser environment, preserve real/active tenant token without clobbering on missing key
   if (typeof window !== "undefined") {
-    let activeTenantId = localStorage.getItem("prismiq_active_tenant_id");
-    if (!isValidUuid(activeTenantId)) {
-      activeTenantId = DEFAULT_TENANT_ID;
-      localStorage.setItem("prismiq_active_tenant_id", DEFAULT_TENANT_ID);
-    }
+    const rawActive = localStorage.getItem("prismiq_active_tenant_id");
+    const activeTenantId = isValidUuid(rawActive) ? rawActive!.trim() : null;
     const stored = localStorage.getItem("prismiq_tenant_token");
-
-    if (activeTenantId && stored) {
-      if (!isTokenExpired(stored)) {
-        try {
-          const parts = stored.split(".");
-          if (parts.length === 3) {
-            const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-            const payload = JSON.parse(payloadJson);
-            if (payload.sub === activeTenantId && isValidUuid(payload.sub)) {
-              return stored;
-            }
-          }
-        } catch {
-          // Corrupted or unparseable token, regenerate below
-        }
-      }
-
-      // Token and active tenant are out of sync or expired: regenerate token for activeTenantId
-      const freshToken = createTenantToken(activeTenantId);
-      localStorage.setItem("prismiq_tenant_token", freshToken);
-      return freshToken;
-    }
+    const subFromStored = extractTokenSub(stored);
 
     if (activeTenantId) {
-      const freshToken = createTenantToken(activeTenantId);
+      if (stored && !isTokenExpired(stored)) {
+        if (subFromStored === activeTenantId) {
+          return stored;
+        }
+        // Only overwrite out-of-sync dev tokens; preserve signed external JWTs while X-Tenant-ID carries workspace
+        if (!stored.endsWith(".devsignature")) {
+          return stored;
+        }
+      }
+      const freshToken = createTenantToken(activeTenantId, emailHint);
       localStorage.setItem("prismiq_tenant_token", freshToken);
       return freshToken;
     }
 
     if (stored) {
-      let subFromStored: string | undefined;
-      try {
-        const parts = stored.split(".");
-        if (parts.length === 3) {
-          const payloadJson = window.atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
-          const payload = JSON.parse(payloadJson);
-          subFromStored = payload.sub;
-        }
-      } catch {
-        // ignore
-      }
-
-      if (!isTokenExpired(stored) && subFromStored) {
+      if (!isTokenExpired(stored) && subFromStored && isValidUuid(subFromStored)) {
         localStorage.setItem("prismiq_active_tenant_id", subFromStored);
         return stored;
       }
-
-      const tenantToUse = subFromStored || DEFAULT_TENANT_ID;
-      const freshToken = createTenantToken(tenantToUse);
+      const tenantToUse = subFromStored && isValidUuid(subFromStored) ? subFromStored : DEFAULT_TENANT_ID;
+      const freshToken = createTenantToken(tenantToUse, emailHint);
       localStorage.setItem("prismiq_tenant_token", freshToken);
       localStorage.setItem("prismiq_active_tenant_id", tenantToUse);
       return freshToken;
     }
   }
 
-  const defaultFreshToken = createTenantToken(DEFAULT_TENANT_ID);
+  const defaultFreshToken = createTenantToken(DEFAULT_TENANT_ID, emailHint);
   if (typeof window !== "undefined") {
     localStorage.setItem("prismiq_tenant_token", defaultFreshToken);
     localStorage.setItem("prismiq_active_tenant_id", DEFAULT_TENANT_ID);

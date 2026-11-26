@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
-import { getTenantBaselineData } from "@/lib/tenantBaselines";
+import { getProxyAuthHeaders, resolveProxyTenantId } from "@/lib/batch2Proxy";
+import { getTenantBaselineData, KNOWN_TENANT_IDS } from "@/lib/tenantBaselines";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -8,44 +8,38 @@ const BACKEND_BASE = (
   "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
 
+const DEMO_IDS = new Set<string>(Object.values(KNOWN_TENANT_IDS));
+
 export async function GET(req: NextRequest) {
-  const tenantId = req.nextUrl.searchParams.get("tenant_id") || undefined;
-  const baseline = getTenantBaselineData(tenantId);
-  const targetComp = baseline.targetCompany.toLowerCase();
+  const tenantId = resolveProxyTenantId(req);
+  const authHeaders = getProxyAuthHeaders(req);
 
   const backendUrl = new URL(`${BACKEND_BASE}/briefs/latest`);
   req.nextUrl.searchParams.forEach((val, key) => {
     backendUrl.searchParams.set(key, val);
   });
 
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken(tenantId);
-
   try {
     const res = await fetch(backendUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: authHeaders,
       cache: "no-store",
     });
 
     if (res.ok) {
       const data = await res.json();
-      if (data && typeof data.content === "string" && data.content.length > 100) {
-        const lower = data.content.toLowerCase();
-        // Ensure the brief matches this tenant's target company or tracked competitors
-        const isMatch =
-          lower.includes(targetComp) ||
-          baseline.competitors.some((c) => lower.includes(c.toLowerCase()));
-        if (isMatch) {
-          return NextResponse.json(data);
-        }
+      if (data && typeof data.content === "string") {
+        return NextResponse.json(data);
       }
+    } else if (res.status === 404 && (!tenantId || !DEMO_IDS.has(tenantId))) {
+      return NextResponse.json({ detail: "No briefs found for this workspace yet." }, { status: 404 });
     }
   } catch {
-    // Fall through to authentic baseline brief
+    // Fall through to offline demo fallback only for known demo tenants
   }
 
-  return NextResponse.json(baseline.latestBrief);
+  if (tenantId && DEMO_IDS.has(tenantId)) {
+    return NextResponse.json(getTenantBaselineData(tenantId).latestBrief);
+  }
+  return NextResponse.json({ detail: "Brief not found" }, { status: 404 });
 }
 

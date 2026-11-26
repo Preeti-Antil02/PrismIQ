@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -8,27 +8,14 @@ const BACKEND_BASE = (
 ).replace(/\/+$/, "");
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const company = searchParams.get("company");
-  const department = searchParams.get("department");
-  const urgency = searchParams.get("urgency");
-
-  const query = new URLSearchParams();
-  if (company) query.set("company", company);
-  if (department) query.set("department", department);
-  if (urgency) query.set("urgency", urgency);
-
-  const qs = query.toString() ? `?${query.toString()}` : "";
-  const backendUrl = `${BACKEND_BASE}/decision-support${qs}`;
-
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
+  const backendUrl = new URL(`${BACKEND_BASE}/decision-support`);
+  req.nextUrl.searchParams.forEach((val, key) => {
+    backendUrl.searchParams.set(key, val);
+  });
 
   try {
-    const res = await fetch(backendUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const res = await fetch(backendUrl.toString(), {
+      headers: getProxyAuthHeaders(req),
       cache: "no-store",
     });
 
@@ -51,16 +38,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-
   try {
     const body = await req.json();
     const res = await fetch(`${BACKEND_BASE}/decision-support`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...getProxyAuthHeaders(req, typeof body?.tenant_id === "string" ? body.tenant_id : undefined),
       },
       body: JSON.stringify(body),
     });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken, createTenantToken, isTokenExpired, DEFAULT_TENANT_ID } from "@/lib/auth";
+import { createTenantToken, DEFAULT_TENANT_ID } from "@/lib/auth";
+import { getProxyAuthHeaders, resolveProxyTenantId } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -10,26 +11,7 @@ const BACKEND_BASE = (
 async function proxy(req: NextRequest, context: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await context.params;
   const path = slug.join("/");
-  const incomingAuth = req.headers.get("authorization");
-  let token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-
-  // If token is missing, malformed, or expired, auto-renew for the tenant
-  if (!token || token === "null" || token === "undefined" || isTokenExpired(token)) {
-    let tenantId = DEFAULT_TENANT_ID;
-    if (token && token.includes(".")) {
-      try {
-        const parts = token.split(".");
-        const payloadJson = parts.length > 1 ? Buffer.from(parts[1], "base64url").toString("utf-8") : "{}";
-        const payload = JSON.parse(payloadJson);
-        if (payload.sub) {
-          tenantId = payload.sub;
-        }
-      } catch {
-        // use default tenant id
-      }
-    }
-    token = createTenantToken(tenantId);
-  }
+  const authHeaders = getProxyAuthHeaders(req);
 
   // Route mapping from /api/workspace/... to FastAPI backend
   let backendPath: string;
@@ -52,7 +34,7 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
   });
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
+    ...authHeaders,
     "Content-Type": "application/json",
   };
 
@@ -78,21 +60,12 @@ async function proxy(req: NextRequest, context: { params: Promise<{ slug: string
     let res = await fetch(url.toString(), init);
     let text = await res.text();
 
-    // Auto-heal on 401 Token Expired: renew and retry once
+    // Auto-heal on 401 Token Expired: renew and retry once for the resolved tenant
     if (res.status === 401 && (text.includes("Token has expired") || text.includes("expired"))) {
-      let tenantId = DEFAULT_TENANT_ID;
-      if (token && token.includes(".")) {
-        try {
-          const parts = token.split(".");
-        const payloadJson = parts.length > 1 ? Buffer.from(parts[1], "base64url").toString("utf-8") : "{}";
-          const payload = JSON.parse(payloadJson);
-          if (payload.sub) {
-            tenantId = payload.sub;
-          }
-        } catch {}
-      }
+      const tenantId = resolveProxyTenantId(req) || DEFAULT_TENANT_ID;
       const freshToken = createTenantToken(tenantId);
       headers.Authorization = `Bearer ${freshToken}`;
+      headers["X-Tenant-ID"] = tenantId;
       res = await fetch(url.toString(), init);
       text = await res.text();
     }

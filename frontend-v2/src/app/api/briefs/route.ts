@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
-import { getTenantBaselineData } from "@/lib/tenantBaselines";
+import { getProxyAuthHeaders, resolveProxyTenantId } from "@/lib/batch2Proxy";
+import { getTenantBaselineData, KNOWN_TENANT_IDS } from "@/lib/tenantBaselines";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -8,47 +8,36 @@ const BACKEND_BASE = (
   "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
 
+const DEMO_IDS = new Set<string>(Object.values(KNOWN_TENANT_IDS));
+
 export async function GET(req: NextRequest) {
-  const tenantId = req.nextUrl.searchParams.get("tenant_id") || undefined;
-  const baseline = getTenantBaselineData(tenantId);
-  const targetComp = baseline.targetCompany.toLowerCase();
+  const tenantId = resolveProxyTenantId(req);
+  const authHeaders = getProxyAuthHeaders(req);
 
   const backendUrl = new URL(`${BACKEND_BASE}/briefs`);
   req.nextUrl.searchParams.forEach((val, key) => {
     backendUrl.searchParams.set(key, val);
   });
 
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken(tenantId);
-
   try {
     const res = await fetch(backendUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: authHeaders,
       cache: "no-store",
     });
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data?.briefs) && data.briefs.length > 0) {
-        // Filter out briefs that belong to other companies
-        const filtered = data.briefs.filter((b: any) => {
-          const txt = `${b.title || ""} ${b.preview || ""} ${b.filename || ""}`.toLowerCase();
-          return (
-            txt.includes(targetComp) ||
-            baseline.competitors.some((c) => txt.includes(c.toLowerCase()))
-          );
-        });
-        if (filtered.length > 0) {
-          return NextResponse.json({ briefs: filtered });
-        }
+      if (Array.isArray(data?.briefs)) {
+        return NextResponse.json(data);
       }
     }
   } catch {
-    // Fall through to authentic baseline briefs
+    // Fall through cleanly
   }
 
-  return NextResponse.json({ briefs: baseline.briefs });
+  if (tenantId && DEMO_IDS.has(tenantId)) {
+    return NextResponse.json({ briefs: getTenantBaselineData(tenantId).briefs });
+  }
+  return NextResponse.json({ briefs: [] });
 }
 

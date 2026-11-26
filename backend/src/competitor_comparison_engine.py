@@ -21,7 +21,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from . import batch4_storage, battlecard_storage, storage
+from . import battlecard_storage, storage
 
 logger = logging.getLogger(__name__)
 
@@ -92,13 +92,9 @@ class CompetitorComparisonEngine:
                 tenant_id=self.tenant_id,
                 company_name=entity,
             ) or []
-            gov_evidence = batch4_storage.list_governed_evidence(
-                tenant_id=self.tenant_id,
-                related_company=entity,
-            ) or []
             company_evidence_map[entity] = {
                 "claims": claims,
-                "evidence": gov_evidence,
+                "evidence": [],
             }
 
         # 2. Determine capability set

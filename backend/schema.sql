@@ -987,105 +987,7 @@ CREATE INDEX IF NOT EXISTS idx_feedback_themes_tenant_comp ON customer_feedback_
 CREATE INDEX IF NOT EXISTS idx_feedback_themes_category ON customer_feedback_themes(category);
 CREATE INDEX IF NOT EXISTS idx_feedback_themes_opportunity ON customer_feedback_themes(is_competitive_opportunity);
 
--- 4. Win/Loss Deals Table
-CREATE TABLE IF NOT EXISTS win_loss_deals (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    document_id UUID REFERENCES raw_documents(id) ON DELETE SET NULL,
-    deal_name VARCHAR(255) NOT NULL,
-    outcome VARCHAR(50) NOT NULL,
-    deal_value NUMERIC(14, 2) DEFAULT 0.00,
-    close_date VARCHAR(50),
-    primary_competitor VARCHAR(255) NOT NULL REFERENCES companies(name) ON UPDATE CASCADE ON DELETE RESTRICT,
-    competitors_involved TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-    customer_segment VARCHAR(100) DEFAULT 'general',
-    industry VARCHAR(100),
-    buyer_objections TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_win_loss_tenant_comp ON win_loss_deals(tenant_id, primary_competitor);
-CREATE INDEX IF NOT EXISTS idx_win_loss_outcome ON win_loss_deals(outcome);
-CREATE INDEX IF NOT EXISTS idx_win_loss_close_date ON win_loss_deals(close_date DESC);
-
--- 5. Win/Loss Decision Factors Table
-CREATE TABLE IF NOT EXISTS win_loss_factors (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    deal_id UUID NOT NULL REFERENCES win_loss_deals(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    factor_type VARCHAR(50) NOT NULL,
-    factor_description TEXT NOT NULL,
-    competitor_name VARCHAR(255) REFERENCES companies(name) ON UPDATE CASCADE ON DELETE RESTRICT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_win_loss_factors_deal ON win_loss_factors(deal_id);
-CREATE INDEX IF NOT EXISTS idx_win_loss_factors_type ON win_loss_factors(factor_type);
-CREATE INDEX IF NOT EXISTS idx_win_loss_factors_comp ON win_loss_factors(competitor_name);
-
--- 6. Sales Call Records Table
-CREATE TABLE IF NOT EXISTS sales_call_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    document_id UUID REFERENCES raw_documents(id) ON DELETE SET NULL,
-    call_title VARCHAR(255) NOT NULL,
-    deal_id UUID REFERENCES win_loss_deals(id) ON DELETE SET NULL,
-    call_date VARCHAR(50),
-    participants JSONB NOT NULL DEFAULT '[]'::jsonb,
-    transcript_text TEXT NOT NULL,
-    competitors_mentioned TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-    summary TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_sales_calls_tenant ON sales_call_records(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_sales_calls_deal ON sales_call_records(deal_id);
-CREATE INDEX IF NOT EXISTS idx_sales_calls_date ON sales_call_records(call_date DESC);
-
--- 7. Sales Call Extracted Intelligence Table
-CREATE TABLE IF NOT EXISTS sales_call_intelligence (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    call_id UUID NOT NULL REFERENCES sales_call_records(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    item_type VARCHAR(50) NOT NULL,
-    competitor_name VARCHAR(255) REFERENCES companies(name) ON UPDATE CASCADE ON DELETE RESTRICT,
-    verbatim_quote TEXT NOT NULL,
-    speaker VARCHAR(100),
-    timestamp_offset VARCHAR(50),
-    analysis TEXT,
-    linked_claim_id UUID REFERENCES intelligence_claims(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_call_intel_call ON sales_call_intelligence(call_id);
-CREATE INDEX IF NOT EXISTS idx_call_intel_type ON sales_call_intelligence(item_type);
-CREATE INDEX IF NOT EXISTS idx_call_intel_comp ON sales_call_intelligence(competitor_name);
-CREATE INDEX IF NOT EXISTS idx_call_intel_claim ON sales_call_intelligence(linked_claim_id);
-
--- 8. Deal Intelligence Dossiers Table
-CREATE TABLE IF NOT EXISTS deal_intelligence_dossiers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    deal_id UUID REFERENCES win_loss_deals(id) ON DELETE SET NULL,
-    deal_name VARCHAR(255) NOT NULL,
-    competitors_involved TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-    threat_level VARCHAR(20) NOT NULL DEFAULT 'Medium',
-    primary_objections JSONB NOT NULL DEFAULT '[]'::jsonb,
-    product_gaps JSONB NOT NULL DEFAULT '[]'::jsonb,
-    competitive_advantages JSONB NOT NULL DEFAULT '[]'::jsonb,
-    recommended_sales_response JSONB NOT NULL DEFAULT '{}'::jsonb,
-    relevant_historical_wins_losses JSONB NOT NULL DEFAULT '[]'::jsonb,
-    supporting_claim_ids UUID[] NOT NULL DEFAULT ARRAY[]::UUID[],
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_deal_dossiers_tenant ON deal_intelligence_dossiers(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_deal_dossiers_deal ON deal_intelligence_dossiers(deal_id);
-CREATE INDEX IF NOT EXISTS idx_deal_dossiers_threat ON deal_intelligence_dossiers(threat_level);
-
--- 9. Next Best Action Engine Table
+-- 4. Next Best Action Engine Table
 CREATE TABLE IF NOT EXISTS next_best_actions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -1099,7 +1001,6 @@ CREATE TABLE IF NOT EXISTS next_best_actions (
     confidence VARCHAR(20) NOT NULL DEFAULT 'Medium',
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     related_competitor VARCHAR(255) REFERENCES companies(name) ON UPDATE CASCADE ON DELETE RESTRICT,
-    related_deal_id UUID REFERENCES win_loss_deals(id) ON DELETE SET NULL,
     supporting_evidence JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -1110,7 +1011,7 @@ CREATE INDEX IF NOT EXISTS idx_nba_status ON next_best_actions(status);
 CREATE INDEX IF NOT EXISTS idx_nba_urgency ON next_best_actions(urgency);
 CREATE INDEX IF NOT EXISTS idx_nba_competitor ON next_best_actions(related_competitor);
 
--- 10. Action Status Audits Table
+-- 5. Action Status Audits Table
 CREATE TABLE IF NOT EXISTS action_status_audits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -1130,11 +1031,6 @@ CREATE INDEX IF NOT EXISTS idx_action_audits_created ON action_status_audits(cre
 ALTER TABLE raw_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_feedback_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_feedback_themes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE win_loss_deals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE win_loss_factors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales_call_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales_call_intelligence ENABLE ROW LEVEL SECURITY;
-ALTER TABLE deal_intelligence_dossiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE next_best_actions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE action_status_audits ENABLE ROW LEVEL SECURITY;
 
@@ -1150,26 +1046,6 @@ DROP POLICY IF EXISTS tenant_isolation_all ON customer_feedback_themes;
 CREATE POLICY tenant_isolation_all ON customer_feedback_themes FOR ALL TO authenticated
     USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
 
-DROP POLICY IF EXISTS tenant_isolation_all ON win_loss_deals;
-CREATE POLICY tenant_isolation_all ON win_loss_deals FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON win_loss_factors;
-CREATE POLICY tenant_isolation_all ON win_loss_factors FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON sales_call_records;
-CREATE POLICY tenant_isolation_all ON sales_call_records FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON sales_call_intelligence;
-CREATE POLICY tenant_isolation_all ON sales_call_intelligence FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON deal_intelligence_dossiers;
-CREATE POLICY tenant_isolation_all ON deal_intelligence_dossiers FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
 DROP POLICY IF EXISTS tenant_isolation_all ON next_best_actions;
 CREATE POLICY tenant_isolation_all ON next_best_actions FOR ALL TO authenticated
     USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
@@ -1179,112 +1055,7 @@ CREATE POLICY tenant_isolation_all ON action_status_audits FOR ALL TO authentica
     USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
 
 -- ============================================================================
--- Migration 015: Deal Intelligence & Next Best Action Engine (Batch 3)
--- ============================================================================
-
--- 1. Sales Deals Table
-CREATE TABLE IF NOT EXISTS sales_deals (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    deal_name VARCHAR(255) NOT NULL,
-    customer VARCHAR(255) NOT NULL,
-    stage VARCHAR(50) NOT NULL DEFAULT 'discovery',
-    associated_competitors TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-    description TEXT,
-    deal_value NUMERIC(14, 2),
-    outcome VARCHAR(50) DEFAULT 'in_progress',
-    close_date VARCHAR(50),
-    customer_segment VARCHAR(100) DEFAULT 'general',
-    industry VARCHAR(100) DEFAULT 'General',
-    buyer_objections TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
-    target_company VARCHAR(255),
-    transcript_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
-    attachments JSONB NOT NULL DEFAULT '[]'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_sales_deals_tenant ON sales_deals(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_sales_deals_customer ON sales_deals(customer);
-CREATE INDEX IF NOT EXISTS idx_sales_deals_stage ON sales_deals(stage);
-CREATE INDEX IF NOT EXISTS idx_sales_deals_created ON sales_deals(created_at DESC);
-
--- 2. Deal Stage History Table
-CREATE TABLE IF NOT EXISTS deal_stage_history (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    deal_id UUID NOT NULL REFERENCES sales_deals(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    from_stage VARCHAR(50),
-    to_stage VARCHAR(50) NOT NULL,
-    changed_by VARCHAR(255) NOT NULL DEFAULT 'analyst',
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_deal_stage_hist_deal ON deal_stage_history(deal_id);
-CREATE INDEX IF NOT EXISTS idx_deal_stage_hist_tenant ON deal_stage_history(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_deal_stage_hist_created ON deal_stage_history(created_at ASC);
-
--- 3. Deal Attachments Table
-CREATE TABLE IF NOT EXISTS deal_attachments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    deal_id UUID NOT NULL REFERENCES sales_deals(id) ON DELETE CASCADE,
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    filename VARCHAR(255) NOT NULL,
-    file_format VARCHAR(20) NOT NULL DEFAULT 'txt',
-    file_url TEXT,
-    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_deal_attachments_deal ON deal_attachments(deal_id);
-CREATE INDEX IF NOT EXISTS idx_deal_attachments_tenant ON deal_attachments(tenant_id);
-
--- 4. Recommendation Outcomes Table
-CREATE TABLE IF NOT EXISTS recommendation_outcomes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    recommendation_id VARCHAR(255) NOT NULL,
-    action_taken TEXT NOT NULL,
-    related_deal UUID REFERENCES sales_deals(id) ON DELETE CASCADE,
-    outcome VARCHAR(50) NOT NULL,
-    outcome_date VARCHAR(50) NOT NULL,
-    notes TEXT,
-    attribution_type VARCHAR(50) NOT NULL DEFAULT 'recorded_association',
-    causation_claimed BOOLEAN NOT NULL DEFAULT FALSE,
-    attribution_disclaimer TEXT NOT NULL DEFAULT 'Recorded association between action and deal outcome; does not establish direct causation.',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_rec_outcomes_tenant ON recommendation_outcomes(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_rec_outcomes_deal ON recommendation_outcomes(related_deal);
-CREATE INDEX IF NOT EXISTS idx_rec_outcomes_rec ON recommendation_outcomes(recommendation_id);
-CREATE INDEX IF NOT EXISTS idx_rec_outcomes_date ON recommendation_outcomes(outcome_date DESC);
-
--- RLS Policies for Batch 3 Tables
-ALTER TABLE sales_deals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE deal_stage_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE deal_attachments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE recommendation_outcomes ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS tenant_isolation_all ON sales_deals;
-CREATE POLICY tenant_isolation_all ON sales_deals FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON deal_stage_history;
-CREATE POLICY tenant_isolation_all ON deal_stage_history FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON deal_attachments;
-CREATE POLICY tenant_isolation_all ON deal_attachments FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON recommendation_outcomes;
-CREATE POLICY tenant_isolation_all ON recommendation_outcomes FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
--- ============================================================================
--- Migration 016: Batch 4 — Market Intelligence, Trust & Outcomes
+-- Migration 016: Batch 4 — Market Intelligence
 -- ============================================================================
 
 -- 1. Competitive Relationship Graph Edges
@@ -1377,50 +1148,7 @@ CREATE TABLE IF NOT EXISTS emerging_competitor_candidates (
 CREATE INDEX IF NOT EXISTS idx_emerging_cands_tenant ON emerging_competitor_candidates(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_emerging_cands_status ON emerging_competitor_candidates(tenant_id, review_status);
 
--- 5. Governed Evidence
-CREATE TABLE IF NOT EXISTS governed_evidence (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    claim_id VARCHAR(255),
-    source_url TEXT NOT NULL,
-    source_title TEXT NOT NULL,
-    source_type VARCHAR(100) NOT NULL DEFAULT 'documentation',
-    excerpt TEXT NOT NULL,
-    publication_date VARCHAR(50) NOT NULL,
-    relationship VARCHAR(50) NOT NULL DEFAULT 'supports',
-    source_quality VARCHAR(50) NOT NULL DEFAULT 'primary',
-    confidence_methodology TEXT NOT NULL,
-    verification_status VARCHAR(50) NOT NULL DEFAULT 'verified',
-    last_verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    related_company VARCHAR(255),
-    related_competitor VARCHAR(255),
-    related_event_id VARCHAR(255),
-    related_battlecard_id VARCHAR(255),
-    related_recommendation_id VARCHAR(255),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_gov_evidence_tenant ON governed_evidence(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_gov_evidence_claim ON governed_evidence(claim_id);
-CREATE INDEX IF NOT EXISTS idx_gov_evidence_company ON governed_evidence(related_company);
-
--- 6. Contradictory Evidence Links
-CREATE TABLE IF NOT EXISTS contradictory_evidence_links (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    evidence_id_a UUID NOT NULL,
-    evidence_id_b UUID NOT NULL,
-    contradiction_reason TEXT NOT NULL,
-    confidence VARCHAR(50) NOT NULL DEFAULT 'High',
-    actor_id VARCHAR(255) NOT NULL DEFAULT 'analyst',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_contra_links_tenant ON contradictory_evidence_links(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_contra_links_a ON contradictory_evidence_links(evidence_id_a);
-CREATE INDEX IF NOT EXISTS idx_contra_links_b ON contradictory_evidence_links(evidence_id_b);
-
--- 7. Analyst Feedback
+-- 5. Analyst Feedback
 CREATE TABLE IF NOT EXISTS analyst_feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -1441,8 +1169,6 @@ ALTER TABLE competitive_relationships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE relationship_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competitor_threat_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE emerging_competitor_candidates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE governed_evidence ENABLE ROW LEVEL SECURITY;
-ALTER TABLE contradictory_evidence_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analyst_feedback ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_all ON competitive_relationships;
@@ -1459,14 +1185,6 @@ CREATE POLICY tenant_isolation_all ON competitor_threat_scores FOR ALL TO authen
 
 DROP POLICY IF EXISTS tenant_isolation_all ON emerging_competitor_candidates;
 CREATE POLICY tenant_isolation_all ON emerging_competitor_candidates FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON governed_evidence;
-CREATE POLICY tenant_isolation_all ON governed_evidence FOR ALL TO authenticated
-    USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
-
-DROP POLICY IF EXISTS tenant_isolation_all ON contradictory_evidence_links;
-CREATE POLICY tenant_isolation_all ON contradictory_evidence_links FOR ALL TO authenticated
     USING (tenant_id = (SELECT auth.uid())) WITH CHECK (tenant_id = (SELECT auth.uid()));
 
 DROP POLICY IF EXISTS tenant_isolation_all ON analyst_feedback;

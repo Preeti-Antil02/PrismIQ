@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -12,9 +12,6 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-
   const url = `${BACKEND_BASE}/api/battlecards/${encodeURIComponent(id)}/publish`;
 
   try {
@@ -23,7 +20,7 @@ export async function POST(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...getProxyAuthHeaders(req, typeof body?.tenant_id === "string" ? body.tenant_id : undefined),
       },
       body: JSON.stringify(body),
     });

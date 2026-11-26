@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { getClientAuthToken } from "@/lib/auth";
 import {
   Radar,
   Sparkles,
@@ -50,9 +51,13 @@ export function EmergingCompetitorsView({ tenantId, onCompetitorAdded }: Emergin
   const loadCandidates = React.useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       const res = await fetch(`/api/emerging-competitors?status=${statusFilter}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+        },
       });
       if (res.ok) {
         const data = await res.json();
@@ -125,10 +130,14 @@ export function EmergingCompetitorsView({ tenantId, onCompetitorAdded }: Emergin
   const handleDiscover = async () => {
     setIsDiscovering(true);
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       await fetch(`/api/emerging-competitors/discover`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+        },
       });
       await loadCandidates();
       setActionSuccessMsg("Landscape sweep complete: new emerging signals scanned.");
@@ -143,10 +152,14 @@ export function EmergingCompetitorsView({ tenantId, onCompetitorAdded }: Emergin
 
   const handleApprove = async (candidate: EmergingCandidate) => {
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       await fetch(`/api/emerging-competitors/${candidate.id}/approve`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+        },
       });
       setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
       setActionSuccessMsg(`Approved ${candidate.candidate_name}: added to active monitored landscape.`);
@@ -161,10 +174,14 @@ export function EmergingCompetitorsView({ tenantId, onCompetitorAdded }: Emergin
 
   const handleReject = async (candidate: EmergingCandidate) => {
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       await fetch(`/api/emerging-competitors/${candidate.id}/reject`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+        },
       });
       setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
       setActionSuccessMsg(`Dismissed ${candidate.candidate_name}.`);

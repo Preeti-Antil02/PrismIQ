@@ -1,12 +1,11 @@
 """
 Competitive Threat Scoring Engine for PrismIQ Batch 4.
-Calculates an explainable threat intensity index (0-100) across six key factors:
-1. Product activity (0.20)
+Calculates an explainable threat intensity index (0-100) across five key factors:
+1. Product activity (0.25)
 2. Hiring activity (0.15)
-3. Pricing movement (0.20)
+3. Pricing movement (0.25)
 4. Market activity (0.15)
-5. Customer evidence (0.15)
-6. Win/Loss evidence (0.15)
+5. Customer evidence (0.20)
 
 Key Guarantees:
 - Fully explainable factor contributions and configurable weights.
@@ -21,17 +20,16 @@ import math
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import batch2_storage, batch3_storage, batch4_storage, battlecard_storage, storage
+from . import batch2_storage, batch4_storage, battlecard_storage, storage
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_WEIGHTS = {
-    "product_activity": 0.20,
+    "product_activity": 0.25,
     "hiring_activity": 0.15,
-    "pricing_movement": 0.20,
+    "pricing_movement": 0.25,
     "market_activity": 0.15,
-    "customer_evidence": 0.15,
-    "win_loss_evidence": 0.15,
+    "customer_evidence": 0.20,
 }
 
 THREAT_LEVEL_THRESHOLDS = [
@@ -72,7 +70,6 @@ class ThreatScoringEngine:
         signals = self._get_competitor_signals(cname)
         claims = self._get_competitor_claims(cname)
         customer_feedbacks = self._get_competitor_customer_feedback(cname)
-        win_loss_deals = self._get_competitor_win_loss(cname)
 
         # 2. Evaluate individual factors
         f_product = self._eval_product_activity(signals, claims)
@@ -80,7 +77,6 @@ class ThreatScoringEngine:
         f_pricing = self._eval_pricing_movement(signals, claims)
         f_market = self._eval_market_activity(signals)
         f_customer = self._eval_customer_evidence(customer_feedbacks)
-        f_win_loss = self._eval_win_loss_evidence(win_loss_deals)
 
         factor_map = {
             "product_activity": f_product,
@@ -88,7 +84,6 @@ class ThreatScoringEngine:
             "pricing_movement": f_pricing,
             "market_activity": f_market,
             "customer_evidence": f_customer,
-            "win_loss_evidence": f_win_loss,
         }
 
         # 3. Assess coverage and missing data
@@ -294,26 +289,6 @@ class ThreatScoringEngine:
             "supporting_evidence": evidence,
         }
 
-    def _eval_win_loss_evidence(self, deals: List[Dict[str, Any]]) -> Dict[str, Any]:
-        if not deals:
-            return {"is_assessed": False, "raw_score": 0.0, "data_points_count": 0, "supporting_evidence": []}
-
-        losses = [d for d in deals if str(d.get("outcome", "")).lower() in ("loss", "lost")]
-        total = len(deals)
-        loss_rate = len(losses) / total if total > 0 else 0.0
-
-        # Loss rate directly maps to threat index: 100% loss rate = 100 threat
-        score = round(loss_rate * 100.0, 2)
-        evidence = [{"type": "win_loss_deal", "id": d.get("id"), "outcome": d.get("outcome")} for d in deals[:5]]
-
-        return {
-            "is_assessed": True,
-            "raw_score": score,
-            "data_points_count": total,
-            "explanation": f"Competed in {total} direct sales opportunities with {len(losses)} losses (Loss rate: {loss_rate * 100:.1f}%).",
-            "supporting_evidence": evidence,
-        }
-
     # -------------------------------------------------------------------------
     # Internal Helpers
     # -------------------------------------------------------------------------
@@ -371,14 +346,4 @@ class ThreatScoringEngine:
             ) or []
         except Exception as e:
             logger.warning(f"Failed to fetch feedback for {competitor_name}: {e}")
-            return []
-
-    def _get_competitor_win_loss(self, competitor_name: str) -> List[Dict[str, Any]]:
-        try:
-            return batch2_storage.list_win_loss_deals(
-                tenant_id=self.tenant_id,
-                primary_competitor=competitor_name,
-            ) or []
-        except Exception as e:
-            logger.warning(f"Failed to fetch win/loss for {competitor_name}: {e}")
             return []

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
-import { getTenantBaselineData } from "@/lib/tenantBaselines";
+import { getProxyAuthHeaders, resolveProxyTenantId } from "@/lib/batch2Proxy";
+import { getTenantBaselineData, KNOWN_TENANT_IDS } from "@/lib/tenantBaselines";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -8,57 +8,51 @@ const BACKEND_BASE = (
   "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
 
+const DEMO_IDS = new Set<string>(Object.values(KNOWN_TENANT_IDS));
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ briefId: string }> }
 ) {
   const { briefId } = await params;
-  const tenantId = request.nextUrl.searchParams.get("tenant_id") || undefined;
-  const baseline = getTenantBaselineData(tenantId);
-  const targetComp = baseline.targetCompany.toLowerCase();
+  const tenantId = resolveProxyTenantId(request);
+  const authHeaders = getProxyAuthHeaders(request);
 
-  // If the requested ID matches known baseline brief IDs
-  if (
-    briefId === baseline.latestBrief.id ||
-    briefId === "latest" ||
-    briefId === "data_latest" ||
-    briefId === "published_latest"
-  ) {
-    return NextResponse.json(baseline.latestBrief);
-  }
-
-  const backendUrl = new URL(`${BACKEND_BASE}/briefs/${briefId}`);
+  const backendUrl = new URL(`${BACKEND_BASE}/briefs/${encodeURIComponent(briefId)}`);
   request.nextUrl.searchParams.forEach((val, key) => {
     backendUrl.searchParams.set(key, val);
   });
 
-  const incomingAuth = request.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken(tenantId);
-
   try {
     const res = await fetch(backendUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: authHeaders,
       cache: "no-store",
     });
 
     if (res.ok) {
       const data = await res.json();
-      if (data && typeof data.content === "string" && data.content.length > 100) {
-        const lower = data.content.toLowerCase();
-        const isMatch =
-          lower.includes(targetComp) ||
-          baseline.competitors.some((c) => lower.includes(c.toLowerCase()));
-        if (isMatch) {
-          return NextResponse.json(data);
-        }
+      if (data && typeof data.content === "string") {
+        return NextResponse.json(data);
       }
+    } else if (res.status === 404 && (!tenantId || !DEMO_IDS.has(tenantId))) {
+      return NextResponse.json({ detail: `Brief '${briefId}' not found.` }, { status: 404 });
     }
   } catch {
-    // Fall through
+    // Fall through only for known demo tenants
   }
 
-  return NextResponse.json(baseline.latestBrief);
+  if (tenantId && DEMO_IDS.has(tenantId)) {
+    const baseline = getTenantBaselineData(tenantId);
+    if (
+      briefId === baseline.latestBrief.id ||
+      briefId === "latest" ||
+      briefId === "data_latest" ||
+      briefId === "published_latest"
+    ) {
+      return NextResponse.json(baseline.latestBrief);
+    }
+  }
+
+  return NextResponse.json({ detail: `Brief '${briefId}' not found.` }, { status: 404 });
 }
 

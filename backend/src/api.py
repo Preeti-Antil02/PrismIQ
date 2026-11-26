@@ -168,20 +168,13 @@ def verify_jwt_token(token: str) -> Dict[str, Any]:
 def get_current_tenant(
     authorization: Optional[str] = Header(None),
     tenant_id: Optional[str] = Query(None),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
 ) -> str:
     """
     FastAPI dependency extracting and verifying the authenticated tenant UUID.
-    Checks tenant_id query parameter first (if valid UUID), then Authorization Bearer token.
-    Rejects missing, malformed, or unauthenticated requests with HTTP 401.
+    Always requires and verifies the Authorization Bearer token first (HTTP 401 on missing/invalid/expired).
+    Honors validated x-tenant-id header or tenant_id query parameter when matching token subject or in local dev mode.
     """
-    if tenant_id and isinstance(tenant_id, str) and tenant_id.strip():
-        clean_tid = tenant_id.strip()
-        try:
-            uuid.UUID(clean_tid)
-            return clean_tid
-        except (ValueError, TypeError):
-            pass
-
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -197,7 +190,30 @@ def get_current_tenant(
 
     token = parts[1]
     payload = verify_jwt_token(token)
-    return str(payload["sub"])
+    auth_tid = str(payload["sub"])
+
+    req_tid = (
+        x_tenant_id.strip()
+        if isinstance(x_tenant_id, str) and x_tenant_id.strip()
+        else (tenant_id.strip() if isinstance(tenant_id, str) and tenant_id.strip() else None)
+    )
+    if req_tid:
+        try:
+            uuid.UUID(req_tid)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid tenant ID format",
+            )
+        if req_tid != auth_tid:
+            if os.getenv("SUPABASE_JWT_SECRET"):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Requested tenant_id does not match authenticated token",
+                )
+            return req_tid
+
+    return auth_tid
 
 
 # ============================================================================
@@ -723,8 +739,8 @@ def _get_fallback_events(
     }
 
 
-def _get_fallback_findings() -> Dict[str, Any]:
-    evts = _get_fallback_events()["events"]
+def _get_fallback_findings(tenant_id: Optional[str] = None) -> Dict[str, Any]:
+    evts = _get_fallback_events(tenant_id=tenant_id)["events"]
     findings = []
     for e in evts:
         findings.append({
@@ -905,8 +921,8 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
                 content = ""
 
             content_lower = content.lower()
-            # Strict tenant boundary: only include if brief matches tenant's company or competitors
-            if target_comp and target_comp not in content_lower and not any(comp in content_lower for comp in competitors):
+            # Strict tenant boundary: only include if brief belongs to tenant or matches tenant's company/competitors
+            if filename != f"brief_{tenant_id}.md" and (not target_comp or (target_comp not in content_lower and not any(comp in content_lower for comp in competitors))):
                 continue
 
             seen_filenames.add(filename)
@@ -927,7 +943,7 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
             except Exception:
                 content = ""
             content_lower = content.lower()
-            if not target_comp or target_comp in content_lower or any(comp in content_lower for comp in competitors):
+            if target_comp and (target_comp in content_lower or any(comp in content_lower for comp in competitors)):
                 seen_filenames.add("brief.md")
                 date_str = _parse_date("brief.md", latest_path)
                 preview = _extract_preview(content)
@@ -1004,7 +1020,7 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
             for candidate in sorted(sdir.glob("brief*.md"), reverse=True):
                 try:
                     content_sample = candidate.read_text(encoding="utf-8", errors="ignore")[:4000].lower()
-                    if target_comp in content_sample or any(comp in content_sample for comp in competitors) or not target_comp:
+                    if target_comp and (target_comp in content_sample or any(comp in content_sample for comp in competitors)):
                         target_file = candidate
                         break
                 except Exception:
@@ -1125,7 +1141,7 @@ def get_brief_by_id(brief_id: str, tenant_id: str = Depends(get_current_tenant))
             content = target_file.read_text(encoding="utf-8")
             content_lower = content.lower()
             # Enforce company boundary
-            if not target_comp or target_comp in content_lower or any(comp in content_lower for comp in competitors):
+            if target_file.name == f"brief_{tenant_id}.md" or (target_comp and (target_comp in content_lower or any(comp in content_lower for comp in competitors))):
                 date_str = _parse_date(target_file.name, target_file)
                 return {
                     "id": _get_brief_id(target_file.name),
@@ -1151,7 +1167,7 @@ def list_findings(
     List all strategic findings visible to the authenticated tenant under RLS.
     """
     if not _is_db_active():
-        res = _get_fallback_findings()
+        res = _get_fallback_findings(tenant_id=tenant_id)
         if company and res.get("findings"):
             res["findings"] = [f for f in res["findings"] if (f.get("company_name") or "").lower() == company.lower()]
             res["count"] = len(res["findings"])
@@ -1160,7 +1176,7 @@ def list_findings(
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
             if isinstance(cur, storage.MockCursor):
-                res = _get_fallback_findings()
+                res = _get_fallback_findings(tenant_id=tenant_id)
                 if company and res.get("findings"):
                     res["findings"] = [f for f in res["findings"] if (f.get("company_name") or "").lower() == company.lower()]
                     res["count"] = len(res["findings"])
@@ -1225,7 +1241,7 @@ def list_findings(
             return {"findings": findings, "count": len(findings)}
     except Exception as e:
         logger.warning(f"Error querying findings for tenant {tenant_id}: {e}")
-        res = _get_fallback_findings()
+        res = _get_fallback_findings(tenant_id=tenant_id)
         if company and res.get("findings"):
             res["findings"] = [f for f in res["findings"] if (f.get("company_name") or "").lower() == company.lower()]
             res["count"] = len(res["findings"])
@@ -3019,19 +3035,19 @@ from .battlecard_routes import router as battlecard_router
 app.include_router(battlecard_router)
 
 # ============================================================================
-# Customer Voice, Win/Loss, Deal Intelligence & Next Best Action Routes (Batch 2)
+# Customer Voice & Next Best Action Routes (Batch 2)
 # ============================================================================
 from .batch2_routes import router as batch2_router
 app.include_router(batch2_router)
 
 # ============================================================================
-# Deal Intelligence & Next Best Action Engine Routes (Batch 3)
+# Next Best Action Engine Routes (Batch 3)
 # ============================================================================
 from .batch3_routes import router as batch3_router
 app.include_router(batch3_router)
 
 # ============================================================================
-# Market Intelligence, Trust & Outcomes Routes (Batch 4)
+# Market Intelligence Routes (Batch 4)
 # ============================================================================
 from .batch4_routes import router as batch4_router
 app.include_router(batch4_router)

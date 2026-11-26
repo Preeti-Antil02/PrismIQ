@@ -1,12 +1,10 @@
 """
 Automated Integration and Unit Test Suite for PrismIQ Batch 4:
 - Competitive Relationship Engine (Typed Edges, Provenance/Inference Validation, Mutation History, Multi-hop Traversal)
-- Competitive Threat Scoring (Explainable 6-Factor Index, Missing Data Normalization, Non-Probability Guarantee)
+- Competitive Threat Scoring (Explainable 5-Factor Index, Missing Data Normalization, Non-Probability Guarantee)
 - Emerging Competitor Detection (Discovery, Entity Resolution, Deduplication, Human Review Gating)
 - Competitor Comparison Engine (Strict 3-State Model: Supported / Unsupported / Unknown, Evidence per Cell)
-- Evidence Governance (Source Provenance, Confidence Methodology, Bidirectional Contradictory Evidence)
 - Analyst Feedback (6 Feedback Types, Ranking/Consensus, Factual Preservation)
-- Intelligence Impact Tracking (End-to-End Lineage, Non-Causation Attribution)
 - Strict Multi-Tenant Isolation across all Batch 4 datasets
 """
 
@@ -15,12 +13,10 @@ import uuid
 from fastapi.testclient import TestClient
 
 from src.api import app, _create_jwt_token
-from src import batch2_storage, batch3_storage, batch4_storage, battlecard_storage, storage
+from src import batch2_storage, batch4_storage, battlecard_storage, storage
 from src.analyst_feedback_service import AnalystFeedbackService
 from src.competitor_comparison_engine import CompetitorComparisonEngine
 from src.emerging_competitor_service import EmergingCompetitorService, normalize_company_name
-from src.evidence_governance_service import EvidenceGovernanceService
-from src.intelligence_impact_service import IntelligenceImpactService
 from src.relationship_engine import RelationshipEngine
 from src.threat_scoring_engine import ThreatScoringEngine
 
@@ -33,12 +29,10 @@ TENANT_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 @pytest.fixture(autouse=True)
 def reset_storage_caches():
     batch2_storage.clear_tenant_cache()
-    batch3_storage.clear_tenant_cache()
     batch4_storage.clear_tenant_cache()
     battlecard_storage.clear_tenant_cache()
     yield
     batch2_storage.clear_tenant_cache()
-    batch3_storage.clear_tenant_cache()
     batch4_storage.clear_tenant_cache()
     battlecard_storage.clear_tenant_cache()
 
@@ -171,12 +165,6 @@ def test_threat_scoring_calculation_and_explainability():
         "category": "objection",
     }], tenant_id=TENANT_A)
 
-    # Seed win/loss deals: 2 deals against Databricks, 1 loss, 1 win -> loss rate 50%
-    batch2_storage.save_win_loss_deals([
-        {"id": "wl-1", "deal_name": "Fintech Deal 1", "primary_competitor": "Databricks", "outcome": "loss"},
-        {"id": "wl-2", "deal_name": "Health Deal 2", "primary_competitor": "Databricks", "outcome": "won"},
-    ], tenant_id=TENANT_A)
-
     engine = ThreatScoringEngine(TENANT_A)
     score = engine.calculate_threat_score("Databricks")
 
@@ -185,7 +173,7 @@ def test_threat_scoring_calculation_and_explainability():
     assert score["is_probability"] is False
     assert 0.0 <= score["overall_threat_score"] <= 100.0
     assert score["threat_level"] in ("Critical", "High", "Medium", "Low")
-    assert score["data_coverage_score"] == 1.0  # All 6 dimensions assessed
+    assert score["data_coverage_score"] == 1.0  # All 5 dimensions assessed
     assert score["has_missing_data"] is False
     assert len(score["unassessed_factors"]) == 0
 
@@ -194,8 +182,8 @@ def test_threat_scoring_calculation_and_explainability():
     assert "product_activity" in contributions
     assert "hiring_activity" in contributions
     assert "pricing_movement" in contributions
-    assert "win_loss_evidence" in contributions
-    assert contributions["win_loss_evidence"]["raw_score"] == 50.0  # 1 loss out of 2 = 50%
+    assert "market_activity" in contributions
+    assert "customer_evidence" in contributions
 
 
 def test_threat_scoring_missing_evidence_safeguards():
@@ -203,11 +191,11 @@ def test_threat_scoring_missing_evidence_safeguards():
     CRUCIAL: Missing data must NEVER be treated as confirmed low threat!
     """
     engine = ThreatScoringEngine(TENANT_A)
-    # Competitor with NO signals, NO deals, NO customer feedback
+    # Competitor with NO signals and NO customer feedback
     score = engine.calculate_threat_score("CompletelyUnknownStealthCo")
 
     assert score["has_missing_data"] is True
-    assert len(score["unassessed_factors"]) == 6
+    assert len(score["unassessed_factors"]) == 5
     assert score["data_coverage_score"] == 0.0
 
     # Must NOT produce a false 0.0 low threat; baseline neutral index is assigned with explicit flag
@@ -221,12 +209,12 @@ def test_threat_scoring_missing_evidence_safeguards():
 
     score_partial = engine.calculate_threat_score("PartiallyKnownCo")
     assert score_partial["has_missing_data"] is True
-    assert len(score_partial["unassessed_factors"]) == 5  # 5 factors unassessed
+    assert len(score_partial["unassessed_factors"]) == 4  # 4 factors unassessed
     # Normalized across assessed factor (product_activity raw_score = 20.0), so overall score = 20.0
-    # It is NOT diluted down to (20.0 * 0.2) = 4.0 which would falsely imply zero threat!
+    # It is NOT diluted down to (20.0 * 0.25) = 5.0 which would falsely imply zero threat!
     assert score_partial["overall_threat_score"] == 20.0
     assert score_partial["factor_contributions"]["product_activity"]["is_assessed"] is True
-    assert score_partial["factor_contributions"]["win_loss_evidence"]["is_assessed"] is False
+    assert score_partial["factor_contributions"]["customer_evidence"]["is_assessed"] is False
 
 
 # ============================================================================
@@ -245,12 +233,14 @@ def test_emerging_competitor_discovery_and_deduplication():
         {"id": "sig-e3", "company_name": "Snowflake", "category": "news", "title": "Snowflake keynote"},
     ], tenant_id=TENANT_A)
 
-    # Seed deal with Acme mention
-    batch3_storage.save_deal({
-        "deal_name": "Global Retail Bank Deal",
-        "customer": "Retail Bank",
-        "associated_competitors": ["Acme AI"],
-    }, tenant_id=TENANT_A)
+    # Seed customer feedback mention for Acme
+    batch2_storage.save_feedback_records([{
+        "id": "fb-e1",
+        "company_name": "Acme AI",
+        "feedback_text": "Prospect asked if we benchmarked against Acme AI vector search.",
+        "category": "objection",
+        "sentiment": "neutral",
+    }], tenant_id=TENANT_A)
 
     service = EmergingCompetitorService(TENANT_A)
     candidates = service.discover_candidates()
@@ -260,10 +250,10 @@ def test_emerging_competitor_discovery_and_deduplication():
     assert len(acme_cands) == 1
     acme = acme_cands[0]
 
-    assert acme["corroboration_count"] == 3  # 2 signals + 1 deal mention
+    assert acme["corroboration_count"] == 3  # 2 signals + 1 customer feedback citation
     assert acme["review_status"] == "pending_approval"
     assert "external market signal" in acme["discovery_explanation"]
-    assert "sales deal mention" in acme["discovery_explanation"]
+    assert "customer feedback citation" in acme["discovery_explanation"]
     assert acme["relevance_score"] > 20.0
 
     # Snowflake must NOT be discovered because it is already tracked
@@ -373,53 +363,7 @@ def test_competitor_comparison_three_state_matrix():
 
 
 # ============================================================================
-# 5. Evidence Governance & Contradictions Tests
-# ============================================================================
-
-def test_evidence_governance_and_contradiction_linking():
-    gov_service = EvidenceGovernanceService(TENANT_A)
-
-    # Record Evidence A: Competitor pricing documentation claiming free tier exists
-    ev_a = gov_service.record_evidence(
-        source_url="https://competitor.com/pricing",
-        source_title="Competitor Official Pricing Page",
-        excerpt="Free perpetual tier available for teams under 5 users.",
-        source_type="pricing_page",
-        verification_status="verified",
-        related_competitor="CompetitorX",
-    )
-
-    # Record Evidence B: Recent press release announcing removal of free tier
-    ev_b = gov_service.record_evidence(
-        source_url="https://techcrunch.com/2026/competitor-deprecates-free-tier",
-        source_title="TechCrunch Pricing Analysis",
-        excerpt="CompetitorX officially announced sunsetting of all free plans starting next month.",
-        source_type="news_article",
-        verification_status="verified",
-        related_competitor="CompetitorX",
-    )
-
-    # Link bidirectional contradiction
-    link = gov_service.link_contradictory_evidence(
-        evidence_id_a=ev_a["id"],
-        evidence_id_b=ev_b["id"],
-        contradiction_reason="Evidence B announces deprecation of free plan cited as active in Evidence A.",
-        actor_id="senior_analyst_sarah",
-    )
-    assert link["id"] is not None
-    assert link["evidence_id_a"] == ev_a["id"]
-    assert link["evidence_id_b"] == ev_b["id"]
-
-    # Traceability check on Evidence A
-    trace_a = gov_service.get_evidence_traceability(ev_a["id"])
-    assert trace_a["has_contradictions"] is True
-    assert trace_a["evidence"]["verification_status"] == "disputed"
-    assert len(trace_a["contradictory_links"]) == 1
-    assert "deprecation" in trace_a["contradictory_links"][0]["contradiction_reason"]
-
-
-# ============================================================================
-# 6. Analyst Feedback Workflows Tests
+# 5. Analyst Feedback Workflows Tests
 # ============================================================================
 
 def test_analyst_feedback_workflows_and_consensus():
@@ -469,61 +413,7 @@ def test_analyst_feedback_workflows_and_consensus():
 
 
 # ============================================================================
-# 7. Intelligence Impact Lineage Tests
-# ============================================================================
-
-def test_intelligence_impact_lineage_and_non_causation():
-    # 1. Create deal
-    deal = batch3_storage.save_deal({
-        "deal_name": "Mega Health System Analytics",
-        "customer": "MegaHealth",
-        "stage": "closed_won",
-    }, tenant_id=TENANT_A)
-    deal_id = deal["id"]
-
-    # 2. Add deal actions
-    batch2_storage.save_next_best_action({
-        "deal_id": deal_id,
-        "action_text": "Emphasize HIPAA-compliant zero-copy data architecture.",
-        "responsible_department": "sales",
-        "affected_team": "sales",
-        "status": "completed",
-    }, tenant_id=TENANT_A)
-
-    batch2_storage.save_next_best_action({
-        "deal_id": deal_id,
-        "action_text": "Address encryption at rest objection raised by CISO.",
-        "responsible_department": "engineering",
-        "affected_team": "engineering",
-        "status": "completed",
-    }, tenant_id=TENANT_A)
-
-    # 3. Record outcome
-    batch3_storage.record_recommendation_outcome({
-        "recommendation_id": "rec-health-01",
-        "action_taken": "Provided HIPAA audit documentation",
-        "related_deal": deal_id,
-        "outcome": "won",
-        "outcome_date": "2026-11-20",
-    }, tenant_id=TENANT_A)
-
-    impact_service = IntelligenceImpactService(TENANT_A)
-    summary = impact_service.get_impact_summary()
-
-    assert summary["total_deals_managed"] >= 1
-    assert summary["total_actions_generated"] >= 2
-    assert summary["action_completion_rate_percent"] == 100.0
-    assert summary["department_breakdown"]["sales"] >= 1
-    assert summary["department_breakdown"]["engineering"] >= 1
-    assert summary["recorded_deal_outcomes"]["won"] >= 1
-
-    # Strict Attribution Assurance:
-    assert summary["attribution_nature"] == "recorded_association_not_proven_causation"
-    assert "Direct causation is not asserted" in summary["impact_methodology"]
-
-
-# ============================================================================
-# 8. Strict Multi-Tenant Isolation Tests
+# 6. Strict Multi-Tenant Isolation Tests
 # ============================================================================
 
 def test_batch4_tenant_isolation():
@@ -544,24 +434,16 @@ def test_batch4_tenant_isolation():
         "company_name": "SecretStartupA",
     }, tenant_id=TENANT_A)
 
-    batch4_storage.save_governed_evidence({
-        "id": "ev-tenant-a",
-        "source_url": "https://tenant-a-confidential.com",
-        "source_title": "Confidential A",
-        "excerpt": "Internal secret roadmap",
-    }, tenant_id=TENANT_A)
-
     # Tenant B queries
     engine_b = RelationshipEngine(TENANT_B)
     assert engine_b.get_relationship(rel_a["id"]) is None
     assert len(engine_b.list_relationships()) == 0
 
     assert batch4_storage.get_emerging_candidate("cand-tenant-a", TENANT_B) is None
-    assert batch4_storage.get_governed_evidence("ev-tenant-a", TENANT_B) is None
 
 
 # ============================================================================
-# 9. FastAPI REST API Integration Endpoints Tests
+# 7. FastAPI REST API Integration Endpoints Tests
 # ============================================================================
 
 def test_api_batch4_routes_end_to_end():
@@ -584,7 +466,6 @@ def test_api_batch4_routes_end_to_end():
         headers=headers,
     )
     assert rel_res.status_code == 201
-    rel_id = rel_res.json()["id"]
 
     # 2. API: Query relationships
     list_rel_res = client.get(f"/api/relationships?subject_id=api-comp-1", headers=headers)
@@ -614,27 +495,12 @@ def test_api_batch4_routes_end_to_end():
     assert comp_res.status_code == 200
     assert comp_res.json()["target_company"] == "PrismIQ"
 
-    # 5. API: Governed evidence
-    ev_res = client.post(
-        "/api/evidence",
-        json={
-            "source_url": "https://api-verified-doc.com",
-            "source_title": "Primary Documentation",
-            "excerpt": "SOC2 certified in all commercial zones.",
-            "source_type": "documentation",
-            "verification_status": "verified",
-        },
-        headers=headers,
-    )
-    assert ev_res.status_code == 201
-    ev_id = ev_res.json()["id"]
-
-    # 6. API: Analyst feedback
+    # 5. API: Analyst feedback
     fb_res = client.post(
         "/api/analyst-feedback",
         json={
-            "target_entity_type": "evidence",
-            "target_entity_id": ev_id,
+            "target_entity_type": "claim",
+            "target_entity_id": str(uuid.uuid4()),
             "feedback_type": "correct",
             "analyst_id": "api_analyst",
             "notes": "Verified successfully.",
@@ -643,7 +509,6 @@ def test_api_batch4_routes_end_to_end():
     )
     assert fb_res.status_code == 201
 
-    # 7. API: Intelligence impact summary
-    impact_res = client.get("/api/intelligence-impact/summary", headers=headers)
-    assert impact_res.status_code == 200
-    assert impact_res.json()["attribution_nature"] == "recorded_association_not_proven_causation"
+    # 6. Verify deleted module endpoints return 404
+    assert client.get("/api/evidence", headers=headers).status_code == 404
+    assert client.get("/api/intelligence-impact/summary", headers=headers).status_code == 404

@@ -2,24 +2,20 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Building2,
   Plus,
   Trash2,
   Sparkles,
   Search,
-  ShieldCheck,
   CheckCircle2,
   Loader2,
   ExternalLink,
   RefreshCw,
   X,
   GitCompare,
-  TrendingUp,
 } from "lucide-react";
 import { useWorkspace } from "./AppShell";
-import { WinLossView } from "./winloss/WinLossView";
 import {
   PrismCard,
   PrismTierBadge,
@@ -41,9 +37,7 @@ import {
 
 export function WatchlistPage() {
   const { targetCompany, tenantId, refreshConfig } = useWorkspace();
-  const router = useRouter();
 
-  const [activeTab, setActiveTab] = React.useState<"watchlist" | "win_loss">("watchlist");
   const [loading, setLoading] = React.useState(true);
   const [companies, setCompanies] = React.useState<TrackedCompany[]>([]);
   const [newCompanyName, setNewCompanyName] = React.useState("");
@@ -182,52 +176,7 @@ export function WatchlistPage() {
         </div>
       </div>
 
-      {/* Tabs: Tracked Landscape vs Win/Loss Intelligence */}
-      <div className="flex items-center gap-2 border-b border-[rgba(20,20,30,0.08)]">
-        <button
-          type="button"
-          onClick={() => setActiveTab("watchlist")}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
-            activeTab === "watchlist"
-              ? "border-[#17171b] text-[#17171b] font-bold"
-              : "border-transparent text-[#70717a] hover:text-[#17171b]"
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>Tracked Landscape</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-100 text-zinc-700">
-            {companies.length}
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("win_loss")}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
-            activeTab === "win_loss"
-              ? "border-emerald-600 text-[#17171b] font-bold"
-              : "border-transparent text-[#70717a] hover:text-[#17171b]"
-          }`}
-        >
-          <GitCompare className="w-4 h-4 text-emerald-600" />
-          <span>Win/Loss Intelligence</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Empirical
-          </span>
-        </button>
-      </div>
-
-      {activeTab === "win_loss" ? (
-        <WinLossView
-          targetCompany={targetCompany}
-          tenantId={tenantId}
-          onOpenDealRoom={(dealId) => {
-            router.push(`/app/workspace/delivery?dealId=${dealId}`);
-          }}
-          onOpenBattlecard={(comp) => {
-            router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}`);
-          }}
-        />
-      ) : loading ? (
+      {loading ? (
         <PrismLoadingSkeleton count={3} />
       ) : error ? (
         <PrismEmptyState

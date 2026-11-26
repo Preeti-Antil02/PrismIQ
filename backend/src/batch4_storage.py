@@ -4,9 +4,7 @@ Handles:
 - Competitive Relationships and Relationship Change History
 - Competitive Threat Scores and Factor Breakdowns
 - Emerging Competitor Candidates and Human Review Workflows
-- Governed Evidence with Provenance, Verification, and Contradictory Links
 - Analyst Feedback on Claims and Intelligence Records
-- Intelligence Impact Lineage & Reporting
 Supports multi-tenant PostgreSQL execution with deterministic in-memory testing fallbacks.
 """
 
@@ -25,8 +23,6 @@ _IN_MEMORY_RELATIONSHIPS: Dict[str, Dict[str, Dict[str, Any]]] = {}     # {tenan
 _IN_MEMORY_REL_HISTORY: Dict[str, List[Dict[str, Any]]] = {}            # {tenant_id: [history_records]}
 _IN_MEMORY_THREAT_SCORES: Dict[str, Dict[str, Dict[str, Any]]] = {}     # {tenant_id: {comp_name: score_record}}
 _IN_MEMORY_EMERGING_CANDS: Dict[str, Dict[str, Dict[str, Any]]] = {}    # {tenant_id: {cand_id: cand_record}}
-_IN_MEMORY_GOVERNED_EVIDENCE: Dict[str, Dict[str, Dict[str, Any]]] = {} # {tenant_id: {evidence_id: evidence_record}}
-_IN_MEMORY_CONTRADICTORY_LINKS: Dict[str, List[Dict[str, Any]]] = {}    # {tenant_id: [link_records]}
 _IN_MEMORY_ANALYST_FEEDBACK: Dict[str, List[Dict[str, Any]]] = {}       # {tenant_id: [feedback_records]}
 
 
@@ -42,16 +38,13 @@ def _ensure_tenant_cache(tenant_id: str):
         _IN_MEMORY_REL_HISTORY[tid] = []
         _IN_MEMORY_THREAT_SCORES[tid] = {}
         _IN_MEMORY_EMERGING_CANDS[tid] = {}
-        _IN_MEMORY_GOVERNED_EVIDENCE[tid] = {}
-        _IN_MEMORY_CONTRADICTORY_LINKS[tid] = []
         _IN_MEMORY_ANALYST_FEEDBACK[tid] = []
 
 
 def clear_tenant_cache(tenant_id: Optional[str] = None):
     """Reset Batch 4 in-memory state for test isolation."""
     global _IN_MEMORY_RELATIONSHIPS, _IN_MEMORY_REL_HISTORY, _IN_MEMORY_THREAT_SCORES
-    global _IN_MEMORY_EMERGING_CANDS, _IN_MEMORY_GOVERNED_EVIDENCE
-    global _IN_MEMORY_CONTRADICTORY_LINKS, _IN_MEMORY_ANALYST_FEEDBACK
+    global _IN_MEMORY_EMERGING_CANDS, _IN_MEMORY_ANALYST_FEEDBACK
 
     if tenant_id:
         tid = str(tenant_id).strip()
@@ -59,16 +52,12 @@ def clear_tenant_cache(tenant_id: Optional[str] = None):
         _IN_MEMORY_REL_HISTORY.pop(tid, None)
         _IN_MEMORY_THREAT_SCORES.pop(tid, None)
         _IN_MEMORY_EMERGING_CANDS.pop(tid, None)
-        _IN_MEMORY_GOVERNED_EVIDENCE.pop(tid, None)
-        _IN_MEMORY_CONTRADICTORY_LINKS.pop(tid, None)
         _IN_MEMORY_ANALYST_FEEDBACK.pop(tid, None)
     else:
         _IN_MEMORY_RELATIONSHIPS.clear()
         _IN_MEMORY_REL_HISTORY.clear()
         _IN_MEMORY_THREAT_SCORES.clear()
         _IN_MEMORY_EMERGING_CANDS.clear()
-        _IN_MEMORY_GOVERNED_EVIDENCE.clear()
-        _IN_MEMORY_CONTRADICTORY_LINKS.clear()
         _IN_MEMORY_ANALYST_FEEDBACK.clear()
 
 
@@ -78,7 +67,7 @@ def clear_tenant_cache(tenant_id: Optional[str] = None):
 
 VALID_ENTITY_TYPES = {
     "competitor", "product", "feature", "event", "signal",
-    "partnership", "hiring", "strategic_pattern", "evidence", "deal"
+    "partnership", "hiring", "strategic_pattern",
 }
 
 
@@ -512,119 +501,7 @@ def update_candidate_review_status(
 
 
 # ============================================================================
-# 4. Governed Evidence Storage with Provenance & Contradictions
-# ============================================================================
-
-def save_governed_evidence(evidence_dict: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-    """Save extended governed evidence record with source provenance and confidence methodology."""
-    tid = str(tenant_id).strip()
-    _ensure_tenant_cache(tid)
-
-    eid = str(evidence_dict.get("id") or uuid.uuid4())
-    now_iso = datetime.now(timezone.utc).isoformat()
-
-    record = {
-        "id": eid,
-        "tenant_id": tid,
-        "claim_id": str(evidence_dict.get("claim_id") or "").strip() or None,
-        "source_url": str(evidence_dict.get("source_url") or "").strip(),
-        "source_title": str(evidence_dict.get("source_title") or "Primary Source Citation").strip(),
-        "source_type": str(evidence_dict.get("source_type") or "documentation").strip().lower(),
-        "excerpt": str(evidence_dict.get("excerpt") or "").strip(),
-        "publication_date": evidence_dict.get("publication_date") or now_iso[:10],
-        "relationship": str(evidence_dict.get("relationship") or "supports").strip().lower(), # 'supports', 'contradicts', 'disputes'
-        "source_quality": str(evidence_dict.get("source_quality") or "primary").strip().lower(),
-        "confidence_methodology": str(evidence_dict.get("confidence_methodology") or "primary_documentation_verified").strip(),
-        "verification_status": str(evidence_dict.get("verification_status") or "verified").strip().lower(),
-        "last_verified_at": evidence_dict.get("last_verified_at") or now_iso,
-        "related_company": str(evidence_dict.get("related_company") or "").strip() or None,
-        "related_competitor": str(evidence_dict.get("related_competitor") or "").strip() or None,
-        "related_event_id": str(evidence_dict.get("related_event_id") or "") or None,
-        "related_battlecard_id": str(evidence_dict.get("related_battlecard_id") or "") or None,
-        "related_recommendation_id": str(evidence_dict.get("related_recommendation_id") or "") or None,
-        "created_at": evidence_dict.get("created_at") or now_iso,
-    }
-
-    if not _is_test_mode():
-        try:
-            from .storage import get_tenant_db_cursor
-            with get_tenant_db_cursor(tid) as cur:
-                cur.execute("""
-                    INSERT INTO governed_evidence (
-                        id, tenant_id, claim_id, source_url, source_title,
-                        source_type, excerpt, publication_date, relationship,
-                        source_quality, confidence_methodology, verification_status,
-                        last_verified_at, related_company, related_competitor,
-                        related_event_id, related_battlecard_id, related_recommendation_id,
-                        created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (id) DO NOTHING;
-                """, (
-                    record["id"], tid, record["claim_id"], record["source_url"],
-                    record["source_title"], record["source_type"], record["excerpt"],
-                    record["publication_date"], record["relationship"], record["source_quality"],
-                    record["confidence_methodology"], record["verification_status"], record["last_verified_at"],
-                    record["related_company"], record["related_competitor"], record["related_event_id"],
-                    record["related_battlecard_id"], record["related_recommendation_id"], record["created_at"]
-                ))
-        except Exception as e:
-            logger.warning(f"DB save_governed_evidence fallback: {e}")
-
-    _IN_MEMORY_GOVERNED_EVIDENCE[tid][eid] = record
-
-    # Also register in Batch 1 claim_evidence for backward compatibility if claim_id given
-    if record["claim_id"]:
-        from . import battlecard_storage
-        battlecard_storage.save_claim_evidence({
-            "id": eid,
-            "claim_id": record["claim_id"],
-            "source_url": record["source_url"],
-            "source_title": record["source_title"],
-            "excerpt": record["excerpt"],
-            "publication_date": record["publication_date"],
-            "relationship": record["relationship"],
-            "source_quality": record["source_quality"],
-        }, tid)
-
-    return record
-
-
-def get_governed_evidence(evidence_id: str, tenant_id: str) -> Optional[Dict[str, Any]]:
-    """Retrieve governed evidence record by ID."""
-    tid = str(tenant_id).strip()
-    _ensure_tenant_cache(tid)
-    return _IN_MEMORY_GOVERNED_EVIDENCE[tid].get(str(evidence_id).strip())
-
-
-def list_governed_evidence(
-    tenant_id: str,
-    claim_id: Optional[str] = None,
-    relationship: Optional[str] = None,
-    related_company: Optional[str] = None,
-    limit: int = 100,
-    offset: int = 0,
-) -> List[Dict[str, Any]]:
-    """Query governed evidence records with relationship filter."""
-    tid = str(tenant_id).strip()
-    _ensure_tenant_cache(tid)
-
-    items = list(_IN_MEMORY_GOVERNED_EVIDENCE[tid].values())
-    if claim_id:
-        cid = str(claim_id).strip()
-        items = [i for i in items if i.get("claim_id") == cid]
-    if relationship:
-        rel = str(relationship).strip().lower()
-        items = [i for i in items if i.get("relationship", "").lower() == rel]
-    if related_company:
-        comp = str(related_company).strip().lower()
-        items = [i for i in items if str(i.get("related_company", "")).lower() == comp or str(i.get("related_competitor", "")).lower() == comp]
-
-    items = sorted(items, key=lambda x: x.get("created_at", ""), reverse=True)
-    return items[offset : offset + limit]
-
-
-# ============================================================================
-# 5. Analyst Feedback Storage
+# 4. Analyst Feedback Storage
 # ============================================================================
 
 VALID_FEEDBACK_TYPES = {
@@ -676,85 +553,6 @@ def save_analyst_feedback(feedback_dict: Dict[str, Any], tenant_id: str) -> Dict
 
     _IN_MEMORY_ANALYST_FEEDBACK[tid].append(record)
     return record
-
-
-def save_contradictory_link(
-    evidence_id_a: str,
-    evidence_id_b: str,
-    contradiction_reason: str,
-    tenant_id: str,
-    confidence: str = "High",
-    actor_id: str = "analyst",
-) -> Dict[str, Any]:
-    """Store bidirectional contradictory link between two evidence items."""
-    tid = str(tenant_id).strip()
-    _ensure_tenant_cache(tid)
-
-    cid = str(uuid.uuid4())
-    now_iso = datetime.now(timezone.utc).isoformat()
-    e_a = str(evidence_id_a).strip()
-    e_b = str(evidence_id_b).strip()
-
-    record = {
-        "id": cid,
-        "tenant_id": tid,
-        "evidence_id_a": e_a,
-        "evidence_id_b": e_b,
-        "contradiction_reason": str(contradiction_reason or "").strip(),
-        "confidence": str(confidence or "High").strip(),
-        "actor_id": str(actor_id or "analyst").strip(),
-        "created_at": now_iso,
-    }
-
-    if not _is_test_mode():
-        try:
-            from .storage import get_tenant_db_cursor
-            with get_tenant_db_cursor(tid) as cur:
-                cur.execute("""
-                    INSERT INTO contradictory_evidence_links (
-                        id, tenant_id, evidence_id_a, evidence_id_b,
-                        contradiction_reason, confidence, actor_id, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-                """, (
-                    record["id"], tid, record["evidence_id_a"], record["evidence_id_b"],
-                    record["contradiction_reason"], record["confidence"], record["actor_id"],
-                    record["created_at"]
-                ))
-        except Exception as e:
-            logger.warning(f"DB save_contradictory_link fallback: {e}")
-
-    _IN_MEMORY_CONTRADICTORY_LINKS[tid].append(record)
-
-    # Also automatically create a typed relationship in the relationship engine
-    try:
-        save_relationship({
-            "subject_id": e_a,
-            "subject_type": "evidence",
-            "subject_name": f"Evidence {e_a[:8]}",
-            "predicate": "contradicts",
-            "object_id": e_b,
-            "object_type": "evidence",
-            "object_name": f"Evidence {e_b[:8]}",
-            "relationship_source": "analyst_verification",
-            "is_inferred": False,
-            "metadata": {"contradiction_reason": contradiction_reason},
-        }, tid, actor_id=actor_id)
-    except Exception as e:
-        logger.warning(f"Failed to record contradiction in relationship engine: {e}")
-
-    return record
-
-
-def list_contradictory_links(evidence_id: str, tenant_id: str) -> List[Dict[str, Any]]:
-    """Retrieve contradictory links involving a specific evidence item."""
-    tid = str(tenant_id).strip()
-    _ensure_tenant_cache(tid)
-    eid = str(evidence_id).strip()
-
-    return [
-        link for link in _IN_MEMORY_CONTRADICTORY_LINKS[tid]
-        if link.get("evidence_id_a") == eid or link.get("evidence_id_b") == eid
-    ]
 
 
 def list_analyst_feedback(

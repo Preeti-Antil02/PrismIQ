@@ -22,7 +22,6 @@ import {
   Loader2,
   ChevronRight,
   Building2,
-  Briefcase,
   Users,
   Eye,
   RotateCcw,
@@ -50,7 +49,6 @@ export interface NextBestActionsViewProps {
   tenantId?: string;
   onOpenBattlecard?: (competitor: string) => void;
   onOpenCustomerVoice?: (competitor: string) => void;
-  onOpenDealRoom?: (dealId: string) => void;
 }
 
 function getTeamBadge(team: string) {
@@ -67,7 +65,6 @@ export function NextBestActionsView({
   tenantId,
   onOpenBattlecard,
   onOpenCustomerVoice,
-  onOpenDealRoom,
 }: NextBestActionsViewProps) {
   const workspace = useWorkspace();
   const effectiveTenantId = tenantId || workspace.tenantId;
@@ -662,19 +659,6 @@ export function NextBestActionsView({
                           </button>
                         )}
                       </div>
-                    )}
-
-                    {/* Related Deal -> Deal Room */}
-                    {action.related_deal_id && onOpenDealRoom && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenDealRoom(action.related_deal_id!)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold hover:bg-blue-100 cursor-pointer"
-                      >
-                        <Briefcase className="w-3.5 h-3.5" />
-                        <span>Open Deal Room</span>
-                        <ChevronRight className="w-3 h-3" />
-                      </button>
                     )}
 
                     {/* Supporting Evidence Drawer Trigger */}

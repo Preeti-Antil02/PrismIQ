@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -12,24 +12,14 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const { searchParams } = new URL(req.url);
-  const audience = searchParams.get("audience") || "sales";
-  const segment = searchParams.get("segment") || "general";
-  const status = searchParams.get("status");
-
-  const query = new URLSearchParams({ audience, segment });
-  if (status) query.set("status", status);
-
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-
-  const url = `${BACKEND_BASE}/api/competitors/${encodeURIComponent(id)}/battlecard?${query.toString()}`;
+  const backendUrl = new URL(`${BACKEND_BASE}/api/competitors/${encodeURIComponent(id)}/battlecard`);
+  req.nextUrl.searchParams.forEach((val, key) => {
+    backendUrl.searchParams.set(key, val);
+  });
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const res = await fetch(backendUrl.toString(), {
+      headers: getProxyAuthHeaders(req),
       cache: "no-store",
     });
 

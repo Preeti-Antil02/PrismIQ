@@ -97,7 +97,8 @@ def get_target_competitors(target_company: str, tenant_id: Optional[str] = None)
 
     # 3. Dynamic fallback: extract distinct rival company names from events
     try:
-        events = storage.load_events(tenant_id=tenant_id) if tenant_id else storage.load_events()
+        scope_tid = effective_tid or tenant_id
+        events = storage.load_events(tenant_id=scope_tid) if scope_tid else storage.load_events()
         rivals = []
         seen = set()
         for ev in events:
@@ -1229,7 +1230,8 @@ def get_intelligence_detail(
             candidates: List[Dict[str, Any]] = []
             if tid:
                 candidates.extend(storage.load_events(tenant_id=tid))
-            candidates.extend(storage.load_events())
+            else:
+                candidates.extend(storage.load_events())
             for ev in candidates:
                 ev_id_str = str(ev.get("event_id") or ev.get("id") or "").lower()
                 if ev_id_str == norm_id or (norm_id and norm_id in ev_id_str):
@@ -1239,7 +1241,7 @@ def get_intelligence_detail(
         except Exception as e:
             logger.debug(f"get_intelligence_detail: flat storage lookup failed: {e}")
 
-    if not event_row:
+    if not event_row and not tid:
         # Search all JSON files in published_briefs and data directories
         try:
             for pdir in [_backend_root / "published_briefs", _backend_root / "data"]:

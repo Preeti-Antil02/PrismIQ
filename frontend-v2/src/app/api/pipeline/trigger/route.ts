@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -9,20 +9,23 @@ const BACKEND_BASE = (
 
 export async function POST(request: NextRequest) {
   const backendUrl = `${BACKEND_BASE}/api/pipeline/trigger`;
-  const incomingAuth = request.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
 
-  let body = {};
+  let body: Record<string, any> = {};
   try {
     body = await request.json();
   } catch {}
+
+  const authHeaders = getProxyAuthHeaders(
+    request,
+    typeof body?.tenant_id === "string" ? body.tenant_id : undefined
+  );
 
   try {
     const res = await fetch(backendUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...authHeaders,
       },
       body: JSON.stringify(body),
       cache: "no-store",

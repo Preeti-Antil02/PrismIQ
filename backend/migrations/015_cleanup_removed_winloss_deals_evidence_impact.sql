@@ -1,0 +1,24 @@
+-- ============================================================================
+-- Migration 015: Cleanup Tables Exclusive to Removed Modules
+-- Modules removed: Win/Loss, Deal Room, Evidence Center, and Impact & ROI
+--
+-- SAFETY NOTE:
+-- Per backend/scripts/security_check.py (`check_migration_safety`), destructive
+-- DDL statements must NOT execute automatically in CI or unreviewed migration
+-- runs. Execute the manual script below intentionally on the target Supabase
+-- PostgreSQL database after verifying backup/snapshot readiness.
+-- ============================================================================
+
+-- MANUAL CLEANUP SCRIPT (Execute intentionally in Supabase SQL Editor):
+-- ALTER TABLE IF EXISTS public.next_best_actions DROP COLUMN IF EXISTS related_deal_id CASCADE;
+-- DROP TABLE IF EXISTS public.recommendation_outcomes CASCADE;
+-- DROP TABLE IF EXISTS public.deal_attachments CASCADE;
+-- DROP TABLE IF EXISTS public.deal_stage_history CASCADE;
+-- DROP TABLE IF EXISTS public.sales_deals CASCADE;
+-- DROP TABLE IF EXISTS public.deal_intelligence_dossiers CASCADE;
+-- DROP TABLE IF EXISTS public.sales_call_intelligence CASCADE;
+-- DROP TABLE IF EXISTS public.sales_call_records CASCADE;
+-- DROP TABLE IF EXISTS public.win_loss_factors CASCADE;
+-- DROP TABLE IF EXISTS public.win_loss_deals CASCADE;
+-- DROP TABLE IF EXISTS public.contradictory_evidence_links CASCADE;
+-- DROP TABLE IF EXISTS public.governed_evidence CASCADE;

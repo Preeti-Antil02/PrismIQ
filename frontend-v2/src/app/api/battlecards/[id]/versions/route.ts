@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -12,16 +12,14 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-
-  const url = `${BACKEND_BASE}/api/battlecards/${encodeURIComponent(id)}/versions`;
+  const url = new URL(`${BACKEND_BASE}/api/battlecards/${encodeURIComponent(id)}/versions`);
+  req.nextUrl.searchParams.forEach((val, key) => {
+    url.searchParams.set(key, val);
+  });
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const res = await fetch(url.toString(), {
+      headers: getProxyAuthHeaders(req),
       cache: "no-store",
     });
 

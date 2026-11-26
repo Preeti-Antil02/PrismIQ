@@ -1,12 +1,10 @@
 """
 PrismIQ Batch 4 REST API Routes:
 - Competitive Relationship Engine (CRUD, History, Multi-hop Graph Traversal)
-- Competitive Threat Scoring (Explainable 6-Factor Index, Missing Data Safeguards)
+- Competitive Threat Scoring (Explainable 5-Factor Index, Missing Data Safeguards)
 - Emerging Competitor Detection (Discovery, Entity Resolution, Review Gating)
 - Competitor Comparison Engine (3-State Capability Matrix, Evidence Grounding)
-- Evidence Governance (Provenance, Confidence Methodology, Contradictory Links)
 - Analyst Feedback (6 Feedback Types, Ranking/Consensus, Fact Preservation)
-- Intelligence Impact Tracking (End-to-End Lineage, Non-Causation Attribution)
 """
 
 import logging
@@ -18,8 +16,6 @@ from .analyst_feedback_service import AnalystFeedbackService
 from .batch4_storage import clear_tenant_cache
 from .competitor_comparison_engine import CompetitorComparisonEngine
 from .emerging_competitor_service import EmergingCompetitorService
-from .evidence_governance_service import EvidenceGovernanceService
-from .intelligence_impact_service import IntelligenceImpactService
 from .relationship_engine import RelationshipEngine
 from .threat_scoring_engine import ThreatScoringEngine
 
@@ -28,9 +24,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["batch4_market_intelligence"])
 
 
-def _get_tenant(authorization: Optional[str] = Header(None)) -> str:
+def _get_tenant(
+    authorization: Optional[str] = Header(None),
+    tenant_id: Optional[str] = Query(None),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
+) -> str:
     from .api import get_current_tenant
-    return get_current_tenant(authorization)
+    return get_current_tenant(authorization=authorization, tenant_id=tenant_id, x_tenant_id=x_tenant_id)
 
 
 # ============================================================================
@@ -69,31 +69,6 @@ class ComparisonMatrixRequest(BaseModel):
     competitors: List[str] = Field(..., min_length=1, description="Competitors to benchmark against")
     categories: Optional[List[str]] = Field(None, description="Categories: enterprise_capabilities, integrations, product_capabilities, pricing")
     custom_capabilities: Optional[List[Dict[str, Any]]] = Field(None, description="Additional custom capabilities to evaluate")
-
-
-class RecordEvidenceRequest(BaseModel):
-    source_url: str = Field(..., min_length=1, description="Primary source URL")
-    source_title: str = Field(..., min_length=1, description="Citation or publication title")
-    excerpt: str = Field(..., min_length=1, description="Verbatim factual excerpt")
-    source_type: Optional[str] = Field("documentation", description="documentation, pricing_page, financial_filing, press_release, etc.")
-    claim_id: Optional[str] = Field(None, description="Associated claim ID if grounding an existing claim")
-    publication_date: Optional[str] = Field(None, description="YYYY-MM-DD")
-    relationship: Optional[str] = Field("supports", description="supports, contradicts, or disputes")
-    source_quality: Optional[str] = Field("primary", description="primary, secondary, or inferred")
-    confidence_methodology: Optional[str] = Field("primary_source_verification", description="Methodology label")
-    verification_status: Optional[str] = Field("verified", description="verified, unverified, disputed, deprecated")
-    related_company: Optional[str] = Field(None, description="Primary company associated")
-    related_competitor: Optional[str] = Field(None, description="Competitor entity associated")
-    related_event_id: Optional[str] = Field(None, description="Associated market event ID")
-    related_battlecard_id: Optional[str] = Field(None, description="Associated battlecard ID")
-    related_recommendation_id: Optional[str] = Field(None, description="Associated recommendation ID")
-
-
-class LinkContradictionRequest(BaseModel):
-    target_evidence_id: str = Field(..., min_length=1, description="Opposing evidence item ID")
-    contradiction_reason: str = Field(..., min_length=1, description="Detailed explanation of factual contradiction")
-    confidence: Optional[str] = Field("High", description="High, Medium, or Low")
-    actor_id: Optional[str] = Field("analyst", description="Analyst submitting contradiction")
 
 
 class SubmitAnalystFeedbackRequest(BaseModel):
@@ -208,7 +183,7 @@ def calculate_threat_score(
     req: CalculateThreatScoreRequest,
     tenant_id: str = Depends(_get_tenant),
 ):
-    """Calculate 6-factor explainable threat intensity index with missing data coverage safeguards."""
+    """Calculate 5-factor explainable threat intensity index with missing data coverage safeguards."""
     engine = ThreatScoringEngine(tenant_id)
     try:
         return engine.calculate_threat_score(
@@ -229,12 +204,11 @@ def get_threat_scoring_weights(
     return {
         "default_weights": engine.get_default_weights(),
         "factors": [
-            {"factor": "product_activity", "default_weight": 0.20, "description": "Release velocity, product updates, and technical capability additions"},
+            {"factor": "product_activity", "default_weight": 0.25, "description": "Release velocity, product updates, and technical capability additions"},
             {"factor": "hiring_activity", "default_weight": 0.15, "description": "Job openings, talent acquisition, and strategic team expansion"},
-            {"factor": "pricing_movement", "default_weight": 0.20, "description": "Discounting changes, tier adjustments, and aggressive packaging shifts"},
+            {"factor": "pricing_movement", "default_weight": 0.25, "description": "Discounting changes, tier adjustments, and aggressive packaging shifts"},
             {"factor": "market_activity", "default_weight": 0.15, "description": "Press announcements, marketing campaigns, funding, and partnerships"},
-            {"factor": "customer_evidence", "default_weight": 0.15, "description": "Customer feedback, objections raised in deal conversations, sentiment"},
-            {"factor": "win_loss_evidence", "default_weight": 0.15, "description": "Historical sales head-to-head outcomes and competitive loss rate"},
+            {"factor": "customer_evidence", "default_weight": 0.20, "description": "Customer feedback, objections, and market sentiment"},
         ],
         "score_representation": "threat_intensity_index",
         "is_probability": False,
@@ -354,103 +328,7 @@ def generate_competitor_comparison(
 
 
 # ============================================================================
-# 5. Evidence Governance Endpoints
-# ============================================================================
-
-@router.post("/evidence", status_code=status.HTTP_201_CREATED)
-def record_governed_evidence(
-    req: RecordEvidenceRequest,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Record governed evidence with source provenance, confidence methodology, and verification audit."""
-    service = EvidenceGovernanceService(tenant_id)
-    return service.record_evidence(
-        source_url=req.source_url,
-        source_title=req.source_title,
-        excerpt=req.excerpt,
-        source_type=req.source_type or "documentation",
-        claim_id=req.claim_id,
-        publication_date=req.publication_date,
-        relationship=req.relationship or "supports",
-        source_quality=req.source_quality or "primary",
-        confidence_methodology=req.confidence_methodology or "primary_source_verification",
-        verification_status=req.verification_status or "verified",
-        related_company=req.related_company,
-        related_competitor=req.related_competitor,
-        related_event_id=req.related_event_id,
-        related_battlecard_id=req.related_battlecard_id,
-        related_recommendation_id=req.related_recommendation_id,
-    )
-
-
-@router.get("/evidence")
-def list_governed_evidence(
-    claim_id: Optional[str] = None,
-    relationship: Optional[str] = None,
-    related_company: Optional[str] = None,
-    limit: int = Query(100, ge=1, le=500),
-    offset: int = Query(0, ge=0),
-    tenant_id: str = Depends(_get_tenant),
-):
-    """List governed evidence records."""
-    service = EvidenceGovernanceService(tenant_id)
-    return service.list_evidence(
-        claim_id=claim_id,
-        relationship=relationship,
-        related_company=related_company,
-        limit=limit,
-        offset=offset,
-    )
-
-
-@router.get("/evidence/{evidence_id}")
-def get_governed_evidence(
-    evidence_id: str,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Retrieve single evidence record."""
-    service = EvidenceGovernanceService(tenant_id)
-    ev = service.get_evidence(evidence_id)
-    if not ev:
-        raise HTTPException(status_code=404, detail=f"Evidence '{evidence_id}' not found.")
-    return ev
-
-
-@router.post("/evidence/{evidence_id}/contradict")
-def link_contradictory_evidence(
-    evidence_id: str,
-    req: LinkContradictionRequest,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Link bidirectional contradictory relationship between two evidence records."""
-    service = EvidenceGovernanceService(tenant_id)
-    try:
-        return service.link_contradictory_evidence(
-            evidence_id_a=evidence_id,
-            evidence_id_b=req.target_evidence_id,
-            contradiction_reason=req.contradiction_reason,
-            confidence=req.confidence or "High",
-            actor_id=req.actor_id or "analyst",
-        )
-    except ValueError as ve:
-        raise HTTPException(status_code=404, detail=str(ve))
-
-
-@router.get("/evidence/{evidence_id}/traceability")
-def get_evidence_traceability(
-    evidence_id: str,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Trace end-to-end lineage, contradictory links, and associated claims for an evidence record."""
-    service = EvidenceGovernanceService(tenant_id)
-    try:
-        return service.get_evidence_traceability(evidence_id)
-    except ValueError as ve:
-        raise HTTPException(status_code=404, detail=str(ve))
-
-
-# ============================================================================
-# 6. Analyst Feedback Endpoints
+# 5. Analyst Feedback Endpoints
 # ============================================================================
 
 @router.post("/analyst-feedback", status_code=status.HTTP_201_CREATED)
@@ -505,29 +383,3 @@ def get_analyst_feedback_summary(
         target_entity_type=target_entity_type,
         target_entity_id=target_entity_id,
     )
-
-
-# ============================================================================
-# 7. Intelligence Impact Tracking Endpoints
-# ============================================================================
-
-@router.get("/intelligence-impact/summary")
-def get_intelligence_impact_summary(
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Get aggregated impact metrics connecting intelligence, recommendations, actions, and deal outcomes."""
-    service = IntelligenceImpactService(tenant_id)
-    return service.get_impact_summary()
-
-
-@router.get("/intelligence-impact/deal/{deal_id}")
-def trace_deal_intelligence_impact(
-    deal_id: str,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Trace end-to-end intelligence to outcome lineage for an individual deal."""
-    service = IntelligenceImpactService(tenant_id)
-    try:
-        return service.trace_lineage_for_deal(deal_id)
-    except ValueError as ve:
-        raise HTTPException(status_code=404, detail=str(ve))

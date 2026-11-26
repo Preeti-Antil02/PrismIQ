@@ -34,6 +34,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (storedToken && storedUser) {
         setUser(storedUser);
         setToken(storedToken);
+        if (!localStorage.getItem("prismiq_active_tenant_id")) {
+          const tid = storedUser.tenant_id || storedUser.id;
+          if (tid) {
+            localStorage.setItem("prismiq_active_tenant_id", tid);
+          }
+        }
       }
     } catch {
       // Storage access error
@@ -103,11 +109,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkOnboardingStatus = async (): Promise<boolean> => {
     try {
-      const currentToken = token || localStorage.getItem("prismiq_tenant_token");
+      const activeTid =
+        typeof window !== "undefined"
+          ? localStorage.getItem("prismiq_active_tenant_id") || undefined
+          : undefined;
+      const currentToken = token || (typeof window !== "undefined" ? localStorage.getItem("prismiq_tenant_token") : null);
       if (!currentToken) return false;
 
       const res = await fetch("/api/auth/me", {
-        headers: { Authorization: `Bearer ${currentToken}` },
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+        },
       });
 
       if (res.ok) {

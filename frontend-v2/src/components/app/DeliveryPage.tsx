@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
   CheckCircle2,
@@ -13,13 +12,11 @@ import {
   EyeOff,
   RefreshCw,
   AlertTriangle,
-  Briefcase,
   Target,
   Sparkles,
 } from "lucide-react";
 import { useWorkspace } from "./AppShell";
 import { GlobalDriftReview } from "./battlecard/GlobalDriftReview";
-import { DealIntelligenceView } from "./deals/DealIntelligenceView";
 import {
   PrismCard,
   PrismButton,
@@ -35,13 +32,8 @@ import {
 
 export function DeliveryPage() {
   const { targetCompany, tenantId } = useWorkspace();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialDealId = searchParams?.get("dealId") || null;
 
-  const [deliveryTab, setDeliveryTab] = React.useState<"deals" | "drift" | "routing">(
-    initialDealId ? "deals" : "deals"
-  );
+  const [deliveryTab, setDeliveryTab] = React.useState<"drift" | "routing">("drift");
   const [loading, setLoading] = React.useState(true);
   const [config, setConfig] = React.useState<DeliveryConfig | null>(null);
   const [webhookUrl, setWebhookUrl] = React.useState("");
@@ -108,10 +100,10 @@ export function DeliveryPage() {
             Delivery & Intelligence Operations
           </div>
           <h1 className="app-title-lg">
-            Delivery & Deal Enablement for <span className="app-gradient-text">{targetCompany}</span>
+            Delivery & Drift Operations for <span className="app-gradient-text">{targetCompany}</span>
           </h1>
           <p className="app-caption mt-1 max-w-xl">
-            Ground sales opportunities in live battlecards and call intelligence, monitor competitive drift, or configure Slack notification channels.
+            Monitor competitive battlecard drift or configure Slack notification channels.
           </p>
         </div>
 
@@ -125,21 +117,6 @@ export function DeliveryPage() {
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-[rgba(20,20,30,0.08)]">
-        <button
-          type="button"
-          onClick={() => setDeliveryTab("deals")}
-          className={`pb-3 px-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
-            deliveryTab === "deals"
-              ? "border-[#6e57dc] text-[#17171b] font-bold"
-              : "border-transparent text-[#70717a] hover:text-[#17171b]"
-          }`}
-        >
-          <Briefcase className="w-4 h-4 text-[#6e57dc]" />
-          <span>Deal Intelligence & Deal Room</span>
-          <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-50 text-[#6e57dc] border border-purple-200">
-            Sales Cockpit
-          </span>
-        </button>
         <button
           type="button"
           onClick={() => setDeliveryTab("drift")}
@@ -169,19 +146,7 @@ export function DeliveryPage() {
         </button>
       </div>
 
-      {deliveryTab === "deals" ? (
-        <DealIntelligenceView
-          initialDealId={initialDealId}
-          targetCompany={targetCompany}
-          tenantId={tenantId}
-          onOpenBattlecard={(comp: string) => {
-            router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}`);
-          }}
-          onOpenCustomerVoice={(comp: string) => {
-            router.push(`/app/competitors/${encodeURIComponent(comp.toLowerCase())}?tab=voice`);
-          }}
-        />
-      ) : deliveryTab === "drift" ? (
+      {deliveryTab === "drift" ? (
         <GlobalDriftReview tenantId={tenantId} />
       ) : loading ? (
         <PrismLoadingSkeleton count={3} />

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -10,9 +10,6 @@ const BACKEND_BASE = (
 async function authProxy(req: NextRequest, context: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await context.params;
   const path = slug.join("/");
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken();
-
   const url = new URL(`/api/auth/${path}`, BACKEND_BASE);
 
   req.nextUrl.searchParams.forEach((val, key) => {
@@ -20,7 +17,7 @@ async function authProxy(req: NextRequest, context: { params: Promise<{ slug: st
   });
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
+    ...(path === "login" || path === "signup" ? {} : getProxyAuthHeaders(req)),
     "Content-Type": "application/json",
   };
 

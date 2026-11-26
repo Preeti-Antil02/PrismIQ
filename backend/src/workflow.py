@@ -58,6 +58,7 @@ class PipelineState(TypedDict, total=False):
     configured_sources: List[str]
     companies: List[str]
     tenants: List[Dict[str, Any]]
+    tenant_id: Optional[str]
 
     # Supervisor & Execution Metadata
     supervisor_decisions: Dict[str, Any]
@@ -308,7 +309,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
             return_health=True,
         )
         if not storage.is_dry_run():
-            storage.save_signals(signals, filepath=state.get("signals_storage_path"))
+            storage.save_signals(signals, filepath=state.get("signals_storage_path"), tenant_id=state.get("tenant_id"))
         logger.info(f"Monitoring completed: {len(signals)} raw signals collected for {len(ordered_companies)} companies.")
         try:
             scope = os.getenv("PIPELINE_SCOPE", "all").strip().lower()
@@ -389,7 +390,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
         # 1. Immediately persist raw signals for this company
         if c_signals:
             if not storage.is_dry_run():
-                storage.save_signals(c_signals, filepath=state.get("signals_storage_path"))
+                storage.save_signals(c_signals, filepath=state.get("signals_storage_path"), tenant_id=state.get("tenant_id"))
 
             # 2. Immediately run noise suppression for this company
             t_ns0 = time.monotonic()
@@ -417,7 +418,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
                 phase_metrics["consolidation_seconds"] += (time.monotonic() - t_ec0)
                 all_events.extend(c_events)
                 if not storage.is_dry_run():
-                    storage.save_events(c_events, filepath=state.get("events_storage_path"))
+                    storage.save_events(c_events, filepath=state.get("events_storage_path"), tenant_id=state.get("tenant_id"))
 
                 # 4. Immediately run tenant analysis for any tenant tracking this company
                 for t in tenants:
@@ -473,7 +474,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
                 if def_sigs:
                     all_signals.extend(def_sigs)
                     if not storage.is_dry_run():
-                        storage.save_signals(def_sigs)
+                        storage.save_signals(def_sigs, tenant_id=state.get("tenant_id"))
                     n_res = noise_suppressor.run(def_sigs)
                     if not storage.is_dry_run():
                         storage.save_noise_decisions(n_res.get("decisions", []))
@@ -481,7 +482,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
                         def_events = event_consolidator.run(n_res["kept_signals"])
                         all_events.extend(def_events)
                         if not storage.is_dry_run():
-                            storage.save_events(def_events)
+                            storage.save_events(def_events, tenant_id=state.get("tenant_id"))
                         for t in tenants:
                             tid = t["tenant_id"]
                             tracked = t.get("tracked_companies") or ([t.get("target_company")] + t.get("competitors", []))
@@ -513,6 +514,12 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
             logger.info(f"Phase 1: Ingested {len(topic_research_items)} domain research items across active topics.")
     except Exception as e:
         logger.warning(f"Failed to fetch global topic research items: {e}")
+
+    if state.get("tenant_id") and len(ordered_companies) > 1 and not storage.is_dry_run():
+        if all_signals:
+            storage.save_signals(all_signals, filepath=state.get("signals_storage_path"), tenant_id=state.get("tenant_id"))
+        if all_events:
+            storage.save_events(all_events, filepath=state.get("events_storage_path"), tenant_id=state.get("tenant_id"))
 
     return {
         "raw_signals": all_signals,
@@ -592,7 +599,7 @@ def event_consolidation_node(state: PipelineState) -> Dict[str, Any]:
     events = event_consolidator.run(kept_signals)
 
     if not storage.is_dry_run():
-        storage.save_events(events, filepath=state.get("events_storage_path"))
+        storage.save_events(events, filepath=state.get("events_storage_path"), tenant_id=state.get("tenant_id"))
     logger.info(f"Event Consolidation: {len(kept_signals)} signals consolidated into {len(events)} events.")
     logger.info(f"Phase 1 (Global Shared Fact-Gathering) completed in {phase1_dur:.1f}s.")
     return {"consolidated_events": events, "phase_timing": phase_timing}
@@ -1141,6 +1148,7 @@ def run_progressive_pipeline(
         "configured_sources": sources or list(config.SOURCES),
         "companies": tracked_comps,
         "tenants": active_tenants,
+        "tenant_id": tenant_id,
         "output_report_path": output_report_path,
         "signals_storage_path": signals_storage_path,
         "events_storage_path": events_storage_path,

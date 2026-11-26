@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { getClientAuthToken } from "@/lib/auth";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -39,7 +40,6 @@ export interface ThreatScoreData {
     pricing_movement: FactorBreakdown;
     market_activity: FactorBreakdown;
     customer_evidence: FactorBreakdown;
-    win_loss_evidence: FactorBreakdown;
   };
 }
 
@@ -54,10 +54,9 @@ export function ThreatAssessmentView({ competitorName, tenantId }: ThreatAssessm
   const [weights, setWeights] = React.useState({
     product_activity: 0.25,
     hiring_activity: 0.15,
-    pricing_movement: 0.20,
+    pricing_movement: 0.25,
     market_activity: 0.15,
-    customer_evidence: 0.15,
-    win_loss_evidence: 0.10,
+    customer_evidence: 0.20,
   });
   const [isRecalculating, setIsRecalculating] = React.useState(false);
   const [showWeightSliders, setShowWeightSliders] = React.useState(false);
@@ -65,9 +64,13 @@ export function ThreatAssessmentView({ competitorName, tenantId }: ThreatAssessm
   const loadScore = React.useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       const res = await fetch(`/api/threat-scoring/${encodeURIComponent(competitorName)}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+        },
       });
       if (res.ok) {
         const json = await res.json();
@@ -122,19 +125,11 @@ export function ThreatAssessmentView({ competitorName, tenantId }: ThreatAssessm
         },
         customer_evidence: {
           score: 60,
-          weight: 0.15,
-          weighted_contribution: 9.0,
+          weight: 0.20,
+          weighted_contribution: 12.0,
           data_coverage: 0.85,
           evidence_count: 7,
           summary: "Prospects cite initial pricing advantage, but report longer implementation cycles.",
-        },
-        win_loss_evidence: {
-          score: 42,
-          weight: 0.10,
-          weighted_contribution: 4.2,
-          data_coverage: 0.90,
-          evidence_count: 14,
-          summary: "23% lost deal rate when list price is sole criterion; 71% win rate when TCO is framed.",
         },
       },
     };
@@ -150,12 +145,14 @@ export function ThreatAssessmentView({ competitorName, tenantId }: ThreatAssessm
   const handleRecalculate = async () => {
     setIsRecalculating(true);
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       const res = await fetch(`/api/threat-scoring/calculate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
         },
         body: JSON.stringify({
           competitor_name: competitorName,
@@ -294,7 +291,7 @@ export function ThreatAssessmentView({ competitorName, tenantId }: ThreatAssessm
           </div>
         )}
 
-        {/* 6 Factor Contribution Cards Grid */}
+        {/* Factor Contribution Cards Grid */}
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {factorEntries.map(([key, factor]) => (
             <div

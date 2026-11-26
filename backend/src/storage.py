@@ -646,6 +646,7 @@ def load_signals(
                         pass
             if res:
                 return res
+        return []
 
     default_signals_file = data_dir / "signals.json"
     if default_signals_file.exists():
@@ -762,12 +763,16 @@ def save_noise_decisions(decisions: List[Dict[str, Any]], raw_signals_lookup: Op
 def save_events(
     events: List[Dict[str, Any]],
     filepath: Optional[Union[str, Path]] = None,
+    tenant_id: Optional[str] = None,
 ) -> Path:
     """
     Dual-write consolidated Event records:
     1. Primary write: PostgreSQL `consolidated_events` table and `event_signals` join table (is_mock = FALSE).
-    2. Secondary write: Flat JSON files (events_YYYYMMDD_HHMMSS.json and events.json).
+    2. Secondary write: Flat JSON files (events_YYYYMMDD_HHMMSS.json and events.json or events_<tenant_id>.json).
     """
+    data_dir = _get_data_dir()
+    if tenant_id and not filepath:
+        filepath = data_dir / f"events_{str(tenant_id).strip()}.json"
     # 1. Primary PostgreSQL Write
     if events and not is_dry_run():
         with get_db_cursor() as cur:
@@ -972,6 +977,7 @@ def load_events(
                         pass
             if res:
                 return res
+        return []
 
     default_file = data_dir / "events.json"
     if default_file.exists():
@@ -2091,20 +2097,6 @@ def get_tenant_workspace_config(tenant_id: str) -> Dict[str, Any]:
         if tid in known_map:
             target_company, competitors = known_map[tid]
             tracked_companies = get_tenant_tracked_companies(tid)
-        else:
-            for f in _get_data_dir().glob("confirmed_competitors_*.json"):
-                try:
-                    with open(f, "r", encoding="utf-8") as fh:
-                        f_data = json.load(fh)
-                        if f_data.get("target_company"):
-                            target_company = f_data["target_company"]
-                            competitors = f_data.get("competitors", [])
-                            tracked_companies = [{"company_name": target_company, "is_target": True, "status": "active"}] + [
-                                {"company_name": comp, "is_target": False, "status": "active"} for comp in competitors
-                            ]
-                            break
-                except Exception:
-                    pass
 
     topics = get_tenant_research_topics(tid, include_paused=False)
 

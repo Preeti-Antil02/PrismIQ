@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { getClientAuthToken } from "@/lib/auth";
 import {
   Compass,
   Network,
@@ -82,9 +83,13 @@ export function IntelligenceExplorerView() {
   const loadRelationships = React.useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       const res = await fetch(`/api/relationships`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+        },
       });
       if (res.ok) {
         const data = await res.json();
@@ -203,12 +208,14 @@ export function IntelligenceExplorerView() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("prismiq_tenant_token") || "";
+      const token = getClientAuthToken();
+      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
       const res = await fetch(`/api/relationships`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
         },
         body: JSON.stringify({
           subject_id: newRelForm.subject_name.toLowerCase().replace(/\s+/g, "_"),

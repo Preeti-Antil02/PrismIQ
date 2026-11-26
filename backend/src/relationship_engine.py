@@ -9,8 +9,6 @@ Creates and queries structured typed relationships between:
 - Partnerships
 - Hiring activity
 - Strategic patterns
-- Evidence
-- Deals
 Maintains source provenance or clearly identified inferences on every relationship,
 with chronological change history and graph traversal.
 """
@@ -32,7 +30,6 @@ PREDICATE_DEFINITIONS = {
     "partnered_with": "Commercial, distribution, or technology partnership",
     "recruits_for": "Hiring activity or headcount expansion in specific capability",
     "exhibits_pattern": "Observed strategic pattern demonstrated by competitor",
-    "opposed_in_deal": "Competitor directly competed in sales opportunity",
     "neutralizes": "Our feature or claim overcomes competitor feature/objection",
     "contradicts": "Evidence or claim actively disputes another assertion",
     "supports": "Evidence confirms claim validity",

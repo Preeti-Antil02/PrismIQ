@@ -1,7 +1,6 @@
 """
 PrismIQ Batch 2 REST API Routes:
-Customer Voice, Win/Loss Intelligence, Sales Call Intelligence,
-Deal Intelligence, and Next Best Action Engine.
+Document Ingestion, Customer Voice, and Next Best Action Engine.
 """
 
 import logging
@@ -12,11 +11,8 @@ from pydantic import BaseModel, Field
 
 from . import batch2_storage
 from .customer_voice_service import CustomerVoiceService
-from .deal_intelligence_service import DealIntelligenceService
 from .document_ingestion_service import DocumentIngestionError, DocumentIngestionService
 from .next_best_action_engine import NextBestActionEngine
-from .sales_call_service import SalesCallService
-from .win_loss_service import WinLossService
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +23,13 @@ router = APIRouter(tags=["batch2_intelligence"])
 # Helpers
 # ============================================================================
 
-def _get_tenant(authorization: Optional[str] = Header(None)) -> str:
+def _get_tenant(
+    authorization: Optional[str] = Header(None),
+    tenant_id: Optional[str] = Query(None),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
+) -> str:
     from .api import get_current_tenant
-    return get_current_tenant(authorization)
+    return get_current_tenant(authorization=authorization, tenant_id=tenant_id, x_tenant_id=x_tenant_id)
 
 
 # ============================================================================
@@ -38,8 +38,8 @@ def _get_tenant(authorization: Optional[str] = Header(None)) -> str:
 
 class IngestDirectTextRequest(BaseModel):
     title: str = Field("Direct Input", description="Title or document name")
-    text: str = Field(..., min_length=10, description="Raw text, transcript, or review content")
-    source_type: str = Field("notes", description="customer_review, crm_win_loss, sales_call_transcript, support_ticket, interview, notes")
+    text: str = Field(..., min_length=10, description="Raw text or review content")
+    source_type: str = Field("notes", description="customer_review, support_ticket, interview, notes")
     company_name: Optional[str] = Field(None, description="Optional target or competitor company name")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Arbitrary metadata dictionary")
 
@@ -50,7 +50,7 @@ class CustomerFeedbackRow(BaseModel):
     category: Optional[str] = Field(None, description="love, dislike, feature_request, product_complaint, pricing_complaint, onboarding_issue, reason_for_switching, reason_for_choosing_competitor")
     sentiment: Optional[str] = Field(None, description="positive, negative, neutral")
     aspect: Optional[str] = Field(None, description="Product area or aspect")
-    channel: Optional[str] = Field("customer_review", description="g2, reddit, support_ticket, interview, sales_call, survey")
+    channel: Optional[str] = Field("customer_review", description="g2, reddit, support_ticket, interview, survey")
     customer_segment: Optional[str] = Field("general", description="Customer tier or segment")
     date: Optional[str] = Field(None, description="Publication date")
 
@@ -59,44 +59,6 @@ class BatchCustomerVoiceRequest(BaseModel):
     default_company: str = Field(..., description="Fallback company name if row lacks company")
     records: List[CustomerFeedbackRow] = Field(..., description="Array of customer feedback rows")
     document_id: Optional[str] = Field(None, description="Optional linked raw_document ID")
-
-
-class WinLossDealRow(BaseModel):
-    deal_name: str = Field(..., min_length=1, description="Opportunity or account name")
-    outcome: str = Field(..., description="won, lost, churned, no_decision")
-    deal_value: Optional[float] = Field(0.0, description="Deal currency value")
-    close_date: Optional[str] = Field(None, description="Date deal closed")
-    primary_competitor: str = Field(..., description="Primary rival competitor")
-    competitors_involved: Optional[List[str]] = Field(default_factory=list, description="All rival vendors involved")
-    customer_segment: Optional[str] = Field("general", description="Deal segment (enterprise, mid-market, smb)")
-    industry: Optional[str] = Field("General", description="Customer industry")
-    buyer_objections: Optional[List[str]] = Field(default_factory=list, description="Objections voiced by prospect")
-    notes: Optional[str] = Field("", description="Sales representative notes")
-    winning_factor: Optional[str] = Field(None, description="Why we won")
-    loss_factor: Optional[str] = Field(None, description="Why we lost")
-
-
-class BatchWinLossRequest(BaseModel):
-    deals: List[WinLossDealRow] = Field(..., description="Array of deal records")
-    document_id: Optional[str] = Field(None, description="Optional linked raw_document ID")
-
-
-class SalesCallIngestRequest(BaseModel):
-    call_title: str = Field("Sales Conversation", description="Title of call")
-    transcript: Optional[str] = Field(None, description="Verbatim sales transcript")
-    transcript_text: Optional[str] = Field(None, description="Alternative key for sales transcript")
-    deal_id: Optional[str] = Field(None, description="Linked deal ID")
-    call_date: Optional[str] = Field(None, description="Date of call")
-    participants: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Call attendees")
-    known_competitors: Optional[List[str]] = Field(default_factory=list, description="Competitors to watch for")
-
-
-class GenerateDealIntelligenceRequest(BaseModel):
-    deal_name: str = Field(..., min_length=1, description="Deal name")
-    deal_id: Optional[str] = Field(None, description="Optional linked deal ID from win_loss_deals")
-    competitors_involved: Optional[List[str]] = Field(default_factory=list, description="Competitors evaluated")
-    customer_segment: Optional[str] = Field("general", description="Customer segment")
-    deal_notes: Optional[str] = Field(None, description="Additional context or requirement notes")
 
 
 class UpdateActionStatusRequest(BaseModel):
@@ -135,9 +97,6 @@ async def upload_document_endpoint(
             if source_type == "customer_review" and company_name:
                 cv_svc = CustomerVoiceService(tenant_id)
                 cv_svc.ingest_feedback_rows(rows, default_company=company_name, document_id=saved["id"])
-            elif source_type == "crm_win_loss":
-                wl_svc = WinLossService(tenant_id)
-                wl_svc.ingest_deals(rows, document_id=saved["id"])
 
         return {
             "status": "success",
@@ -262,172 +221,7 @@ def get_competitive_comparison_endpoint(
 
 
 # ============================================================================
-# 3. Win/Loss Intelligence Routes
-# ============================================================================
-
-@router.post("/api/win-loss/deals", status_code=status.HTTP_201_CREATED)
-def create_win_loss_deal_endpoint(
-    payload: WinLossDealRow,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Create a single verified win/loss deal record."""
-    svc = WinLossService(tenant_id)
-    saved = svc.ingest_deals([payload.dict()])
-    return {"status": "success", "deal": saved[0]}
-
-
-@router.post("/api/win-loss/ingest", status_code=status.HTTP_201_CREATED)
-def batch_win_loss_ingest_endpoint(
-    payload: BatchWinLossRequest,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Batch ingest win/loss deal records."""
-    svc = WinLossService(tenant_id)
-    raw_dicts = [d.dict() for d in payload.deals]
-    saved = svc.ingest_deals(raw_dicts, document_id=payload.document_id)
-    return {"status": "success", "saved_count": len(saved), "deals": saved}
-
-
-@router.get("/api/win-loss/deals")
-def list_win_loss_deals_endpoint(
-    primary_competitor: Optional[str] = Query(None),
-    outcome: Optional[str] = Query(None),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    tenant_id: str = Depends(_get_tenant),
-):
-    """List win/loss deals."""
-    deals = batch2_storage.list_win_loss_deals(
-        tenant_id=tenant_id,
-        primary_competitor=primary_competitor,
-        outcome=outcome,
-        limit=limit,
-        offset=offset,
-    )
-    return {"deals": deals, "count": len(deals)}
-
-
-@router.get("/api/win-loss/analytics")
-def get_win_loss_analytics_endpoint(
-    competitor_name: Optional[str] = Query(None),
-    tenant_id: str = Depends(_get_tenant),
-):
-    """
-    Get win rate breakdown, top loss/win factors, and emerging patterns.
-    Strictly flags insufficient data (N < 3) and never fabricates win rates.
-    """
-    svc = WinLossService(tenant_id)
-    res = svc.get_analytics(competitor_name)
-    return {"analytics": res, **res}
-
-
-# ============================================================================
-# 4. Sales Call Intelligence Routes
-# ============================================================================
-
-@router.post("/api/sales-calls/upload", status_code=status.HTTP_201_CREATED)
-def upload_sales_call_endpoint(
-    payload: SalesCallIngestRequest,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """
-    Ingest sales call transcript, extract 9 intelligence categories, and link to claims.
-    """
-    raw_text = (payload.transcript or payload.transcript_text or "").strip()
-    if len(raw_text) < 10:
-        raise HTTPException(status_code=400, detail="Transcript is required (minimum 10 characters).")
-
-    svc = SalesCallService(tenant_id)
-    res = svc.ingest_transcript(
-        transcript_text=raw_text,
-        call_title=payload.call_title,
-        deal_id=payload.deal_id,
-        call_date=payload.call_date,
-        participants=payload.participants,
-        known_competitors=payload.known_competitors,
-    )
-    return {"status": "success", **res}
-
-
-@router.get("/api/sales-calls")
-def list_sales_calls_endpoint(
-    deal_id: Optional[str] = Query(None),
-    competitor: Optional[str] = Query(None),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    tenant_id: str = Depends(_get_tenant),
-):
-    """List sales call records."""
-    calls = batch2_storage.list_sales_calls(tenant_id, deal_id=deal_id, competitor=competitor, limit=limit, offset=offset)
-    return {"calls": calls, "count": len(calls)}
-
-
-@router.get("/api/sales-calls/{call_id}")
-def get_sales_call_endpoint(
-    call_id: str,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Retrieve full sales call report with atomic extracted intelligence."""
-    call = batch2_storage.get_sales_call(call_id, tenant_id)
-    if not call:
-        raise HTTPException(status_code=404, detail="Sales call not found.")
-    items = batch2_storage.list_call_intelligence_items(tenant_id, call_id=call_id)
-    return {
-        "call": call,
-        "extracted_intelligence": items,
-        "intelligence_items": items,
-        "items": items,
-    }
-
-
-# ============================================================================
-# 5. Deal Intelligence Routes
-# ============================================================================
-
-@router.post("/api/deals/intelligence", status_code=status.HTTP_201_CREATED)
-def generate_deal_intelligence_endpoint(
-    payload: GenerateDealIntelligenceRequest,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """
-    Generate deal-specific intelligence dossier grounded in battlecards and win/loss data.
-    """
-    svc = DealIntelligenceService(tenant_id)
-    dossier = svc.generate_deal_dossier(
-        deal_name=payload.deal_name,
-        deal_id=payload.deal_id,
-        competitors_involved=payload.competitors_involved,
-        customer_segment=payload.customer_segment or "general",
-        deal_notes=payload.deal_notes,
-    )
-    return {"status": "success", "dossier": dossier}
-
-
-@router.get("/api/deals/{deal_id}/intelligence")
-def get_deal_intelligence_endpoint(
-    deal_id: str,
-    tenant_id: str = Depends(_get_tenant),
-):
-    """Retrieve deal dossier by deal ID."""
-    dossier = batch2_storage.get_deal_dossier_by_deal_id(deal_id, tenant_id)
-    if not dossier:
-        raise HTTPException(status_code=404, detail="No intelligence dossier found for this deal.")
-    return {"dossier": dossier}
-
-
-@router.get("/api/deals/dossiers")
-def list_deal_dossiers_endpoint(
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    tenant_id: str = Depends(_get_tenant),
-):
-    """List all synthesized deal dossiers."""
-    dossiers = batch2_storage.list_deal_dossiers(tenant_id, limit=limit, offset=offset)
-    return {"dossiers": dossiers, "count": len(dossiers)}
-
-
-# ============================================================================
-# 6. Next Best Action Engine Routes
+# 3. Next Best Action Engine Routes
 # ============================================================================
 
 @router.post("/api/next-best-actions/generate", status_code=status.HTTP_201_CREATED)

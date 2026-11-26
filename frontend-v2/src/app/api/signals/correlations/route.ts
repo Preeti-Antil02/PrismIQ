@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClientAuthToken } from "@/lib/auth";
+import { getProxyAuthHeaders } from "@/lib/batch2Proxy";
 
 const BACKEND_BASE = (
   process.env.BACKEND_API_URL ||
@@ -23,15 +23,9 @@ export async function GET(req: NextRequest) {
   const qs = query.toString() ? `?${query.toString()}` : "";
   const backendUrl = `${BACKEND_BASE}/signals/correlations${qs}`;
 
-  const incomingAuth = req.headers.get("authorization");
-  const token = incomingAuth ? incomingAuth.replace(/^Bearer\s+/i, "") : getClientAuthToken(tenantId || undefined);
-
   try {
     const res = await fetch(backendUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
-      },
+      headers: getProxyAuthHeaders(req),
       cache: "no-store",
     });
 

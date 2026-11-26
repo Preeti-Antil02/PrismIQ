@@ -513,10 +513,10 @@ export function getTenantBaselineData(
   let tid = (tenantId || "").trim();
 
   // Browser-environment resolution: read stored tenant ID if not passed
-  if (!tid && typeof window !== "undefined") {
+  if (!tid && typeof window !== "undefined" && !targetCompanyName) {
     tid = localStorage.getItem("prismiq_active_tenant_id") || KNOWN_TENANT_IDS.MEESHO;
   }
-  if (!tid) {
+  if (!tid && !targetCompanyName) {
     tid = KNOWN_TENANT_IDS.MEESHO;
   }
 
@@ -785,19 +785,20 @@ export function getTenantBaselineData(
     };
   }
 
-  // 4. CUSTOM DYNAMIC WORKSPACE (Check targetCompanyName or localStorage)
+  // 4. CUSTOM DYNAMIC WORKSPACE (Never leak Meesho baseline for non-demo workspaces)
   const isKnownTenant =
+    tid === KNOWN_TENANT_IDS.ACME ||
     tid === KNOWN_TENANT_IDS.MEESHO ||
     tid === KNOWN_TENANT_IDS.VERCEL ||
     tid === KNOWN_TENANT_IDS.FLIPKART ||
     tid === KNOWN_TENANT_IDS.OPENAI;
 
-  if (!isKnownTenant && (targetCompanyName || typeof window !== "undefined")) {
+  if (!isKnownTenant && (tid || targetCompanyName)) {
     let tgt = targetCompanyName;
-    let customName = `${tgt || "Custom"} Workspace`;
+    let customName = `${tgt || "Workspace"}`;
     let customSector = "Enterprise Technology";
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && tid) {
       try {
         const rawCustom = localStorage.getItem("prismiq_custom_workspaces");
         if (rawCustom) {
@@ -899,6 +900,56 @@ export function getTenantBaselineData(
         ],
       };
     }
+
+    // Empty neutral custom workspace baseline (never inherit Meesho data)
+    const emptyTid = tid || "custom-tenant";
+    return {
+      tenantId: emptyTid,
+      targetCompany: "",
+      competitors: [],
+      trackedCompanies: [],
+      workspaceConfig: {
+        tenant_id: emptyTid,
+        target_company: "",
+        competitors: [],
+        tracked_companies: [],
+        topics: [],
+        has_target: false,
+        has_competitors: false,
+        has_preferences: false,
+        is_configured: false,
+        onboarding_complete: false,
+      },
+      signals: [],
+      events: [],
+      findings: [],
+      trends: [],
+      topics: [],
+      radarEvaluations: [],
+      workspaceSettings: {
+        tenant_id: emptyTid,
+        workspace_name: "PrismIQ Workspace",
+        owner_email: `${emptyTid.slice(0, 8)}@prismiq.ai`,
+        auth_role: "authenticated",
+        rls_enforcement: "Active (PostgreSQL Row Level Security)",
+        tracked_companies_count: 0,
+        active_topics_count: 0,
+        paused_topics_count: 0,
+        total_signals_evaluated: 0,
+        noise_suppressed_count: 0,
+        cadence: "Daily (00:00 UTC)",
+        schedule: "0 0 * * *",
+        api_version: "2.0.0",
+        api_status: "Operational",
+      },
+      latestBrief: {
+        id: "",
+        date: new Date().toISOString(),
+        filename: "",
+        content: "",
+      },
+      briefs: [],
+    };
   }
 
   // 5. DEFAULT MEESHO BASELINE DATA
