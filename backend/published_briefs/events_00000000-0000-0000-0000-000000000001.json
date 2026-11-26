@@ -1,0 +1,917 @@
+[
+  {
+    "event_id": "evt_acme_crm_001_f1722de9",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce launches Agentforce autonomous AI agents for Service Cloud and Sales Cloud",
+    "theme": "Autonomous AI Agents",
+    "strategic_theme": "Autonomous AI Agents",
+    "event_summary": "Agentforce delivers autonomous enterprise reasoning agents that resolve customer tickets without pre-programmed scripts, directly disrupting legacy conversational bots.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "Agentforce delivers autonomous enterprise reasoning agents that resolve customer tickets without pre-programmed scripts, directly disrupting legacy conversational bots.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_crm_002_3ff4a41e",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce introduces consumption-based $2 per conversation pricing for Agentforce",
+    "theme": "Pricing & Packaging",
+    "strategic_theme": "Pricing & Packaging",
+    "event_summary": "Shifts away from strict per-seat user licensing toward outcome-oriented usage billing, exerting pricing pressure on traditional enterprise SaaS.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "Shifts away from strict per-seat user licensing toward outcome-oriented usage billing, exerting pricing pressure on traditional enterprise SaaS.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 10,
+    "published_at": "2026-07-04T09:17:00+00:00",
+    "published_timestamp": "2026-07-04T09:17:00+00:00",
+    "latest_detected_at": "2026-07-04T09:17:00+00:00",
+    "first_detected_at": "2026-07-04T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_crm_003_6def2cc0",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce Data Cloud achieves real-time zero-copy integration with Snowflake and Databricks",
+    "theme": "Data Integration",
+    "strategic_theme": "Data Integration",
+    "event_summary": "Eliminates complex ETL pipelines by enabling direct federated queries across enterprise data lakes and customer CRM records.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "Eliminates complex ETL pipelines by enabling direct federated queries across enterprise data lakes and customer CRM records.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 8,
+    "published_at": "2026-08-07T10:34:00+00:00",
+    "published_timestamp": "2026-08-07T10:34:00+00:00",
+    "latest_detected_at": "2026-08-07T10:34:00+00:00",
+    "first_detected_at": "2026-08-07T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_crm_004_5712b5c9",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce announces Einstein 1 Studio with low-code prompt engineering and model builder",
+    "theme": "Low-Code Developer AI",
+    "strategic_theme": "Low-Code Developer AI",
+    "event_summary": "Allows system administrators to fine-tune Anthropic Claude and OpenAI models on proprietary enterprise CRM history.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "Allows system administrators to fine-tune Anthropic Claude and OpenAI models on proprietary enterprise CRM history.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 6,
+    "published_at": "2026-09-10T11:51:00+00:00",
+    "published_timestamp": "2026-09-10T11:51:00+00:00",
+    "latest_detected_at": "2026-09-10T11:51:00+00:00",
+    "first_detected_at": "2026-09-10T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_crm_005_77edf4e8",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce adds automated FedRAMP High and HIPAA compliance guardrails to enterprise suite",
+    "theme": "Enterprise Governance",
+    "strategic_theme": "Enterprise Governance",
+    "event_summary": "Strengthens competitive moat in regulated healthcare and federal government public sector deployments.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "Strengthens competitive moat in regulated healthcare and federal government public sector deployments.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 8,
+    "published_at": "2026-10-14T12:08:00+00:00",
+    "published_timestamp": "2026-10-14T12:08:00+00:00",
+    "latest_detected_at": "2026-10-14T12:08:00+00:00",
+    "first_detected_at": "2026-10-14T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_crm_006_679a6ca7",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce Slack Sales Elevate integrates live opportunity tracking directly in Slack channels",
+    "theme": "Collaborative Workflow",
+    "strategic_theme": "Collaborative Workflow",
+    "event_summary": "Tightens daily sales rep workflow inside collaborative chat channels, reducing context switching into core CRM web interfaces.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "Tightens daily sales rep workflow inside collaborative chat channels, reducing context switching into core CRM web interfaces.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 6,
+    "published_at": "2026-11-17T13:25:00+00:00",
+    "published_timestamp": "2026-11-17T13:25:00+00:00",
+    "latest_detected_at": "2026-11-17T13:25:00+00:00",
+    "first_detected_at": "2026-11-17T13:25:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_crm_007_442f64ec",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce launches Marketing Cloud Next with autonomous campaign journey generation",
+    "theme": "Marketing Automation",
+    "strategic_theme": "Marketing Automation",
+    "event_summary": "AI-driven customer segmentation dynamically creates and delivers hyper-personalized omni-channel marketing assets.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "AI-driven customer segmentation dynamically creates and delivers hyper-personalized omni-channel marketing assets.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 8,
+    "published_at": "2026-06-20T14:42:00+00:00",
+    "published_timestamp": "2026-06-20T14:42:00+00:00",
+    "latest_detected_at": "2026-06-20T14:42:00+00:00",
+    "first_detected_at": "2026-06-20T14:42:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_crm_008_30533daa",
+    "company_name": "Salesforce",
+    "company": "Salesforce",
+    "title": "Salesforce acquires revenue intelligence platform to bolster automated pipeline forecasting",
+    "theme": "Revenue Intelligence",
+    "strategic_theme": "Revenue Intelligence",
+    "event_summary": "Deepens predictive sales analytics to rival standalone RevOps tools.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Salesforce Press",
+      "TechCrunch",
+      "VentureBeat",
+      "Forbes Enterprise"
+    ],
+    "url": "https://www.salesforce.com/news",
+    "source_urls": [
+      "https://www.salesforce.com/news"
+    ],
+    "raw_excerpt": "Deepens predictive sales analytics to rival standalone RevOps tools.",
+    "why_it_matters": "Direct market threat to Acme Corp's enterprise pipeline and customer service copilot offerings.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.91,
+    "contributing_signal_count": 6,
+    "published_at": "2026-07-23T15:59:00+00:00",
+    "published_timestamp": "2026-07-23T15:59:00+00:00",
+    "latest_detected_at": "2026-07-23T15:59:00+00:00",
+    "first_detected_at": "2026-07-23T15:59:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_hub_001_614caf46",
+    "company_name": "HubSpot",
+    "company": "HubSpot",
+    "title": "HubSpot launches Breeze AI copilot and agentic automation across full Customer Platform",
+    "theme": "AI Marketing & CRM",
+    "strategic_theme": "AI Marketing & CRM",
+    "event_summary": "Breeze AI introduces specialized agents for content creation, buyer intent analysis, and automated customer success nurturing.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "HubSpot Newsroom",
+      "MarTech",
+      "SaaS Mag"
+    ],
+    "url": "https://www.hubspot.com/company-news",
+    "source_urls": [
+      "https://www.hubspot.com/company-news"
+    ],
+    "raw_excerpt": "Breeze AI introduces specialized agents for content creation, buyer intent analysis, and automated customer success nurturing.",
+    "why_it_matters": "Aggressive mid-market penetration threatens Acme Corp's expansion deals in upper mid-tier enterprise.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 8,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_hub_002_5d066588",
+    "company_name": "HubSpot",
+    "company": "HubSpot",
+    "title": "HubSpot overhauls pricing with seat-free core CRM and tiered feature-based add-ons",
+    "theme": "Pricing Disruption",
+    "strategic_theme": "Pricing Disruption",
+    "event_summary": "Disrupts mid-market sales by lowering initial barrier to entry, forcing enterprise competitors to defend mid-market expansion.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "HubSpot Newsroom",
+      "MarTech",
+      "SaaS Mag"
+    ],
+    "url": "https://www.hubspot.com/company-news",
+    "source_urls": [
+      "https://www.hubspot.com/company-news"
+    ],
+    "raw_excerpt": "Disrupts mid-market sales by lowering initial barrier to entry, forcing enterprise competitors to defend mid-market expansion.",
+    "why_it_matters": "Aggressive mid-market penetration threatens Acme Corp's expansion deals in upper mid-tier enterprise.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 8,
+    "published_at": "2026-07-04T09:17:00+00:00",
+    "published_timestamp": "2026-07-04T09:17:00+00:00",
+    "latest_detected_at": "2026-07-04T09:17:00+00:00",
+    "first_detected_at": "2026-07-04T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_hub_003_48e2d5d3",
+    "company_name": "HubSpot",
+    "company": "HubSpot",
+    "title": "HubSpot Commerce Hub expands global multi-currency billing and B2B recurring subscription management",
+    "theme": "Revenue Operations",
+    "strategic_theme": "Revenue Operations",
+    "event_summary": "Allows mid-market software companies to manage quotes, contracts, and Stripe billing directly inside CRM contacts.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "HubSpot Newsroom",
+      "MarTech",
+      "SaaS Mag"
+    ],
+    "url": "https://www.hubspot.com/company-news",
+    "source_urls": [
+      "https://www.hubspot.com/company-news"
+    ],
+    "raw_excerpt": "Allows mid-market software companies to manage quotes, contracts, and Stripe billing directly inside CRM contacts.",
+    "why_it_matters": "Aggressive mid-market penetration threatens Acme Corp's expansion deals in upper mid-tier enterprise.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 6,
+    "published_at": "2026-08-08T10:34:00+00:00",
+    "published_timestamp": "2026-08-08T10:34:00+00:00",
+    "latest_detected_at": "2026-08-08T10:34:00+00:00",
+    "first_detected_at": "2026-08-08T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_hub_004_7bc45a7c",
+    "company_name": "HubSpot",
+    "company": "HubSpot",
+    "title": "HubSpot Marketing Hub introduces predictive buyer journey mapping with generative content testing",
+    "theme": "Inbound Marketing Automation",
+    "strategic_theme": "Inbound Marketing Automation",
+    "event_summary": "Automated A/B email generation and multi-channel attribution analytics reduce marketing team manual campaign creation.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "HubSpot Newsroom",
+      "MarTech",
+      "SaaS Mag"
+    ],
+    "url": "https://www.hubspot.com/company-news",
+    "source_urls": [
+      "https://www.hubspot.com/company-news"
+    ],
+    "raw_excerpt": "Automated A/B email generation and multi-channel attribution analytics reduce marketing team manual campaign creation.",
+    "why_it_matters": "Aggressive mid-market penetration threatens Acme Corp's expansion deals in upper mid-tier enterprise.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 6,
+    "published_at": "2026-09-12T11:51:00+00:00",
+    "published_timestamp": "2026-09-12T11:51:00+00:00",
+    "latest_detected_at": "2026-09-12T11:51:00+00:00",
+    "first_detected_at": "2026-09-12T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_hub_005_7b34424e",
+    "company_name": "HubSpot",
+    "company": "HubSpot",
+    "title": "HubSpot integrates native WhatsApp and LinkedIn messaging into unified omnichannel inbox",
+    "theme": "Omnichannel Sales",
+    "strategic_theme": "Omnichannel Sales",
+    "event_summary": "Enables sales reps in EMEA and APAC to close deals via instant messaging while automatically logging transcripts in CRM.",
+    "corroboration_count": 2,
+    "contributing_sources": [
+      "HubSpot Newsroom",
+      "MarTech",
+      "SaaS Mag"
+    ],
+    "url": "https://www.hubspot.com/company-news",
+    "source_urls": [
+      "https://www.hubspot.com/company-news"
+    ],
+    "raw_excerpt": "Enables sales reps in EMEA and APAC to close deals via instant messaging while automatically logging transcripts in CRM.",
+    "why_it_matters": "Aggressive mid-market penetration threatens Acme Corp's expansion deals in upper mid-tier enterprise.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 4,
+    "published_at": "2026-10-15T12:08:00+00:00",
+    "published_timestamp": "2026-10-15T12:08:00+00:00",
+    "latest_detected_at": "2026-10-15T12:08:00+00:00",
+    "first_detected_at": "2026-10-15T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_hub_006_61d68334",
+    "company_name": "HubSpot",
+    "company": "HubSpot",
+    "title": "HubSpot Operations Hub adds real-time bidirectional sync with Snowflake and BigQuery",
+    "theme": "Data Operations",
+    "strategic_theme": "Data Operations",
+    "event_summary": "Enables data teams to maintain single customer view across enterprise warehouses and CRM properties without third-party middleware.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "HubSpot Newsroom",
+      "MarTech",
+      "SaaS Mag"
+    ],
+    "url": "https://www.hubspot.com/company-news",
+    "source_urls": [
+      "https://www.hubspot.com/company-news"
+    ],
+    "raw_excerpt": "Enables data teams to maintain single customer view across enterprise warehouses and CRM properties without third-party middleware.",
+    "why_it_matters": "Aggressive mid-market penetration threatens Acme Corp's expansion deals in upper mid-tier enterprise.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 6,
+    "published_at": "2026-11-19T13:25:00+00:00",
+    "published_timestamp": "2026-11-19T13:25:00+00:00",
+    "latest_detected_at": "2026-11-19T13:25:00+00:00",
+    "first_detected_at": "2026-11-19T13:25:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_hub_007_5b60749a",
+    "company_name": "HubSpot",
+    "company": "HubSpot",
+    "title": "HubSpot introduces custom behavioral event triggers for mobile and web apps",
+    "theme": "Product-Led Growth",
+    "strategic_theme": "Product-Led Growth",
+    "event_summary": "Allows SaaS product teams to trigger automated sales and onboarding workflows based on in-app feature usage.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "HubSpot Newsroom",
+      "MarTech",
+      "SaaS Mag"
+    ],
+    "url": "https://www.hubspot.com/company-news",
+    "source_urls": [
+      "https://www.hubspot.com/company-news"
+    ],
+    "raw_excerpt": "Allows SaaS product teams to trigger automated sales and onboarding workflows based on in-app feature usage.",
+    "why_it_matters": "Aggressive mid-market penetration threatens Acme Corp's expansion deals in upper mid-tier enterprise.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.93,
+    "inference_confidence": 0.89,
+    "contributing_signal_count": 6,
+    "published_at": "2026-06-23T14:42:00+00:00",
+    "published_timestamp": "2026-06-23T14:42:00+00:00",
+    "latest_detected_at": "2026-06-23T14:42:00+00:00",
+    "first_detected_at": "2026-06-23T14:42:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_msft_001_3aa5fe49",
+    "company_name": "Microsoft",
+    "company": "Microsoft",
+    "title": "Microsoft Dynamics 365 launches Copilot Studio autonomous supply chain and finance agents",
+    "theme": "Enterprise ERP & AI",
+    "strategic_theme": "Enterprise ERP & AI",
+    "event_summary": "Enterprise ERP and CRM integrate native Azure OpenAI agents capable of automated purchase order reconciliation and invoice auditing.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Microsoft News Center",
+      "ZDNet",
+      "The Verge",
+      "CRN"
+    ],
+    "url": "https://news.microsoft.com",
+    "source_urls": [
+      "https://news.microsoft.com"
+    ],
+    "raw_excerpt": "Enterprise ERP and CRM integrate native Azure OpenAI agents capable of automated purchase order reconciliation and invoice auditing.",
+    "why_it_matters": "Bundling advantages and Azure ecosystem leverage create severe renewal hurdles for standalone enterprise software.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_msft_002_42e1c330",
+    "company_name": "Microsoft",
+    "company": "Microsoft",
+    "title": "Microsoft bundles Dynamics 365 Sales with Microsoft 365 Copilot enterprise licensing",
+    "theme": "Bundling & Enterprise Monopoly",
+    "strategic_theme": "Bundling & Enterprise Monopoly",
+    "event_summary": "Leverages massive Office 365 enterprise install base to displace third-party CRM seats through unified procurement discounts.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Microsoft News Center",
+      "ZDNet",
+      "The Verge",
+      "CRN"
+    ],
+    "url": "https://news.microsoft.com",
+    "source_urls": [
+      "https://news.microsoft.com"
+    ],
+    "raw_excerpt": "Leverages massive Office 365 enterprise install base to displace third-party CRM seats through unified procurement discounts.",
+    "why_it_matters": "Bundling advantages and Azure ecosystem leverage create severe renewal hurdles for standalone enterprise software.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 10,
+    "published_at": "2026-07-04T09:17:00+00:00",
+    "published_timestamp": "2026-07-04T09:17:00+00:00",
+    "latest_detected_at": "2026-07-04T09:17:00+00:00",
+    "first_detected_at": "2026-07-04T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_msft_003_3e792d8c",
+    "company_name": "Microsoft",
+    "company": "Microsoft",
+    "title": "Microsoft Azure adds confidential computing enclaves for enterprise customer data sovereignty",
+    "theme": "Data Security & Sovereignty",
+    "strategic_theme": "Data Security & Sovereignty",
+    "event_summary": "Ensures CRM and enterprise analytical queries never expose plaintext data even to cloud infrastructure administrators.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Microsoft News Center",
+      "ZDNet",
+      "The Verge",
+      "CRN"
+    ],
+    "url": "https://news.microsoft.com",
+    "source_urls": [
+      "https://news.microsoft.com"
+    ],
+    "raw_excerpt": "Ensures CRM and enterprise analytical queries never expose plaintext data even to cloud infrastructure administrators.",
+    "why_it_matters": "Bundling advantages and Azure ecosystem leverage create severe renewal hurdles for standalone enterprise software.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 8,
+    "published_at": "2026-08-08T10:34:00+00:00",
+    "published_timestamp": "2026-08-08T10:34:00+00:00",
+    "latest_detected_at": "2026-08-08T10:34:00+00:00",
+    "first_detected_at": "2026-08-08T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_msft_004_75e59a93",
+    "company_name": "Microsoft",
+    "company": "Microsoft",
+    "title": "Microsoft Power Platform enables natural language app creation connected to Dataverse",
+    "theme": "Low-Code Enterprise Apps",
+    "strategic_theme": "Low-Code Enterprise Apps",
+    "event_summary": "Business analysts build internal workflow approval apps without writing code, reducing demand for specialized enterprise portals.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Microsoft News Center",
+      "ZDNet",
+      "The Verge",
+      "CRN"
+    ],
+    "url": "https://news.microsoft.com",
+    "source_urls": [
+      "https://news.microsoft.com"
+    ],
+    "raw_excerpt": "Business analysts build internal workflow approval apps without writing code, reducing demand for specialized enterprise portals.",
+    "why_it_matters": "Bundling advantages and Azure ecosystem leverage create severe renewal hurdles for standalone enterprise software.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 6,
+    "published_at": "2026-09-12T11:51:00+00:00",
+    "published_timestamp": "2026-09-12T11:51:00+00:00",
+    "latest_detected_at": "2026-09-12T11:51:00+00:00",
+    "first_detected_at": "2026-09-12T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_msft_005_4b4edb90",
+    "company_name": "Microsoft",
+    "company": "Microsoft",
+    "title": "Microsoft Teams integrates deep CRM deal rooms with real-time meeting transcription and task sync",
+    "theme": "Unified Communications",
+    "strategic_theme": "Unified Communications",
+    "event_summary": "Automatically captures action items and customer sentiment from Teams video calls directly into account timelines.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Microsoft News Center",
+      "ZDNet",
+      "The Verge",
+      "CRN"
+    ],
+    "url": "https://news.microsoft.com",
+    "source_urls": [
+      "https://news.microsoft.com"
+    ],
+    "raw_excerpt": "Automatically captures action items and customer sentiment from Teams video calls directly into account timelines.",
+    "why_it_matters": "Bundling advantages and Azure ecosystem leverage create severe renewal hurdles for standalone enterprise software.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 6,
+    "published_at": "2026-10-15T12:08:00+00:00",
+    "published_timestamp": "2026-10-15T12:08:00+00:00",
+    "latest_detected_at": "2026-10-15T12:08:00+00:00",
+    "first_detected_at": "2026-10-15T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_msft_006_2491d8fa",
+    "company_name": "Microsoft",
+    "company": "Microsoft",
+    "title": "Microsoft launches Fabric AI mirroring for real-time customer data unification",
+    "theme": "Unified Analytics",
+    "strategic_theme": "Unified Analytics",
+    "event_summary": "Seamlessly joins Dynamics CRM telemetry with enterprise analytics in OneLake without data duplication.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Microsoft News Center",
+      "ZDNet",
+      "The Verge",
+      "CRN"
+    ],
+    "url": "https://news.microsoft.com",
+    "source_urls": [
+      "https://news.microsoft.com"
+    ],
+    "raw_excerpt": "Seamlessly joins Dynamics CRM telemetry with enterprise analytics in OneLake without data duplication.",
+    "why_it_matters": "Bundling advantages and Azure ecosystem leverage create severe renewal hurdles for standalone enterprise software.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 8,
+    "published_at": "2026-11-19T13:25:00+00:00",
+    "published_timestamp": "2026-11-19T13:25:00+00:00",
+    "latest_detected_at": "2026-11-19T13:25:00+00:00",
+    "first_detected_at": "2026-11-19T13:25:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_msft_007_31db774d",
+    "company_name": "Microsoft",
+    "company": "Microsoft",
+    "title": "Microsoft introduces sovereign cloud offerings for EU public sector customers",
+    "theme": "Sovereign Cloud",
+    "strategic_theme": "Sovereign Cloud",
+    "event_summary": "Ensures compliance with stringent European data localization mandates for enterprise SaaS.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Microsoft News Center",
+      "ZDNet",
+      "The Verge",
+      "CRN"
+    ],
+    "url": "https://news.microsoft.com",
+    "source_urls": [
+      "https://news.microsoft.com"
+    ],
+    "raw_excerpt": "Ensures compliance with stringent European data localization mandates for enterprise SaaS.",
+    "why_it_matters": "Bundling advantages and Azure ecosystem leverage create severe renewal hurdles for standalone enterprise software.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.96,
+    "inference_confidence": 0.92,
+    "contributing_signal_count": 8,
+    "published_at": "2026-06-23T14:42:00+00:00",
+    "published_timestamp": "2026-06-23T14:42:00+00:00",
+    "latest_detected_at": "2026-06-23T14:42:00+00:00",
+    "first_detected_at": "2026-06-23T14:42:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_001_2db6bf4c",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp unveils Next-Gen Enterprise Orchestration Suite with multi-cloud agent mesh",
+    "theme": "Enterprise Mesh Platform",
+    "strategic_theme": "Enterprise Mesh Platform",
+    "event_summary": "Flagship release allows Fortune 500 enterprises to coordinate autonomous agents across AWS, Azure, and private on-premises clouds.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Flagship release allows Fortune 500 enterprises to coordinate autonomous agents across AWS, Azure, and private on-premises clouds.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-01T08:00:00+00:00",
+    "published_timestamp": "2026-06-01T08:00:00+00:00",
+    "latest_detected_at": "2026-06-01T08:00:00+00:00",
+    "first_detected_at": "2026-06-01T08:00:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_002_6cabcfd4",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp achieves SOC2 Type II and ISO 27001 certifications across all global data regions",
+    "theme": "Compliance Certification",
+    "strategic_theme": "Compliance Certification",
+    "event_summary": "Completes rigorous third-party enterprise compliance audit, unlocking high-security financial services and defense contracts.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Completes rigorous third-party enterprise compliance audit, unlocking high-security financial services and defense contracts.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 8,
+    "published_at": "2026-07-04T09:17:00+00:00",
+    "published_timestamp": "2026-07-04T09:17:00+00:00",
+    "latest_detected_at": "2026-07-04T09:17:00+00:00",
+    "first_detected_at": "2026-07-04T09:17:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_003_bcf44d3e",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp transitions core product tier to consumption billing with guaranteed savings SLA",
+    "theme": "Pricing Model Evolution",
+    "strategic_theme": "Pricing Model Evolution",
+    "event_summary": "Directly counters legacy seat-based competitors by aligning pricing with demonstrated operational compute efficiency.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Directly counters legacy seat-based competitors by aligning pricing with demonstrated operational compute efficiency.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 8,
+    "published_at": "2026-08-07T10:34:00+00:00",
+    "published_timestamp": "2026-08-07T10:34:00+00:00",
+    "latest_detected_at": "2026-08-07T10:34:00+00:00",
+    "first_detected_at": "2026-08-07T10:34:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_004_3803b4c7",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp announces strategic system integrator partnership with Deloitte and Accenture",
+    "theme": "Go-To-Market Alliances",
+    "strategic_theme": "Go-To-Market Alliances",
+    "event_summary": "Global SI alliances establish dedicated implementation practices to accelerate enterprise migration from legacy platforms.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Global SI alliances establish dedicated implementation practices to accelerate enterprise migration from legacy platforms.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 8,
+    "published_at": "2026-09-10T11:51:00+00:00",
+    "published_timestamp": "2026-09-10T11:51:00+00:00",
+    "latest_detected_at": "2026-09-10T11:51:00+00:00",
+    "first_detected_at": "2026-09-10T11:51:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_005_4cbb0f11",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp launches developer portal with open API specifications and automated sandboxes",
+    "theme": "Developer Experience",
+    "strategic_theme": "Developer Experience",
+    "event_summary": "Reduces third-party integration time from weeks to hours for enterprise engineering teams.",
+    "corroboration_count": 3,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Reduces third-party integration time from weeks to hours for enterprise engineering teams.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "Medium",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 6,
+    "published_at": "2026-10-14T12:08:00+00:00",
+    "published_timestamp": "2026-10-14T12:08:00+00:00",
+    "latest_detected_at": "2026-10-14T12:08:00+00:00",
+    "first_detected_at": "2026-10-14T12:08:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_006_1134d0f5",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp reports 140% net revenue retention driven by cross-department expansion",
+    "theme": "Financial Performance",
+    "strategic_theme": "Financial Performance",
+    "event_summary": "Strong customer expansion signals robust platform stickiness in the face of hyperscaler bundling pressure.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Strong customer expansion signals robust platform stickiness in the face of hyperscaler bundling pressure.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 8,
+    "published_at": "2026-11-17T13:25:00+00:00",
+    "published_timestamp": "2026-11-17T13:25:00+00:00",
+    "latest_detected_at": "2026-11-17T13:25:00+00:00",
+    "first_detected_at": "2026-11-17T13:25:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_007_44890cea",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp introduces zero-trust identity and role-based access control framework",
+    "theme": "Enterprise Security",
+    "strategic_theme": "Enterprise Security",
+    "event_summary": "Enables granular per-agent permission scoping for highly regulated banking environments.",
+    "corroboration_count": 5,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Enables granular per-agent permission scoping for highly regulated banking environments.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "Critical",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 10,
+    "published_at": "2026-06-20T14:42:00+00:00",
+    "published_timestamp": "2026-06-20T14:42:00+00:00",
+    "latest_detected_at": "2026-06-20T14:42:00+00:00",
+    "first_detected_at": "2026-06-20T14:42:00+00:00"
+  },
+  {
+    "event_id": "evt_acme_own_008_706d26c2",
+    "company_name": "Acme Corp",
+    "company": "Acme Corp",
+    "title": "Acme Corp releases benchmark report showing 40% reduction in agent coordination latency",
+    "theme": "Platform Performance",
+    "strategic_theme": "Platform Performance",
+    "event_summary": "Proprietary distributed state machine outperforms legacy event streaming architectures in high-throughput benchmarks.",
+    "corroboration_count": 4,
+    "contributing_sources": [
+      "Acme Press",
+      "PR Newswire",
+      "Enterprise Tech Review"
+    ],
+    "url": "https://acmecorp.com/news",
+    "source_urls": [
+      "https://acmecorp.com/news"
+    ],
+    "raw_excerpt": "Proprietary distributed state machine outperforms legacy event streaming architectures in high-throughput benchmarks.",
+    "why_it_matters": "Core platform initiatives strengthening enterprise differentiation against Salesforce and Microsoft.",
+    "tier": "High",
+    "confidence": "High",
+    "fact_confidence": 0.95,
+    "inference_confidence": 0.9,
+    "contributing_signal_count": 8,
+    "published_at": "2026-07-23T15:59:00+00:00",
+    "published_timestamp": "2026-07-23T15:59:00+00:00",
+    "latest_detected_at": "2026-07-23T15:59:00+00:00",
+    "first_detected_at": "2026-07-23T15:59:00+00:00"
+  }
+]

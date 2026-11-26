@@ -39,14 +39,17 @@ backend/published_briefs/*.md
 !backend/published_briefs/.gitkeep
 !backend/published_briefs/trends_clusters.json
 !backend/published_briefs/brief.md
+!backend/published_briefs/events_00000000-0000-0000-0000-000000000001.json
 !backend/published_briefs/events_8553449a-c998-4727-be01-9aeb724038cb.json
 !backend/published_briefs/events_c8f13b91-46ef-4682-9975-f85764d8a12e.json
 !backend/published_briefs/events_7b90477d-2524-4cf9-8e47-f389ec890ff7.json
 !backend/published_briefs/events_6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f.json
+!backend/published_briefs/signals_00000000-0000-0000-0000-000000000001.json
 !backend/published_briefs/signals_8553449a-c998-4727-be01-9aeb724038cb.json
 !backend/published_briefs/signals_c8f13b91-46ef-4682-9975-f85764d8a12e.json
 !backend/published_briefs/signals_7b90477d-2524-4cf9-8e47-f389ec890ff7.json
 !backend/published_briefs/signals_6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f.json
+!backend/published_briefs/tracked_companies_00000000-0000-0000-0000-000000000001.json
 !backend/published_briefs/tracked_companies_8553449a-c998-4727-be01-9aeb724038cb.json
 !backend/published_briefs/tracked_companies_c8f13b91-46ef-4682-9975-f85764d8a12e.json
 !backend/published_briefs/tracked_companies_7b90477d-2524-4cf9-8e47-f389ec890ff7.json

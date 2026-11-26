@@ -1,0 +1,46 @@
+[
+  {
+    "company_name": "Acme Corp",
+    "is_target": true,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "acmecorp.com",
+    "industry_category": "Enterprise Software & Cloud Platforms",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Primary subject entity for competitive benchmarking and strategic intelligence."
+  },
+  {
+    "company_name": "Salesforce",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "salesforce.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Acme Corp."
+  },
+  {
+    "company_name": "HubSpot",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "hubspot.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Acme Corp."
+  },
+  {
+    "company_name": "Microsoft",
+    "is_target": false,
+    "status": "active",
+    "added_at": "2026-06-01T00:00:00+00:00",
+    "primary_domain": "microsoft.com",
+    "industry_category": "Tracked Competitor",
+    "tier": "core",
+    "confidence": "High",
+    "rationale": "Direct market competitor monitored for strategic product and pricing moves against Acme Corp."
+  }
+]
