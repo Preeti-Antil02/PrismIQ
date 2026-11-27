@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+from . import storage
 from .analyst_feedback_service import AnalystFeedbackService
 from .batch4_storage import clear_tenant_cache
 from .competitor_comparison_engine import CompetitorComparisonEngine
@@ -127,7 +128,7 @@ def list_relationships(
 ):
     """List and filter competitive relationship edges."""
     engine = RelationshipEngine(tenant_id)
-    return engine.list_relationships(
+    results = engine.list_relationships(
         subject_id=subject_id,
         subject_type=subject_type,
         predicate=predicate,
@@ -138,6 +139,14 @@ def list_relationships(
         limit=limit,
         offset=offset,
     )
+    if (
+        not results
+        and not any([subject_id, subject_type, predicate, object_id, object_type, entity_id])
+        and (not storage.is_test_environment() or storage.load_events(tenant_id=tenant_id))
+    ):
+        engine.synthesize_from_workspace()
+        results = engine.list_relationships(status=status, limit=limit, offset=offset)
+    return results
 
 
 @router.get("/relationships/graph")

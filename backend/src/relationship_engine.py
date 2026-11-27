@@ -151,6 +151,106 @@ class RelationshipEngine:
             offset=offset,
         )
 
+    def synthesize_from_workspace(self) -> List[Dict[str, Any]]:
+        """
+        Synthesize real tenant-scoped relationships from this tenant's tracked companies,
+        swept events, and signal correlations when no explicit edges exist yet.
+        """
+        existing = self.list_relationships(limit=10)
+        if existing:
+            return existing
+
+        from . import storage
+
+        cfg = storage.get_tenant_workspace_config(self.tenant_id) or {}
+        target = str(cfg.get("target_company") or "").strip()
+        comps = [str(c).strip() for c in (cfg.get("competitors") or []) if str(c).strip()]
+        events = storage.load_events(tenant_id=self.tenant_id) or []
+        correlations = storage.get_signal_correlations(tenant_id=self.tenant_id) or []
+
+        if not target and not comps and not events:
+            return []
+
+        created: List[Dict[str, Any]] = []
+        target_slug = (target or "target").lower().replace(" ", "_")
+
+        # 1. Tracked competitor rivalry edges
+        for comp in comps[:8]:
+            comp_slug = comp.lower().replace(" ", "_")
+            created.append(
+                self.create_relationship(
+                    subject_id=target_slug,
+                    subject_type="competitor",
+                    subject_name=target or "Workspace Target",
+                    predicate="competes_with",
+                    object_id=comp_slug,
+                    object_type="competitor",
+                    object_name=comp,
+                    relationship_source="verified_fact",
+                    source_reference="Tenant Confirmed Competitive Watchlist",
+                    confidence="High",
+                )
+            )
+
+        # 2. Event-grounded product/feature/partnership/hiring edges
+        seen_titles = set()
+        for idx, ev in enumerate(events[:25]):
+            comp = str(ev.get("company_name") or ev.get("company") or "").strip()
+            title = str(ev.get("title") or "").strip()
+            if not comp or not title or title.lower() in seen_titles:
+                continue
+            seen_titles.add(title.lower())
+            t_low = title.lower()
+            if any(w in t_low for w in ("partner", "alliance", "integration")):
+                pred, obj_type = "partnered_with", "partnership"
+            elif any(w in t_low for w in ("hiring", "recruit", "director", "engineer")):
+                pred, obj_type = "recruits_for", "hiring"
+            elif any(w in t_low for w in ("launch", "release", "feature", "sdk", "api", "v1", "v2")):
+                pred, obj_type = "offers_feature", "feature"
+            else:
+                pred, obj_type = "triggered_event", "event"
+            created.append(
+                self.create_relationship(
+                    subject_id=comp.lower().replace(" ", "_"),
+                    subject_type="competitor",
+                    subject_name=comp,
+                    predicate=pred,
+                    object_id=str(ev.get("event_id") or f"evt_{idx}"),
+                    object_type=obj_type,
+                    object_name=title[:140],
+                    relationship_source="verified_fact",
+                    source_reference=str(ev.get("url") or "Verified Competitive Event"),
+                    confidence=str(ev.get("fact_confidence") or ev.get("confidence") or "High"),
+                )
+            )
+            if len(created) >= 18:
+                break
+
+        # 3. Correlated strategic pattern edges
+        for corr in correlations[:6]:
+            comp = str(corr.get("company_name") or "").strip()
+            pname = str(corr.get("pattern_name") or "").strip()
+            if not comp or not pname:
+                continue
+            created.append(
+                self.create_relationship(
+                    subject_id=comp.lower().replace(" ", "_"),
+                    subject_type="competitor",
+                    subject_name=comp,
+                    predicate="exhibits_pattern",
+                    object_id=str(corr.get("id") or f"pat_{len(created)}"),
+                    object_type="strategic_pattern",
+                    object_name=pname[:140],
+                    relationship_source="inferred",
+                    source_reference="PrismIQ Multi-Channel Signal Correlation Engine",
+                    is_inferred=True,
+                    inference_reason=str(corr.get("pattern_summary") or "Correlated across multi-channel signals."),
+                    confidence="High",
+                )
+            )
+
+        return created
+
     def get_entity_graph(
         self,
         entity_id: str,

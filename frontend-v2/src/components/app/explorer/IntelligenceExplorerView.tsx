@@ -56,8 +56,8 @@ export interface RelationshipRecord {
 }
 
 export function IntelligenceExplorerView() {
-  const { targetCompany, tenantId } = useWorkspace();
-  const effectiveTarget = targetCompany || "Acme Corp";
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
+  const effectiveTarget = targetCompany || "Workspace";
 
   const [loading, setLoading] = React.useState(true);
   const [relationships, setRelationships] = React.useState<RelationshipRecord[]>([]);
@@ -73,149 +73,75 @@ export function IntelligenceExplorerView() {
     subject_name: effectiveTarget,
     subject_type: "competitor",
     predicate: "competes_with",
-    object_name: "Competitor X",
+    object_name: "",
     object_type: "competitor",
     source_type: "verified_claim",
-    source_reference: "Industry Analyst Report Q4",
-    inference_explanation: "Verified direct competitor in enterprise CRM and sales workflows.",
+    source_reference: "",
+    inference_explanation: "",
   });
 
-  const loadRelationships = React.useCallback(async () => {
-    setLoading(true);
+  // Reset workspace filters & modal defaults cleanly when changing workspaces
+  React.useEffect(() => {
+    setSearchQuery("");
+    setSelectedEntityType("ALL");
+    setSelectedRelType("ALL");
+    setSelectedNode(null);
+    setNewRelForm((prev) => ({
+      ...prev,
+      subject_name: effectiveTarget,
+    }));
+  }, [tenantId, effectiveTarget]);
+
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
+  const loadRelationships = React.useCallback(async (silent: boolean | unknown = false) => {
+    const isSilent = silent === true;
+    if (!isSilent) {
+      setLoading(true);
+    }
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      const res = await fetch(`/api/relationships`, {
+      const token = getClientAuthToken(tenantId);
+      const qs = tenantId ? `?tenant_id=${encodeURIComponent(tenantId)}` : "";
+      const res = await fetch(`/api/relationships${qs}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
         },
+        cache: "no-store",
       });
       if (res.ok) {
         const data = await res.json();
         const list = data.relationships || (Array.isArray(data) ? data : []);
-        if (list.length > 0) {
-          setRelationships(list);
-          setLoading(false);
-          return;
-        }
+        setRelationships(list);
+      } else {
+        setRelationships([]);
       }
     } catch {
-      // offline / fallback
+      setRelationships([]);
+    } finally {
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
-
-    // Dynamic fallback matching target company
-    const primaryComp = effectiveTarget.toLowerCase().includes("acme")
-      ? "Competitor X"
-      : effectiveTarget.toLowerCase().includes("meesho")
-      ? "Flipkart"
-      : effectiveTarget.toLowerCase().includes("vercel")
-      ? "Cloudflare Pages"
-      : "Competitor A";
-
-    const fallbackList: RelationshipRecord[] = [
-      {
-        id: "rel_1",
-        subject_id: effectiveTarget.toLowerCase(),
-        subject_type: "competitor",
-        subject_name: effectiveTarget,
-        predicate: "competes_with",
-        object_id: primaryComp.toLowerCase(),
-        object_type: "competitor",
-        object_name: primaryComp,
-        relationship_type: "competition",
-        source_type: "verified_claim",
-        source_reference: "Gartner Enterprise Market Guide 2026",
-        inference_explanation: "Direct overlap in core enterprise customers and pricing RFP benchmarks.",
-        confidence: "High",
-        created_at: "2026-11-10T10:00:00Z",
-      },
-      {
-        id: "rel_2",
-        subject_id: primaryComp.toLowerCase(),
-        subject_type: "competitor",
-        subject_name: primaryComp,
-        predicate: "launched_feature",
-        object_id: "feat_workflow",
-        object_type: "feature",
-        object_name: "AI Workflow Triggers & Lead Routing",
-        relationship_type: "product_release",
-        source_type: "explicit",
-        source_reference: "TechCrunch Launch Coverage Nov 2026",
-        inference_explanation: "Official press release and product launch documentation.",
-        confidence: "High",
-        created_at: "2026-11-08T14:30:00Z",
-      },
-      {
-        id: "rel_3",
-        subject_id: primaryComp.toLowerCase(),
-        subject_type: "competitor",
-        subject_name: primaryComp,
-        predicate: "partnered_with",
-        object_id: "si_network",
-        object_type: "partnership",
-        object_name: "Global Systems Integrator Alliance",
-        relationship_type: "partnership",
-        source_type: "explicit",
-        source_reference: "Reuters Business Feed",
-        inference_explanation: "Strategic enterprise alliance announced at annual user summit.",
-        confidence: "High",
-        created_at: "2026-11-12T09:15:00Z",
-      },
-      {
-        id: "rel_4",
-        subject_id: primaryComp.toLowerCase(),
-        subject_type: "competitor",
-        subject_name: primaryComp,
-        predicate: "hiring_in",
-        object_id: "hire_sales",
-        object_type: "hiring",
-        object_name: "Enterprise Field Sales Leadership",
-        relationship_type: "hiring_activity",
-        source_type: "inferred",
-        source_reference: "LinkedIn Talent Insights (45 active job postings)",
-        inference_explanation: "Rapid recruitment signals expansion into large enterprise displacement campaigns.",
-        confidence: "Medium",
-        created_at: "2026-11-14T11:00:00Z",
-      },
-      {
-        id: "rel_5",
-        subject_id: "deal_active",
-        subject_type: "deal",
-        subject_name: "Enterprise CRM Migration ($2.5M)",
-        predicate: "pressured_by",
-        object_id: primaryComp.toLowerCase(),
-        object_type: "competitor",
-        object_name: primaryComp,
-        relationship_type: "deal_competition",
-        source_type: "verified_claim",
-        source_reference: "Sales Call Transcript Timestamp 02:15",
-        inference_explanation: "Customer explicitly cited 20% lower annual plan during procurement review.",
-        confidence: "High",
-        created_at: "2026-11-15T14:30:00Z",
-      },
-    ];
-
-    setRelationships(fallbackList);
-    setLoading(false);
-  }, [effectiveTarget]);
+  }, [tenantId]);
 
   React.useEffect(() => {
-    loadRelationships();
-  }, [loadRelationships]);
+    const isSyncRefresh = prevSyncRef.current !== pipelineSyncVersion;
+    prevSyncRef.current = pipelineSyncVersion;
+    loadRelationships(isSyncRefresh);
+  }, [loadRelationships, pipelineSyncVersion]);
 
   const handleCreateRelationship = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      const res = await fetch(`/api/relationships`, {
+      const token = getClientAuthToken(tenantId);
+      const qs = tenantId ? `?tenant_id=${encodeURIComponent(tenantId)}` : "";
+      const res = await fetch(`/api/relationships${qs}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(tenantId ? { "X-Tenant-ID": tenantId } : {}),
         },
         body: JSON.stringify({
           subject_id: newRelForm.subject_name.toLowerCase().replace(/\s+/g, "_"),

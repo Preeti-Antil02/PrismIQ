@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { getClientAuthToken } from "@/lib/auth";
+import { useWorkspace } from "../AppShell";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -48,9 +49,59 @@ export interface ThreatAssessmentViewProps {
   tenantId?: string;
 }
 
+function normalizeThreatScorePayload(raw: any, fallbackComp: string): ThreatScoreData {
+  const rawFactors = raw?.factors || raw?.factor_contributions || {};
+  const mapFactor = (key: string, defaultWeight: number): FactorBreakdown => {
+    const f = rawFactors[key] || {};
+    const assessed = f.is_assessed !== false;
+    const rawScore = f.score ?? f.raw_score;
+    const score = typeof rawScore === "number" ? Math.round(rawScore) : 0;
+    const weight = typeof f.weight === "number" ? f.weight : defaultWeight;
+    const effectiveWeight = typeof f.effective_weight === "number" ? f.effective_weight : weight;
+    const weightedContribution =
+      typeof f.weighted_contribution === "number"
+        ? f.weighted_contribution
+        : Number((score * effectiveWeight).toFixed(1));
+    const evidenceCount = Number(f.evidence_count ?? f.data_points_count ?? 0);
+    const summary =
+      f.summary ||
+      f.explanation ||
+      (assessed
+        ? `Assessed across ${evidenceCount} empirical data point(s).`
+        : "Unassessed — no verified data captured yet for this factor.");
+    return {
+      score,
+      weight,
+      weighted_contribution: weightedContribution,
+      data_coverage: assessed ? 1 : 0,
+      evidence_count: evidenceCount,
+      summary,
+    };
+  };
+
+  return {
+    competitor_name: raw?.competitor_name || fallbackComp,
+    threat_score: Math.round(Number(raw?.threat_score ?? raw?.overall_threat_score ?? 0)),
+    threat_level: raw?.threat_level || "Unassessed",
+    data_coverage: Number(raw?.data_coverage ?? raw?.data_coverage_score ?? 0),
+    has_missing_data: Boolean(raw?.has_missing_data),
+    calculated_at: raw?.calculated_at || new Date().toISOString(),
+    factors: {
+      product_activity: mapFactor("product_activity", 0.25),
+      hiring_activity: mapFactor("hiring_activity", 0.15),
+      pricing_movement: mapFactor("pricing_movement", 0.25),
+      market_activity: mapFactor("market_activity", 0.15),
+      customer_evidence: mapFactor("customer_evidence", 0.20),
+    },
+  };
+}
+
 export function ThreatAssessmentView({ competitorName, tenantId }: ThreatAssessmentViewProps) {
+  const workspace = useWorkspace();
+  const effectiveTenantId = tenantId || workspace.tenantId;
   const [loading, setLoading] = React.useState(true);
   const [data, setData] = React.useState<ThreatScoreData | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const [weights, setWeights] = React.useState({
     product_activity: 0.25,
     hiring_activity: 0.15,
@@ -62,137 +113,86 @@ export function ThreatAssessmentView({ competitorName, tenantId }: ThreatAssessm
   const [showWeightSliders, setShowWeightSliders] = React.useState(false);
 
   const loadScore = React.useCallback(async () => {
+    if (!competitorName) return;
     setLoading(true);
+    setError(null);
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      const res = await fetch(`/api/threat-scoring/${encodeURIComponent(competitorName)}`, {
+      const token = getClientAuthToken(effectiveTenantId);
+      const qs = effectiveTenantId ? `?tenant_id=${encodeURIComponent(effectiveTenantId)}` : "";
+      const res = await fetch(`/api/threat-scoring/${encodeURIComponent(competitorName)}${qs}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(effectiveTenantId ? { "X-Tenant-ID": effectiveTenantId } : {}),
         },
+        cache: "no-store",
       });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-        setLoading(false);
-        return;
+      if (!res.ok) {
+        throw new Error(`Threat score request returned ${res.status}`);
       }
-    } catch {
-      // fallback
+      const json = await res.json();
+      setData(normalizeThreatScorePayload(json, competitorName));
+    } catch (err: any) {
+      setData(null);
+      setError(err?.message || "Unable to calculate threat score for this competitor.");
+    } finally {
+      setLoading(false);
     }
-
-    // High fidelity explainable fallback
-    const fallback: ThreatScoreData = {
-      competitor_name: competitorName,
-      threat_score: 72,
-      threat_level: "High",
-      data_coverage: 0.88,
-      has_missing_data: false,
-      calculated_at: new Date().toISOString(),
-      factors: {
-        product_activity: {
-          score: 82,
-          weight: 0.25,
-          weighted_contribution: 20.5,
-          data_coverage: 0.95,
-          evidence_count: 8,
-          summary: "Aggressive workflow automation and AI lead routing product releases in Q4.",
-        },
-        pricing_movement: {
-          score: 85,
-          weight: 0.20,
-          weighted_contribution: 17.0,
-          data_coverage: 0.90,
-          evidence_count: 5,
-          summary: "15-20% multi-year contract discounting directly targeted at RFP shortlists.",
-        },
-        market_activity: {
-          score: 74,
-          weight: 0.15,
-          weighted_contribution: 11.1,
-          data_coverage: 0.85,
-          evidence_count: 6,
-          summary: "Expanded global systems integrator alliances across North America and EMEA.",
-        },
-        hiring_activity: {
-          score: 68,
-          weight: 0.15,
-          weighted_contribution: 10.2,
-          data_coverage: 0.80,
-          evidence_count: 4,
-          summary: "45 open enterprise account executive roles detected on professional networks.",
-        },
-        customer_evidence: {
-          score: 60,
-          weight: 0.20,
-          weighted_contribution: 12.0,
-          data_coverage: 0.85,
-          evidence_count: 7,
-          summary: "Prospects cite initial pricing advantage, but report longer implementation cycles.",
-        },
-      },
-    };
-
-    setData(fallback);
-    setLoading(false);
-  }, [competitorName]);
+  }, [competitorName, effectiveTenantId]);
 
   React.useEffect(() => {
     loadScore();
-  }, [loadScore]);
+  }, [loadScore, workspace.pipelineSyncVersion]);
 
   const handleRecalculate = async () => {
     setIsRecalculating(true);
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      const res = await fetch(`/api/threat-scoring/calculate`, {
+      const token = getClientAuthToken(effectiveTenantId);
+      const qs = effectiveTenantId ? `?tenant_id=${encodeURIComponent(effectiveTenantId)}` : "";
+      const res = await fetch(`/api/threat-scoring/calculate${qs}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(effectiveTenantId ? { "X-Tenant-ID": effectiveTenantId } : {}),
         },
         body: JSON.stringify({
           competitor_name: competitorName,
-          weights,
+          custom_weights: weights,
         }),
       });
       if (res.ok) {
         const updated = await res.json();
-        setData(updated);
+        setData(normalizeThreatScorePayload(updated, competitorName));
       }
-    } catch {
-      // local calculation simulation
-      if (data) {
-        const sumW = Object.values(weights).reduce((a, b) => a + b, 0) || 1;
-        let newScore = 0;
-        const newFactors: any = { ...data.factors };
-        for (const [k, v] of Object.entries(weights)) {
-          const normW = v / sumW;
-          if (newFactors[k]) {
-            newFactors[k].weight = normW;
-            newFactors[k].weighted_contribution = Number((newFactors[k].score * normW).toFixed(1));
-            newScore += newFactors[k].weighted_contribution;
-          }
-        }
-        setData({
-          ...data,
-          threat_score: Math.round(newScore),
-          factors: newFactors,
-        });
-      }
+    } catch (err: any) {
+      setError(err?.message || "Recalculation failed.");
     } finally {
       setIsRecalculating(false);
     }
   };
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="p-6 text-center text-xs text-slate-400">
         <Loader2 className="mx-auto h-5 w-5 animate-spin text-violet-600 mb-2" />
         Calculating explainable threat score...
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center space-y-2">
+        <AlertTriangle className="mx-auto h-6 w-6 text-amber-500" />
+        <p className="text-sm font-bold text-slate-900">Threat Score Unavailable</p>
+        <p className="text-xs text-slate-500">{error || "No empirical threat data available yet."}</p>
+        <button
+          type="button"
+          onClick={loadScore}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700"
+        >
+          <RefreshCw className="h-3.5 w-3.5" /> Retry
+        </button>
       </div>
     );
   }

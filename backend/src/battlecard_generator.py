@@ -80,7 +80,10 @@ class BattlecardGenerator:
         decision_items = storage.get_decision_support_items(cname, tenant_id=self.tenant_id) or []
         sequences = storage.get_competitive_sequences(cname, tenant_id=self.tenant_id) or []
         events = storage.load_events(tenant_id=self.tenant_id) or []
-        comp_events = [e for e in events if str(e.get("company_name", "")).lower() == cname.lower()]
+        comp_events = [
+            e for e in events
+            if str(e.get("company_name") or e.get("company") or "").strip().lower() == cname.lower()
+        ]
 
         # Workspace target information for genuine head-to-head differentiation
         ws_cfg = storage.get_tenant_workspace_config(self.tenant_id) or {}

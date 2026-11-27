@@ -182,6 +182,9 @@ class ThreatScoringEngine:
             s for s in signals
             if str(s.get("category", "")).lower() in ("product", "feature", "release", "api", "engineering", "github")
             or "product" in str(s.get("signal_type", "")).lower()
+            or "github" in str(s.get("source", "")).lower()
+            or any(src.lower() in ("github",) for src in (s.get("contributing_sources") or []))
+            or any(kw in str(s.get("title", "")).lower() for kw in ("release", "launch", "sdk", "api", "feature", "v1", "v2", "ga"))
         ]
         relevant_claims = [c for c in claims if str(c.get("claim_type", "")).lower() in ("feature", "product", "capability")]
         total_items = len(relevant_sigs) + len(relevant_claims)
@@ -191,7 +194,7 @@ class ThreatScoringEngine:
 
         # Frequency and velocity heuristic: up to 100
         score = min(100.0, total_items * 20.0)
-        evidence = [{"type": "signal", "id": s.get("id"), "title": s.get("title")} for s in relevant_sigs[:5]]
+        evidence = [{"type": "signal", "id": s.get("id") or s.get("event_id"), "title": s.get("title")} for s in relevant_sigs[:5]]
         evidence.extend([{"type": "claim", "id": c.get("id"), "title": c.get("claim_text")} for c in relevant_claims[:5]])
 
         return {
@@ -207,12 +210,15 @@ class ThreatScoringEngine:
             s for s in signals
             if str(s.get("category", "")).lower() in ("hiring", "jobs", "talent", "headcount", "recruiting", "careers", "expansion")
             or "hiring" in str(s.get("signal_type", "")).lower()
+            or any(src in str(s.get("source", "")).lower() for src in ("job", "career", "linkedin", "greenhouse", "lever", "ashby", "workday"))
+            or any(src.lower() in ("jobs", "careers") for src in (s.get("contributing_sources") or []))
+            or any(kw in str(s.get("title", "")).lower() for kw in ("hiring", "recruit", "engineer", "director", "vp "))
         ]
         if not relevant:
             return {"is_assessed": False, "raw_score": 0.0, "data_points_count": 0, "supporting_evidence": []}
 
         score = min(100.0, len(relevant) * 25.0)
-        evidence = [{"type": "signal", "id": s.get("id"), "title": s.get("title")} for s in relevant[:5]]
+        evidence = [{"type": "signal", "id": s.get("id") or s.get("event_id"), "title": s.get("title")} for s in relevant[:5]]
 
         return {
             "is_assessed": True,
@@ -227,6 +233,9 @@ class ThreatScoringEngine:
             s for s in signals
             if str(s.get("category", "")).lower() in ("pricing", "tier", "discount", "packaging")
             or "pricing" in str(s.get("signal_type", "")).lower()
+            or "pricing" in str(s.get("source", "")).lower()
+            or any(src.lower() in ("pricing",) for src in (s.get("contributing_sources") or []))
+            or any(kw in str(s.get("title", "")).lower() for kw in ("pricing", "price", "billing", "discount", "tier", "subscription", "fee"))
         ]
         relevant_claims = [c for c in claims if str(c.get("claim_type", "")).lower() == "pricing"]
         total_items = len(relevant_sigs) + len(relevant_claims)
@@ -235,7 +244,7 @@ class ThreatScoringEngine:
             return {"is_assessed": False, "raw_score": 0.0, "data_points_count": 0, "supporting_evidence": []}
 
         score = min(100.0, 40.0 + total_items * 20.0)
-        evidence = [{"type": "signal", "id": s.get("id"), "title": s.get("title")} for s in relevant_sigs[:5]]
+        evidence = [{"type": "signal", "id": s.get("id") or s.get("event_id"), "title": s.get("title")} for s in relevant_sigs[:5]]
         evidence.extend([{"type": "claim", "id": c.get("id"), "title": c.get("claim_text")} for c in relevant_claims[:5]])
 
         return {
@@ -251,12 +260,14 @@ class ThreatScoringEngine:
             s for s in signals
             if str(s.get("category", "")).lower() in ("news", "press", "marketing", "campaign", "funding", "partnership", "event", "pr")
             or "market" in str(s.get("signal_type", "")).lower()
+            or any(src in str(s.get("source", "")).lower() for src in ("news", "press", "rss", "hackernews", "reddit", "blog"))
+            or any(src.lower() in ("news", "press", "reddit", "hackernews") for src in (s.get("contributing_sources") or []))
         ]
         if not relevant:
             return {"is_assessed": False, "raw_score": 0.0, "data_points_count": 0, "supporting_evidence": []}
 
         score = min(100.0, len(relevant) * 20.0)
-        evidence = [{"type": "signal", "id": s.get("id"), "title": s.get("title")} for s in relevant[:5]]
+        evidence = [{"type": "signal", "id": s.get("id") or s.get("event_id"), "title": s.get("title")} for s in relevant[:5]]
 
         return {
             "is_assessed": True,
@@ -315,14 +326,22 @@ class ThreatScoringEngine:
     def _get_competitor_signals(self, competitor_name: str) -> List[Dict[str, Any]]:
         try:
             all_signals = storage.load_signals(tenant_id=self.tenant_id) or []
+            all_events = storage.load_events(tenant_id=self.tenant_id) or []
             c_low = competitor_name.lower()
-            return [
-                s for s in all_signals
-                if str(s.get("company_name", "")).lower() == c_low
-                or str(s.get("entity_name", "")).lower() == c_low
-                or c_low in str(s.get("title", "")).lower()
-                or c_low in str(s.get("content", "")).lower()
-            ]
+            matched: List[Dict[str, Any]] = []
+            seen_titles = set()
+            for item in list(all_signals) + list(all_events):
+                comp = str(item.get("company_name") or item.get("company") or item.get("entity_name") or "").lower()
+                title = str(item.get("title") or "")
+                content = str(item.get("content") or item.get("event_summary") or item.get("raw_excerpt") or "")
+                if comp == c_low or (comp and c_low in comp) or c_low in title.lower() or c_low in content.lower():
+                    t_key = title.strip().lower()
+                    if t_key and t_key in seen_titles:
+                        continue
+                    if t_key:
+                        seen_titles.add(t_key)
+                    matched.append(item)
+            return matched
         except Exception as e:
             logger.warning(f"Failed to fetch signals for {competitor_name}: {e}")
             return []

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { getClientAuthToken } from "@/lib/auth";
+import { useWorkspace } from "../AppShell";
 import {
   Radar,
   Sparkles,
@@ -41,109 +42,89 @@ export interface EmergingCompetitorsViewProps {
   onCompetitorAdded?: (name: string) => void;
 }
 
+function normalizeCandidate(raw: any): EmergingCandidate {
+  const name = raw?.candidate_name || raw?.company_name || "Unknown Candidate";
+  const rawScore = Number(raw?.product_similarity_score ?? raw?.relevance_score ?? 0);
+  const sim = rawScore > 1 ? Math.min(1, rawScore / 100) : Math.max(0, rawScore);
+  const evidenceArr = Array.isArray(raw?.supporting_signals)
+    ? raw.supporting_signals
+    : Array.isArray(raw?.evidence_sources)
+    ? raw.evidence_sources.map((e: any) => e?.title || e?.url || String(e))
+    : [];
+  return {
+    id: String(raw?.id || name.toLowerCase().replace(/\s+/g, "_")),
+    tenant_id: raw?.tenant_id,
+    candidate_name: name,
+    normalized_name: raw?.normalized_name || name.toLowerCase().replace(/\s+/g, "_"),
+    discovery_source: raw?.discovery_source || raw?.industry || "Monitored Workspace Signals",
+    discovery_reason: raw?.discovery_reason || raw?.discovery_explanation || "Detected across workspace signal feeds.",
+    first_detected_at: raw?.first_detected_at || raw?.detected_at || new Date().toISOString(),
+    mention_count: Number(raw?.mention_count ?? raw?.corroboration_count ?? evidenceArr.length ?? 1),
+    product_similarity_score: sim,
+    status: (raw?.status || raw?.review_status || "pending_approval") as any,
+    reviewed_by: raw?.reviewed_by,
+    reviewed_at: raw?.reviewed_at,
+    supporting_signals: evidenceArr,
+  };
+}
+
 export function EmergingCompetitorsView({ tenantId, onCompetitorAdded }: EmergingCompetitorsViewProps) {
+  const workspace = useWorkspace();
+  const effectiveTenantId = tenantId || workspace.tenantId;
   const [loading, setLoading] = React.useState(true);
   const [candidates, setCandidates] = React.useState<EmergingCandidate[]>([]);
   const [isDiscovering, setIsDiscovering] = React.useState(false);
-  const [statusFilter, setStatusFilter] = React.useState<string>("pending_review");
+  const [statusFilter, setStatusFilter] = React.useState<string>("pending_approval");
   const [actionSuccessMsg, setActionSuccessMsg] = React.useState<string | null>(null);
 
   const loadCandidates = React.useCallback(async () => {
     setLoading(true);
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      const res = await fetch(`/api/emerging-competitors?status=${statusFilter}`, {
+      const token = getClientAuthToken(effectiveTenantId);
+      const params = new URLSearchParams({ status: statusFilter });
+      if (effectiveTenantId) params.set("tenant_id", effectiveTenantId);
+      const res = await fetch(`/api/emerging-competitors?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(effectiveTenantId ? { "X-Tenant-ID": effectiveTenantId } : {}),
         },
+        cache: "no-store",
       });
       if (res.ok) {
         const data = await res.json();
         const list = data.candidates || (Array.isArray(data) ? data : []);
-        if (list.length > 0) {
-          setCandidates(list);
-          setLoading(false);
-          return;
-        }
+        setCandidates(list.map(normalizeCandidate));
+      } else {
+        setCandidates([]);
       }
     } catch {
-      // fallback
+      setCandidates([]);
+    } finally {
+      setLoading(false);
     }
-
-    // High fidelity realistic candidate fallback
-    const fallbackList: EmergingCandidate[] = [
-      {
-        id: "cand_1",
-        candidate_name: "ApexFlow AI",
-        normalized_name: "apexflow_ai",
-        discovery_source: "Product Hunt & Hacker News Mentions",
-        discovery_reason: "High co-occurrence in sales automation evaluations; offers agentic pipeline routing.",
-        first_detected_at: "2026-11-14T08:30:00Z",
-        mention_count: 18,
-        product_similarity_score: 0.84,
-        status: "pending_review",
-        supporting_signals: [
-          "Co-mentioned with Competitor X on social forums",
-          "Announced $12M Series A for enterprise CRM integration",
-        ],
-      },
-      {
-        id: "cand_2",
-        candidate_name: "Kinetix Cloud",
-        normalized_name: "kinetix_cloud",
-        discovery_source: "Gartner Peer Insights Radar",
-        discovery_reason: "Emerging alternative for mid-market revenue operations with lower per-seat fee structure.",
-        first_detected_at: "2026-11-12T15:20:00Z",
-        mention_count: 11,
-        product_similarity_score: 0.76,
-        status: "pending_review",
-        supporting_signals: [
-          "Recent customer churn analysis tagged Kinetix as evaluation alternative",
-        ],
-      },
-      {
-        id: "cand_3",
-        candidate_name: "SyncVanguard",
-        normalized_name: "syncvanguard",
-        discovery_source: "Job Postings & Tech Stack Scraping",
-        discovery_reason: "Hiring enterprise solution architects with specialized CRM displacement skill sets.",
-        first_detected_at: "2026-11-10T11:00:00Z",
-        mention_count: 7,
-        product_similarity_score: 0.69,
-        status: "pending_review",
-        supporting_signals: [
-          "Recruiting former Salesforce and HubSpot implementation partners",
-        ],
-      },
-    ];
-
-    setCandidates(fallbackList);
-    setLoading(false);
-  }, [statusFilter]);
+  }, [statusFilter, effectiveTenantId]);
 
   React.useEffect(() => {
     loadCandidates();
-  }, [loadCandidates]);
+  }, [loadCandidates, workspace.pipelineSyncVersion]);
 
   const handleDiscover = async () => {
     setIsDiscovering(true);
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      await fetch(`/api/emerging-competitors/discover`, {
+      const token = getClientAuthToken(effectiveTenantId);
+      const qs = effectiveTenantId ? `?tenant_id=${encodeURIComponent(effectiveTenantId)}` : "";
+      await fetch(`/api/emerging-competitors/discover${qs}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(effectiveTenantId ? { "X-Tenant-ID": effectiveTenantId } : {}),
         },
       });
       await loadCandidates();
-      setActionSuccessMsg("Landscape sweep complete: new emerging signals scanned.");
+      setActionSuccessMsg("Landscape sweep complete: emerging signals scanned.");
       setTimeout(() => setActionSuccessMsg(null), 3000);
     } catch {
-      setActionSuccessMsg("Landscape sweep finished (offline mode).");
+      setActionSuccessMsg("Unable to complete emerging rival scan.");
       setTimeout(() => setActionSuccessMsg(null), 3000);
     } finally {
       setIsDiscovering(false);
@@ -152,42 +133,48 @@ export function EmergingCompetitorsView({ tenantId, onCompetitorAdded }: Emergin
 
   const handleApprove = async (candidate: EmergingCandidate) => {
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      await fetch(`/api/emerging-competitors/${candidate.id}/approve`, {
+      const token = getClientAuthToken(effectiveTenantId);
+      const qs = effectiveTenantId ? `?tenant_id=${encodeURIComponent(effectiveTenantId)}` : "";
+      const res = await fetch(`/api/emerging-competitors/${candidate.id}/approve${qs}`, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(effectiveTenantId ? { "X-Tenant-ID": effectiveTenantId } : {}),
         },
+        body: JSON.stringify({ reviewer_id: "analyst", notes: "Approved from Competitors hub" }),
       });
-      setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
-      setActionSuccessMsg(`Approved ${candidate.candidate_name}: added to active monitored landscape.`);
-      setTimeout(() => setActionSuccessMsg(null), 3500);
-      if (onCompetitorAdded) onCompetitorAdded(candidate.candidate_name);
+      if (res.ok) {
+        setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+        setActionSuccessMsg(`Approved ${candidate.candidate_name}: added to active monitored landscape.`);
+        setTimeout(() => setActionSuccessMsg(null), 3500);
+        if (onCompetitorAdded) onCompetitorAdded(candidate.candidate_name);
+      }
     } catch {
-      setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
-      setActionSuccessMsg(`Approved ${candidate.candidate_name}`);
-      setTimeout(() => setActionSuccessMsg(null), 3500);
+      // ignore
     }
   };
 
   const handleReject = async (candidate: EmergingCandidate) => {
     try {
-      const token = getClientAuthToken();
-      const activeTid = typeof window !== "undefined" ? localStorage.getItem("prismiq_active_tenant_id") || undefined : undefined;
-      await fetch(`/api/emerging-competitors/${candidate.id}/reject`, {
+      const token = getClientAuthToken(effectiveTenantId);
+      const qs = effectiveTenantId ? `?tenant_id=${encodeURIComponent(effectiveTenantId)}` : "";
+      const res = await fetch(`/api/emerging-competitors/${candidate.id}/reject${qs}`, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          ...(activeTid ? { "X-Tenant-ID": activeTid } : {}),
+          ...(effectiveTenantId ? { "X-Tenant-ID": effectiveTenantId } : {}),
         },
+        body: JSON.stringify({ reviewer_id: "analyst", notes: "Dismissed from Competitors hub" }),
       });
-      setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
-      setActionSuccessMsg(`Dismissed ${candidate.candidate_name}.`);
-      setTimeout(() => setActionSuccessMsg(null), 3500);
+      if (res.ok) {
+        setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+        setActionSuccessMsg(`Dismissed ${candidate.candidate_name}.`);
+        setTimeout(() => setActionSuccessMsg(null), 3500);
+      }
     } catch {
-      setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+      // ignore
     }
   };
 

@@ -75,7 +75,7 @@ class EmergingCompetitorService:
 
         # Scan signals
         for sig in signals:
-            ent = str(sig.get("company_name") or sig.get("entity_name") or "").strip()
+            ent = str(sig.get("company_name") or sig.get("company") or sig.get("entity_name") or "").strip()
             if not ent or ent.lower() in ("unknown", "generic", "n/a"):
                 continue
             norm = normalize_company_name(ent)

@@ -41,6 +41,7 @@ import {
   fetchLatestRadar,
   buildCompetitorSummaries,
   fetchCompanyProfile,
+  fetchCompetitorComparison,
   type TrackedCompany,
   type ConsolidatedEventRecord,
   type SignalRecord,
@@ -48,13 +49,14 @@ import {
   type RadarEvaluation,
   type CompetitorActivitySummary,
   type CompanyProfile,
+  type CompetitorComparisonResponse,
 } from "@/lib/api";
 
 export function ComparePage() {
   const searchParams = useSearchParams();
   const initialComp = searchParams.get("comp");
 
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -67,12 +69,27 @@ export function ComparePage() {
   const [targetProfile, setTargetProfile] = React.useState<CompanyProfile | null>(null);
   const [competitorProfile, setCompetitorProfile] = React.useState<CompanyProfile | null>(null);
   const [loadingProfiles, setLoadingProfiles] = React.useState<boolean>(false);
+  const [comparisonMatrix, setComparisonMatrix] = React.useState<CompetitorComparisonResponse | null>(null);
+  const [loadingMatrix, setLoadingMatrix] = React.useState<boolean>(false);
   const [activeView, setActiveView] = React.useState<"matrix" | "dossier" | "telemetry">("matrix");
   const [selectedCellEvidence, setSelectedCellEvidence] = React.useState<any | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
-  const loadData = React.useCallback(async () => {
-    setLoading(true);
+  // Reset selected entities when switching workspaces
+  React.useEffect(() => {
+    setSelectedCompetitorName("");
+    setTargetProfile(null);
+    setCompetitorProfile(null);
+    setComparisonMatrix(null);
+    setSelectedCellEvidence(null);
+  }, [tenantId, targetCompany]);
+
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
+  const loadData = React.useCallback(async (silent: boolean | unknown = false) => {
+    const isSilent = silent === true;
+    if (!isSilent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [compsRes, eventsRes, signalsRes, findingsRes, radarRes] =
@@ -94,7 +111,13 @@ export function ComparePage() {
         if (initialComp && competitorOnly.some((c) => c.company_name.toLowerCase() === initialComp.toLowerCase())) {
           setSelectedCompetitorName(initialComp);
         } else if (competitorOnly.length > 0) {
-          setSelectedCompetitorName(competitorOnly[0].company_name);
+          setSelectedCompetitorName((prev) =>
+            prev && competitorOnly.some((c) => c.company_name.toLowerCase() === prev.toLowerCase())
+              ? prev
+              : competitorOnly[0].company_name
+          );
+        } else {
+          setSelectedCompetitorName("");
         }
       }
       if (eventsRes.status === "fulfilled") setEvents(eventsRes.value?.events || []);
@@ -102,15 +125,21 @@ export function ComparePage() {
       if (findingsRes.status === "fulfilled") setFindings(findingsRes.value?.findings || []);
       if (radarRes.status === "fulfilled") setRadarEvals(radarRes.value?.evaluations || []);
     } catch (err: any) {
-      setError(err.message || "Failed to load comparison data");
+      if (!isSilent) {
+        setError(err.message || "Failed to load comparison data");
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [targetCompany, initialComp, tenantId]);
 
   React.useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const isSyncRefresh = prevSyncRef.current !== pipelineSyncVersion;
+    prevSyncRef.current = pipelineSyncVersion;
+    loadData(isSyncRefresh);
+  }, [loadData, pipelineSyncVersion]);
 
   // Load Point 1 Company Intelligence Profiles for Head-to-Head Dossier Matrix
   React.useEffect(() => {
@@ -119,8 +148,8 @@ export function ComparePage() {
     setLoadingProfiles(true);
 
     Promise.allSettled([
-      targetCompany ? fetchCompanyProfile(targetCompany) : Promise.reject(),
-      selectedCompetitorName ? fetchCompanyProfile(selectedCompetitorName) : Promise.reject(),
+      targetCompany ? fetchCompanyProfile(targetCompany, tenantId) : Promise.reject(),
+      selectedCompetitorName ? fetchCompanyProfile(selectedCompetitorName, tenantId) : Promise.reject(),
     ]).then(([tRes, cRes]) => {
       if (!isMounted) return;
       if (tRes.status === "fulfilled") setTargetProfile(tRes.value);
@@ -133,7 +162,30 @@ export function ComparePage() {
     return () => {
       isMounted = false;
     };
-  }, [targetCompany, selectedCompetitorName]);
+  }, [targetCompany, selectedCompetitorName, tenantId, pipelineSyncVersion]);
+
+  // Load real 3-State Capability Matrix from backend comparison engine
+  React.useEffect(() => {
+    if (!targetCompany || !selectedCompetitorName) {
+      setComparisonMatrix(null);
+      return;
+    }
+    let isMounted = true;
+    setLoadingMatrix(true);
+    fetchCompetitorComparison(targetCompany, [selectedCompetitorName], tenantId)
+      .then((res) => {
+        if (isMounted) setComparisonMatrix(res);
+      })
+      .catch(() => {
+        if (isMounted) setComparisonMatrix(null);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingMatrix(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [targetCompany, selectedCompetitorName, tenantId, pipelineSyncVersion]);
 
   // Summaries
   const summaries: CompetitorActivitySummary[] = React.useMemo(() => {
@@ -300,57 +352,40 @@ export function ComparePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[rgba(20,20,30,0.06)] text-[#17171b]">
-                    {(
-                      [
-                        {
-                          dimension: "Real-Time Sales Transcript Intelligence",
-                          category: "Product Capabilities",
-                          targetStatus: "Supported",
-                          targetEvidence: "Native NLP pipeline extracts competitor mentions, buyer objections, and timestamps directly from sales call audio/text.",
-                          compStatus: "Unknown",
-                          compEvidence: "Competitor public roadmap mentions pipeline AI, but no confirmed live in-call extraction documentation is verified.",
-                        },
-                        {
-                          dimension: "Multi-Branch Workflow Automation",
-                          category: "Feature Comparisons",
-                          targetStatus: "Supported",
-                          targetEvidence: "Supports conditional branching on CRM opportunity stage and webhook triggers.",
-                          compStatus: "Supported",
-                          compEvidence: "TechCrunch Nov 2026 confirms launch of advanced automation triggers and lead scoring trees.",
-                        },
-                        {
-                          dimension: "Zero Add-On API Surcharges",
-                          category: "Pricing & Packaging",
-                          targetStatus: "Supported",
-                          targetEvidence: "All standard endpoints included in base plan without volume tiers.",
-                          compStatus: "Unsupported",
-                          compEvidence: "Gartner pricing report documents $1,200/mo add-on required for external REST API connectors.",
-                        },
-                        {
-                          dimension: "Dedicated SI Partner Certification Program",
-                          category: "Enterprise Capabilities",
-                          targetStatus: "Unknown",
-                          targetEvidence: "Partner onboarding program in closed beta; formal SI certification tier not yet publicly published.",
-                          compStatus: "Supported",
-                          compEvidence: "Reuters coverage confirms 45 enterprise systems integrator partnerships signed across North America & EMEA.",
-                        },
-                        {
-                          dimension: "Sub-50ms API Latency SLA (99.99%)",
-                          category: "Integrations & Infrastructure",
-                          targetStatus: "Supported",
-                          targetEvidence: "Globally distributed edge compute cluster with documented sub-50ms p95 latency.",
-                          compStatus: "Supported",
-                          compEvidence: "Vendor status page reports 99.98% historical availability across multi-region US zones.",
-                        },
-                      ] as Array<{
-                        dimension: string;
-                        category: string;
-                        targetStatus: "Supported" | "Unsupported" | "Unknown";
-                        targetEvidence: string;
-                        compStatus: "Supported" | "Unsupported" | "Unknown";
-                        compEvidence: string;
-                      }>
-                    ).map((row, idx) => (
+                    {loadingMatrix ? (
+                      <tr>
+                        <td colSpan={3} className="px-5 py-8 text-center text-xs text-[#70717a]">
+                          Compiling 3-state verified capability matrix for {targetCompany} vs {selectedCompetitorName}...
+                        </td>
+                      </tr>
+                    ) : (comparisonMatrix?.comparison_matrix || []).flatMap((cat) =>
+                        (cat.capabilities || []).map((cap) => {
+                          const targetEval = cap.evaluations?.[targetCompany] || {
+                            state: "Unknown",
+                            notes: "No verified evidence available; capability unassessed.",
+                          };
+                          const compEval = cap.evaluations?.[selectedCompetitorName] || {
+                            state: "Unknown",
+                            notes: "No verified evidence available; capability unassessed.",
+                          };
+                          return {
+                            dimension: cap.capability_name,
+                            category: cat.category_title,
+                            targetStatus: targetEval.state || "Unknown",
+                            targetEvidence:
+                              targetEval.evidence_excerpt ||
+                              targetEval.notes ||
+                              "No verified public evidence available; capability marked Unknown.",
+                            targetSource: targetEval.evidence_source || "",
+                            compStatus: compEval.state || "Unknown",
+                            compEvidence:
+                              compEval.evidence_excerpt ||
+                              compEval.notes ||
+                              "No verified public evidence available; capability marked Unknown.",
+                            compSource: compEval.evidence_source || "",
+                          };
+                        })
+                      ).map((row, idx) => (
                       <tr key={idx} className="hover:bg-zinc-50/60 transition">
                         <td className="px-5 py-4">
                           <span className="font-bold text-[#17171b] block">{row.dimension}</span>
@@ -363,6 +398,7 @@ export function ComparePage() {
                               dimension: row.dimension,
                               status: row.targetStatus,
                               evidence: row.targetEvidence,
+                              source: row.targetSource,
                             })
                           }
                           className="px-5 py-4 cursor-pointer hover:bg-purple-50/40 transition"
@@ -390,6 +426,7 @@ export function ComparePage() {
                               dimension: row.dimension,
                               status: row.compStatus,
                               evidence: row.compEvidence,
+                              source: row.compSource,
                             })
                           }
                           className="px-5 py-4 cursor-pointer hover:bg-purple-50/40 transition"

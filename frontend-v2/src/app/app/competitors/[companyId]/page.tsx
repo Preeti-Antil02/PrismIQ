@@ -29,7 +29,6 @@ import {
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/components/app/AppShell";
-import { BASELINE_TRACKED_COMPANIES } from "@/lib/baselineData";
 import { BattlecardView } from "@/components/app/battlecard/BattlecardView";
 import {
   ArrowLeft,
@@ -98,7 +97,7 @@ const CATEGORIES: CategoryConfig[] = [
 export default function CompetitorProfilePage() {
   const params = useParams();
   const companyId = decodeURIComponent((params?.companyId as string) || "");
-  const { tenantId, targetCompany } = useWorkspace();
+  const { tenantId, targetCompany, pipelineSyncVersion } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -126,17 +125,7 @@ export default function CompetitorProfilePage() {
         (c) => c.company_name.toLowerCase() === decodedCompanyId.toLowerCase()
       );
 
-      // Fallback to baseline companies if not in current tenant's active list
-      if (!matchedComp) {
-        matchedComp = BASELINE_TRACKED_COMPANIES.find(
-          (c) => c.company_name.toLowerCase() === decodedCompanyId.toLowerCase()
-        );
-        if (matchedComp && !companies.some((c) => c.company_name.toLowerCase() === matchedComp!.company_name.toLowerCase())) {
-          companies.push(matchedComp);
-        }
-      }
-
-      // If still not found, synthesize a minimal tracked record so page never hard crashes
+      // If not found in tracked list, synthesize a minimal tenant-scoped record (never fall back to demo baseline companies)
       if (!matchedComp) {
         matchedComp = {
           company_name: decodedCompanyId,

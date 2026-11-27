@@ -214,6 +214,104 @@ class NextBestActionEngine:
                     "evidence_references": [{"quote": quote, "source": "Customer Voice Technical Requirement"}],
                 })
 
+        # -------------------------------------------------------------------
+        # 5b. Real Swept Competitive Events & Findings Fallback (Universal Companies)
+        # -------------------------------------------------------------------
+        if len(generated) < 4:
+            try:
+                import json
+                from . import storage
+                events = storage.load_events(tenant_id=self.tenant_id) or []
+                findings: List[Dict[str, Any]] = []
+                findings_file = storage._get_data_dir() / f"findings_{self.tenant_id}.json"
+                if findings_file.exists():
+                    try:
+                        findings = json.loads(findings_file.read_text(encoding="utf-8")) or []
+                    except Exception:
+                        findings = []
+                cfg = storage.get_tenant_workspace_config(self.tenant_id) or {}
+                eff_target = (
+                    target_company
+                    if target_company and target_company != "Our Company"
+                    else (cfg.get("target_company") or "Our Company")
+                )
+                eff_target_low = eff_target.strip().lower()
+
+                finding_by_eid = {
+                    str(f.get("event_id")): f
+                    for f in findings
+                    if f.get("event_id")
+                }
+
+                # Prioritize verified rival events first, then target events if no rival events exist
+                def _ev_comp(e: Dict[str, Any]) -> str:
+                    return str(e.get("company_name") or e.get("company") or "").strip()
+
+                scoped_events = [
+                    e for e in events
+                    if _ev_comp(e)
+                    and (not comp_filter or _ev_comp(e).lower() == comp_filter.lower())
+                ]
+                rival_events = [e for e in scoped_events if _ev_comp(e).lower() != eff_target_low]
+                candidate_events = rival_events if rival_events else scoped_events
+
+                team_rotation = [
+                    ("Sales", "sales", "objection_response", "Critical"),
+                    ("Product", "product", "feature_gap", "High"),
+                    ("Marketing", "marketing", "messaging", "High"),
+                    ("Leadership", "leadership", "market_risk", "Medium"),
+                ]
+                seen_comps = {str(g.get("related_competitor") or "").lower() for g in generated if g.get("related_competitor")}
+
+                rot_idx = 0
+                for ev in candidate_events:
+                    if len(generated) >= 5:
+                        break
+                    comp = _ev_comp(ev)
+                    title = str(ev.get("title") or "").strip()
+                    if not title:
+                        continue
+                    # Spread across distinct rivals when available
+                    if len(rival_events) > 1 and comp.lower() in seen_comps and rot_idx < len(rival_events):
+                        continue
+                    seen_comps.add(comp.lower())
+
+                    fn = finding_by_eid.get(str(ev.get("event_id") or ""))
+                    why = str((fn or {}).get("why_it_matters") or ev.get("why_it_matters") or ev.get("event_summary") or "").strip()
+                    if not why or "rate limit" in why.lower() or "unavailable" in why.lower():
+                        why = f"Verified competitive movement by {comp} requiring product and commercial counter-positioning for {eff_target}."
+                    team_title, team_key, cat_key, default_urg = team_rotation[rot_idx % len(team_rotation)]
+                    rot_idx += 1
+
+                    ev_tier = str(ev.get("tier") or (fn or {}).get("tier") or "").lower()
+                    urg = "Critical" if "must" in ev_tier and default_urg == "Critical" else default_urg
+                    ev_url = str(ev.get("url") or "").strip()
+                    ev_src = ", ".join(ev.get("contributing_sources") or ["Verified Intelligence"])
+
+                    generated.append({
+                        "team": team_title,
+                        "affected_team": team_key,
+                        "category": cat_key,
+                        "title": f"Respond to {comp}: {title[:78]}",
+                        "what_happened": f"{comp} triggered a verified development: {title}",
+                        "why_it_matters": why,
+                        "recommended_action": f"Update {eff_target}'s {team_title.lower()} positioning, battlecard, and roadmap response covering {comp}'s '{title[:70]}'.",
+                        "urgency": urg,
+                        "confidence": str(ev.get("fact_confidence") or ev.get("confidence") or "High"),
+                        "related_competitor": comp,
+                        "review_status": "pending",
+                        "supporting_evidence": [
+                            {
+                                "source": ev_src,
+                                "url": ev_url,
+                                "quote": why[:200],
+                                "competitor": comp,
+                            }
+                        ],
+                    })
+            except Exception as exc:
+                logger.warning(f"Failed event-backed Next Best Action synthesis: {exc}")
+
         # Save to database / memory with deduplication
         if generated:
             return batch2_storage.save_next_best_actions_batch(generated, self.tenant_id)

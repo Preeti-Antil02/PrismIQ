@@ -65,6 +65,13 @@ class UpdateActionStatusRequest(BaseModel):
     status: str = Field(..., description="New status: accept, dismiss, complete, irrelevant")
     notes: Optional[str] = Field(None, description="Review justification or execution notes")
     user_id: Optional[str] = Field("analyst", description="Reviewer name or identifier")
+    changed_by: Optional[str] = Field(None, description="Optional reviewer display name")
+
+
+class GenerateActionsRequest(BaseModel):
+    competitor_name: Optional[str] = Field(None, description="Optional competitor filter")
+    target_company: Optional[str] = Field(None, description="Target company name")
+    force_refresh: Optional[bool] = Field(False, description="Force fresh regeneration")
 
 
 # ============================================================================
@@ -226,6 +233,8 @@ def get_competitive_comparison_endpoint(
 
 @router.post("/api/next-best-actions/generate", status_code=status.HTTP_201_CREATED)
 def generate_next_best_actions_endpoint(
+    payload: Optional[GenerateActionsRequest] = None,
+    competitor_name: Optional[str] = Query(None),
     target_company: str = Query("Our Company"),
     force_refresh: bool = Query(False),
     tenant_id: str = Depends(_get_tenant),
@@ -233,9 +242,16 @@ def generate_next_best_actions_endpoint(
     """
     Synthesize cross-persona recommendations across Sales, Product, Marketing, Leadership.
     """
+    eff_comp = (payload.competitor_name if payload and payload.competitor_name else competitor_name)
+    eff_target = (payload.target_company if payload and payload.target_company else target_company)
+    eff_refresh = bool(payload.force_refresh) if payload and payload.force_refresh is not None else force_refresh
     engine = NextBestActionEngine(tenant_id)
-    actions = engine.generate_recommendations(target_company=target_company, force_refresh=force_refresh)
-    return {"status": "success", "actions_generated": len(actions), "actions": actions}
+    actions = engine.generate_recommendations(
+        competitor_name=eff_comp,
+        target_company=eff_target,
+        force_refresh=eff_refresh,
+    )
+    return {"status": "success", "actions_generated": len(actions), "count": len(actions), "actions": actions}
 
 
 @router.get("/api/next-best-actions")
@@ -244,17 +260,33 @@ def list_next_best_actions_endpoint(
     urgency: Optional[str] = Query(None, description="Critical, High, Medium, Low"),
     status: Optional[str] = Query(None, description="pending, accepted, dismissed, completed, irrelevant"),
     related_competitor: Optional[str] = Query(None),
+    competitor_name: Optional[str] = Query(None),
+    target_company: Optional[str] = Query(None),
+    company: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     tenant_id: str = Depends(_get_tenant),
 ):
-    """List Next Best Actions with filters."""
+    """List Next Best Actions with filters; synthesizes from tenant events when workspace has 0 actions."""
+    eff_comp = related_competitor or competitor_name
+    eff_target = target_company or company or "Our Company"
+    existing_any = batch2_storage.list_next_best_actions(tenant_id=tenant_id, limit=1)
+    if not existing_any:
+        try:
+            from . import storage
+            has_events = bool(storage.load_events(tenant_id=tenant_id))
+            has_findings = (storage._get_data_dir() / f"findings_{tenant_id}.json").exists()
+            if has_events or has_findings:
+                NextBestActionEngine(tenant_id).generate_recommendations(target_company=eff_target)
+        except Exception as exc:
+            logger.warning(f"Auto-synthesis of Next Best Actions skipped for {tenant_id}: {exc}")
+
     actions = batch2_storage.list_next_best_actions(
         tenant_id=tenant_id,
         team=team,
         urgency=urgency,
         status=status,
-        related_competitor=related_competitor,
+        related_competitor=eff_comp,
         limit=limit,
         offset=offset,
     )
@@ -273,7 +305,7 @@ def update_action_status_endpoint(
         updated = engine.update_action_review_status(
             action_id=action_id,
             new_status=payload.status,
-            user_id=payload.user_id or "analyst",
+            user_id=payload.changed_by or payload.user_id or "analyst",
             notes=payload.notes,
         )
         if not updated:

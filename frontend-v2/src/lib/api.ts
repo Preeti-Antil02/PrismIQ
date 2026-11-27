@@ -1244,19 +1244,14 @@ export async function fetchCompanyProfile(
   companyName: string,
   tenantId?: string
 ): Promise<CompanyProfile> {
-  const token = getClientAuthToken();
   const encoded = encodeURIComponent(companyName);
+  const qs = tenantId ? `?tenant_id=${encodeURIComponent(tenantId)}` : "";
   const baseUrl = typeof window !== "undefined"
-    ? `/api/companies/${encoded}/profile`
-    : `${API_BASE_URL}/companies/${encoded}/profile`;
-
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-  if (tenantId) {
-    headers["X-Tenant-ID"] = tenantId;
-  }
+    ? `/api/companies/${encoded}/profile${qs}`
+    : `${API_BASE_URL}/companies/${encoded}/profile${qs}`;
 
   const res = await fetch(baseUrl, {
-    headers,
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -1271,9 +1266,9 @@ export async function fetchCompanyChanges(
   filters?: { dimension?: string; significance?: string },
   tenantId?: string
 ): Promise<{ company_name: string; changes: CompanyChangeRecord[]; count: number }> {
-  const token = getClientAuthToken();
   const encoded = encodeURIComponent(companyName);
   const query = new URLSearchParams();
+  if (tenantId) query.set("tenant_id", tenantId);
   if (filters?.dimension && filters.dimension !== "ALL") query.set("dimension", filters.dimension);
   if (filters?.significance && filters.significance !== "ALL") query.set("significance", filters.significance);
 
@@ -1282,13 +1277,8 @@ export async function fetchCompanyChanges(
     ? `/api/companies/${encoded}/changes${qs}`
     : `${API_BASE_URL}/companies/${encoded}/changes${qs}`;
 
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-  if (tenantId) {
-    headers["X-Tenant-ID"] = tenantId;
-  }
-
   const res = await fetch(baseUrl, {
-    headers,
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -1323,25 +1313,76 @@ export async function fetchCompetitorEvolution(
   tenantId?: string,
   includeSequences: boolean = true
 ): Promise<CompetitorEvolutionTimeline> {
-  const token = getClientAuthToken();
   const encoded = encodeURIComponent(companyName);
-  const qs = includeSequences ? "" : "?include_sequences=false";
+  const query = new URLSearchParams();
+  if (tenantId) query.set("tenant_id", tenantId);
+  if (!includeSequences) query.set("include_sequences", "false");
+  const qs = query.toString() ? `?${query.toString()}` : "";
   const baseUrl = typeof window !== "undefined"
     ? `/api/companies/${encoded}/evolution${qs}`
     : `${API_BASE_URL}/companies/${encoded}/evolution${qs}`;
 
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-  if (tenantId) {
-    headers["X-Tenant-ID"] = tenantId;
-  }
-
   const res = await fetch(baseUrl, {
-    headers,
+    headers: getTenantHeaders(tenantId, false),
     cache: "no-store",
   });
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Failed to load competitor evolution timeline (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
+export interface ComparisonCellEvaluation {
+  state: "Supported" | "Unsupported" | "Unknown" | string;
+  evidence_excerpt?: string | null;
+  evidence_source?: string | null;
+  verification_status?: string;
+  last_verified_at?: string | null;
+  notes?: string;
+}
+
+export interface ComparisonMatrixCategory {
+  category_key: string;
+  category_title: string;
+  capabilities: Array<{
+    capability_name: string;
+    category: string;
+    evaluations: Record<string, ComparisonCellEvaluation>;
+  }>;
+}
+
+export interface CompetitorComparisonResponse {
+  target_company: string;
+  competitors: string[];
+  all_compared_companies: string[];
+  comparison_matrix: ComparisonMatrixCategory[];
+  summary_statistics: Record<string, { supported: number; unsupported: number; unknown: number }>;
+  methodology_disclaimer: string;
+  generated_at: string;
+}
+
+export async function fetchCompetitorComparison(
+  targetCompany: string,
+  competitors: string[],
+  tenantId?: string
+): Promise<CompetitorComparisonResponse> {
+  const baseUrl = typeof window !== "undefined"
+    ? `/api/competitor-comparison`
+    : `${API_BASE_URL}/competitor-comparison`;
+
+  const res = await fetch(baseUrl, {
+    method: "POST",
+    headers: getTenantHeaders(tenantId, true),
+    body: JSON.stringify({
+      target_company: targetCompany,
+      competitors,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to load competitor comparison matrix (${res.status}): ${err}`);
   }
   return res.json();
 }

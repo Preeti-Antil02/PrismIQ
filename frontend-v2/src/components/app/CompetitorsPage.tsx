@@ -70,7 +70,7 @@ import {
 } from "@/lib/api";
 
 export function CompetitorsPage() {
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -84,7 +84,7 @@ export function CompetitorsPage() {
 
   // Top-level Navigation Bar Tabs: Landscape, Battlecards, Threat Scoring, Emerging Rivals
   const [mainPageTab, setMainPageTab] = React.useState<"landscape" | "battlecards" | "threat_scoring" | "emerging">("landscape");
-  const [selectedBattlecardCompetitor, setSelectedBattlecardCompetitor] = React.useState<string>(targetCompany || "OpenAI");
+  const [selectedBattlecardCompetitor, setSelectedBattlecardCompetitor] = React.useState<string>(targetCompany || "");
 
   // Evolving Company Intelligence State (Pillar 1: Unified Evolution Layer)
   const [activeProfileCompany, setActiveProfileCompany] = React.useState<string | null>(null);
@@ -169,24 +169,47 @@ export function CompetitorsPage() {
   }, [loadData, openCompanyIntelligence]);
 
   const battlecardCompetitorOptions = React.useMemo(() => {
-    const list: string[] = [];
-    if (targetCompany) list.push(targetCompany);
+    const map = new Map<string, string>();
+    if (targetCompany) {
+      map.set(targetCompany.toLowerCase(), targetCompany);
+    }
     companies.forEach((c) => {
-      if (c.company_name && !list.includes(c.company_name)) {
-        list.push(c.company_name);
+      const name = c.company_name?.trim();
+      if (name && !map.has(name.toLowerCase())) {
+        map.set(name.toLowerCase(), name);
       }
     });
-    ["Vercel", "Netlify", "Flipkart", "OpenAI"].forEach((c) => {
-      if (!list.includes(c)) list.push(c);
-    });
-    return list;
+    return Array.from(map.values());
   }, [targetCompany, companies]);
 
   React.useEffect(() => {
-    if (targetCompany && (!selectedBattlecardCompetitor || selectedBattlecardCompetitor === "OpenAI")) {
-      setSelectedBattlecardCompetitor(targetCompany);
+    setSelectedBattlecardCompetitor((prev) => {
+      if (prev && battlecardCompetitorOptions.some((o) => o.toLowerCase() === prev.toLowerCase())) {
+        return prev;
+      }
+      const rivalFirst = battlecardCompetitorOptions.find(
+        (o) => o.toLowerCase() !== (targetCompany || "").toLowerCase()
+      );
+      return rivalFirst || battlecardCompetitorOptions[0] || targetCompany || "";
+    });
+  }, [targetCompany, tenantId, battlecardCompetitorOptions]);
+
+  // Reset company detail drawer/search and refresh cleanly when switching workspaces or sweep completes
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
+  React.useEffect(() => {
+    setSearchQuery("");
+    setActiveProfileCompany(null);
+    setEvolutionData(null);
+    setProfileData(null);
+    setProfileChanges([]);
+  }, [tenantId, targetCompany]);
+
+  React.useEffect(() => {
+    if (prevSyncRef.current !== pipelineSyncVersion) {
+      prevSyncRef.current = pipelineSyncVersion;
+      loadData();
     }
-  }, [targetCompany, selectedBattlecardCompetitor]);
+  }, [pipelineSyncVersion, loadData]);
 
   const closeCompanyIntelligence = React.useCallback(() => {
     setActiveProfileCompany(null);
@@ -557,8 +580,17 @@ export function CompetitorsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredCompetitors.map((comp) => {
-                  const isNetlify = comp.company_name.toLowerCase().includes("netlify");
-                  const isVercel = comp.company_name.toLowerCase().includes("vercel");
+                  const compLower = comp.company_name.toLowerCase();
+                  const latestCompEvent = events.find(
+                    (ev) => (ev.company_name || "").toLowerCase() === compLower
+                  );
+                  const latestCompFinding = findings.find(
+                    (fn) => (fn.company_name || "").toLowerCase() === compLower
+                  );
+                  const shiftSummary =
+                    latestCompFinding?.why_it_matters ||
+                    latestCompEvent?.title ||
+                    `Active competitive surveillance monitoring ${comp.company_name} across public releases and pricing feeds.`;
 
                   return (
                     <PrismCard key={comp.company_name} className="flex flex-col justify-between p-5 sm:p-6 transition-all hover:shadow-md">
@@ -610,12 +642,8 @@ export function CompetitorsPage() {
                             <Sparkles className="w-3 h-3 text-amber-600" />
                             <span>Detected Strategic Shift:</span>
                           </div>
-                          <p className="text-[11px] font-semibold text-[#17171b] leading-snug">
-                            {isNetlify
-                              ? "Pricing strategy shifted from acquisition-focused → enterprise-focused over 4 months."
-                              : isVercel
-                                ? "Transitioning from web hosting into full enterprise AI application infrastructure."
-                                : "Active enterprise feature expansion with increased pricing granularity."}
+                          <p className="text-[11px] font-semibold text-[#17171b] leading-snug line-clamp-2">
+                            {shiftSummary}
                           </p>
                         </div>
 

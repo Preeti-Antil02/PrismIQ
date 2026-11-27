@@ -42,7 +42,6 @@ import {
   type NextBestAction,
   type ActionStatusAudit,
 } from "@/lib/api";
-import { BASELINE_NEXT_BEST_ACTIONS } from "@/lib/baselineBatch2";
 
 export interface NextBestActionsViewProps {
   targetCompany?: string;
@@ -93,8 +92,22 @@ export function NextBestActionsView({
   // Supporting evidence drawer
   const [evidenceDrawerAction, setEvidenceDrawerAction] = React.useState<NextBestAction | null>(null);
 
-  const loadActions = React.useCallback(async () => {
-    setLoading(true);
+  // Reset workspace filters/modals when switching companies
+  React.useEffect(() => {
+    setTeamFilter("ALL");
+    setUrgencyFilter("ALL");
+    setStatusFilter("pending");
+    setActiveAuditAction(null);
+    setReasonModalAction(null);
+    setEvidenceDrawerAction(null);
+  }, [effectiveTenantId, effectiveTarget]);
+
+  const prevSyncRef = React.useRef(workspace.pipelineSyncVersion);
+  const loadActions = React.useCallback(async (silent: boolean | unknown = false) => {
+    const isSilent = silent === true;
+    if (!isSilent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const res = await fetchNextBestActions(
@@ -104,205 +117,24 @@ export function NextBestActionsView({
         effectiveTenantId,
         effectiveTarget
       );
-      if (res.actions && res.actions.length > 0) {
-        setActions(res.actions);
-      } else {
-        // High-fidelity fallback baseline
-        const isAcme = effectiveTarget.toLowerCase().includes("acme");
-        let fallbackBase = isAcme
-          ? [
-              {
-                id: "act_acme_1",
-                title: "Prepare response to Competitor X's enterprise pricing push",
-                team: "Sales",
-                affected_team: "Sales",
-                urgency: "High" as const,
-                status: "pending" as const,
-                due_date: "Today",
-                description: "Competitor X discounted enterprise annual contracts by 15-20%. Arm field reps with TCO calculator emphasizing zero API surcharges.",
-                confidence: "High" as const,
-                supporting_evidence: [
-                  {
-                    source: "Gartner Pricing Benchmark",
-                    quote: "Competitor X's enterprise plan remains 15-20% lower than industry average, but requires add-on fees for custom integrations.",
-                    competitor: "Competitor X",
-                  },
-                ],
-              },
-              {
-                id: "act_acme_2",
-                title: "Review feature gap in AI workflow automation vs Competitor X",
-                team: "Product",
-                affected_team: "Product",
-                urgency: "Medium" as const,
-                status: "pending" as const,
-                due_date: "Tomorrow",
-                description: "Competitor X launched workflow automation triggers with AI lead routing. Prioritize multi-branch approval tree roadmap.",
-                confidence: "High" as const,
-                supporting_evidence: [
-                  {
-                    source: "TechCrunch",
-                    quote: "Competitor X introduces advanced automation features and AI-assisted lead scoring.",
-                    competitor: "Competitor X",
-                  },
-                ],
-              },
-              {
-                id: "act_acme_3",
-                title: "Update comparison page with TCO calculator vs Competitor X",
-                team: "Marketing",
-                affected_team: "Marketing",
-                urgency: "Medium" as const,
-                status: "pending" as const,
-                due_date: "This Week",
-                description: "Publish interactive calculator showing that unbundled API limits and SLA fees make Competitor X 28% more expensive over 3 years.",
-                confidence: "High" as const,
-                supporting_evidence: [
-                  {
-                    source: "PrismIQ Win/Loss Analysis",
-                    quote: "78% of won renewals against Competitor X cited predictable all-inclusive pricing without seat surcharges.",
-                    competitor: "Competitor X",
-                  },
-                ],
-              },
-              {
-                id: "act_acme_4",
-                title: "Benchmark multi-tenant latency and security isolation vs Competitor X",
-                team: "Engineering",
-                affected_team: "Engineering",
-                urgency: "High" as const,
-                status: "pending" as const,
-                due_date: "In 3 Days",
-                description: "Produce technical whitepaper validating sub-50ms API throughput and isolated tenant database schema encryption.",
-                confidence: "High" as const,
-                supporting_evidence: [
-                  {
-                    source: "Engineering Benchmark",
-                    quote: "Acme Corp architecture maintains strict tenant isolation with zero cross-tenant cache bleed.",
-                    competitor: "Competitor X",
-                  },
-                ],
-              },
-              {
-                id: "act_acme_5",
-                title: "Evaluate SI partner incentives to counter Competitor X ecosystem",
-                team: "Leadership",
-                affected_team: "Leadership",
-                urgency: "Medium" as const,
-                status: "pending" as const,
-                due_date: "Next Week",
-                description: "Competitor X recruited 45 enterprise systems integrators. Author partner certification program for top tier VARs.",
-                confidence: "Medium" as const,
-                supporting_evidence: [
-                  {
-                    source: "Reuters",
-                    quote: "Competitor X expanded SI partnerships across North America & EMEA.",
-                    competitor: "Competitor X",
-                  },
-                ],
-              },
-            ]
-          : BASELINE_NEXT_BEST_ACTIONS;
-
-        let fallback: NextBestAction[] = [...(fallbackBase as any as NextBestAction[])];
-        if (teamFilter !== "ALL") {
-          fallback = fallback.filter(
-            (a) =>
-              a.team.toLowerCase() === teamFilter.toLowerCase() ||
-              (a.affected_team || "").toLowerCase() === teamFilter.toLowerCase()
-          );
-        }
-        if (statusFilter !== "ALL") {
-          fallback = fallback.filter(
-            (a) => (a.status || (a as any).review_status || "").toLowerCase() === statusFilter.toLowerCase()
-          );
-        }
-        setActions(fallback);
-      }
+      setActions(res.actions || []);
     } catch (err: any) {
-      // Offline fallback
-      const isAcme = effectiveTarget.toLowerCase().includes("acme");
-      let fallbackBase = isAcme
-        ? [
-            {
-              id: "act_acme_1",
-              title: "Prepare response to Competitor X's enterprise pricing push",
-              team: "Sales",
-              affected_team: "Sales",
-              urgency: "High" as const,
-              status: "pending" as const,
-              due_date: "Today",
-              description: "Competitor X discounted enterprise annual contracts by 15-20%. Arm field reps with TCO calculator emphasizing zero API surcharges.",
-              confidence: "High" as const,
-              supporting_evidence: [
-                {
-                  source: "Gartner Pricing Benchmark",
-                  quote: "Competitor X's enterprise plan remains 15-20% lower than industry average, but requires add-on fees for custom integrations.",
-                  competitor: "Competitor X",
-                },
-              ],
-            },
-            {
-              id: "act_acme_2",
-              title: "Review feature gap in AI workflow automation vs Competitor X",
-              team: "Product",
-              affected_team: "Product",
-              urgency: "Medium" as const,
-              status: "pending" as const,
-              due_date: "Tomorrow",
-              description: "Competitor X launched workflow automation triggers with AI lead routing. Prioritize multi-branch approval tree roadmap.",
-              confidence: "High" as const,
-              supporting_evidence: [
-                {
-                  source: "TechCrunch",
-                  quote: "Competitor X introduces advanced automation features and AI-assisted lead scoring.",
-                  competitor: "Competitor X",
-                },
-              ],
-            },
-            {
-              id: "act_acme_3",
-              title: "Update comparison page with TCO calculator vs Competitor X",
-              team: "Marketing",
-              affected_team: "Marketing",
-              urgency: "Medium" as const,
-              status: "pending" as const,
-              due_date: "This Week",
-              description: "Publish interactive calculator showing that unbundled API limits and SLA fees make Competitor X 28% more expensive over 3 years.",
-              confidence: "High" as const,
-              supporting_evidence: [
-                {
-                  source: "PrismIQ Win/Loss Analysis",
-                  quote: "78% of won renewals against Competitor X cited predictable all-inclusive pricing without seat surcharges.",
-                  competitor: "Competitor X",
-                },
-              ],
-            },
-          ]
-        : BASELINE_NEXT_BEST_ACTIONS;
-
-      let fallback: NextBestAction[] = [...(fallbackBase as any as NextBestAction[])];
-      if (teamFilter !== "ALL") {
-        fallback = fallback.filter(
-          (a) =>
-            a.team.toLowerCase() === teamFilter.toLowerCase() ||
-            (a.affected_team || "").toLowerCase() === teamFilter.toLowerCase()
-        );
+      if (!isSilent) {
+        setError(err?.message || "Failed to load recommendations");
+        setActions([]);
       }
-      if (statusFilter !== "ALL") {
-        fallback = fallback.filter(
-          (a) => (a.status || (a as any).review_status || "").toLowerCase() === statusFilter.toLowerCase()
-        );
-      }
-      setActions(fallback);
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [teamFilter, statusFilter, effectiveTenantId, effectiveTarget]);
 
   React.useEffect(() => {
-    loadActions();
-  }, [loadActions]);
+    const isSyncRefresh = prevSyncRef.current !== workspace.pipelineSyncVersion;
+    prevSyncRef.current = workspace.pipelineSyncVersion;
+    loadActions(isSyncRefresh);
+  }, [loadActions, workspace.pipelineSyncVersion]);
 
   // Run engine generation sweep
   const handleRunSweep = async () => {
@@ -371,7 +203,7 @@ export function NextBestActionsView({
             AI Decision Intelligence Hub
           </div>
           <h1 className="app-title-lg">
-            Next Best Actions for <span className="app-gradient-text">{targetCompany}</span>
+            Next Best Actions for <span className="app-gradient-text">{effectiveTarget}</span>
           </h1>
           <p className="app-caption mt-1 max-w-2xl">
             Actionable counter-strategies synthesized across Sales, Product, Marketing, and Leadership. Grounded in customer voice, empirical win/loss outcomes, and competitive drift.

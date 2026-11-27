@@ -85,16 +85,46 @@ class CompetitorComparisonEngine:
 
         all_entities = [tgt] + [c for c in comps if c.lower() != tgt.lower()]
 
-        # 1. Fetch claims & evidence for all participating companies
+        # 1. Fetch claims & empirical swept evidence for all participating companies
+        all_events = storage.load_events(tenant_id=self.tenant_id) or []
+        all_signals = storage.load_signals(tenant_id=self.tenant_id) or []
+
         company_evidence_map = {}
         for entity in all_entities:
+            e_low = entity.lower()
             claims = battlecard_storage.list_claims(
                 tenant_id=self.tenant_id,
                 company_name=entity,
             ) or []
+            ev_list: List[Dict[str, Any]] = []
+            for ev in all_events:
+                cname = str(ev.get("company_name") or ev.get("company") or "").strip().lower()
+                if cname == e_low or (cname and e_low in cname):
+                    title = str(ev.get("title") or "").strip()
+                    summary = str(ev.get("why_it_matters") or ev.get("event_summary") or ev.get("raw_excerpt") or title).strip()
+                    ev_list.append({
+                        "excerpt": f"{title}: {summary}" if summary and summary != title else title,
+                        "source_title": title or "Verified Event",
+                        "source_url": ev.get("url") or "",
+                        "verification_status": "verified",
+                        "last_verified_at": ev.get("published_at") or ev.get("latest_detected_at"),
+                    })
+            for sig in all_signals:
+                cname = str(sig.get("company_name") or sig.get("company") or "").strip().lower()
+                if cname == e_low or (cname and e_low in cname):
+                    title = str(sig.get("title") or "").strip()
+                    summary = str(sig.get("why_it_matters") or sig.get("raw_excerpt") or title).strip()
+                    ev_list.append({
+                        "excerpt": f"{title}: {summary}" if summary and summary != title else title,
+                        "source_title": title or str(sig.get("source") or "Verified Signal"),
+                        "source_url": sig.get("url") or "",
+                        "verification_status": "verified",
+                        "last_verified_at": sig.get("published_at") or sig.get("detected_at"),
+                    })
+
             company_evidence_map[entity] = {
                 "claims": claims,
-                "evidence": [],
+                "evidence": ev_list,
             }
 
         # 2. Determine capability set
@@ -105,6 +135,15 @@ class CompetitorComparisonEngine:
             cat_clean = cat.strip().lower()
             if cat_clean in STANDARD_CAPABILITY_TAXONOMY:
                 cap_groups[cat_clean] = STANDARD_CAPABILITY_TAXONOMY[cat_clean]
+
+        if not categories and not custom_capabilities and any(company_evidence_map[e]["evidence"] for e in all_entities):
+            cap_groups["observed_market_signals"] = [
+                {"name": "Product & Feature Releases", "keywords": ["launch", "release", "feature", "v1", "v2", "update", "sdk", "canvas", "ai"]},
+                {"name": "Pricing, Billing & Packaging Shifts", "keywords": ["pricing", "price", "fee", "tier", "commission", "plan", "discount", "subscription"]},
+                {"name": "Developer Ecosystem & GitHub Velocity", "keywords": ["github", "open source", "repo", "sdk", "api", "mcp", "cli", "plugin"]},
+                {"name": "Partnerships, Distribution & Expansion", "keywords": ["partner", "alliance", "integration", "marketplace", "delivery", "enterprise", "expansion"]},
+                {"name": "Talent & Engineering Hiring Focus", "keywords": ["hiring", "recruit", "engineer", "architect", "director", "careers", "job"]},
+            ]
 
         if custom_capabilities:
             cap_groups["custom_features"] = custom_capabilities
