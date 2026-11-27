@@ -42,6 +42,7 @@ def _ensure_tenant_cache(tenant_id: str):
             "8553449a-c998-4727-be01-9aeb724038cb",
             "c8f13b91-46ef-4682-9975-f85764d8a12e",
             "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f",
+            "7b90477d-2524-4cf9-8e47-f389ec890ff7",
         }
         if not is_test_environment() and tid in known_demo_tenants:
             try:

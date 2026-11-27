@@ -858,6 +858,123 @@ def _ensure_tenant_brief(tenant_id: str, cur) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _auto_synthesize_brief_for_tenant(tenant_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Auto-synthesize a tenant-scoped executive brief from DB findings or local
+    tenant events (`events_<tenant_id>.json`) when no brief file exists yet.
+    Returns None if the tenant has zero verified events (preserving strict 404).
+    """
+    if _is_db_active():
+        try:
+            with storage.get_tenant_db_cursor(tenant_id, readonly=False) as cur:
+                if not isinstance(cur, storage.MockCursor):
+                    db_res = _ensure_tenant_brief(tenant_id, cur)
+                    if db_res and db_res.get("content"):
+                        return db_res
+        except Exception as e:
+            logger.debug(f"DB brief auto-synthesis fallback to local events for {tenant_id}: {e}")
+
+    data_dir = _get_data_dir()
+    pub_dir = Path(__file__).resolve().parent.parent / "published_briefs"
+    search_dirs = [data_dir]
+    if not storage.is_test_environment() and pub_dir.exists() and pub_dir != data_dir:
+        search_dirs.append(pub_dir)
+
+    events: List[Dict[str, Any]] = []
+    for sdir in search_dirs:
+        ev_file = sdir / f"events_{tenant_id}.json"
+        if ev_file.exists():
+            events = storage.load_events(filepath=ev_file) or []
+            if events:
+                break
+    if not events and not (storage.is_test_environment() and os.getenv("DATA_DIR")):
+        events = storage.load_events(tenant_id=tenant_id) or []
+    if not events:
+        return None
+
+    try:
+        from src import analysis_agent, report_agent
+        cfg = storage.get_tenant_workspace_config(tenant_id)
+        target_lower = (cfg.get("target_company") or "").strip().lower()
+
+        def _ev_sort_key(ev: Dict[str, Any]) -> tuple:
+            t_low = (ev.get("title") or "").lower()
+            c_low = (ev.get("company_name") or ev.get("company") or "").strip().lower()
+            is_noise_like = "job posting:" in t_low or "started watching" in t_low or "forked" in t_low
+            is_rival = bool(target_lower and c_low and c_low != target_lower)
+            return (0 if not is_noise_like else 1, 0 if is_rival else 1, -(ev.get("corroboration_count") or 1))
+
+        sorted_events = sorted(events, key=_ev_sort_key)[:150]
+        findings_list: List[Dict[str, Any]] = []
+        for idx, ev in enumerate(sorted_events):
+            why = _clean_why_it_matters(ev.get("why_it_matters"))
+            if not why:
+                why = analysis_agent._synthesize_fallback_analysis(ev).get("why_it_matters", "")
+            comp = ev.get("company_name") or ev.get("company") or "Competitor"
+            contrib = ev.get("contributing_sources") or ["news"]
+            if isinstance(contrib, str):
+                try:
+                    contrib = json.loads(contrib)
+                except Exception:
+                    contrib = [contrib]
+            contrib_list = contrib if isinstance(contrib, list) else ["news"]
+            findings_list.append({
+                "finding_id": f"syn_{ev.get('event_id', idx)}",
+                "event_id": str(ev.get("event_id") or f"evt_{idx}"),
+                "company": comp,
+                "company_name": comp,
+                "source": ev.get("source") or (contrib_list[0] if contrib_list else "news"),
+                "tier": ev.get("tier") or "must_know",
+                "confidence": ev.get("confidence") or ev.get("fact_confidence") or "Medium",
+                "inference_confidence": ev.get("inference_confidence") or "Low",
+                "fact_confidence": ev.get("fact_confidence") or "Medium",
+                "why_it_matters": why,
+                "title": ev.get("title") or "Competitive Development",
+                "url": ev.get("url") or "#",
+                "contributing_sources": contrib_list,
+                "corroboration_count": ev.get("corroboration_count") or 1,
+                "published_at": str(ev.get("published_at") or ""),
+                "published_timestamp": str(ev.get("published_timestamp") or ev.get("published_at") or ""),
+                "raw_excerpt": ev.get("raw_excerpt") or ev.get("event_summary") or "",
+            })
+
+        tracked = [cfg["target_company"]] + list(cfg.get("competitors", [])) if cfg.get("target_company") else None
+        brief_md = report_agent.run(
+            findings_list,
+            tenant_id=tenant_id,
+            tracked_companies=tracked,
+        )
+        now = datetime.now(timezone.utc)
+        if not storage.is_dry_run():
+            try:
+                storage.save_brief(brief_md, tenant_id=tenant_id, published_at=now)
+            except Exception as save_err:
+                logger.debug(f"Could not persist synthesized brief for {tenant_id}: {save_err}")
+        return {
+            "id": "latest",
+            "title": "PrismIQ Competitive Intelligence Brief",
+            "published_at": now,
+            "content": brief_md,
+        }
+    except Exception as e:
+        logger.warning(f"Local brief auto-synthesis failed for tenant {tenant_id}: {e}")
+        return None
+
+
+def _is_other_tenant_brief_file(filename: str, tenant_id: str) -> bool:
+    """Return True if filename is brief_<other_uuid>.md belonging to a different tenant."""
+    if not filename.startswith("brief_") or not filename.endswith(".md"):
+        return False
+    stem = filename[len("brief_"):-len(".md")]
+    if stem == tenant_id:
+        return False
+    try:
+        uuid.UUID(stem)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 @app.get("/briefs")
 def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -921,7 +1038,9 @@ def list_briefs(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, List[
                 content = ""
 
             content_lower = content.lower()
-            # Strict tenant boundary: only include if brief belongs to tenant or matches tenant's company/competitors
+            # Strict tenant boundary: never read another tenant's UUID brief, only this tenant's brief or company-matching brief
+            if _is_other_tenant_brief_file(filename, tenant_id):
+                continue
             if filename != f"brief_{tenant_id}.md" and (not target_comp or (target_comp not in content_lower and not any(comp in content_lower for comp in competitors))):
                 continue
 
@@ -1005,6 +1124,28 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
             continue
         tenant_brief = sdir / f"brief_{tenant_id}.md"
         if tenant_brief.exists() and tenant_brief.stat().st_size > 500:
+            # If newer sweep events landed after this cached brief was synthesized, refresh it cleanly
+            try:
+                brief_mtime = tenant_brief.stat().st_mtime
+                events_is_newer = any(
+                    (ed / f"events_{tenant_id}.json").exists()
+                    and (ed / f"events_{tenant_id}.json").stat().st_mtime > brief_mtime + 2.0
+                    for ed in search_dirs
+                    if ed.exists()
+                )
+                if events_is_newer:
+                    refreshed = _auto_synthesize_brief_for_tenant(tenant_id)
+                    if refreshed and refreshed.get("content"):
+                        pub_dt = refreshed.get("published_at")
+                        date_str = pub_dt.isoformat() if isinstance(pub_dt, datetime) else str(pub_dt or datetime.now(timezone.utc).isoformat())
+                        return {
+                            "id": refreshed.get("id", "latest"),
+                            "date": date_str,
+                            "filename": f"brief_{tenant_id}.md",
+                            "content": refreshed["content"],
+                        }
+            except Exception as exc:
+                logger.warning(f"Brief freshness refresh skipped for {tenant_id}: {exc}")
             target_file = tenant_brief
             break
 
@@ -1018,6 +1159,8 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
             if not sdir.exists():
                 continue
             for candidate in sorted(sdir.glob("brief*.md"), reverse=True):
+                if _is_other_tenant_brief_file(candidate.name, tenant_id):
+                    continue
                 try:
                     content_sample = candidate.read_text(encoding="utf-8", errors="ignore")[:4000].lower()
                     if target_comp and (target_comp in content_sample or any(comp in content_sample for comp in competitors)):
@@ -1028,8 +1171,8 @@ def get_latest_brief(tenant_id: str = Depends(get_current_tenant)) -> Dict[str, 
             if target_file:
                 break
 
-    # 3. Attempt synthesis from validated events if still no file found
-    if not target_file and _is_db_active():
+    # 3. Attempt synthesis from validated events/findings if still no file found
+    if not target_file:
         try:
             synth = _auto_synthesize_brief_for_tenant(tenant_id)
             if synth and synth.get("content"):
@@ -1911,17 +2054,29 @@ def onboard_confirm_candidates(
         except Exception:
             pass
 
-    # Dynamic Agent Intelligence: immediately synthesize all 5 points for new target and competitors
-    try:
-        from . import dynamic_intelligence_agent
-        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
-            tenant_id=tenant_id,
-            target_company=target,
-            competitors=req.confirmed_competitors,
-            force_refresh=True,
-        )
-    except Exception as e:
-        logger.warning(f"Error populating dynamic intelligence for {target} ({tenant_id}): {e}")
+    # Dynamic Agent Intelligence: populate profiles/memory asynchronously so HTTP confirm never times out
+    import threading
+    from . import dynamic_intelligence_agent
+
+    def _populate_dynamic_intel() -> None:
+        try:
+            has_real_signals = bool(
+                storage.load_signals(tenant_id=tenant_id) or storage.load_events(tenant_id=tenant_id)
+            )
+            dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
+                tenant_id=tenant_id,
+                target_company=target,
+                competitors=req.confirmed_competitors,
+                force_refresh=True,
+                write_correlations=has_real_signals or storage.is_test_environment(),
+            )
+        except Exception as exc:
+            logger.warning(f"Error populating dynamic intelligence for {target} ({tenant_id}): {exc}")
+
+    if storage.is_test_environment():
+        _populate_dynamic_intel()
+    else:
+        threading.Thread(target=_populate_dynamic_intel, daemon=True).start()
 
     return {
         "status": "confirmed",
@@ -3061,11 +3216,15 @@ from .overview_service import get_overview_intelligence, get_intelligence_detail
 @app.get("/overview")
 def api_get_overview(
     company: str = Query("Flipkart", description="Target company to analyze"),
+    target_company: Optional[str] = Query(None, description="Optional target_company alias"),
     range: str = Query("6m", description="Time range (e.g. 6m, 30d, 90d)"),
-    tenant_id: Optional[str] = Query(None, description="Tenant ID")
+    tenant_id: Optional[str] = Query(None, description="Tenant ID"),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
 ):
+    effective_tid = (tenant_id or x_tenant_id or "").strip() or None
+    effective_company = (target_company or company or "Flipkart").strip()
     try:
-        return get_overview_intelligence(target_company=company, time_range=range, tenant_id=tenant_id)
+        return get_overview_intelligence(target_company=effective_company, time_range=range, tenant_id=effective_tid)
     except Exception as e:
         logger.error(f"Error fetching overview intelligence: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -3075,10 +3234,12 @@ def api_get_overview(
 def api_get_intelligence_detail(
     detail_id: str,
     target_company: str = Query("Flipkart", description="Target company"),
-    tenant_id: Optional[str] = Query(None, description="Tenant ID")
+    tenant_id: Optional[str] = Query(None, description="Tenant ID"),
+    x_tenant_id: Optional[str] = Header(None, alias="x-tenant-id"),
 ):
+    effective_tid = (tenant_id or x_tenant_id or "").strip() or None
     try:
-        return get_intelligence_detail(detail_id=detail_id, target_company=target_company, tenant_id=tenant_id)
+        return get_intelligence_detail(detail_id=detail_id, target_company=target_company, tenant_id=effective_tid)
     except Exception as e:
         logger.error(f"Error fetching intelligence detail for {detail_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

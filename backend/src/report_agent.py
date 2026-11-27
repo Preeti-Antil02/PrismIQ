@@ -10,9 +10,10 @@ Renders executive markdown competitive intelligence briefs from synthesized find
 
 from collections import defaultdict
 from datetime import datetime, timezone
+import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from . import config, synthesis_agent, storage
+from . import config, synthesis_agent, storage, analysis_agent
 
 # High-stakes risk & security keywords that warrant immediate executive attention
 SECURITY_KEYWORDS: Set[str] = {
@@ -174,7 +175,8 @@ def _calculate_decision_score(
         score -= 1.0
 
     # External third-party source validation boost (+0.5)
-    is_self_domain = any(domain in url for domain in ["vercel.com", "netlify.com", "cloudflare.com"])
+    comp_slug = re.sub(r"[^a-z0-9]", "", (finding.get("company") or finding.get("company_name") or "").lower())
+    is_self_domain = bool(comp_slug and len(comp_slug) >= 3 and f"{comp_slug}." in url)
     if not is_self_domain:
         score += 0.5
 
@@ -236,26 +238,38 @@ def _select_top_decisions(
     limit: int = 3,
     apply_freshness_decay: bool = True,
     reference_time: Optional[datetime] = None,
+    target_company: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Select top decision items across all companies using scored priority,
-    ensuring company diversity where qualifying cross-company findings exist.
+    ensuring company diversity and deprioritizing routine IC job postings,
+    GitHub watch/fork noise, and target-company self-items when rival signals exist.
     """
     if not findings:
         return []
 
-    scored_findings = [
-        (
-            finding,
-            _calculate_decision_score(
-                finding,
-                apply_changelog_penalty=True,
-                apply_freshness_decay=apply_freshness_decay,
-                reference_time=reference_time,
-            ),
+    norm_target = (target_company or "").strip().lower()
+
+    def _top3_rank_score(f: Dict[str, Any]) -> float:
+        base = _calculate_decision_score(
+            f,
+            apply_changelog_penalty=True,
+            apply_freshness_decay=apply_freshness_decay,
+            reference_time=reference_time,
         )
-        for finding in findings
-    ]
+        t_lower = (f.get("title") or "").lower()
+        src_lower = (f.get("source") or "").lower()
+        comp_lower = (f.get("company") or f.get("company_name") or "").strip().lower()
+        is_watch_fork = any(k in t_lower for k in ("started watching", "forked", "watchevent", "forkevent"))
+        is_job = src_lower == "jobs" or "job posting:" in t_lower
+        is_leadership = any(k in t_lower for k in ("vp", "vice president", "director", "head of", "chief", "principal", "fellow"))
+        if is_watch_fork or (is_job and not is_leadership):
+            base -= 5.0
+        if norm_target and comp_lower == norm_target:
+            base -= 1.0
+        return base
+
+    scored_findings = [(finding, _top3_rank_score(finding)) for finding in findings]
     scored_findings.sort(key=lambda x: x[1], reverse=True)
 
     selected: List[Dict[str, Any]] = []
@@ -501,14 +515,22 @@ def run(
     # 1. Top 3 Decisions Section
     # ==========================================
     lines.append("## Top 3 decisions this informs\n")
-    top_decisions = _select_top_decisions(findings, limit=3)
+    inferred_target = None
+    if tenant_id:
+        try:
+            inferred_target = storage.get_tenant_workspace_config(tenant_id).get("target_company")
+        except Exception:
+            inferred_target = None
+    top_decisions = _select_top_decisions(findings, limit=3, target_company=inferred_target)
 
     if not top_decisions:
         lines.append("*No high-priority decisions identified for this period.*\n")
     else:
         for idx, item in enumerate(top_decisions, 1):
-            company = item.get("company", "General")
-            why = item.get("why_it_matters", "No analysis provided.")
+            company = item.get("company") or item.get("company_name") or "General"
+            why = (item.get("why_it_matters") or "").strip()
+            if not why or "rate limit" in why.lower() or "analysis unavailable" in why.lower() or "analysis failed" in why.lower():
+                why = analysis_agent._synthesize_fallback_analysis(item).get("why_it_matters", "Competitive development detected.")
             title = item.get("title", "Signal")
             lines.append(f"{idx}. **{company}** ({title}): {why}")
         lines.append("")
@@ -615,7 +637,9 @@ def run(
                     infer_conf = finding.get("inference_confidence") or confidence
                     conf_disp = fact_conf if fact_conf == infer_conf else f"Fact {fact_conf}, Inference {infer_conf}"
                     corrob_lvl = finding.get("corroboration_level", "Single-Source")
-                    why_it_matters = finding.get("why_it_matters", "")
+                    why_it_matters = (finding.get("why_it_matters") or "").strip()
+                    if not why_it_matters or "rate limit" in why_it_matters.lower() or "analysis unavailable" in why_it_matters.lower() or "analysis failed" in why_it_matters.lower():
+                        why_it_matters = analysis_agent._synthesize_fallback_analysis(finding).get("why_it_matters", "")
                     published_at = finding.get("published_at", "Recent")
                     freshness_label = format_freshness_label(finding)
                     corrob_count = finding.get("corroboration_count", 1)
@@ -642,7 +666,9 @@ def run(
                     infer_conf = finding.get("inference_confidence") or confidence
                     conf_disp = fact_conf if fact_conf == infer_conf else f"Fact {fact_conf} / Inference {infer_conf}"
                     corrob_lvl = finding.get("corroboration_level", "Single-Source")
-                    why_it_matters = finding.get("why_it_matters", "")
+                    why_it_matters = (finding.get("why_it_matters") or "").strip()
+                    if not why_it_matters or "rate limit" in why_it_matters.lower() or "analysis unavailable" in why_it_matters.lower() or "analysis failed" in why_it_matters.lower():
+                        why_it_matters = analysis_agent._synthesize_fallback_analysis(finding).get("why_it_matters", "")
                     published_at = finding.get("published_at", "Recent")
                     freshness_label = format_freshness_label(finding)
                     corrob_count = finding.get("corroboration_count", 1)

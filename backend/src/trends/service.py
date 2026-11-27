@@ -89,7 +89,141 @@ def _get_fallback_clusters(tenant_id: str, target_company: Optional[str] = None)
         scored.append(item)
 
     scored.sort(key=lambda x: (x.get("relevance_score", 0), x.get("raw_event_count", 0)), reverse=True)
-    return scored
+    if scored:
+        return scored
+
+    # Dynamic synthesis from the tenant's own persisted events when static trends_clusters.json has no overlap
+    return _synthesize_dynamic_clusters_from_events(tenant_id, target_company=target_company)
+
+
+def _classify_event_theme(ev: Dict[str, Any]) -> Tuple[str, str]:
+    """Derive a clean trend theme and primary category from a consolidated event."""
+    explicit = ev.get("theme") or ev.get("strategic_theme") or ev.get("dimension") or ev.get("category")
+    if explicit and isinstance(explicit, str) and explicit.strip():
+        clean = explicit.strip()
+        return clean, clean
+    text = f"{ev.get('title', '')} {ev.get('event_summary', '')}".lower()
+    if any(k in text for k in ("price", "pricing", "tier", "fee", "discount", "commission", "billing")):
+        return "Pricing & Commercial Shifts", "Pricing"
+    if any(k in text for k in ("ai", "llm", "model", "agent", "Copilot".lower(), "ml")):
+        return "AI & Product Capabilities", "AI & Technology"
+    if any(k in text for k in ("partner", "alliance", "acquir", "funding", "series", "invest")):
+        return "Partnerships & Capital Strategy", "Partnerships"
+    if any(k in text for k in ("vp", "director", "chief", "head of", "hiring", "recruit")):
+        return "Leadership & Talent Expansion", "Talent & Hiring"
+    if any(k in text for k in ("security", "cve", "compliance", "soc2", "gdpr", "breach")):
+        return "Security & Compliance Posture", "Compliance"
+    return "Product & Platform Moves", "Product"
+
+
+def _synthesize_dynamic_clusters_from_events(
+    tenant_id: str,
+    target_company: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Synthesize tenant-isolated trend clusters directly from storage.load_events(tenant_id).
+    Used when static trends_clusters.json has zero overlap for a custom or demo tenant.
+    """
+    events = storage.load_events(tenant_id=tenant_id) or []
+    if not events:
+        return []
+
+    buckets: Dict[str, List[Dict[str, Any]]] = {}
+    categories: Dict[str, str] = {}
+    for ev in events:
+        theme, cat = _classify_event_theme(ev)
+        buckets.setdefault(theme, []).append(ev)
+        categories[theme] = cat
+
+    tid_prefix = re.sub(r"[^a-z0-9]", "", str(tenant_id).lower())[:8] or "tenant"
+    synthesized: List[Dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
+
+    for theme, ev_list in buckets.items():
+        # Sort chronologically
+        ev_list_sorted = sorted(
+            ev_list,
+            key=lambda x: str(x.get("published_at") or x.get("published_timestamp") or ""),
+        )
+        comps = sorted(list({
+            str(e.get("company_name") or e.get("company") or "").strip()
+            for e in ev_list_sorted
+            if (e.get("company_name") or e.get("company"))
+        }))
+        if not comps:
+            continue
+
+        # Build 3-week velocity vector [w-2, w-1, w0] anchored to the latest event timestamp
+        dates: List[datetime] = []
+        for e in ev_list_sorted:
+            raw_dt = e.get("published_at") or e.get("published_timestamp") or ""
+            try:
+                dt = datetime.fromisoformat(str(raw_dt).replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                dates.append(dt)
+            except Exception:
+                pass
+
+        anchor_dt = max(dates) if dates else now
+        vec = [0, 0, 0]
+        for dt in dates:
+            age_days = max(0.0, (anchor_dt - dt).total_seconds() / 86400.0)
+            if age_days <= 7:
+                vec[2] += 1
+            elif age_days <= 14:
+                vec[1] += 1
+            else:
+                vec[0] += 1
+        if sum(vec) == 0:
+            vec[2] = len(ev_list_sorted)
+
+        if vec[2] > vec[1] and len(ev_list_sorted) >= 3:
+            momentum_label = "surging"
+        elif vec[2] >= vec[1] and len(ev_list_sorted) >= 2:
+            momentum_label = "building"
+        else:
+            momentum_label = "stable"
+
+        members = []
+        for idx, e in enumerate(ev_list_sorted):
+            srcs = e.get("contributing_sources") or []
+            sig_type = srcs[0] if isinstance(srcs, list) and srcs else (e.get("source") or "news")
+            pub_str = e.get("published_at") or e.get("published_timestamp") or anchor_dt.isoformat()
+            members.append({
+                "event_id": e.get("event_id") or e.get("id") or f"evt_{tid_prefix}_{idx}",
+                "company": e.get("company_name") or e.get("company") or comps[0],
+                "title": e.get("title") or "Competitive Development",
+                "url": e.get("url") or "",
+                "signal_type": sig_type,
+                "node_class": "first_party" if "github" in str(sig_type).lower() else "third_party",
+                "published_at": pub_str,
+                "date_precision": "day",
+                "is_sequence_eligible": True,
+            })
+
+        slug = re.sub(r"[^a-z0-9]+", "_", theme.lower()).strip("_")
+        rep_title = f"{theme}: {ev_list_sorted[-1].get('title', theme)}" if len(ev_list_sorted) == 1 else f"{theme} across {', '.join(comps[:3])}"
+        synthesized.append({
+            "cluster_id": f"dyn_{tid_prefix}_{slug}",
+            "trend_name": theme,
+            "representative_title": rep_title[:120],
+            "cluster_type": "cross_company_trend" if len(comps) >= 2 else "single_company_storyline",
+            "primary_category": categories.get(theme, "Technology"),
+            "momentum_label": momentum_label,
+            "momentum_vector": vec,
+            "distinct_story_count": len(ev_list_sorted),
+            "raw_event_count": len(ev_list_sorted),
+            "companies_involved": comps,
+            "matched_tracked_companies": comps,
+            "relevance_score": round(min(0.98, 0.72 + (0.05 * len(comps))), 2),
+            "first_detected_at": members[0]["published_at"] if members else None,
+            "latest_detected_at": members[-1]["published_at"] if members else None,
+            "members": members,
+        })
+
+    synthesized.sort(key=lambda x: (x.get("relevance_score", 0), x.get("raw_event_count", 0)), reverse=True)
+    return synthesized
 
 def get_tenant_trends(
     tenant_id: str,
@@ -113,92 +247,96 @@ def get_tenant_trends(
 
     cursor_score, cursor_id = decode_cursor(cursor) if cursor else (None, None)
 
-    # 1. Attempt DB Query
+    # 1. Attempt DB Query (skip cleanly when MockCursor is returned)
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-            # Check if tenant_trend_views table exists
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'tenant_trend_views'
-                );
-            """)
-            has_table = cur.fetchone()[0]
+            if not isinstance(cur, storage.MockCursor):
+                # Check if tenant_trend_views table exists
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'tenant_trend_views'
+                    );
+                """)
+                exists_row = cur.fetchone()
+                has_table = bool(exists_row and exists_row[0] is True)
 
-            if has_table:
-                # Count total
-                cur.execute("SELECT COUNT(*) FROM tenant_trend_views WHERE tenant_id = %s;", (tenant_id,))
-                total_count = cur.fetchone()[0]
+                if has_table:
+                    # Count total
+                    cur.execute("SELECT COUNT(*) FROM tenant_trend_views WHERE tenant_id = %s;", (tenant_id,))
+                    cnt_row = cur.fetchone()
+                    raw_cnt = cnt_row[0] if cnt_row else 0
+                    total_count = int(raw_cnt) if isinstance(raw_cnt, (int, float)) else 0
 
-                if total_count > 0:
-                    query = """
-                        SELECT 
-                            tc.cluster_id,
-                            tc.trend_name,
-                            tc.representative_title,
-                            tc.cluster_type,
-                            tc.primary_category,
-                            tc.momentum_label,
-                            tc.momentum_vector,
-                            tc.distinct_story_count,
-                            tc.raw_event_count,
-                            tc.companies_involved,
-                            tc.first_detected_at,
-                            tc.latest_detected_at,
-                            tc.published_at,
-                            ttv.relevance_score,
-                            ttv.matched_tracked_companies
-                        FROM tenant_trend_views ttv
-                        JOIN trend_clusters tc ON ttv.cluster_id = tc.cluster_id
-                        WHERE ttv.tenant_id = %s
-                    """
-                    params: List[Any] = [tenant_id]
+                    if total_count > 0:
+                        query = """
+                            SELECT 
+                                tc.cluster_id,
+                                tc.trend_name,
+                                tc.representative_title,
+                                tc.cluster_type,
+                                tc.primary_category,
+                                tc.momentum_label,
+                                tc.momentum_vector,
+                                tc.distinct_story_count,
+                                tc.raw_event_count,
+                                tc.companies_involved,
+                                tc.first_detected_at,
+                                tc.latest_detected_at,
+                                tc.published_at,
+                                ttv.relevance_score,
+                                ttv.matched_tracked_companies
+                            FROM tenant_trend_views ttv
+                            JOIN trend_clusters tc ON ttv.cluster_id = tc.cluster_id
+                            WHERE ttv.tenant_id = %s
+                        """
+                        params: List[Any] = [tenant_id]
 
-                    if company:
-                        query += " AND %s = ANY(tc.companies_involved)"
-                        params.append(company)
-                    if momentum:
-                        query += " AND tc.momentum_label = %s"
-                        params.append(momentum)
-                    if trend_type:
-                        query += " AND tc.cluster_type = %s"
-                        params.append(trend_type)
-                    if cursor_score is not None and cursor_id is not None:
-                        query += " AND (ttv.relevance_score, tc.cluster_id) < (%s, %s)"
-                        params.extend([cursor_score, cursor_id])
+                        if company:
+                            query += " AND %s = ANY(tc.companies_involved)"
+                            params.append(company)
+                        if momentum:
+                            query += " AND tc.momentum_label = %s"
+                            params.append(momentum)
+                        if trend_type:
+                            query += " AND tc.cluster_type = %s"
+                            params.append(trend_type)
+                        if cursor_score is not None and cursor_id is not None:
+                            query += " AND (ttv.relevance_score, tc.cluster_id) < (%s, %s)"
+                            params.extend([cursor_score, cursor_id])
 
-                    query += " ORDER BY ttv.relevance_score DESC, tc.cluster_id DESC LIMIT %s;"
-                    params.append(limit + 1)
+                        query += " ORDER BY ttv.relevance_score DESC, tc.cluster_id DESC LIMIT %s;"
+                        params.append(limit + 1)
 
-                    cur.execute(query, tuple(params))
-                    rows = cur.fetchall()
+                        cur.execute(query, tuple(params))
+                        rows = cur.fetchall()
 
-                    if len(rows) > limit:
-                        has_more = True
-                        rows = rows[:limit]
-                        last_row = rows[-1]
-                        next_cursor = encode_cursor(last_row[13], last_row[0])
+                        if len(rows) > limit:
+                            has_more = True
+                            rows = rows[:limit]
+                            last_row = rows[-1]
+                            next_cursor = encode_cursor(last_row[13], last_row[0])
 
-                    for r in rows:
-                        trends_list.append({
-                            "cluster_id": r[0],
-                            "trend_name": r[1] or r[2],
-                            "representative_title": r[2],
-                            "cluster_type": r[3],
-                            "primary_category": r[4],
-                            "momentum": {
-                                "label": r[5],
-                                "vector": r[6] if isinstance(r[6], list) else json.loads(r[6] or "[0,0,0]")
-                            },
-                            "distinct_story_count": r[7],
-                            "raw_event_count": r[8],
-                            "companies_involved": r[9] or [],
-                            "first_detected_at": r[10].isoformat() if r[10] else None,
-                            "latest_detected_at": r[11].isoformat() if r[11] else None,
-                            "published_at": r[12].isoformat() if r[12] else None,
-                            "relevance_score": float(r[13]),
-                            "matched_tracked_companies": r[14] or [],
-                        })
+                        for r in rows:
+                            trends_list.append({
+                                "cluster_id": r[0],
+                                "trend_name": r[1] or r[2],
+                                "representative_title": r[2],
+                                "cluster_type": r[3],
+                                "primary_category": r[4],
+                                "momentum": {
+                                    "label": r[5],
+                                    "vector": r[6] if isinstance(r[6], list) else json.loads(r[6] or "[0,0,0]")
+                                },
+                                "distinct_story_count": r[7],
+                                "raw_event_count": r[8],
+                                "companies_involved": r[9] or [],
+                                "first_detected_at": r[10].isoformat() if r[10] else None,
+                                "latest_detected_at": r[11].isoformat() if r[11] else None,
+                                "published_at": r[12].isoformat() if r[12] else None,
+                                "relevance_score": float(r[13]),
+                                "matched_tracked_companies": r[14] or [],
+                            })
     except Exception as e:
         logger.info(f"Database query for trends fell back to local store: {e}")
 
@@ -274,108 +412,109 @@ def get_trend_detail(tenant_id: str, trend_id: str) -> Optional[Dict[str, Any]]:
     Retrieve full timeline detail for a specific trend, ensuring tenant access.
     Includes chronological timeline nodes, audited absences, and lineage.
     """
-    # 1. Try DB fetch
+    # 1. Try DB fetch (skip cleanly when MockCursor is returned)
     try:
         with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-            cur.execute("""
-                SELECT 
-                    tc.cluster_id,
-                    tc.trend_name,
-                    tc.representative_title,
-                    tc.cluster_type,
-                    tc.primary_category,
-                    tc.momentum_label,
-                    tc.momentum_vector,
-                    tc.distinct_story_count,
-                    tc.raw_event_count,
-                    tc.companies_involved,
-                    tc.first_detected_at,
-                    tc.latest_detected_at,
-                    tc.published_at,
-                    ttv.relevance_score
-                FROM tenant_trend_views ttv
-                JOIN trend_clusters tc ON ttv.cluster_id = tc.cluster_id
-                WHERE ttv.tenant_id = %s AND ttv.cluster_id = %s;
-            """, (tenant_id, trend_id))
-            row = cur.fetchone()
-
-            if row:
-                # Fetch members
+            if not isinstance(cur, storage.MockCursor):
                 cur.execute("""
                     SELECT 
-                        member_id,
-                        event_id,
-                        company_name,
-                        title,
-                        source_url,
-                        signal_type,
-                        node_class,
-                        published_at,
-                        date_precision,
-                        is_sequence_eligible
-                    FROM trend_cluster_members
-                    WHERE cluster_id = %s
-                    ORDER BY published_at ASC;
-                """, (trend_id,))
-                member_rows = cur.fetchall()
+                        tc.cluster_id,
+                        tc.trend_name,
+                        tc.representative_title,
+                        tc.cluster_type,
+                        tc.primary_category,
+                        tc.momentum_label,
+                        tc.momentum_vector,
+                        tc.distinct_story_count,
+                        tc.raw_event_count,
+                        tc.companies_involved,
+                        tc.first_detected_at,
+                        tc.latest_detected_at,
+                        tc.published_at,
+                        ttv.relevance_score
+                    FROM tenant_trend_views ttv
+                    JOIN trend_clusters tc ON ttv.cluster_id = tc.cluster_id
+                    WHERE ttv.tenant_id = %s AND ttv.cluster_id = %s;
+                """, (tenant_id, trend_id))
+                row = cur.fetchone()
 
-                timeline = []
-                for m in member_rows:
-                    timeline.append({
-                        "member_id": str(m[0]),
-                        "event_id": m[1],
-                        "company": m[2],
-                        "title": m[3],
-                        "source_url": m[4],
-                        "signal_type": m[5],
-                        "node_class": m[6],
-                        "published_at": m[7].isoformat() if m[7] else None,
-                        "date_precision": m[8],
-                        "is_sequence_eligible": bool(m[9])
-                    })
+                if row:
+                    # Fetch members
+                    cur.execute("""
+                        SELECT 
+                            member_id,
+                            event_id,
+                            company_name,
+                            title,
+                            source_url,
+                            signal_type,
+                            node_class,
+                            published_at,
+                            date_precision,
+                            is_sequence_eligible
+                        FROM trend_cluster_members
+                        WHERE cluster_id = %s
+                        ORDER BY published_at ASC;
+                    """, (trend_id,))
+                    member_rows = cur.fetchall()
 
-                # Fetch lineage
-                cur.execute("""
-                    SELECT parent_cluster_id, merge_reason, merged_at
-                    FROM trend_cluster_lineage
-                    WHERE cluster_id = %s;
-                """, (trend_id,))
-                lineage = [{"parent_id": l[0], "reason": l[1], "merged_at": l[2].isoformat() if l[2] else None} for l in cur.fetchall()]
-
-                # Calculate audited absences
-                cur.execute("SELECT company_name FROM tenant_tracked_companies WHERE status = 'active';")
-                tracked = [r[0] for r in cur.fetchall()]
-                companies_in = set(row[9] or [])
-                absences = []
-                for t in tracked:
-                    if t not in companies_in:
-                        absences.append({
-                            "company": t,
-                            "status": "absent",
-                            "audit_note": "Audited: 0 events detected across tracked window"
+                    timeline = []
+                    for m in member_rows:
+                        timeline.append({
+                            "member_id": str(m[0]),
+                            "event_id": m[1],
+                            "company": m[2],
+                            "title": m[3],
+                            "source_url": m[4],
+                            "signal_type": m[5],
+                            "node_class": m[6],
+                            "published_at": m[7].isoformat() if m[7] else None,
+                            "date_precision": m[8],
+                            "is_sequence_eligible": bool(m[9])
                         })
 
-                return {
-                    "cluster_id": row[0],
-                    "trend_name": row[1] or row[2],
-                    "representative_title": row[2],
-                    "cluster_type": row[3],
-                    "primary_category": row[4],
-                    "momentum": {
-                        "label": row[5],
-                        "vector": row[6] if isinstance(row[6], list) else json.loads(row[6] or "[0,0,0]")
-                    },
-                    "distinct_story_count": row[7],
-                    "raw_event_count": row[8],
-                    "companies_involved": row[9] or [],
-                    "relevance_score": float(row[13]),
-                    "first_detected_at": row[10].isoformat() if row[10] else None,
-                    "latest_detected_at": row[11].isoformat() if row[11] else None,
-                    "published_at": row[12].isoformat() if row[12] else None,
-                    "timeline": timeline,
-                    "lineage": lineage,
-                    "audited_absences": absences
-                }
+                    # Fetch lineage
+                    cur.execute("""
+                        SELECT parent_cluster_id, merge_reason, merged_at
+                        FROM trend_cluster_lineage
+                        WHERE cluster_id = %s;
+                    """, (trend_id,))
+                    lineage = [{"parent_id": l[0], "reason": l[1], "merged_at": l[2].isoformat() if l[2] else None} for l in cur.fetchall()]
+
+                    # Calculate audited absences
+                    cur.execute("SELECT company_name FROM tenant_tracked_companies WHERE status = 'active' AND tenant_id = %s;", (tenant_id,))
+                    tracked = [r[0] for r in cur.fetchall()]
+                    companies_in = set(row[9] or [])
+                    absences = []
+                    for t in tracked:
+                        if t not in companies_in:
+                            absences.append({
+                                "company": t,
+                                "status": "absent",
+                                "audit_note": "Audited: 0 events detected across tracked window"
+                            })
+
+                    return {
+                        "cluster_id": row[0],
+                        "trend_name": row[1] or row[2],
+                        "representative_title": row[2],
+                        "cluster_type": row[3],
+                        "primary_category": row[4],
+                        "momentum": {
+                            "label": row[5],
+                            "vector": row[6] if isinstance(row[6], list) else json.loads(row[6] or "[0,0,0]")
+                        },
+                        "distinct_story_count": row[7],
+                        "raw_event_count": row[8],
+                        "companies_involved": row[9] or [],
+                        "relevance_score": float(row[13]),
+                        "first_detected_at": row[10].isoformat() if row[10] else None,
+                        "latest_detected_at": row[11].isoformat() if row[11] else None,
+                        "published_at": row[12].isoformat() if row[12] else None,
+                        "timeline": timeline,
+                        "lineage": lineage,
+                        "audited_absences": absences
+                    }
     except Exception as e:
         logger.info(f"Database fetch for trend detail fell back to local store: {e}")
 

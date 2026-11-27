@@ -115,9 +115,8 @@ export async function fetchSignals(params?: {
   }
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
-    url.searchParams.set("target_company", params.company);
-  } else if (params?.target_company) {
-    url.searchParams.set("company", params.target_company);
+  }
+  if (params?.target_company) {
     url.searchParams.set("target_company", params.target_company);
   }
   if (params?.source && params.source !== "ALL") {
@@ -231,9 +230,8 @@ export async function fetchEvents(params?: {
   }
   if (params?.company && params.company !== "ALL") {
     url.searchParams.set("company", params.company);
-    url.searchParams.set("target_company", params.company);
-  } else if (params?.target_company) {
-    url.searchParams.set("company", params.target_company);
+  }
+  if (params?.target_company) {
     url.searchParams.set("target_company", params.target_company);
   }
   if (params?.tier && params.tier !== "ALL") {
@@ -272,17 +270,13 @@ export async function fetchEvents(params?: {
 }
 
 export async function fetchEventDetail(eventId: string, tenantId?: string): Promise<ConsolidatedEventRecord> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/events/${eventId}` : `${API_BASE_URL}/events/${eventId}`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
 
@@ -373,7 +367,7 @@ export async function fetchBriefs(tenantId?: string): Promise<BriefEntry[]> {
   return [];
 }
 
-export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> {
+export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail | null> {
   const baseUrl = typeof window !== "undefined" ? "/api/briefs/latest" : `${API_BASE_URL}/briefs/latest`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
@@ -394,12 +388,7 @@ export async function fetchLatestBrief(tenantId?: string): Promise<BriefDetail> 
     // Zero static fallback
   }
 
-  return {
-    id: "latest",
-    date: new Date().toISOString(),
-    filename: "brief.md",
-    content: "# Competitive Intelligence Brief\n\nNo published briefs available for this tenant yet.",
-  };
+  return null;
 }
 
 export async function fetchBriefById(briefId: string, tenantId?: string): Promise<BriefDetail> {
@@ -1837,16 +1826,14 @@ export async function fetchTrends(params?: {
   trend_type?: string;
   tenantId?: string;
 }): Promise<{ trends: TrendRecord[]; total_count: number; has_more: boolean; next_cursor?: string }> {
-  const token = getClientAuthToken(params?.tenantId);
   const q = new URLSearchParams();
   if (params?.tenantId) q.set("tenant_id", params.tenantId);
   if (params?.limit) q.set("limit", String(params.limit));
   if (params?.cursor) q.set("cursor", params.cursor);
-  if (params?.company) {
+  if (params?.company && params.company !== "ALL") {
     q.set("company", params.company);
-    q.set("target_company", params.company);
-  } else if (params?.target_company) {
-    q.set("company", params.target_company);
+  }
+  if (params?.target_company) {
     q.set("target_company", params.target_company);
   }
   if (params?.momentum) q.set("momentum", params.momentum);
@@ -1857,7 +1844,7 @@ export async function fetchTrends(params?: {
 
   try {
     const res = await fetch(baseUrl, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getTenantHeaders(params?.tenantId, false),
       cache: "no-store",
     });
     if (res.ok) {
@@ -1878,14 +1865,13 @@ export async function fetchTrends(params?: {
 }
 
 export async function fetchTrendDetail(trendId: string, tenantId?: string): Promise<TrendDetailRecord> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/trends/${trendId}` : `${API_BASE_URL}/trends/${trendId}`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getTenantHeaders(tenantId, false),
       cache: "no-store",
     });
     if (res.ok) {

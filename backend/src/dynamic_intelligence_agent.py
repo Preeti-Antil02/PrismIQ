@@ -2930,6 +2930,7 @@ def ensure_tenant_intelligence_populated(
     target_company: str,
     competitors: List[str],
     force_refresh: bool = False,
+    write_correlations: bool = True,
     **kwargs: Any
 ) -> Dict[str, Any]:
     """
@@ -2973,8 +2974,9 @@ def ensure_tenant_intelligence_populated(
             json.dump(all_sequences, f, indent=2)
         with open(data_dir / f"detected_changes_{tid}.json", "w", encoding="utf-8") as f:
             json.dump(all_high_impact, f, indent=2)
-        with open(data_dir / f"signal_correlations_{tid}.json", "w", encoding="utf-8") as f:
-            json.dump(all_correlations, f, indent=2)
+        if write_correlations:
+            with open(data_dir / f"signal_correlations_{tid}.json", "w", encoding="utf-8") as f:
+                json.dump(all_correlations, f, indent=2)
         with open(data_dir / f"decision_support_{tid}.json", "w", encoding="utf-8") as f:
             json.dump(all_decision_items, f, indent=2)
     except Exception as e:

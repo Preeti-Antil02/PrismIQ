@@ -61,6 +61,7 @@ scratch/evidence/
 *.patch
 *.diff
 # Project Report Artifacts & Helper Scripts (Not Push Code)
+PrismIQ_Project_Report/
 PrismIQ_BTech_Final_Project_Report.docx
 *.docx
 scripts/generate_prismiq_report.py

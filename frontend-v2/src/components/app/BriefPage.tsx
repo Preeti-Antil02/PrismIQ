@@ -139,7 +139,7 @@ export function PrismScorableBar({
 // Main Brief Page
 // ============================================================================
 export function BriefPage() {
-  const { targetCompany, tenantId, triggerSweep } = useWorkspace();
+  const { targetCompany, tenantId, triggerSweep, pipelineSyncVersion } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -155,37 +155,51 @@ export function BriefPage() {
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [selectedTierFilter, setSelectedTierFilter] = React.useState<string>("ALL");
 
+  // Reset filters & brief state when switching workspaces
+  React.useEffect(() => {
+    setSelectedCompanyFilter("ALL");
+    setSelectedTierFilter("ALL");
+    setSearchQuery("");
+    setSelectedBrief(null);
+    setParsed(null);
+  }, [tenantId]);
+
   // Load briefs
-  const loadBriefs = React.useCallback(async () => {
-    setLoading(true);
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
+  const loadBriefs = React.useCallback(async (silent: boolean | unknown = false) => {
+    const isSilent = silent === true;
+    if (!isSilent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const list = await fetchBriefs(tenantId);
       setBriefList(list);
 
-      if (list.length > 0) {
-        const latest = await fetchLatestBrief(tenantId);
+      const latest = await fetchLatestBrief(tenantId);
+      if (latest && latest.content) {
         setSelectedBrief(latest);
         setParsed(parseBriefMarkdown(latest.content));
       } else {
-        try {
-          const latest = await fetchLatestBrief(tenantId);
-          setSelectedBrief(latest);
-          setParsed(parseBriefMarkdown(latest.content));
-        } catch {
-          setSelectedBrief(null);
-        }
+        setSelectedBrief(null);
+        setParsed(null);
       }
     } catch (err: any) {
-      setError(err.message || "Failed to load briefs");
+      if (!isSilent) {
+        setError(err.message || "Failed to load briefs");
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [tenantId]);
 
   React.useEffect(() => {
-    loadBriefs();
-  }, [loadBriefs]);
+    const isSyncRefresh = prevSyncRef.current !== pipelineSyncVersion;
+    prevSyncRef.current = pipelineSyncVersion;
+    loadBriefs(isSyncRefresh);
+  }, [loadBriefs, pipelineSyncVersion]);
 
   // Handle switching to historical brief
   const handleSelectBrief = async (briefId: string) => {
@@ -243,7 +257,7 @@ export function BriefPage() {
               .filter((c) => c.companyName !== "General")
               .reduce((acc, c) => acc + c.threatScore, 0) / activeComps
           )
-        : 72;
+        : 0;
 
     return { totalMust, totalShould, activeComps, themesCount, avgScore };
   }, [parsed, companySummaries]);

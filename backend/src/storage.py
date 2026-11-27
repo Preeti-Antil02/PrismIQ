@@ -529,42 +529,45 @@ def save_signals(
     if tenant_id and not filepath:
         filepath = data_dir / f"signals_{str(tenant_id).strip()}.json"
 
-    # 1. Primary PostgreSQL Write
+    # 1. Primary PostgreSQL Write (best-effort when local dev lacks DB write authorization)
     if signals and not is_dry_run():
-        with get_db_cursor() as cur:
-            # Ensure company records exist in canonical companies registry
-            companies = set(s.get("company", "").strip() for s in signals if s.get("company"))
-            comp_sql = """
-                INSERT INTO companies (name, status, is_mock)
-                VALUES (%s, 'active', FALSE)
-                ON CONFLICT (name) DO NOTHING;
-            """
-            _execute_batch(cur, comp_sql, [(c,) for c in companies if c], page_size=100)
+        try:
+            with get_db_cursor() as cur:
+                # Ensure company records exist in canonical companies registry
+                companies = set(s.get("company", "").strip() for s in signals if s.get("company"))
+                comp_sql = """
+                    INSERT INTO companies (name, status, is_mock)
+                    VALUES (%s, 'active', FALSE)
+                    ON CONFLICT (name) DO NOTHING;
+                """
+                _execute_batch(cur, comp_sql, [(c,) for c in companies if c], page_size=100)
 
-            # Insert raw signals
-            sig_sql = """
-                INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
-                ON CONFLICT (id) DO NOTHING;
-            """
-            sig_params = []
-            for s in signals:
-                comp = s.get("company", "").strip()
-                source = s.get("source", "").strip()
-                url = s.get("url", "").strip()
-                title = s.get("title", "").strip()
-                pub_at = s.get("published_at")
-                pub_ts = s.get("published_timestamp")
-                raw_excerpt = s.get("raw_excerpt", "")
-                
-                sig_id = s.get("id") or _generate_signal_id(comp, source, url, title, str(pub_at or ""))
-                s["id"] = sig_id
-                
-                pub_iso = _parse_timestamp(pub_at)
-                sig_params.append((sig_id, comp, source, title, url, pub_iso, str(pub_ts) if pub_ts else None, raw_excerpt))
+                # Insert raw signals
+                sig_sql = """
+                    INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                    ON CONFLICT (id) DO NOTHING;
+                """
+                sig_params = []
+                for s in signals:
+                    comp = s.get("company", "").strip()
+                    source = s.get("source", "").strip()
+                    url = s.get("url", "").strip()
+                    title = s.get("title", "").strip()
+                    pub_at = s.get("published_at")
+                    pub_ts = s.get("published_timestamp")
+                    raw_excerpt = s.get("raw_excerpt", "")
+                    
+                    sig_id = s.get("id") or _generate_signal_id(comp, source, url, title, str(pub_at or ""))
+                    s["id"] = sig_id
+                    
+                    pub_iso = _parse_timestamp(pub_at)
+                    sig_params.append((sig_id, comp, source, title, url, pub_iso, str(pub_ts) if pub_ts else None, raw_excerpt))
 
-            _execute_batch(cur, sig_sql, sig_params, page_size=200)
-            logger.info(f"Dual-write: successfully persisted {len(signals)} raw_signals to PostgreSQL.")
+                _execute_batch(cur, sig_sql, sig_params, page_size=200)
+                logger.info(f"Dual-write: successfully persisted {len(signals)} raw_signals to PostgreSQL.")
+        except Exception as db_err:
+            logger.warning(f"PostgreSQL save_signals skipped/failed (continuing with flat-file storage): {db_err}")
 
     # 2. Secondary Flat File Write
     data_dir = _get_data_dir()
@@ -689,75 +692,78 @@ def save_noise_decisions(decisions: List[Dict[str, Any]], raw_signals_lookup: Op
             if sid:
                 sig_lookup[sid] = s
 
-    with get_db_cursor() as cur:
-        # FK-safety: upsert minimal signal stubs so parent rows exist before writing decisions.
-        # ON CONFLICT DO NOTHING ensures real rows written by save_signals() are never overwritten.
-        stub_params = []
-        company_stubs = set()
-        for d in decisions:
-            sid = d.get("signal_id")
-            if not sid:
-                continue
-            sig_data = sig_lookup.get(sid, {})
-            comp = sig_data.get("company") or d.get("company_name") or d.get("company") or "Unknown"
-            company_stubs.add(comp.strip())
-            stub_params.append((
-                sid,
-                comp.strip(),
-                sig_data.get("source") or d.get("source") or "unknown",
-                sig_data.get("title") or d.get("title") or "",
-                sig_data.get("url") or d.get("url") or "",
-                _parse_timestamp(sig_data.get("published_at")),
-                None,
-                sig_data.get("raw_excerpt") or d.get("raw_excerpt") or "",
-            ))
+    try:
+        with get_db_cursor() as cur:
+            # FK-safety: upsert minimal signal stubs so parent rows exist before writing decisions.
+            # ON CONFLICT DO NOTHING ensures real rows written by save_signals() are never overwritten.
+            stub_params = []
+            company_stubs = set()
+            for d in decisions:
+                sid = d.get("signal_id")
+                if not sid:
+                    continue
+                sig_data = sig_lookup.get(sid, {})
+                comp = sig_data.get("company") or d.get("company_name") or d.get("company") or "Unknown"
+                company_stubs.add(comp.strip())
+                stub_params.append((
+                    sid,
+                    comp.strip(),
+                    sig_data.get("source") or d.get("source") or "unknown",
+                    sig_data.get("title") or d.get("title") or "",
+                    sig_data.get("url") or d.get("url") or "",
+                    _parse_timestamp(sig_data.get("published_at")),
+                    None,
+                    sig_data.get("raw_excerpt") or d.get("raw_excerpt") or "",
+                ))
 
-        if stub_params:
-            # Ensure company records exist first
-            comp_sql = """
-                INSERT INTO companies (name, status, is_mock)
-                VALUES (%s, 'active', FALSE)
-                ON CONFLICT (name) DO NOTHING;
+            if stub_params:
+                # Ensure company records exist first
+                comp_sql = """
+                    INSERT INTO companies (name, status, is_mock)
+                    VALUES (%s, 'active', FALSE)
+                    ON CONFLICT (name) DO NOTHING;
+                """
+                try:
+                    _execute_batch(cur, comp_sql, [(c,) for c in company_stubs if c], page_size=100)
+                except Exception as e:
+                    logger.debug(f"Company stub upsert warning (non-critical): {e}")
+
+                stub_sql = """
+                    INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                    ON CONFLICT (id) DO NOTHING;
+                """
+                try:
+                    _execute_batch(cur, stub_sql, stub_params, page_size=200)
+                except Exception as e:
+                    logger.warning(f"Signal stub upsert before noise decisions failed (non-critical): {e}")
+
+            nd_sql = """
+                INSERT INTO noise_suppression_decisions (signal_id, is_noise, noise_category, noise_reason, decided_at)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (signal_id) DO UPDATE
+                SET is_noise = EXCLUDED.is_noise,
+                    noise_category = EXCLUDED.noise_category,
+                    noise_reason = EXCLUDED.noise_reason;
             """
+            nd_params = [
+                (
+                    d["signal_id"],
+                    d.get("is_noise", False),
+                    d.get("noise_category", "none"),
+                    d.get("noise_reason", ""),
+                    d.get("decided_at") or datetime.now(timezone.utc).isoformat(),
+                )
+                for d in decisions
+                if d.get("signal_id")
+            ]
             try:
-                _execute_batch(cur, comp_sql, [(c,) for c in company_stubs if c], page_size=100)
+                _execute_batch(cur, nd_sql, nd_params, page_size=200)
+                logger.info(f"Dual-write: persisted {len(nd_params)} noise_suppression_decisions to PostgreSQL.")
             except Exception as e:
-                logger.debug(f"Company stub upsert warning (non-critical): {e}")
-
-            stub_sql = """
-                INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
-                ON CONFLICT (id) DO NOTHING;
-            """
-            try:
-                _execute_batch(cur, stub_sql, stub_params, page_size=200)
-            except Exception as e:
-                logger.warning(f"Signal stub upsert before noise decisions failed (non-critical): {e}")
-
-        nd_sql = """
-            INSERT INTO noise_suppression_decisions (signal_id, is_noise, noise_category, noise_reason, decided_at)
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (signal_id) DO UPDATE
-            SET is_noise = EXCLUDED.is_noise,
-                noise_category = EXCLUDED.noise_category,
-                noise_reason = EXCLUDED.noise_reason;
-        """
-        nd_params = [
-            (
-                d["signal_id"],
-                d.get("is_noise", False),
-                d.get("noise_category", "none"),
-                d.get("noise_reason", ""),
-                d.get("decided_at") or datetime.now(timezone.utc).isoformat(),
-            )
-            for d in decisions
-            if d.get("signal_id")
-        ]
-        try:
-            _execute_batch(cur, nd_sql, nd_params, page_size=200)
-            logger.info(f"Dual-write: persisted {len(nd_params)} noise_suppression_decisions to PostgreSQL.")
-        except Exception as e:
-            logger.warning(f"Noise decision write failed (non-critical, pipeline continues): {e}")
+                logger.warning(f"Noise decision write failed (non-critical, pipeline continues): {e}")
+    except Exception as db_err:
+        logger.warning(f"PostgreSQL save_noise_decisions skipped/failed (continuing): {db_err}")
 
 
 def save_events(
@@ -773,111 +779,114 @@ def save_events(
     data_dir = _get_data_dir()
     if tenant_id and not filepath:
         filepath = data_dir / f"events_{str(tenant_id).strip()}.json"
-    # 1. Primary PostgreSQL Write
+    # 1. Primary PostgreSQL Write (best-effort when local dev lacks DB write authorization)
     if events and not is_dry_run():
-        with get_db_cursor() as cur:
-            ev_sql = """
-                INSERT INTO consolidated_events (
-                    event_id, company_name, title, event_summary, corroboration_count,
-                    contributing_sources, first_detected_at, latest_detected_at,
-                    published_at, published_timestamp, url, source_urls, raw_excerpt, fact_confidence, is_mock
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
-                ON CONFLICT (event_id) DO UPDATE
-                SET title = EXCLUDED.title,
-                    event_summary = EXCLUDED.event_summary,
-                    corroboration_count = EXCLUDED.corroboration_count,
-                    contributing_sources = EXCLUDED.contributing_sources,
-                    source_urls = EXCLUDED.source_urls,
-                    raw_excerpt = EXCLUDED.raw_excerpt,
-                    fact_confidence = COALESCE(EXCLUDED.fact_confidence, consolidated_events.fact_confidence);
-            """
-            ev_params = []
-            es_params = []
-            all_raw_signals: List[Dict[str, Any]] = []  # collected for FK-safety stub upsert
-
-            for ev in events:
-                eid = ev["event_id"]
-                comp = ev.get("company", "Unknown").strip()
-                title = ev.get("title", "").strip()
-                summary = ev.get("event_summary", title)
-                corr = ev.get("corroboration_count", 1)
-                contrib = json.dumps(ev.get("contributing_sources", []))
-                first_det = _parse_timestamp(ev.get("first_detected_at"))
-                latest_det = _parse_timestamp(ev.get("latest_detected_at"))
-                pub_at = _parse_timestamp(ev.get("published_at"))
-                pub_ts = str(ev.get("published_timestamp")) if ev.get("published_timestamp") else None
-                url = ev.get("url", "")
-                source_urls = json.dumps(ev.get("source_urls", []))
-                excerpt = ev.get("raw_excerpt", "")
-                fact_conf = ev.get("fact_confidence") or "Medium"
-
-                ev_params.append((
-                    eid, comp, title, summary, corr, contrib,
-                    first_det, latest_det, pub_at, pub_ts, url, source_urls, excerpt, fact_conf
-                ))
-
-                for s in ev.get("raw_signals", []):
-                    s_id = s.get("id") or _generate_signal_id(
-                        s.get("company", comp), s.get("source", ""), s.get("url", ""), s.get("title", ""), str(s.get("published_at", ""))
+        try:
+            with get_db_cursor() as cur:
+                ev_sql = """
+                    INSERT INTO consolidated_events (
+                        event_id, company_name, title, event_summary, corroboration_count,
+                        contributing_sources, first_detected_at, latest_detected_at,
+                        published_at, published_timestamp, url, source_urls, raw_excerpt, fact_confidence, is_mock
                     )
-                    if not s.get("id"):
-                        s["id"] = s_id
-                    es_params.append((eid, s_id))
-                    all_raw_signals.append(s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                    ON CONFLICT (event_id) DO UPDATE
+                    SET title = EXCLUDED.title,
+                        event_summary = EXCLUDED.event_summary,
+                        corroboration_count = EXCLUDED.corroboration_count,
+                        contributing_sources = EXCLUDED.contributing_sources,
+                        source_urls = EXCLUDED.source_urls,
+                        raw_excerpt = EXCLUDED.raw_excerpt,
+                        fact_confidence = COALESCE(EXCLUDED.fact_confidence, consolidated_events.fact_confidence);
+                """
+                ev_params = []
+                es_params = []
+                all_raw_signals: List[Dict[str, Any]] = []  # collected for FK-safety stub upsert
 
-            _execute_batch(cur, ev_sql, ev_params, page_size=200)
+                for ev in events:
+                    eid = ev["event_id"]
+                    comp = ev.get("company", "Unknown").strip()
+                    title = ev.get("title", "").strip()
+                    summary = ev.get("event_summary", title)
+                    corr = ev.get("corroboration_count", 1)
+                    contrib = json.dumps(ev.get("contributing_sources", []))
+                    first_det = _parse_timestamp(ev.get("first_detected_at"))
+                    latest_det = _parse_timestamp(ev.get("latest_detected_at"))
+                    pub_at = _parse_timestamp(ev.get("published_at"))
+                    pub_ts = str(ev.get("published_timestamp")) if ev.get("published_timestamp") else None
+                    url = ev.get("url", "")
+                    source_urls = json.dumps(ev.get("source_urls", []))
+                    excerpt = ev.get("raw_excerpt", "")
+                    fact_conf = ev.get("fact_confidence") or "Medium"
 
-            # FK-safety: upsert signal stubs into raw_signals before writing event_signals join rows.
-            # event_signals(signal_id) has FK -> raw_signals(id). If save_signals() hasn't been called
-            # yet (e.g. progressive mode or isolated node tests), this prevents constraint violation.
-            if es_params and all_raw_signals:
-                companies_needed = set(s.get("company", "Unknown").strip() for s in all_raw_signals if s.get("company"))
-                comp_sql = """
-                    INSERT INTO companies (name, status, is_mock)
-                    VALUES (%s, 'active', FALSE)
-                    ON CONFLICT (name) DO NOTHING;
+                    ev_params.append((
+                        eid, comp, title, summary, corr, contrib,
+                        first_det, latest_det, pub_at, pub_ts, url, source_urls, excerpt, fact_conf
+                    ))
+
+                    for s in ev.get("raw_signals", []):
+                        s_id = s.get("id") or _generate_signal_id(
+                            s.get("company", comp), s.get("source", ""), s.get("url", ""), s.get("title", ""), str(s.get("published_at", ""))
+                        )
+                        if not s.get("id"):
+                            s["id"] = s_id
+                        es_params.append((eid, s_id))
+                        all_raw_signals.append(s)
+
+                _execute_batch(cur, ev_sql, ev_params, page_size=200)
+
+                # FK-safety: upsert signal stubs into raw_signals before writing event_signals join rows.
+                # event_signals(signal_id) has FK -> raw_signals(id). If save_signals() hasn't been called
+                # yet (e.g. progressive mode or isolated node tests), this prevents constraint violation.
+                if es_params and all_raw_signals:
+                    companies_needed = set(s.get("company", "Unknown").strip() for s in all_raw_signals if s.get("company"))
+                    comp_sql = """
+                        INSERT INTO companies (name, status, is_mock)
+                        VALUES (%s, 'active', FALSE)
+                        ON CONFLICT (name) DO NOTHING;
+                    """
+                    try:
+                        _execute_batch(cur, comp_sql, [(c,) for c in companies_needed if c], page_size=100)
+                    except Exception as e:
+                        logger.debug(f"Company stub upsert for event_signals (non-critical): {e}")
+
+                    sig_stub_sql = """
+                        INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                        ON CONFLICT (id) DO NOTHING;
+                    """
+                    sig_stub_params = []
+                    for s in all_raw_signals:
+                        s_id = s.get("id")
+                        if s_id:
+                            sig_stub_params.append((
+                                s_id,
+                                s.get("company", "Unknown").strip(),
+                                s.get("source", "unknown"),
+                                s.get("title", ""),
+                                s.get("url", ""),
+                                _parse_timestamp(s.get("published_at")),
+                                None,
+                                s.get("raw_excerpt", ""),
+                            ))
+                    if sig_stub_params:
+                        try:
+                            _execute_batch(cur, sig_stub_sql, sig_stub_params, page_size=200)
+                        except Exception as e:
+                            logger.warning(f"Signal stub upsert before event_signals failed (non-critical): {e}")
+
+                es_sql = """
+                    INSERT INTO event_signals (event_id, signal_id)
+                    VALUES (%s, %s)
+                    ON CONFLICT (event_id, signal_id) DO NOTHING;
                 """
                 try:
-                    _execute_batch(cur, comp_sql, [(c,) for c in companies_needed if c], page_size=100)
+                    _execute_batch(cur, es_sql, es_params, page_size=200)
                 except Exception as e:
-                    logger.debug(f"Company stub upsert for event_signals (non-critical): {e}")
-
-                sig_stub_sql = """
-                    INSERT INTO raw_signals (id, company_name, source, title, url, published_at, published_timestamp, raw_excerpt, is_mock)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE)
-                    ON CONFLICT (id) DO NOTHING;
-                """
-                sig_stub_params = []
-                for s in all_raw_signals:
-                    s_id = s.get("id")
-                    if s_id:
-                        sig_stub_params.append((
-                            s_id,
-                            s.get("company", "Unknown").strip(),
-                            s.get("source", "unknown"),
-                            s.get("title", ""),
-                            s.get("url", ""),
-                            _parse_timestamp(s.get("published_at")),
-                            None,
-                            s.get("raw_excerpt", ""),
-                        ))
-                if sig_stub_params:
-                    try:
-                        _execute_batch(cur, sig_stub_sql, sig_stub_params, page_size=200)
-                    except Exception as e:
-                        logger.warning(f"Signal stub upsert before event_signals failed (non-critical): {e}")
-
-            es_sql = """
-                INSERT INTO event_signals (event_id, signal_id)
-                VALUES (%s, %s)
-                ON CONFLICT (event_id, signal_id) DO NOTHING;
-            """
-            try:
-                _execute_batch(cur, es_sql, es_params, page_size=200)
-            except Exception as e:
-                logger.warning(f"event_signals write failed (non-critical, pipeline continues): {e}")
-            logger.info(f"Dual-write: persisted {len(events)} consolidated_events and {len(es_params)} event_signals to PostgreSQL.")
+                    logger.warning(f"event_signals write failed (non-critical, pipeline continues): {e}")
+                logger.info(f"Dual-write: persisted {len(events)} consolidated_events and {len(es_params)} event_signals to PostgreSQL.")
+        except Exception as db_err:
+            logger.warning(f"PostgreSQL save_events skipped/failed (continuing with flat-file storage): {db_err}")
 
     # 2. Secondary Flat File Write
     data_dir = _get_data_dir()
@@ -1007,46 +1016,98 @@ def save_findings(
 ) -> None:
     """
     Dual-write analyzed findings:
-    Primary write: PostgreSQL `findings` table (is_mock = FALSE) scoped by tenant_id.
+    1. Primary write: PostgreSQL `findings` table (is_mock = FALSE) scoped by tenant_id.
+    2. Secondary flat-file persistence: findings_<tenant_id>.json and enrichment of events_<tenant_id>.json.
     """
     if not findings or is_dry_run():
         return
-    
-    tid = tenant_id or os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
 
-    with get_db_cursor() as cur:
-        f_sql = """
-            INSERT INTO findings (tenant_id, event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock, inference_confidence, analysis_model, is_fallback, analysis_source)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s)
-            ON CONFLICT (tenant_id, event_id) DO UPDATE
-            SET company_name = EXCLUDED.company_name,
-                why_it_matters = EXCLUDED.why_it_matters,
-                confidence = EXCLUDED.confidence,
-                decision_score = EXCLUDED.decision_score,
-                tier = EXCLUDED.tier,
-                inference_confidence = COALESCE(EXCLUDED.inference_confidence, findings.inference_confidence),
-                analysis_model = COALESCE(EXCLUDED.analysis_model, findings.analysis_model),
-                is_fallback = COALESCE(EXCLUDED.is_fallback, findings.is_fallback),
-                analysis_source = COALESCE(EXCLUDED.analysis_source, findings.analysis_source);
-        """
-        f_params = []
+    tid = str(tenant_id).strip() if tenant_id else os.getenv("OWNER_TENANT_ID", "c8f13b91-46ef-4682-9975-f85764d8a12e")
+
+    try:
+        with get_db_cursor() as cur:
+            f_sql = """
+                INSERT INTO findings (tenant_id, event_id, company_name, why_it_matters, confidence, decision_score, tier, is_mock, inference_confidence, analysis_model, is_fallback, analysis_source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s, %s)
+                ON CONFLICT (tenant_id, event_id) DO UPDATE
+                SET company_name = EXCLUDED.company_name,
+                    why_it_matters = EXCLUDED.why_it_matters,
+                    confidence = EXCLUDED.confidence,
+                    decision_score = EXCLUDED.decision_score,
+                    tier = EXCLUDED.tier,
+                    inference_confidence = COALESCE(EXCLUDED.inference_confidence, findings.inference_confidence),
+                    analysis_model = COALESCE(EXCLUDED.analysis_model, findings.analysis_model),
+                    is_fallback = COALESCE(EXCLUDED.is_fallback, findings.is_fallback),
+                    analysis_source = COALESCE(EXCLUDED.analysis_source, findings.analysis_source);
+            """
+            f_params = []
+            for f in findings:
+                eid = f.get("event_id") or f.get("id")
+                if not eid:
+                    continue
+                comp = f.get("company") or f.get("company_name", "Unknown")
+                why = f.get("why_it_matters", "")
+                conf = f.get("confidence", "Medium")
+                score = f.get("decision_score", 1.0)
+                tier = f.get("tier", "should_know")
+                infer_conf = f.get("inference_confidence")
+                analysis_model = f.get("analysis_model")
+                is_fallback = bool(f.get("is_fallback", False))
+                analysis_source = f.get("analysis_source")
+                f_params.append((tid, eid, comp, why, conf, score, tier, infer_conf, analysis_model, is_fallback, analysis_source))
+
+            _execute_batch(cur, f_sql, f_params, page_size=200)
+            logger.info(f"Dual-write: persisted {len(f_params)} findings for tenant {tid} to PostgreSQL.")
+    except Exception as db_err:
+        logger.warning(f"PostgreSQL save_findings skipped/failed for tenant {tid} (continuing with flat-file storage): {db_err}")
+
+    # Secondary Flat File Write: findings_<tid>.json + enrich events_<tid>.json
+    try:
+        data_dir = _get_data_dir()
+        data_dir.mkdir(parents=True, exist_ok=True)
+        findings_file = data_dir / f"findings_{tid}.json"
+        existing_by_eid: Dict[str, Dict[str, Any]] = {}
+        if findings_file.exists():
+            try:
+                old_items = json.loads(findings_file.read_text(encoding="utf-8"))
+                if isinstance(old_items, list):
+                    for item in old_items:
+                        k = str(item.get("event_id") or item.get("id") or "")
+                        if k:
+                            existing_by_eid[k] = item
+            except Exception:
+                pass
         for f in findings:
-            eid = f.get("event_id") or f.get("id")
-            if not eid:
-                continue
-            comp = f.get("company") or f.get("company_name", "Unknown")
-            why = f.get("why_it_matters", "")
-            conf = f.get("confidence", "Medium")
-            score = f.get("decision_score", 1.0)
-            tier = f.get("tier", "should_know")
-            infer_conf = f.get("inference_confidence")
-            analysis_model = f.get("analysis_model")
-            is_fallback = bool(f.get("is_fallback", False))
-            analysis_source = f.get("analysis_source")
-            f_params.append((tid, eid, comp, why, conf, score, tier, infer_conf, analysis_model, is_fallback, analysis_source))
+            k = str(f.get("event_id") or f.get("id") or "")
+            if k:
+                existing_by_eid[k] = dict(f)
+        if existing_by_eid:
+            findings_file.write_text(json.dumps(list(existing_by_eid.values()), indent=2, ensure_ascii=False), encoding="utf-8")
 
-        _execute_batch(cur, f_sql, f_params, page_size=200)
-        logger.info(f"Dual-write: persisted {len(f_params)} findings for tenant {tid} to PostgreSQL.")
+        events_file = data_dir / f"events_{tid}.json"
+        if events_file.exists():
+            try:
+                ev_data = json.loads(events_file.read_text(encoding="utf-8"))
+                if isinstance(ev_data, list):
+                    for ev in ev_data:
+                        ek = str(ev.get("event_id") or ev.get("id") or "")
+                        if ek in existing_by_eid:
+                            f_rec = existing_by_eid[ek]
+                            if f_rec.get("why_it_matters"):
+                                ev["why_it_matters"] = f_rec["why_it_matters"]
+                            if f_rec.get("tier"):
+                                ev["tier"] = f_rec["tier"]
+                            if f_rec.get("confidence"):
+                                ev["confidence"] = f_rec["confidence"]
+                            if f_rec.get("inference_confidence"):
+                                ev["inference_confidence"] = f_rec["inference_confidence"]
+                            if f_rec.get("decision_score") is not None:
+                                ev["decision_score"] = f_rec["decision_score"]
+                    events_file.write_text(json.dumps(ev_data, indent=2, ensure_ascii=False), encoding="utf-8")
+            except Exception as enrich_err:
+                logger.debug(f"Could not enrich events_{tid}.json from findings: {enrich_err}")
+    except Exception as flat_err:
+        logger.warning(f"Flat-file save_findings failed for tenant {tid}: {flat_err}")
 
     # Trigger battlecard drift detection for affected competitor findings
     try:
@@ -1089,23 +1150,26 @@ def save_brief(
         else:
             headline_preview = content[:300]
 
-    # 1. Primary PostgreSQL Write
+    # 1. Primary PostgreSQL Write (best-effort when local dev lacks DB write authorization)
     if not is_dry_run():
-        with get_db_cursor() as cur:
-            b_sql = """
-                INSERT INTO briefs (id, tenant_id, filename, source_path, content_hash, title, headline_preview, content, published_at)
-                VALUES ('data_latest', %s, 'data/brief.md', 'data/brief.md', %s, %s, %s, %s, %s)
-                ON CONFLICT (tenant_id, id) DO UPDATE
-                SET filename = EXCLUDED.filename,
-                    source_path = EXCLUDED.source_path,
-                    content_hash = EXCLUDED.content_hash,
-                    title = EXCLUDED.title,
-                    headline_preview = EXCLUDED.headline_preview,
-                    content = EXCLUDED.content,
-                    published_at = EXCLUDED.published_at;
-            """
-            cur.execute(b_sql, (tid, c_hash, b_title, headline_preview, content, pub_dt))
-            logger.info(f"Dual-write: persisted data_latest brief for tenant {tid} (hash: {c_hash[:16]}...) to PostgreSQL.")
+        try:
+            with get_db_cursor() as cur:
+                b_sql = """
+                    INSERT INTO briefs (id, tenant_id, filename, source_path, content_hash, title, headline_preview, content, published_at)
+                    VALUES ('data_latest', %s, 'data/brief.md', 'data/brief.md', %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, id) DO UPDATE
+                    SET filename = EXCLUDED.filename,
+                        source_path = EXCLUDED.source_path,
+                        content_hash = EXCLUDED.content_hash,
+                        title = EXCLUDED.title,
+                        headline_preview = EXCLUDED.headline_preview,
+                        content = EXCLUDED.content,
+                        published_at = EXCLUDED.published_at;
+                """
+                cur.execute(b_sql, (tid, c_hash, b_title, headline_preview, content, pub_dt))
+                logger.info(f"Dual-write: persisted data_latest brief for tenant {tid} (hash: {c_hash[:16]}...) to PostgreSQL.")
+        except Exception as db_err:
+            logger.warning(f"PostgreSQL save_brief skipped/failed for tenant {tid} (continuing with flat-file storage): {db_err}")
 
     # 2. Secondary Flat File Write
     data_dir = _get_data_dir()
@@ -4773,13 +4837,12 @@ def get_competitive_sequences(
 
     data_dir = _get_data_dir()
     tid = str(tenant_id).strip() or "00000000-0000-0000-0000-000000000000"
+    is_zeroes_test_tenant = tid == "00000000-0000-0000-0000-000000000000"
 
-    # 2. Check tenant cache files in order of priority:
-    # First the requested tid, then default 00000000-..., then the seeded demo tenant 8553449a-...
+    # 2. Check tenant cache files strictly scoped to tid (only all-zeroes test fixture checks baseline cache)
     candidate_tids = [tid]
-    for alt_tid in ["00000000-0000-0000-0000-000000000000", "8553449a-c998-4727-be01-9aeb724038cb"]:
-        if alt_tid not in candidate_tids:
-            candidate_tids.append(alt_tid)
+    if is_zeroes_test_tenant:
+        candidate_tids.append("8553449a-c998-4727-be01-9aeb724038cb")
 
     for candidate_tid in candidate_tids:
         tenant_seq_file = data_dir / f"competitive_sequences_{candidate_tid}.json"
@@ -4803,10 +4866,14 @@ def get_competitive_sequences(
                 logger.warning(f"Failed to read tenant timeline sequences for {candidate_tid}: {e}")
 
     # 3. Check workspace config and synthesize if configured
-    effective_tid = tid if tid != "00000000-0000-0000-0000-000000000000" else "8553449a-c998-4727-be01-9aeb724038cb"
+    effective_tid = "8553449a-c998-4727-be01-9aeb724038cb" if is_zeroes_test_tenant else tid
     ws_cfg = get_tenant_workspace_config(effective_tid)
     target = ws_cfg.get("target_company")
     comps = ws_cfg.get("competitors", [])
+
+    # Fail-closed isolation: an unconfigured custom tenant must NEVER inherit demo/Meesho sequences
+    if not is_zeroes_test_tenant and not target and not comps:
+        return []
 
     if (target or comps) and (not is_test_environment() or (data_dir / f"competitive_sequences_{effective_tid}.json").exists()):
         from . import dynamic_intelligence_agent
@@ -4836,40 +4903,40 @@ def get_competitive_sequences(
             except Exception as e:
                 logger.warning(f"Failed to read tenant timeline sequences for {effective_tid}: {e}")
 
-    # 4. Fallback to local published timeline sequences
-    seq_file = data_dir / "timeline_sequences.json"
-    if seq_file.exists():
-        try:
-            with open(seq_file, "r", encoding="utf-8") as sf:
-                data = json.load(sf)
-                norm_data = [_normalize_sequence_record(s) for s in data]
-                if clean_cname:
-                    matched = [
-                        s for s in norm_data
-                        if s.get("company_name", "").lower() == clean_cname.lower()
-                        or clean_cname.lower() in s.get("company_name", "").lower()
-                        or s.get("company_name", "").lower() in clean_cname.lower()
-                    ]
-                    if matched:
-                        return matched
-                elif norm_data:
-                    return norm_data
-        except Exception as e:
-            logger.warning(f"Failed to read local timeline sequences file: {e}")
+    # 4 & 5. Shared baseline fallback applies ONLY to the all-zeroes unit-test tenant
+    if is_zeroes_test_tenant:
+        seq_file = data_dir / "timeline_sequences.json"
+        if seq_file.exists():
+            try:
+                with open(seq_file, "r", encoding="utf-8") as sf:
+                    data = json.load(sf)
+                    norm_data = [_normalize_sequence_record(s) for s in data]
+                    if clean_cname:
+                        matched = [
+                            s for s in norm_data
+                            if s.get("company_name", "").lower() == clean_cname.lower()
+                            or clean_cname.lower() in s.get("company_name", "").lower()
+                            or s.get("company_name", "").lower() in clean_cname.lower()
+                        ]
+                        if matched:
+                            return matched
+                    elif norm_data:
+                        return norm_data
+            except Exception as e:
+                logger.warning(f"Failed to read local timeline sequences file: {e}")
 
-    # 5. Baseline fallback sequences (has Vercel, Netlify, Amazon)
-    baseline = [_normalize_sequence_record(s) for s in _get_baseline_timeline_sequences()]
-    if clean_cname:
-        matched_baseline = [
-            s for s in baseline
-            if s.get("company_name", "").lower() == clean_cname.lower()
-            or clean_cname.lower() in s.get("company_name", "").lower()
-            or s.get("company_name", "").lower() in clean_cname.lower()
-        ]
-        if matched_baseline:
-            return matched_baseline
-    elif baseline:
-        return baseline
+        baseline = [_normalize_sequence_record(s) for s in _get_baseline_timeline_sequences()]
+        if clean_cname:
+            matched_baseline = [
+                s for s in baseline
+                if s.get("company_name", "").lower() == clean_cname.lower()
+                or clean_cname.lower() in s.get("company_name", "").lower()
+                or s.get("company_name", "").lower() in clean_cname.lower()
+            ]
+            if matched_baseline:
+                return matched_baseline
+        elif baseline:
+            return baseline
 
     # 6. On-demand dynamic sequence synthesis for arbitrary competitors (e.g. Adidas, Puma, etc.)
     if clean_cname:
@@ -6173,6 +6240,121 @@ def _normalize_correlation_item(c: Dict[str, Any], target_company: str = "Our Co
         "signals": norm_cluster,
     }
 
+_KNOWN_DEMO_CORR_TENANTS = {
+    "8553449a-c998-4727-be01-9aeb724038cb",
+    "c8f13b91-46ef-4682-9975-f85764d8a12e",
+    "6a4703ac-0b04-436a-b3b9-ef2bb4b7fa3f",
+    "7b90477d-2524-4cf9-8e47-f389ec890ff7",
+    "00000000-0000-0000-0000-000000000001",
+}
+
+
+def _map_source_to_corr_channel(source_val: str) -> str:
+    s = (source_val or "").lower()
+    if "github" in s or "git" in s:
+        return "github"
+    if "job" in s or "career" in s or "hiring" in s or "linkedin" in s or "naukri" in s:
+        return "careers"
+    if "pricing" in s or "billing" in s or "plan" in s or "tier" in s:
+        return "pricing"
+    return "news"
+
+
+def _synthesize_correlations_from_tenant_records(
+    target_company: str,
+    allowed_companies: set,
+    events: List[Dict[str, Any]],
+    signals: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Build grounded signal correlation clusters purely from a custom tenant's real swept signals/events."""
+    from . import signal_correlation_engine as sce
+
+    by_comp: Dict[str, List[Dict[str, Any]]] = {}
+    seen_titles: Dict[str, set] = {}
+
+    def _add_item(raw: Dict[str, Any], is_event: bool = False) -> None:
+        comp = str(raw.get("company_name") or raw.get("company") or "").strip()
+        if not comp:
+            return
+        if allowed_companies and comp.lower() not in allowed_companies:
+            return
+        # Prefer competitor-focused correlations if tracked competitors exist alongside target
+        title = str(raw.get("title") or "").strip()
+        if not title:
+            return
+        key = comp.lower()
+        t_key = title.lower()
+        seen_titles.setdefault(key, set())
+        if t_key in seen_titles[key]:
+            return
+        seen_titles[key].add(t_key)
+        sources = raw.get("contributing_sources") or []
+        raw_src = sources[0] if isinstance(sources, list) and sources else raw.get("source") or "news"
+        channel = _map_source_to_corr_channel(str(raw_src))
+        detected = str(raw.get("published_at") or raw.get("latest_detected_at") or raw.get("detected_at") or datetime.now(timezone.utc).isoformat())
+        excerpt = str(raw.get("why_it_matters") or raw.get("event_summary") or raw.get("raw_excerpt") or title)[:280]
+        by_comp.setdefault(key, []).append({
+            "comp_label": comp,
+            "node": {
+                "id": str(raw.get("id") or raw.get("event_id") or f"sig_{len(seen_titles[key])}"),
+                "channel": channel,
+                "signal_type": "Verified Event" if is_event else "Verified Signal",
+                "title": title,
+                "source": str(raw_src),
+                "url": str(raw.get("url") or ""),
+                "excerpt": excerpt,
+                "evidence_excerpt": excerpt,
+                "detected_at": detected,
+                "weight": 0.25,
+                "confidence": 88.0 if str(raw.get("confidence") or raw.get("fact_confidence") or "High").lower() == "high" else 76.0,
+            },
+        })
+
+    for ev in events:
+        _add_item(ev, is_event=True)
+    for sig in signals:
+        _add_item(sig, is_event=False)
+
+    clusters: List[Dict[str, Any]] = []
+    now_iso = datetime.now(timezone.utc).isoformat()
+    for _, entries in by_comp.items():
+        if len(entries) < 2:
+            continue
+        comp = entries[0]["comp_label"]
+        nodes = [e["node"] for e in entries[:6]]
+        cat = sce.classify_correlation_category(nodes[0]["title"], nodes)
+        corrob_res = sce.calculate_corroboration_score(nodes)
+        conf_res = sce.calculate_confidence_score(nodes, corrob_res["score"])
+        strat_details = sce.generate_strategic_implication(comp, cat, target_company, nodes)
+        act_details = sce.generate_recommended_counter_action(comp, cat, target_company, nodes)
+        clusters.append({
+            "id": f"corr_{comp.lower().replace(' ', '_')}",
+            "company_name": comp,
+            "pattern_name": f"{comp}: {cat} Activity Pattern",
+            "correlation_category": cat,
+            "correlation_category_slug": sce.CATEGORY_SLUG_MAP.get(cat, "developer_ecosystem_expansion"),
+            "confidence": float(conf_res["score"]),
+            "confidence_level": conf_res["level"],
+            "confidence_breakdown": conf_res["breakdown"],
+            "corroboration_score": corrob_res["score"],
+            "corroboration_level": corrob_res["level"],
+            "corroboration_breakdown": corrob_res["breakdown"],
+            "independent_sources_count": corrob_res["independent_sources_count"],
+            "distinct_channels_count": corrob_res["distinct_channels_count"],
+            "pipeline_stage": "Insights",
+            "pattern_summary": f"Correlated {len(nodes)} verified signals captured for {comp} across recent monitoring sweeps.",
+            "strategic_implication": strat_details["summary_text"],
+            "strategic_implication_details": strat_details,
+            "recommended_action": act_details["summary_text"],
+            "recommended_action_details": act_details,
+            "signals_cluster": nodes,
+            "first_signal_at": nodes[-1]["detected_at"],
+            "last_signal_at": nodes[0]["detected_at"],
+            "created_at": now_iso,
+        })
+    return clusters
+
+
 def get_signal_correlations(
     company_name: Optional[str] = None,
     category: Optional[str] = None,
@@ -6188,6 +6370,16 @@ def get_signal_correlations(
     clean_channel = str(channel).strip().lower() if channel and str(channel).strip() and str(channel).strip() != "ALL" else None
 
     raw_results: List[Dict[str, Any]] = []
+    tid = str(tenant_id).strip()
+    is_default_zeroes = tid == "00000000-0000-0000-0000-000000000000"
+    ws_cfg = get_tenant_workspace_config(tid)
+    target = ws_cfg.get("target_company")
+    comps = ws_cfg.get("competitors", []) or []
+    allowed_companies = {
+        str(c).strip().lower()
+        for c in ([target] + list(comps))
+        if c and str(c).strip()
+    }
 
     if not is_test_environment() and is_live_write_permitted():
         try:
@@ -6232,36 +6424,44 @@ def get_signal_correlations(
         except Exception as e:
             logger.warning(f"Failed to query signal correlations from PostgreSQL: {e}")
 
-    # Tenant-scoped dynamic agent intelligence
-    if not raw_results:
+    # Tenant-scoped intelligence resolution
+    if not raw_results and not is_default_zeroes:
         data_dir = _get_data_dir()
-        tid = str(tenant_id).strip()
-        ws_cfg = get_tenant_workspace_config(tid)
-        target = ws_cfg.get("target_company")
-        comps = ws_cfg.get("competitors", [])
-
-        is_default_zeroes = tid == "00000000-0000-0000-0000-000000000000"
         tenant_corr_file = data_dir / f"signal_correlations_{tid}.json"
+        is_demo_tenant = tid in _KNOWN_DEMO_CORR_TENANTS
 
-        if (target or comps) and not is_default_zeroes:
-            from . import dynamic_intelligence_agent
-            if not tenant_corr_file.exists():
-                dynamic_intelligence_agent.ensure_tenant_intelligence_populated(tid, target or "Target Entity", comps or [target])
+        if is_demo_tenant:
+            if not tenant_corr_file.exists() and (target or comps):
+                from . import dynamic_intelligence_agent
+                dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
+                    tid, target or "Target Entity", comps or [target]
+                )
             if tenant_corr_file.exists():
                 try:
                     with open(tenant_corr_file, "r", encoding="utf-8") as cf:
                         raw_results = json.load(cf)
                 except Exception as e:
                     logger.warning(f"Failed to read tenant signal correlations for {tid}: {e}")
-        elif tenant_corr_file.exists():
-            try:
-                with open(tenant_corr_file, "r", encoding="utf-8") as cf:
-                    raw_results = json.load(cf)
-            except Exception as e:
-                logger.warning(f"Failed to read tenant signal correlations for {tid}: {e}")
+        else:
+            # Custom newly onboarded workspaces must ONLY show correlations grounded in real swept signals/events
+            real_signals = load_signals(tenant_id=tid)
+            real_events = load_events(tenant_id=tid)
+            if real_signals or real_events:
+                raw_results = _synthesize_correlations_from_tenant_records(
+                    target_company=target or "Our Company",
+                    allowed_companies=allowed_companies,
+                    events=real_events,
+                    signals=real_signals,
+                )
+            elif is_test_environment() and tenant_corr_file.exists():
+                try:
+                    with open(tenant_corr_file, "r", encoding="utf-8") as cf:
+                        raw_results = json.load(cf)
+                except Exception as e:
+                    logger.warning(f"Failed to read test signal correlations for {tid}: {e}")
 
-    # Fallback to local published signal correlations
-    if not raw_results:
+    # Shared signal_correlations.json & baseline fallback apply ONLY to all-zeroes test tenant
+    if not raw_results and is_default_zeroes:
         data_dir = _get_data_dir()
         corr_file = data_dir / "signal_correlations.json"
         if corr_file.exists():
@@ -6271,18 +6471,23 @@ def get_signal_correlations(
             except Exception as e:
                 logger.warning(f"Failed to read local signal correlations file: {e}")
 
-    if not raw_results:
+    if not raw_results and is_default_zeroes:
         raw_results = _get_baseline_signal_correlations()
 
-    # Determine target company for dyadic intelligence
-    ws_target = "Our Company"
-    if tid:
-        ws_cfg = get_tenant_workspace_config(str(tid).strip())
-        if ws_cfg.get("target_company"):
-            ws_target = ws_cfg.get("target_company")
+    if not raw_results:
+        return []
+
+    ws_target = target or "Our Company"
 
     # Normalize all items with target_company context
     normalized = [_normalize_correlation_item(c, target_company=ws_target) for c in raw_results]
+
+    # Strict cross-tenant isolation: never return companies outside this workspace's tracked entities
+    if not is_default_zeroes and allowed_companies and not clean_cname:
+        normalized = [
+            c for c in normalized
+            if str(c.get("company_name", "")).strip().lower() in allowed_companies
+        ]
 
     # Apply filters
     filtered = normalized

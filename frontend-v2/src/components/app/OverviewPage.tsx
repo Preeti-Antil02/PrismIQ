@@ -29,6 +29,7 @@ import {
 import { useWorkspace } from "./AppShell";
 import {
   fetchOverview,
+  updateNextBestActionStatus,
   type OverviewPayload,
   type OverviewAttentionItem,
   type OverviewNextBestAction,
@@ -207,7 +208,7 @@ function IsometricRobotGraphic() {
 
 export function OverviewPage() {
   const router = useRouter();
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipeline, pipelineSyncVersion } = useWorkspace();
 
   const [data, setData] = React.useState<OverviewPayload | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -224,10 +225,21 @@ export function OverviewPage() {
   const [selectedAction, setSelectedAction] = React.useState<OverviewNextBestAction | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = React.useState<string | null>(null);
 
-  // Fetch real overview data dynamically based on targetCompany
+  // Reset workspace-local interactive filters when switching workspaces
+  React.useEffect(() => {
+    setHighlightedCompetitor(null);
+    setSelectedAction(null);
+  }, [targetCompany, tenantId]);
+
+  // Fetch real overview data dynamically based on targetCompany and pipeline updates
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
   React.useEffect(() => {
     let isMounted = true;
-    setLoading(true);
+    const isSyncRefresh = prevSyncRef.current !== pipelineSyncVersion;
+    prevSyncRef.current = pipelineSyncVersion;
+    if (!isSyncRefresh) {
+      setLoading(true);
+    }
 
     fetchOverview(targetCompany, timeRange, tenantId)
       .then((res) => {
@@ -246,21 +258,33 @@ export function OverviewPage() {
     return () => {
       isMounted = false;
     };
-  }, [targetCompany, timeRange, tenantId]);
+  }, [targetCompany, timeRange, tenantId, pipelineSyncVersion]);
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (selectedAction && data) {
+      const actionToUpdate = selectedAction;
       const updatedActions = data.next_best_actions.map((act) =>
-        act.id === selectedAction.id
+        act.id === actionToUpdate.id
           ? { ...act, status: "In Progress" }
           : act
       );
       setData({ ...data, next_best_actions: updatedActions });
       setActionSuccessMsg(
-        `Action "${selectedAction.title}" executed and dispatched to ${selectedAction.department} team!`
+        `Action "${actionToUpdate.title}" executed and dispatched to ${actionToUpdate.department} team!`
       );
       setSelectedAction(null);
       setTimeout(() => setActionSuccessMsg(null), 4000);
+
+      // Persist status update to backend for Batch 2 actions (derived fallback IDs may 404 harmlessly)
+      try {
+        await updateNextBestActionStatus(
+          actionToUpdate.id,
+          { status: "In Progress", notes: "Dispatched from Overview cockpit" },
+          tenantId
+        );
+      } catch {
+        // Non-blocking for event-derived fallback action items
+      }
     }
   };
 
@@ -376,6 +400,20 @@ export function OverviewPage() {
           </Link>
         </div>
       </div>
+
+      {/* Live Pipeline Sweep Progress Banner */}
+      {pipeline?.is_active && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-purple-50/90 border border-purple-200/90 text-xs text-purple-950 shadow-2xs">
+          <div className="flex items-center gap-2.5 font-medium">
+            <span className="w-2 h-2 rounded-full bg-[#6e57dc] animate-ping shrink-0" />
+            <span>
+              <strong>Intelligence sweep running</strong> ({pipeline.completed_companies ?? 0}/
+              {pipeline.total_companies ?? 0} companies &bull; {pipeline.progress_message || "collecting market signals"}). Metrics will auto-refresh as verified events land.
+            </span>
+          </div>
+          <span className="text-[11px] font-bold text-[#6e57dc] shrink-0">Live Updating</span>
+        </div>
+      )}
 
       {/* 2. TOP METRIC CARDS (4 Cards in a Row) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">

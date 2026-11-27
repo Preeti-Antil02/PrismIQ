@@ -766,8 +766,17 @@ export function getImpactfulExecutiveSummary(
   if (takeaways.length >= 2) {
     const primary = takeaways[0];
     const secondary = takeaways[1];
-    headlineNarrative = `This cycle reveals decisive competitive shifts: ${primary.competitor} is navigating ${primary.vector.toLowerCase()} (${primary.headline.slice(0, 75)}...), while ${secondary.competitor} has triggered ${secondary.vector.toLowerCase()}. For ${targetCompany}, executive focus must shift from reactive monitoring to aggressive differentiation in reliability, supplier economics, and trusted compliance.`;
-    executiveAction = `Accelerate counter-measures against ${primary.competitor} while capitalizing on market openings created by ${secondary.competitor}'s current operational adjustments.`;
+    const rivalTakeaways = takeaways.filter(
+      (t) => t.competitor.toLowerCase() !== targetCompany.toLowerCase()
+    );
+    headlineNarrative = `This cycle reveals decisive competitive shifts: ${primary.competitor} is navigating ${primary.vector.toLowerCase()} (${primary.headline.slice(0, 75)}...), while ${secondary.competitor} has triggered ${secondary.vector.toLowerCase()}. For ${targetCompany}, executive focus must shift from reactive monitoring to aggressive differentiation in product velocity, commercial positioning, and reliable execution.`;
+    if (rivalTakeaways.length >= 2) {
+      executiveAction = `Accelerate counter-measures against ${rivalTakeaways[0].competitor} while capitalizing on market openings created by ${rivalTakeaways[1].competitor}'s current operational adjustments.`;
+    } else if (rivalTakeaways.length === 1) {
+      executiveAction = `Accelerate counter-measures against ${rivalTakeaways[0].competitor} while reinforcing ${targetCompany}'s core product and go-to-market differentiation.`;
+    } else {
+      executiveAction = `Focus execution on strengthening ${targetCompany}'s core product differentiation and reliability across key buyer workflows.`;
+    }
   } else if (takeaways.length === 1) {
     const single = takeaways[0];
     headlineNarrative = `A standout strategic event has altered the playing field: ${single.competitor} triggered ${single.vector.toLowerCase()} regarding "${single.headline}". For ${targetCompany}, the primary takeaway is ensuring operational immunity and capitalizing on customer scrutiny.`;

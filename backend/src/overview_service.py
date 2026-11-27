@@ -219,22 +219,25 @@ def _derive_next_best_actions(
     now: datetime,
 ) -> List[Dict[str, Any]]:
     actions = []
-    dept_configs = [
-        ("Engineering", "Critical", 5, "Audit infrastructure latency & SLA benchmarks", "technology"),
-        ("Sales", "High", 10, "Deploy competitive battlecards across active customer deals", "briefcase"),
-        ("Leadership", "Medium", 14, "Review partner retention contracts and strategic capital incentives", "users"),
-        ("Product", "High", 7, "Accelerate parity roadmap delivery for contested features", "box"),
+    dept_templates = [
+        ("Engineering", "Critical", 5, "Assess technical parity", "technology"),
+        ("Sales", "High", 10, "Update competitive battlecard", "briefcase"),
+        ("Leadership", "Medium", 14, "Review strategic positioning", "users"),
+        ("Product", "High", 7, "Evaluate roadmap counter-move", "box"),
     ]
     rival_events = [e for e in events_rows if (e.get("company_name") or e.get("company", "")).lower() != norm_target]
     if not rival_events:
         rival_events = events_rows
 
-    for i, (dept, priority, days, title_suffix, icon) in enumerate(dept_configs):
+    for i, (dept, priority, days, prefix, icon) in enumerate(dept_templates):
         ev = rival_events[i] if i < len(rival_events) else {}
         cname = ev.get("company_name") or ev.get("company") or "Key Competitor"
+        ev_title = (ev.get("title") or "").strip()
+        short_topic = (ev_title[:56] + "...") if len(ev_title) > 56 else ev_title
+        title = f"[{dept}] {prefix} vs {cname}" + (f": {short_topic}" if short_topic else "")
         actions.append({
             "id": f"nba_{_slug(target_company)}_{dept.lower()}_{i+1}",
-            "title": f"[{dept}] {title_suffix} countering {cname}",
+            "title": title,
             "department": dept,
             "priority": f"{priority} Priority",
             "priority_level": priority,
@@ -257,23 +260,46 @@ CANONICAL_SLUG_MAP = {
     "netlify": "Netlify",
     "openai": "OpenAI",
     "anthropic": "Anthropic",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "salesforce": "Salesforce",
+    "hubspot": "HubSpot",
 }
 
 
-def _parse_time_range_months(time_range: str) -> int:
-    """Parse a time_range string ('6m', '3m', '1m', '1y') into number of months."""
+def _parse_time_range(time_range: str) -> tuple[int, int, str]:
+    """
+    Parse a time_range string ('30d', '90d', '1m', '3m', '6m', '1y') into
+    (range_days, display_months, display_label).
+    """
     tr = (time_range or "6m").strip().lower()
+    if tr.endswith("d"):
+        try:
+            days = max(1, int(tr[:-1]))
+            months = max(1, min(12, round(days / 30)))
+            label = f"Last {days} Days"
+            return days, months, label
+        except ValueError:
+            pass
     if tr.endswith("y"):
         try:
-            return int(tr[:-1]) * 12
+            yrs = max(1, int(tr[:-1]))
+            return yrs * 365, yrs * 12, "Last Year" if yrs == 1 else f"Last {yrs} Years"
         except ValueError:
-            return 12
+            pass
     if tr.endswith("m"):
         try:
-            return int(tr[:-1])
+            months = max(1, int(tr[:-1]))
+            label = "Last Month" if months == 1 else f"Last {months} Months"
+            return months * 30, months, label
         except ValueError:
-            return 6
-    return 6
+            pass
+    return 180, 6, "Last 6 Months"
+
+
+def _parse_time_range_months(time_range: str) -> int:
+    """Parse a time_range string into approximate number of months."""
+    return _parse_time_range(time_range)[1]
 
 
 def _months_labels(num_months: int) -> List[str]:
@@ -358,9 +384,9 @@ def get_overview_intelligence(
                 if cand_name == norm_target or cand_target == norm_target:
                     tid = tid_candidate
                     break
-    num_months = _parse_time_range_months(time_range)
-    months_labels = _months_labels(num_months)
-    cutoff = now - timedelta(days=num_months * 30)
+    range_days, num_months, time_range_label = _parse_time_range(time_range)
+    months_labels = _months_labels(max(2, num_months))
+    cutoff = now - timedelta(days=range_days)
     cutoff_ts = cutoff.isoformat()
 
     # -----------------------------------------------------------------------
@@ -649,8 +675,8 @@ def get_overview_intelligence(
                 "id": f"dev-{_slug(comp)}",
                 "competitor": comp,
                 "logo": _slug(comp),
-                "title": f"{comp} accelerates regional expansion and competitive category push",
-                "description": f"Verified market monitoring signals {comp}'s strategic maneuvers targeting value retail and fulfillment efficiency.",
+                "title": f"{comp} competitive surveillance active across {target_company}'s sector",
+                "description": f"PrismIQ is continuously monitoring {comp}'s product launches, pricing shifts, and market signals relative to {target_company}.",
                 "impact": "Medium Impact",
                 "impact_level": "Medium",
                 "department": dept,
@@ -755,44 +781,74 @@ def get_overview_intelligence(
         patterns = _derive_strategic_patterns(target_company, norm_target, chart_competitors, events_rows)
 
     # -----------------------------------------------------------------------
-    # 7. next_best_actions from DB, else derived generically
+    # 7. next_best_actions from DB, then batch2_storage, else derived from rival events
     # -----------------------------------------------------------------------
     actions: List[Dict[str, Any]] = []
     if tid:
         try:
             with storage.get_readonly_cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT id, title, department, priority, priority_level, due_date, status, status_color, icon
-                    FROM next_best_actions
-                    WHERE tenant_id = %s
-                      AND (status IS NULL OR status != 'Completed')
-                    ORDER BY
-                      CASE priority_level WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
-                      due_date ASC NULLS LAST
-                    LIMIT 5
-                    """,
-                    (tid,),
-                )
-                rows = cur.fetchall()
-                desc = getattr(cur, "description", None)
-                if desc and rows:
-                    cols = [d[0] for d in desc]
-                    for r in rows:
-                        rdict = dict(zip(cols, r))
-                        actions.append({
-                            "id": str(rdict.get("id", "")),
-                            "title": rdict.get("title") or "Review competitive landscape",
-                            "department": rdict.get("department") or "Leadership",
-                            "priority": rdict.get("priority") or "Medium Priority",
-                            "priority_level": rdict.get("priority_level") or "Medium",
-                            "due_date": rdict.get("due_date") or (now + timedelta(days=14)).strftime("%b %d, %Y"),
-                            "status": rdict.get("status") or "Planned",
-                            "status_color": rdict.get("status_color") or "cyan",
-                            "icon": rdict.get("icon") or "barchart",
-                        })
+                if not isinstance(cur, storage.MockCursor):
+                    cur.execute(
+                        """
+                        SELECT id, title, department, priority, priority_level, due_date, status, status_color, icon
+                        FROM next_best_actions
+                        WHERE tenant_id = %s
+                          AND (status IS NULL OR status != 'Completed')
+                        ORDER BY
+                          CASE priority_level WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
+                          due_date ASC NULLS LAST
+                        LIMIT 5
+                        """,
+                        (tid,),
+                    )
+                    rows = cur.fetchall()
+                    desc = getattr(cur, "description", None)
+                    if desc and rows:
+                        cols = [d[0] for d in desc]
+                        for r in rows:
+                            rdict = dict(zip(cols, r))
+                            actions.append({
+                                "id": str(rdict.get("id", "")),
+                                "title": rdict.get("title") or "Review competitive landscape",
+                                "department": rdict.get("department") or "Leadership",
+                                "priority": rdict.get("priority") or "Medium Priority",
+                                "priority_level": rdict.get("priority_level") or "Medium",
+                                "due_date": rdict.get("due_date") or (now + timedelta(days=14)).strftime("%b %d, %Y"),
+                                "status": rdict.get("status") or "Planned",
+                                "status_color": rdict.get("status_color") or "cyan",
+                                "icon": rdict.get("icon") or "barchart",
+                            })
         except Exception as e:
             logger.debug(f"get_overview_intelligence: next_best_actions query skipped: {e}")
+
+    if not actions and tid:
+        try:
+            from . import batch2_storage
+            b2_actions = batch2_storage.list_next_best_actions(tid, limit=10)
+            for idx, act in enumerate(b2_actions):
+                st_raw = str(act.get("status") or "Pending").strip()
+                if st_raw.lower() in ("completed", "dismissed", "irrelevant"):
+                    continue
+                prio = str(act.get("priority") or act.get("urgency") or "Medium").strip().title()
+                if prio not in ("Critical", "High", "Medium", "Low"):
+                    prio = "High"
+                dept = str(act.get("department") or act.get("team") or "Leadership").strip()
+                icon = _ACTION_ICONS.get(prio, "barchart")
+                actions.append({
+                    "id": str(act.get("id") or f"nba_{tid[:8]}_{idx+1}"),
+                    "title": act.get("title") or act.get("recommended_action") or "Review competitive move",
+                    "department": dept,
+                    "priority": f"{prio} Priority",
+                    "priority_level": prio,
+                    "due_date": act.get("due_date") or (now + timedelta(days=7 + idx * 3)).strftime("%b %d, %Y"),
+                    "status": "In Progress" if st_raw.lower() in ("in_progress", "in progress") else "Planned" if st_raw.lower() in ("accepted", "planned") else st_raw.title(),
+                    "status_color": "rose" if prio == "Critical" else "amber" if prio == "High" else "cyan",
+                    "icon": icon,
+                })
+                if len(actions) >= 4:
+                    break
+        except Exception as e:
+            logger.debug(f"get_overview_intelligence: batch2_storage NBA fallback skipped: {e}")
 
     if not actions and events_rows:
         actions = _derive_next_best_actions(target_company, norm_target, events_rows, now)
@@ -859,7 +915,7 @@ def get_overview_intelligence(
             },
             "what_deserves_attention": [],
             "competitive_landscape": {
-                "time_range": f"Last {num_months} Months",
+                "time_range": time_range_label,
                 "competitors": [],
                 "colors": {},
                 "months": months_labels,
@@ -875,236 +931,6 @@ def get_overview_intelligence(
     # -----------------------------------------------------------------------
     # 10. Generic Output Payload
     # -----------------------------------------------------------------------
-    time_range_label = {
-        1: "Last Month", 3: "Last 3 Months", 6: "Last 6 Months", 12: "Last Year"
-    }.get(num_months, f"Last {num_months} Months")
-
-    return {
-        "target_company": target_company,
-        "last_updated": now.strftime("%b %d, %Y • %I:%M %p"),
-        "headline_badge": "Competitive Intelligence",
-        "headline_title": "Competitive Intelligence",
-        "headline_subtitle": "Real-time competitive movements, emerging threats and actionable intelligence.",
-        "metrics": {
-            "tracked_competitors": {
-                "value": tracked_count,
-                "delta": f"{tracked_count} active" if tracked_count else "No competitors configured",
-                "label": "Tracked Competitors",
-            },
-            "verified_events": {
-                "value": total_events,
-                "delta": f"+{total_events} in {time_range_label.lower()}",
-                "label": "Verified Events",
-            },
-            "high_priority_developments": {
-                "value": high_priority_count,
-                "delta": f"+{high_priority_count} must-know",
-                "label": "High-Priority Developments",
-            },
-            "pending_actions": {
-                "value": pending_actions_count,
-                "delta": f"{pending_actions_count} pending",
-                "label": "Pending Actions",
-            },
-        },
-        "threat_overview": {
-            "score": threat_score,
-            "max": 100,
-            "rating": _threat_rating(threat_score),
-            "trend": f"+{min(15, high_priority_count * 2)}%",
-            "trend_label": "vs last period",
-            "key_drivers": key_drivers,
-        },
-        "what_deserves_attention": attention_items,
-        "competitive_landscape": {
-            "time_range": time_range_label,
-            "competitors": chart_competitors,
-            "colors": competitor_colors,
-            "months": months_labels,
-            "chart_data": chart_data,
-            "has_data": total_events > 0,
-        },
-        "emerging_strategic_patterns": patterns,
-        "next_best_actions": actions,
-        "has_data": True,
-    }
-
-    # -----------------------------------------------------------------------
-    # 6. emerging_strategic_patterns from trends / trend_clusters table
-    # -----------------------------------------------------------------------
-    patterns: List[Dict[str, Any]] = []
-    try:
-        with storage.get_readonly_cursor() as cur:
-            # Try trend_clusters first, then trends
-            for table in ("trend_clusters", "trends"):
-                try:
-                    cur.execute(
-                        f"""
-                        SELECT id, title, description, companies, tag, tag_color,
-                               related_events_count, visual_type
-                        FROM {table}
-                        WHERE tenant_id = %s OR tenant_id IS NULL
-                        ORDER BY related_events_count DESC NULLS LAST
-                        LIMIT 5
-                        """,
-                        (tid,),
-                    )
-                    rows = cur.fetchall()
-                    desc = getattr(cur, "description", None)
-                    if desc and rows:
-                        cols = [d[0] for d in desc]
-                        for r in rows:
-                            rdict = dict(zip(cols, r))
-                            companies_list = rdict.get("companies") or []
-                            if isinstance(companies_list, str):
-                                companies_list = [x.strip() for x in companies_list.split(",")]
-                            patterns.append({
-                                "id": str(rdict.get("id", "")),
-                                "tag": rdict.get("tag") or "Market Trend",
-                                "tag_color": rdict.get("tag_color") or "purple",
-                                "title": rdict.get("title") or "Emerging Market Trend",
-                                "companies": companies_list,
-                                "companies_text": ", ".join(companies_list),
-                                "related_events_count": rdict.get("related_events_count") or 0,
-                                "competitors_count": len(companies_list),
-                                "description": rdict.get("description") or "",
-                                "visual_type": rdict.get("visual_type") or "trend_blocks",
-                            })
-                        break
-                except Exception:
-                    continue
-    except Exception as e:
-        logger.debug(f"get_overview_intelligence: trends query skipped: {e}")
-
-    # Fallback to dynamic strategic patterns from events_rows if trends table is empty
-    if not patterns and events_rows:
-        patterns = _derive_strategic_patterns(target_company, norm_target, chart_competitors, events_rows)
-
-    # -----------------------------------------------------------------------
-    # 7. next_best_actions from next_best_actions table, else derive from events
-    # -----------------------------------------------------------------------
-    actions: List[Dict[str, Any]] = []
-    try:
-        with storage.get_readonly_cursor() as cur:
-            cur.execute(
-                """
-                SELECT id, title, department, priority, priority_level, due_date, status, status_color, icon
-                FROM next_best_actions
-                WHERE (tenant_id = %s OR tenant_id IS NULL)
-                  AND (status IS NULL OR status != 'Completed')
-                ORDER BY
-                  CASE priority_level WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 ELSE 3 END,
-                  due_date ASC NULLS LAST
-                LIMIT 5
-                """,
-                (tid,),
-            )
-            rows = cur.fetchall()
-            desc = getattr(cur, "description", None)
-            if desc and rows:
-                cols = [d[0] for d in desc]
-                for r in rows:
-                    rdict = dict(zip(cols, r))
-                    actions.append({
-                        "id": str(rdict.get("id", "")),
-                        "title": rdict.get("title") or "Review competitive landscape",
-                        "department": rdict.get("department") or "Leadership",
-                        "priority": rdict.get("priority") or "Medium Priority",
-                        "priority_level": rdict.get("priority_level") or "Medium",
-                        "due_date": rdict.get("due_date") or (now + timedelta(days=14)).strftime("%b %d, %Y"),
-                        "status": rdict.get("status") or "Planned",
-                        "status_color": rdict.get("status_color") or "cyan",
-                        "icon": rdict.get("icon") or "barchart",
-                    })
-    except Exception as e:
-        logger.debug(f"get_overview_intelligence: next_best_actions query skipped: {e}")
-
-    # Derive actions from events if none in DB
-    if not actions and events_rows:
-        actions = _derive_next_best_actions(target_company, norm_target, events_rows, now)
-
-    # -----------------------------------------------------------------------
-    # 8. Threat score and metrics
-    # -----------------------------------------------------------------------
-    pending_actions_count = len([a for a in actions if a.get("status") != "Completed"])
-    threat_score = _threat_score_from_events(high_priority_count, total_events)
-
-    key_drivers = [
-        {"name": "Product Activity", "percentage": min(60, int(total_events * 2.5))},
-        {"name": "Market Expansion", "percentage": min(50, int(high_priority_count * 8))},
-        {"name": "Pricing Movement", "percentage": min(40, int(total_events * 1.5))},
-        {"name": "Customer Sentiment", "percentage": min(30, int(high_priority_count * 5))},
-    ]
-
-    has_data = total_events > 0 or tracked_count > 0
-
-    # -----------------------------------------------------------------------
-    # 9. If truly no data: honest empty-state
-    # -----------------------------------------------------------------------
-    if not has_data:
-        return {
-            "target_company": target_company,
-            "last_updated": now.strftime("%b %d, %Y • %I:%M %p"),
-            "headline_badge": "Competitive Intelligence",
-            "headline_title": "Competitive Intelligence",
-            "headline_subtitle": "Real-time competitive movements, emerging threats and actionable intelligence.",
-            "metrics": {
-                "tracked_competitors": {
-                    "value": 0,
-                    "delta": "No competitors configured",
-                    "label": "Tracked Competitors",
-                },
-                "verified_events": {
-                    "value": 0,
-                    "delta": "0 new events",
-                    "label": "Verified Events",
-                },
-                "high_priority_developments": {
-                    "value": 0,
-                    "delta": "0 high priority",
-                    "label": "High-Priority Developments",
-                },
-                "pending_actions": {
-                    "value": 0,
-                    "delta": "0 pending actions",
-                    "label": "Pending Actions",
-                },
-            },
-            "threat_overview": {
-                "score": 0,
-                "max": 100,
-                "rating": "Surveillance Active",
-                "trend": "+0%",
-                "trend_label": "monitoring active",
-                "key_drivers": [
-                    {"name": "Product Activity", "percentage": 0},
-                    {"name": "Market Expansion", "percentage": 0},
-                    {"name": "Pricing Movement", "percentage": 0},
-                    {"name": "Customer Sentiment", "percentage": 0},
-                ],
-            },
-            "what_deserves_attention": [],
-            "competitive_landscape": {
-                "time_range": "Last 6 Months",
-                "competitors": [],
-                "colors": {},
-                "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-                "chart_data": [],
-                "has_data": False,
-            },
-            "emerging_strategic_patterns": [],
-            "next_best_actions": [],
-            "has_data": False,
-            "empty_state_message": f"No verified competitor developments detected yet for {target_company}. PrismIQ surveillance pipeline is actively monitoring market feeds.",
-        }
-
-    # -----------------------------------------------------------------------
-    # 10. Full payload with real data
-    # -----------------------------------------------------------------------
-    time_range_label = {
-        1: "Last Month", 3: "Last 3 Months", 6: "Last 6 Months", 12: "Last Year"
-    }.get(num_months, f"Last {num_months} Months")
-
     return {
         "target_company": target_company,
         "last_updated": now.strftime("%b %d, %Y • %I:%M %p"),
@@ -1228,15 +1054,25 @@ def get_intelligence_detail(
     if not event_row:
         try:
             candidates: List[Dict[str, Any]] = []
-            if tid:
+            if tid and tid != "00000000-0000-0000-0000-000000000000":
                 candidates.extend(storage.load_events(tenant_id=tid))
+                data_dir = storage._get_data_dir()
+                for extra_prefix in ("findings", "detected_changes", "decision_support"):
+                    ef = data_dir / f"{extra_prefix}_{tid}.json"
+                    if ef.exists():
+                        try:
+                            extra_items = json.loads(ef.read_text(encoding="utf-8"))
+                            if isinstance(extra_items, list):
+                                candidates.extend(extra_items)
+                        except Exception:
+                            pass
             else:
                 candidates.extend(storage.load_events())
             for ev in candidates:
                 ev_id_str = str(ev.get("event_id") or ev.get("id") or "").lower()
                 if ev_id_str == norm_id or (norm_id and norm_id in ev_id_str):
                     event_row = ev
-                    comp_name = ev.get("company_name") or ev.get("competitor")
+                    comp_name = ev.get("company_name") or ev.get("competitor") or ev.get("company")
                     break
         except Exception as e:
             logger.debug(f"get_intelligence_detail: flat storage lookup failed: {e}")
@@ -1287,15 +1123,20 @@ def get_intelligence_detail(
         or bool(re.match(r"^[0-9a-f]{8,}$", re.sub(r"^(evt_|ev_|\s)", "", comp_name.lower())))
     )
     if is_hash_or_id:
-        # 1. Try extracting competitor name from event title or summary
+        # 1. Try extracting competitor name from event title/summary using tenant's tracked rivals + common rivals
         title_text = f"{event_row.get('title', '')} {event_row.get('event_summary', '')}" if event_row else ""
-        for known in ["Meesho", "Flipkart", "Amazon", "Reliance", "Tata", "Zepto", "Blinkit", "Zomato", "Swiggy", "Vercel", "Netlify", "Shopify", "Walmart"]:
-            if re.search(rf"\b{known}\b", title_text, re.IGNORECASE):
+        known_rivals = get_target_competitors(target_company, tenant_id)
+        search_names = list(dict.fromkeys(known_rivals + [
+            "Meesho", "Flipkart", "Amazon", "Reliance", "Tata", "Zepto", "Blinkit", "Zomato", "Swiggy",
+            "Vercel", "Netlify", "Cloudflare", "Supabase", "OpenAI", "Anthropic", "Google", "Microsoft",
+            "Salesforce", "HubSpot", "Shopify", "Walmart",
+        ]))
+        for known in search_names:
+            if known and re.search(rf"\b{re.escape(known)}\b", title_text, re.IGNORECASE):
                 comp_name = known
                 break
         else:
             # 2. Derive competitor from target company dyad
-            known_rivals = get_target_competitors(target_company, tenant_id)
             comp_name = known_rivals[0] if known_rivals else "Key Competitor"
 
     # Canonical mapping
@@ -1519,7 +1360,21 @@ def get_intelligence_detail(
     # -----------------------------------------------------------------------
     # 9. Verification & confidence
     # -----------------------------------------------------------------------
-    evidence_sources = record.get("evidence_sources") or []
+    evidence_sources = list(record.get("evidence_sources") or [])
+    if event_row and event_row.get("url"):
+        ev_url = str(event_row.get("url")).strip()
+        if ev_url and not any(s.get("url") == ev_url for s in evidence_sources):
+            ev_srcs = event_row.get("contributing_sources") or ["Verified Source"]
+            src_label = ev_srcs[0] if isinstance(ev_srcs, list) and ev_srcs else str(ev_srcs)
+            evidence_sources.insert(0, {
+                "source": src_label,
+                "title": event_row.get("title") or f"{comp_name} Intelligence Signal",
+                "url": ev_url,
+                "excerpt": event_row.get("raw_excerpt") or event_row.get("event_summary") or "",
+                "detected_at": event_row.get("published_at") or "",
+            })
+            evidence_sources = evidence_sources[:4]
+
     verified_sources_count = len(evidence_sources) if evidence_sources else (
         (event_row.get("corroboration_count") or 1) if event_row else 4
     )

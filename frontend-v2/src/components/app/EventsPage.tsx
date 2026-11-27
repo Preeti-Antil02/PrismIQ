@@ -46,7 +46,7 @@ import {
 } from "@/lib/api";
 
 export function EventsPage() {
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -60,8 +60,20 @@ export function EventsPage() {
   const [selectedTier, setSelectedTier] = React.useState("ALL");
   const [selectedConfidence, setSelectedConfidence] = React.useState("ALL");
 
-  const loadData = React.useCallback(async () => {
-    setLoading(true);
+  // Reset filters when switching workspaces
+  React.useEffect(() => {
+    setSearchQuery("");
+    setSelectedCompany("ALL");
+    setSelectedTier("ALL");
+    setSelectedConfidence("ALL");
+  }, [tenantId, targetCompany]);
+
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
+  const loadData = React.useCallback(async (silent: boolean | unknown = false) => {
+    const isSilent = silent === true;
+    if (!isSilent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [eventsRes, compsRes] = await Promise.all([
@@ -71,15 +83,21 @@ export function EventsPage() {
       setEvents(eventsRes.events || []);
       setCompanies(compsRes || []);
     } catch (err: any) {
-      setError(err.message || "Failed to load events");
+      if (!isSilent) {
+        setError(err.message || "Failed to load events");
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [tenantId, targetCompany]);
 
   React.useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const isSyncRefresh = prevSyncRef.current !== pipelineSyncVersion;
+    prevSyncRef.current = pipelineSyncVersion;
+    loadData(isSyncRefresh);
+  }, [loadData, pipelineSyncVersion]);
 
   // When a specific company filter is selected, ensure all events for that company are fetched and merged
   React.useEffect(() => {
@@ -97,16 +115,22 @@ export function EventsPage() {
         .catch(() => {});
     }
   }, [selectedCompany, tenantId]);
-  // Combined list of companies from tracked companies and events
+  // Combined list of companies from tracked companies and events (case-insensitive deduplication)
   const allCompanyNames = React.useMemo(() => {
-    const set = new Set<string>();
+    const map = new Map<string, string>();
     companies.forEach((c) => {
-      if (c.company_name) set.add(c.company_name);
+      const name = c.company_name?.trim();
+      if (name && !map.has(name.toLowerCase())) {
+        map.set(name.toLowerCase(), name);
+      }
     });
     events.forEach((e) => {
-      if (e.company_name) set.add(e.company_name);
+      const name = e.company_name?.trim();
+      if (name && !map.has(name.toLowerCase())) {
+        map.set(name.toLowerCase(), name);
+      }
     });
-    return Array.from(set).sort();
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
   }, [companies, events]);
 
   // Client-side filtering for granular archive

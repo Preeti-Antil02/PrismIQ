@@ -216,7 +216,7 @@ function SignalMixBar({ breakdown }: { breakdown?: Record<string, number> }) {
 // Main TrendsPage Component
 // ============================================================================
 export function TrendsPage() {
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -236,12 +236,27 @@ export function TrendsPage() {
   const [selectedTypeFilter, setSelectedTypeFilter] = React.useState<string>("all");
   const [timelineSignalFilter, setTimelineSignalFilter] = React.useState<string>("all");
 
-  const loadTrends = React.useCallback(async () => {
-    setLoading(true);
+  // Reset filters when switching workspaces
+  React.useEffect(() => {
+    setSelectedCompanyFilter("all");
+    setSelectedMomentumFilter("all");
+    setSelectedTypeFilter("all");
+    setTimelineSignalFilter("all");
+    setSelectedSequenceCompany("ALL");
+    setSelectedTrendId(null);
+    setTrendDetail(null);
+  }, [tenantId, targetCompany]);
+
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
+  const loadTrends = React.useCallback(async (silent: boolean | unknown = false) => {
+    const isSilent = silent === true;
+    if (!isSilent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [trendsRes, compsRes] = await Promise.all([
-        fetchTrends({ limit: 50, tenantId, company: targetCompany }),
+        fetchTrends({ limit: 50, tenantId, target_company: targetCompany }),
         fetchTrackedCompanies(tenantId, targetCompany),
       ]);
       const list = trendsRes.trends || [];
@@ -254,15 +269,21 @@ export function TrendsPage() {
         setSelectedTrendId(null);
       }
     } catch (err: any) {
-      setError(err.message || "Failed to load trend dynamics");
+      if (!isSilent) {
+        setError(err.message || "Failed to load trend dynamics");
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [targetCompany, tenantId]);
 
   React.useEffect(() => {
-    loadTrends();
-  }, [loadTrends]);
+    const isSyncRefresh = prevSyncRef.current !== pipelineSyncVersion;
+    prevSyncRef.current = pipelineSyncVersion;
+    loadTrends(isSyncRefresh);
+  }, [loadTrends, pipelineSyncVersion]);
 
   // Load trend detail on selection
   React.useEffect(() => {

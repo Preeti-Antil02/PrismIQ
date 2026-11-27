@@ -387,11 +387,11 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
         all_signals.extend(c_signals)
         all_health.update(c_health)
 
-        # 1. Immediately persist raw signals for this company
-        if c_signals:
-            if not storage.is_dry_run():
-                storage.save_signals(c_signals, filepath=state.get("signals_storage_path"), tenant_id=state.get("tenant_id"))
+        # 1. Immediately persist cumulative raw signals for this tenant run
+        if all_signals and not storage.is_dry_run():
+            storage.save_signals(all_signals, filepath=state.get("signals_storage_path"), tenant_id=state.get("tenant_id"))
 
+        if c_signals:
             # 2. Immediately run noise suppression for this company
             t_ns0 = time.monotonic()
             noise_res = noise_suppressor.run(c_signals)
@@ -417,8 +417,8 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
                 c_events = event_consolidator.run(c_kept)
                 phase_metrics["consolidation_seconds"] += (time.monotonic() - t_ec0)
                 all_events.extend(c_events)
-                if not storage.is_dry_run():
-                    storage.save_events(c_events, filepath=state.get("events_storage_path"), tenant_id=state.get("tenant_id"))
+                if all_events and not storage.is_dry_run():
+                    storage.save_events(all_events, filepath=state.get("events_storage_path"), tenant_id=state.get("tenant_id"))
 
                 # 4. Immediately run tenant analysis for any tenant tracking this company
                 for t in tenants:
@@ -474,7 +474,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
                 if def_sigs:
                     all_signals.extend(def_sigs)
                     if not storage.is_dry_run():
-                        storage.save_signals(def_sigs, tenant_id=state.get("tenant_id"))
+                        storage.save_signals(all_signals, tenant_id=state.get("tenant_id"))
                     n_res = noise_suppressor.run(def_sigs)
                     if not storage.is_dry_run():
                         storage.save_noise_decisions(n_res.get("decisions", []))
@@ -482,7 +482,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
                         def_events = event_consolidator.run(n_res["kept_signals"])
                         all_events.extend(def_events)
                         if not storage.is_dry_run():
-                            storage.save_events(def_events, tenant_id=state.get("tenant_id"))
+                            storage.save_events(all_events, tenant_id=state.get("tenant_id"))
                         for t in tenants:
                             tid = t["tenant_id"]
                             tracked = t.get("tracked_companies") or ([t.get("target_company")] + t.get("competitors", []))
@@ -515,7 +515,7 @@ def monitoring_node(state: PipelineState) -> Dict[str, Any]:
     except Exception as e:
         logger.warning(f"Failed to fetch global topic research items: {e}")
 
-    if state.get("tenant_id") and len(ordered_companies) > 1 and not storage.is_dry_run():
+    if state.get("tenant_id") and ordered_companies and not storage.is_dry_run():
         if all_signals:
             storage.save_signals(all_signals, filepath=state.get("signals_storage_path"), tenant_id=state.get("tenant_id"))
         if all_events:
@@ -692,6 +692,23 @@ def analysis_node(state: PipelineState) -> Dict[str, Any]:
                 target_company=target,
                 competitors=comps,
             )
+            # If LLM key is unavailable or skipped all events during an interactive workspace sweep,
+            # synthesize grounded factual findings so custom workspaces still receive usable briefs/overview.
+            if not tenant_findings and tenant_events and not os.getenv("GROQ_API_KEY"):
+                for ev in tenant_events:
+                    syn = analysis_agent._synthesize_fallback_analysis(ev, target_company=target)
+                    f_item = dict(ev)
+                    f_item["event_id"] = ev.get("event_id") or ev.get("id")
+                    f_item["why_it_matters"] = syn["why_it_matters"]
+                    f_item["fact_confidence"] = ev.get("fact_confidence") or syn.get("fact_confidence", "High")
+                    f_item["inference_confidence"] = syn.get("inference_confidence", "Low")
+                    f_item["confidence"] = ev.get("confidence") or f_item["fact_confidence"]
+                    f_item["analysis_model"] = "deterministic_fallback"
+                    f_item["is_fallback"] = True
+                    f_item["analysis_source"] = "deterministic_fallback"
+                    f_item["decision_score"] = analysis_agent._calculate_decision_score(f_item, apply_changelog_penalty=False)
+                    f_item["tier"] = analysis_agent._assign_finding_tier(f_item, apply_freshness_decay=False)
+                    tenant_findings.append(f_item)
             if not storage.is_dry_run():
                 storage.save_findings(tenant_findings, tenant_id=tid)
 

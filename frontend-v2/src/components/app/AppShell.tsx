@@ -92,6 +92,7 @@ interface WorkspaceContextType {
   tenantId: string;
   config: WorkspaceConfig | null;
   pipeline: PipelineProgress | null;
+  pipelineSyncVersion: number;
   switchWorkspace: (tenantId: string) => void;
   triggerSweep: () => Promise<void>;
   isSweeping: boolean;
@@ -105,12 +106,13 @@ const WorkspaceContext = React.createContext<WorkspaceContextType>({
   tenantId: "8553449a-c998-4727-be01-9aeb724038cb",
   config: null,
   pipeline: null,
-  switchWorkspace: () => {},
-  triggerSweep: async () => {},
+  pipelineSyncVersion: 0,
+  switchWorkspace: () => { },
+  triggerSweep: async () => { },
   isSweeping: false,
-  refreshConfig: async () => {},
+  refreshConfig: async () => { },
   allWorkspaces: AVAILABLE_WORKSPACES,
-  startNewCompanyOnboarding: () => {},
+  startNewCompanyOnboarding: () => { },
 });
 
 export function useWorkspace() {
@@ -126,8 +128,8 @@ interface EvidenceContextType {
 }
 
 const EvidenceContext = React.createContext<EvidenceContextType>({
-  openEvidence: () => {},
-  closeEvidence: () => {},
+  openEvidence: () => { },
+  closeEvidence: () => { },
 });
 
 export function useAppEvidence() {
@@ -253,6 +255,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const [config, setConfig] = React.useState<WorkspaceConfig | null>(null);
   const [pipeline, setPipeline] = React.useState<PipelineProgress | null>(null);
+  const [pipelineSyncVersion, setPipelineSyncVersion] = React.useState(0);
   const [isSweeping, setIsSweeping] = React.useState(false);
 
   // Evidence Drawer state
@@ -301,14 +304,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [config, activeTenantId, customWorkspaces]);
 
-  // Fetch pipeline status
+  // Fetch pipeline status and bump sync version on progress or completion
   const isCheckingRef = React.useRef(false);
+  const prevPipelineRef = React.useRef<PipelineProgress | null>(null);
   const checkPipeline = React.useCallback(async () => {
     if (isCheckingRef.current) return;
     isCheckingRef.current = true;
     try {
       const p = await fetchPipelineStatus(activeTenantId);
+      const prev = prevPipelineRef.current;
+      const didFinish = Boolean(prev?.is_active && !p.is_active);
+      const didProgress =
+        prev !== null &&
+        ((p.completed_companies ?? 0) > (prev.completed_companies ?? 0) ||
+          (p.is_active && p.current_phase !== prev.current_phase) ||
+          (p.status !== prev.status && (p.status === "completed" || p.status === "idle")));
+      prevPipelineRef.current = p;
       setPipeline(p);
+      if (didFinish || didProgress) {
+        setPipelineSyncVersion((v) => v + 1);
+      }
     } catch {
       // Graceful fallback
     } finally {
@@ -317,12 +332,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [activeTenantId]);
 
   React.useEffect(() => {
+    prevPipelineRef.current = null;
+  }, [activeTenantId]);
+
+  React.useEffect(() => {
     if (!workspaceHydrated) return;
     refreshConfig();
     checkPipeline();
-    const interval = setInterval(checkPipeline, 15000);
+    const pollMs = pipeline?.is_active ? 4000 : 15000;
+    const interval = setInterval(checkPipeline, pollMs);
     return () => clearInterval(interval);
-  }, [workspaceHydrated, activeTenantId, refreshConfig, checkPipeline]);
+  }, [workspaceHydrated, activeTenantId, refreshConfig, checkPipeline, pipeline?.is_active]);
 
   // Target company name - prioritize workspace configuration and known/custom workspace registry
   const targetCompany = React.useMemo(() => {
@@ -406,6 +426,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         tenantId: activeTenantId,
         config,
         pipeline,
+        pipelineSyncVersion,
         switchWorkspace,
         triggerSweep,
         isSweeping,
@@ -493,11 +514,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <button
                             key={ws.tenant_id}
                             onClick={() => switchWorkspace(ws.tenant_id)}
-                            className={`w-full text-left px-3 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-between cursor-pointer ${
-                              activeTenantId === ws.tenant_id
-                                ? "bg-purple-50 font-bold text-[#6e57dc] border border-purple-200/60"
-                                : "hover:bg-zinc-50 text-[#374151]"
-                            }`}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-between cursor-pointer ${activeTenantId === ws.tenant_id
+                              ? "bg-purple-50 font-bold text-[#6e57dc] border border-purple-200/60"
+                              : "hover:bg-zinc-50 text-[#374151]"
+                              }`}
                           >
                             <div>
                               <div className="font-bold text-sm text-[#17171b]">{ws.target}</div>
@@ -535,11 +555,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {/* Pipeline Status Indicator */}
               <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border border-[rgba(20,20,30,0.08)] bg-white text-xs">
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    pipeline?.is_active
-                      ? "bg-amber-500 animate-pulse"
-                      : "bg-emerald-500"
-                  }`}
+                  className={`w-2 h-2 rounded-full ${pipeline?.is_active
+                    ? "bg-amber-500 animate-pulse"
+                    : "bg-emerald-500"
+                    }`}
                 />
                 <span className="text-[11px] font-semibold text-[#595a63]">
                   {pipeline?.is_active
@@ -568,7 +587,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {/* User Avatar / Logout */}
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#6e57dc] to-[#72d7e8] flex items-center justify-center font-bold text-white text-xs shadow-xs">
-                  {user?.name ? user.name.charAt(0).toUpperCase() : "P"}
+                  {targetCompany && targetCompany !== "Workspace"
+                    ? targetCompany.charAt(0).toUpperCase()
+                    : user?.name
+                      ? user.name.charAt(0).toUpperCase()
+                      : "P"}
                 </div>
                 <button
                   type="button"
@@ -606,16 +629,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           <li key={item.name}>
                             <Link
                               href={item.href}
-                              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                                isActive
-                                  ? "bg-purple-50 text-[#6e57dc] font-bold shadow-xs border border-purple-100/60"
-                                  : "text-[#595a63] hover:text-[#17171b] hover:bg-zinc-100/70"
-                              }`}
+                              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${isActive
+                                ? "bg-purple-50 text-[#6e57dc] font-bold shadow-xs border border-purple-100/60"
+                                : "text-[#595a63] hover:text-[#17171b] hover:bg-zinc-100/70"
+                                }`}
                             >
                               <Icon
-                                className={`w-4 h-4 ${
-                                  isActive ? "text-[#6e57dc]" : "text-[#9ca3af]"
-                                }`}
+                                className={`w-4 h-4 ${isActive ? "text-[#6e57dc]" : "text-[#9ca3af]"
+                                  }`}
                               />
                               <span>{item.name}</span>
                             </Link>
@@ -639,8 +660,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <div className="font-extrabold text-[#17171b] truncate text-sm" suppressHydrationWarning>
                         {targetCompany}
                       </div>
-                      <div className="text-[11px] text-[#70717a] mt-0.5">
-                        Last synced: 2m ago
+                      <div className="text-[11px] text-[#70717a] mt-0.5 truncate max-w-[165px]">
+                        {pipeline?.is_active
+                          ? `Sweeping ${pipeline.completed_companies || 0}/${pipeline.total_companies || "?"} rivals...`
+                          : "Live sync enabled"}
                       </div>
                     </div>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs shrink-0" title="Synchronized" />
@@ -687,11 +710,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                                 <Link
                                   href={item.href}
                                   onClick={() => setMobileOpen(false)}
-                                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold ${
-                                    isActive
-                                      ? "bg-purple-50 text-[#6e57dc] font-bold"
-                                      : "text-[#595a63] hover:text-[#17171b]"
-                                  }`}
+                                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold ${isActive
+                                    ? "bg-purple-50 text-[#6e57dc] font-bold"
+                                    : "text-[#595a63] hover:text-[#17171b]"
+                                    }`}
                                 >
                                   <Icon className="w-4 h-4" />
                                   <span>{item.name}</span>
@@ -709,7 +731,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             {/* Main Content Viewport */}
             <main className="flex-1 min-w-0 overflow-y-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 max-w-[1536px] mx-auto w-full">
-              {children}
+              {workspaceHydrated ? (
+                children
+              ) : (
+                <div className="space-y-4 pb-6 animate-pulse w-full">
+                  <div className="h-16 bg-white rounded-2xl border border-zinc-200" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    <div className="h-20 bg-white rounded-2xl border border-zinc-200" />
+                    <div className="h-20 bg-white rounded-2xl border border-zinc-200" />
+                    <div className="h-20 bg-white rounded-2xl border border-zinc-200" />
+                    <div className="h-20 bg-white rounded-2xl border border-zinc-200" />
+                  </div>
+                </div>
+              )}
             </main>
           </div>
 

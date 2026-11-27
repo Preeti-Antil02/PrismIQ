@@ -286,7 +286,7 @@ export function getChannelInfo(channel?: string, signalType?: string, source?: s
 }
 
 export function SignalsPage() {
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -314,8 +314,23 @@ export function SignalsPage() {
   const [selectedCompany, setSelectedCompany] = React.useState("ALL");
   const [selectedConfidence, setSelectedConfidence] = React.useState("ALL");
 
-  const loadData = React.useCallback(async () => {
-    setLoading(true);
+  // Reset filters when switching workspaces
+  React.useEffect(() => {
+    setSelectedCorrelationCompany("ALL");
+    setSelectedCorrelationChannel("ALL");
+    setCorrelationSearchQuery("");
+    setSearchQuery("");
+    setSelectedSource("ALL");
+    setSelectedCompany("ALL");
+    setSelectedConfidence("ALL");
+  }, [tenantId, targetCompany]);
+
+  const prevSyncRef = React.useRef(pipelineSyncVersion);
+  const loadData = React.useCallback(async (silent: boolean | unknown = false) => {
+    const isSilent = silent === true;
+    if (!isSilent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [signalsRes, compsRes, corrRes] = await Promise.all([
@@ -343,15 +358,21 @@ export function SignalsPage() {
       setActiveSignalIndices(initialSignalMap);
       setExpandedCorrelationIds(initialExpandMap);
     } catch (err: any) {
-      setError(err.message || "Failed to load signals");
+      if (!isSilent) {
+        setError(err.message || "Failed to load signals");
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [tenantId, targetCompany, selectedCorrelationCompany, selectedCorrelationChannel]);
 
   React.useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const isSyncRefresh = prevSyncRef.current !== pipelineSyncVersion;
+    prevSyncRef.current = pipelineSyncVersion;
+    loadData(isSyncRefresh);
+  }, [loadData, pipelineSyncVersion]);
 
   // Companies represented in correlations
   const correlationCompanyNames = React.useMemo(() => {
