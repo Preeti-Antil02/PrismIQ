@@ -487,6 +487,19 @@ def _get_data_dir() -> Path:
     return _backend_root / "data"
 
 
+def _get_search_dirs() -> List[Path]:
+    """Return isolated data dir when overridden/monkeypatched, else active + fallback data dirs."""
+    data_dir = _get_data_dir()
+    std_dirs = {_backend_root / "published_briefs", _backend_root / "data"}
+    if data_dir not in std_dirs:
+        return [data_dir]
+    dirs = [data_dir]
+    for pdir in (_backend_root / "published_briefs", _backend_root / "data"):
+        if pdir not in dirs:
+            dirs.append(pdir)
+    return dirs
+
+
 def _sanitize_filename(name: str) -> str:
     """Sanitize company name for use in filenames."""
     return "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in name.strip()).lower()
@@ -1645,22 +1658,45 @@ def untrack_tenant_company(tenant_id: str, company_name: str) -> bool:
                 cur.execute("""
                     UPDATE tenant_tracked_companies
                     SET status = 'untracked', updated_at = NOW()
-                    WHERE tenant_id = %s AND company_name = %s AND status = 'active';
+                    WHERE tenant_id = %s AND LOWER(company_name) = LOWER(%s) AND status = 'active';
                 """, (tid, comp))
-                rowcount = cur.rowcount
+                if not isinstance(cur, MockCursor):
+                    rowcount = cur.rowcount
         except Exception as e:
             logger.warning(f"Failed to untrack company in Postgres for {tid}: {e}")
 
-    # Parity local file update
+    # Parity local file update across active data dirs; materialize from canonical list if not saved yet
     try:
-        tenant_file = _get_data_dir() / f"tracked_companies_{tid}.json"
-        if tenant_file.exists():
-            with open(tenant_file, "r", encoding="utf-8") as tf:
+        data_dir = _get_data_dir()
+        data_dir.mkdir(parents=True, exist_ok=True)
+        primary_file = data_dir / f"tracked_companies_{tid}.json"
+        candidate_files = []
+        for pdir in _get_search_dirs():
+            candidate = pdir / f"tracked_companies_{tid}.json"
+            if candidate.exists() and candidate not in candidate_files:
+                candidate_files.append(candidate)
+
+        if not candidate_files:
+            seeded = get_tenant_tracked_companies(tid)
+            if seeded:
+                with open(primary_file, "w", encoding="utf-8") as tf:
+                    json.dump(seeded, tf, indent=2, default=str)
+                candidate_files.append(primary_file)
+
+        for tfile in candidate_files:
+            with open(tfile, "r", encoding="utf-8") as tf:
                 comps = json.load(tf)
-            updated_comps = [c for c in comps if c.get("company_name") != comp]
-            with open(tenant_file, "w", encoding="utf-8") as tf:
-                json.dump(updated_comps, tf, indent=2)
-            rowcount = max(rowcount, 1)
+            updated_comps = [
+                c for c in comps
+                if (c.get("company_name") or "").strip().lower() != comp.lower()
+            ]
+            if len(updated_comps) != len(comps):
+                with open(tfile, "w", encoding="utf-8") as tf:
+                    json.dump(updated_comps, tf, indent=2, default=str)
+                if not primary_file.exists():
+                    with open(primary_file, "w", encoding="utf-8") as ptf:
+                        json.dump(updated_comps, ptf, indent=2, default=str)
+                rowcount = max(rowcount, 1)
     except Exception as e:
         logger.warning(f"Failed to update local tracked file on untrack for {tid}: {e}")
 
@@ -1773,8 +1809,8 @@ def track_tenant_company(
         if tenant_file.exists():
             with open(tenant_file, "r", encoding="utf-8") as tf:
                 existing = json.load(tf)
-        # Remove any matching entry first
-        existing = [c for c in existing if c.get("company_name") != comp]
+        # Remove any matching entry first (case-insensitive)
+        existing = [c for c in existing if (c.get("company_name") or "").strip().lower() != comp.lower()]
         existing.append(entry)
         with open(tenant_file, "w", encoding="utf-8") as tf:
             json.dump(existing, tf, indent=2, default=str)
@@ -2705,59 +2741,102 @@ def get_prior_research_activity(
     return None
 
 
+def _normalize_delivery_config_payload(
+    tid: str,
+    slack_webhook_url: str,
+    channel_name: str,
+    is_active: bool,
+    delivery_cadence: str,
+    updated_at: Optional[str],
+) -> Dict[str, Any]:
+    """Build consistent delivery config shape supporting both snake_case aliases."""
+    chan = (channel_name or "").strip() or "#competitive-intelligence"
+    active = bool(is_active)
+    cadence = (delivery_cadence or "").strip() or "daily"
+    return {
+        "tenant_id": tid,
+        "slack_webhook_url": (slack_webhook_url or "").strip(),
+        "channel_name": chan,
+        "slack_channel": chan,
+        "delivery_cadence": cadence,
+        "is_active": active,
+        "is_enabled": active,
+        "email_status": "coming_soon",
+        "updated_at": updated_at,
+    }
+
+
 def get_tenant_delivery_config(tenant_id: str) -> Dict[str, Any]:
     """Fetch delivery configuration (Slack alerts, email digest) for tenant."""
     tid = str(tenant_id).strip()
-    default_cfg = {
-        "tenant_id": tid,
-        "slack_webhook_url": "",
-        "channel_name": "#competitive-intelligence",
-        "delivery_cadence": "daily",
-        "is_active": True,
-        "email_status": "coming_soon",
-        "updated_at": None,
-    }
+    default_cfg = _normalize_delivery_config_payload(
+        tid=tid,
+        slack_webhook_url="",
+        channel_name="#competitive-intelligence",
+        is_active=False,
+        delivery_cadence="daily",
+        updated_at=None,
+    )
     if not is_test_environment():
         try:
             with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-                if is_dry_run():
-                    cur.execute("""
-                        SELECT slack_channel, is_enabled, delivery_cadence, updated_at
-                        FROM tenant_delivery_configs
-                        WHERE tenant_id = %s;
-                    """, (tid,))
-                    row = cur.fetchone()
-                    if row:
-                        return {
-                            "tenant_id": tid,
-                            "slack_webhook_url": "",
-                            "channel_name": row[0] or "#competitive-intelligence",
-                            "is_active": bool(row[1]) if row[1] is not None else True,
-                            "delivery_cadence": row[2] or "daily",
-                            "email_status": "coming_soon",
-                            "updated_at": row[3].isoformat() if row[3] else None,
-                        }
-                else:
-                    cur.execute("""
-                        SELECT slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
-                        FROM tenant_delivery_configs
-                        WHERE tenant_id = %s;
-                    """, (tid,))
-                    row = cur.fetchone()
-                    if row:
-                        return {
-                            "tenant_id": tid,
-                            "slack_webhook_url": row[0] or "",
-                            "channel_name": row[1] or "#competitive-intelligence",
-                            "is_active": bool(row[2]) if row[2] is not None else True,
-                            "delivery_cadence": row[3] or "daily",
-                            "email_status": "coming_soon",
-                            "updated_at": row[4].isoformat() if row[4] else None,
-                        }
+                if not isinstance(cur, MockCursor):
+                    if is_dry_run():
+                        cur.execute("""
+                            SELECT slack_channel, is_enabled, delivery_cadence, updated_at
+                            FROM tenant_delivery_configs
+                            WHERE tenant_id = %s;
+                        """, (tid,))
+                        row = cur.fetchone()
+                        if row:
+                            return _normalize_delivery_config_payload(
+                                tid=tid,
+                                slack_webhook_url="",
+                                channel_name=row[0] or "#competitive-intelligence",
+                                is_active=bool(row[1]) if row[1] is not None else True,
+                                delivery_cadence=row[2] or "daily",
+                                updated_at=row[3].isoformat() if row[3] else None,
+                            )
+                    else:
+                        cur.execute("""
+                            SELECT slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
+                            FROM tenant_delivery_configs
+                            WHERE tenant_id = %s;
+                        """, (tid,))
+                        row = cur.fetchone()
+                        if row:
+                            return _normalize_delivery_config_payload(
+                                tid=tid,
+                                slack_webhook_url=row[0] or "",
+                                channel_name=row[1] or "#competitive-intelligence",
+                                is_active=bool(row[2]) if row[2] is not None else True,
+                                delivery_cadence=row[3] or "daily",
+                                updated_at=row[4].isoformat() if row[4] else None,
+                            )
         except Exception as e:
             if is_dry_run():
                 raise
             logger.warning(f"Failed to query delivery config from Postgres: {e}")
+
+    # Local tenant-scoped flat-file fallback
+    for pdir in _get_search_dirs():
+        cfg_file = pdir / f"delivery_config_{tid}.json"
+        if cfg_file.exists():
+            try:
+                with open(cfg_file, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                if isinstance(raw, dict):
+                    return _normalize_delivery_config_payload(
+                        tid=tid,
+                        slack_webhook_url=raw.get("slack_webhook_url", ""),
+                        channel_name=raw.get("slack_channel") or raw.get("channel_name") or "#competitive-intelligence",
+                        is_active=raw.get("is_enabled", raw.get("is_active", False)),
+                        delivery_cadence=raw.get("delivery_cadence", "daily"),
+                        updated_at=raw.get("updated_at"),
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to read local delivery config for {tid}: {e}")
+
     return default_cfg
 
 
@@ -2768,59 +2847,71 @@ def save_tenant_delivery_config(
     is_active: bool = True,
     delivery_cadence: str = "daily",
 ) -> Dict[str, Any]:
-    """Upsert delivery configuration for tenant under RLS."""
+    """Upsert delivery configuration for tenant under RLS with local tenant-scoped persistence."""
     tid = str(tenant_id).strip()
     url = str(slack_webhook_url).strip()
     chan = str(channel_name).strip() or "#competitive-intelligence"
     now_dt = datetime.now(timezone.utc)
     if is_dry_run():
-        return {
-            "tenant_id": tid,
-            "slack_webhook_url": url,
-            "channel_name": chan,
-            "is_active": is_active,
-            "delivery_cadence": delivery_cadence,
-            "email_status": "coming_soon",
-            "updated_at": now_dt.isoformat(),
-        }
+        return _normalize_delivery_config_payload(
+            tid=tid,
+            slack_webhook_url=url,
+            channel_name=chan,
+            is_active=is_active,
+            delivery_cadence=delivery_cadence,
+            updated_at=now_dt.isoformat(),
+        )
+
+    saved_payload = _normalize_delivery_config_payload(
+        tid=tid,
+        slack_webhook_url=url,
+        channel_name=chan,
+        is_active=is_active,
+        delivery_cadence=delivery_cadence,
+        updated_at=now_dt.isoformat(),
+    )
+
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
-                ensure_tenant_user_exists(cur, tid)
-                cur.execute("""
-                    INSERT INTO tenant_delivery_configs (
-                        tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, NOW())
-                    ON CONFLICT (tenant_id) DO UPDATE SET
-                        slack_webhook_url = EXCLUDED.slack_webhook_url,
-                        slack_channel = EXCLUDED.slack_channel,
-                        is_enabled = EXCLUDED.is_enabled,
-                        delivery_cadence = EXCLUDED.delivery_cadence,
-                        updated_at = NOW()
-                    RETURNING tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at;
-                """, (tid, url, chan, is_active, delivery_cadence))
-                row = cur.fetchone()
-                return {
-                    "tenant_id": str(row[0]),
-                    "slack_webhook_url": row[1] or "",
-                    "channel_name": row[2] or chan,
-                    "is_active": bool(row[3]) if row[3] is not None else True,
-                    "delivery_cadence": row[4] or "daily",
-                    "email_status": "coming_soon",
-                    "updated_at": row[5].isoformat() if row[5] else now_dt.isoformat(),
-                }
+                if not isinstance(cur, MockCursor):
+                    ensure_tenant_user_exists(cur, tid)
+                    cur.execute("""
+                        INSERT INTO tenant_delivery_configs (
+                            tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at
+                        ) VALUES (%s, %s, %s, %s, %s, NOW())
+                        ON CONFLICT (tenant_id) DO UPDATE SET
+                            slack_webhook_url = EXCLUDED.slack_webhook_url,
+                            slack_channel = EXCLUDED.slack_channel,
+                            is_enabled = EXCLUDED.is_enabled,
+                            delivery_cadence = EXCLUDED.delivery_cadence,
+                            updated_at = NOW()
+                        RETURNING tenant_id, slack_webhook_url, slack_channel, is_enabled, delivery_cadence, updated_at;
+                    """, (tid, url, chan, is_active, delivery_cadence))
+                    row = cur.fetchone()
+                    if row:
+                        saved_payload = _normalize_delivery_config_payload(
+                            tid=str(row[0]),
+                            slack_webhook_url=row[1] or "",
+                            channel_name=row[2] or chan,
+                            is_active=bool(row[3]) if row[3] is not None else True,
+                            delivery_cadence=row[4] or delivery_cadence,
+                            updated_at=row[5].isoformat() if row[5] else now_dt.isoformat(),
+                        )
         except Exception as e:
-            logger.error(f"Failed to save delivery config to Postgres: {e}")
-            raise
-    return {
-        "tenant_id": tid,
-        "slack_webhook_url": url,
-        "channel_name": chan,
-        "is_active": is_active,
-        "delivery_cadence": delivery_cadence,
-        "email_status": "coming_soon",
-        "updated_at": now_dt.isoformat(),
-    }
+            logger.warning(f"Failed to save delivery config to Postgres, persisting locally: {e}")
+
+    # Always synchronize tenant-scoped flat file for local/offline durability
+    try:
+        data_dir = _get_data_dir()
+        data_dir.mkdir(parents=True, exist_ok=True)
+        cfg_file = data_dir / f"delivery_config_{tid}.json"
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            json.dump(saved_payload, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"Failed to persist local delivery config for {tid}: {e}")
+
+    return saved_payload
 
 
 
@@ -2843,48 +2934,60 @@ def get_tenant_research_topics(tenant_id: str, include_paused: bool = False) -> 
     if not is_test_environment() or os.getenv("FORCE_LIVE_TEST_DB"):
         try:
             with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-                active_clause = "AND is_active = TRUE" if not include_paused else ""
-                cur.execute(f"""
-                    SELECT id, topic_label, keywords, source, is_active, created_at, updated_at
-                    FROM tenant_research_topics
-                    WHERE (tenant_id = %s::uuid OR tenant_id IS NULL)
-                    {active_clause}
-                    ORDER BY created_at ASC;
-                """, (str(tenant_id),))
-                rows = cur.fetchall()
-                topics = []
-                for r in rows:
-                    topics.append({
-                        "id": str(r[0]),
-                        "tenant_id": str(tenant_id),
-                        "topic_label": r[1],
-                        "keywords": r[2] if isinstance(r[2], list) else (json.loads(r[2]) if r[2] else []),
-                        "source": r[3] or "manual",
-                        "is_active": r[4],
-                        "created_at": r[5].isoformat() if hasattr(r[5], "isoformat") else str(r[5]),
-                        "updated_at": r[6].isoformat() if hasattr(r[6], "isoformat") else str(r[6]),
-                    })
-                return topics
+                if not isinstance(cur, MockCursor):
+                    active_clause = "AND is_active = TRUE" if not include_paused else ""
+                    cur.execute(f"""
+                        SELECT id, topic_label, keywords, source, is_active, created_at, updated_at
+                        FROM tenant_research_topics
+                        WHERE (tenant_id = %s::uuid OR tenant_id IS NULL)
+                        {active_clause}
+                        ORDER BY created_at ASC;
+                    """, (str(tenant_id),))
+                    rows = cur.fetchall()
+                    topics = []
+                    for r in rows:
+                        topics.append({
+                            "id": str(r[0]),
+                            "tenant_id": str(tenant_id),
+                            "topic_label": r[1],
+                            "keywords": r[2] if isinstance(r[2], list) else (json.loads(r[2]) if r[2] else []),
+                            "source": r[3] or "manual",
+                            "is_active": r[4],
+                            "created_at": r[5].isoformat() if hasattr(r[5], "isoformat") else str(r[5]),
+                            "updated_at": r[6].isoformat() if hasattr(r[6], "isoformat") else str(r[6]),
+                        })
+                    return topics
         except Exception as e:
             if is_dry_run():
                 raise
             logger.warning(f"Failed to query tenant research topics from Postgres: {e}")
 
-    # Fallback to local flat file
+    # Strict tenant-scoped flat-file fallback (zero cross-tenant leakage)
     data_dir = _get_data_dir()
-    topic_file = data_dir / f"research_topics_{tenant_id}.json"
-    if not topic_file.exists():
-        topic_file = data_dir / "research_topics.json"
-    if topic_file.exists():
+    for pdir in _get_search_dirs():
+        topic_file = pdir / f"research_topics_{tenant_id}.json"
+        if topic_file.exists():
+            try:
+                with open(topic_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    filtered = [t for t in data if not t.get("tenant_id") or t.get("tenant_id") == str(tenant_id)]
+                    if not include_paused:
+                        filtered = [t for t in filtered if t.get("is_active", True) is not False]
+                    return filtered
+            except Exception as e:
+                logger.warning(f"Failed to read local research topics for {tenant_id}: {e}")
+
+    shared_topic_file = data_dir / "research_topics.json"
+    if shared_topic_file.exists():
         try:
-            with open(topic_file, "r", encoding="utf-8") as f:
+            with open(shared_topic_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                filtered = [t for t in data if t.get("tenant_id") == tenant_id or "tenant_id" not in t]
+                filtered = [t for t in data if t.get("tenant_id") == str(tenant_id)]
                 if not include_paused:
                     filtered = [t for t in filtered if t.get("is_active", True) is not False]
                 return filtered
         except Exception as e:
-            logger.warning(f"Failed to read local research topics: {e}")
+            logger.warning(f"Failed to read shared research topics: {e}")
 
     return []
 
@@ -2921,32 +3024,32 @@ def save_tenant_research_topic(
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
-                ensure_tenant_user_exists(cur, tenant_id)
-                cur.execute("""
-                    INSERT INTO tenant_research_topics (
-                        id, tenant_id, topic_label, keywords, source, is_active, created_at, updated_at
-                    ) VALUES (%s, %s, %s, %s::jsonb, %s, TRUE, NOW(), NOW())
-                    ON CONFLICT (tenant_id, topic_label) DO UPDATE SET
-                        keywords = EXCLUDED.keywords,
-                        source = EXCLUDED.source,
-                        is_active = TRUE,
-                        updated_at = NOW()
-                    RETURNING id, created_at, updated_at;
-                """, (
-                    topic_id,
-                    tenant_id,
-                    clean_label,
-                    json.dumps(clean_keywords),
-                    source,
-                ))
-                row = cur.fetchone()
-                if row:
-                    record["id"] = str(row[0])
-                    record["created_at"] = row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1])
-                    record["updated_at"] = row[2].isoformat() if hasattr(row[2], "isoformat") else str(row[2])
+                if not isinstance(cur, MockCursor):
+                    ensure_tenant_user_exists(cur, tenant_id)
+                    cur.execute("""
+                        INSERT INTO tenant_research_topics (
+                            id, tenant_id, topic_label, keywords, source, is_active, created_at, updated_at
+                        ) VALUES (%s, %s, %s, %s::jsonb, %s, TRUE, NOW(), NOW())
+                        ON CONFLICT (tenant_id, topic_label) DO UPDATE SET
+                            keywords = EXCLUDED.keywords,
+                            source = EXCLUDED.source,
+                            is_active = TRUE,
+                            updated_at = NOW()
+                        RETURNING id, created_at, updated_at;
+                    """, (
+                        topic_id,
+                        tenant_id,
+                        clean_label,
+                        json.dumps(clean_keywords),
+                        source,
+                    ))
+                    row = cur.fetchone()
+                    if row:
+                        record["id"] = str(row[0])
+                        record["created_at"] = row[1].isoformat() if hasattr(row[1], "isoformat") else str(row[1])
+                        record["updated_at"] = row[2].isoformat() if hasattr(row[2], "isoformat") else str(row[2])
         except Exception as e:
-            logger.error(f"Failed to save tenant research topic to Postgres: {e}")
-            raise
+            logger.warning(f"Failed to save tenant research topic to Postgres, continuing to flat-file: {e}")
 
     # Synchronize local flat file cache to keep stores strictly aligned
     data_dir = _get_data_dir()
@@ -2992,32 +3095,33 @@ def delete_tenant_research_topic(tenant_id: str, topic_id_or_label: str) -> bool
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
-                cur.execute("""
-                    DELETE FROM tenant_research_topics
-                    WHERE (id::text = %s OR topic_label = %s);
-                """, (target, target))
-                deleted_pg = cur.rowcount > 0
+                if not isinstance(cur, MockCursor):
+                    cur.execute("""
+                        DELETE FROM tenant_research_topics
+                        WHERE (id::text = %s OR topic_label = %s);
+                    """, (target, target))
+                    deleted_pg = cur.rowcount > 0
         except Exception as e:
             logger.warning(f"Failed to delete research topic from Postgres: {e}")
 
-    # Always synchronize local flat file cache to eliminate divergence/resurrection
+    # Always synchronize local flat file cache across active data dirs
     deleted_file = False
-    data_dir = _get_data_dir()
-    topic_file = data_dir / f"research_topics_{tenant_id}.json"
-    if topic_file.exists():
-        try:
-            with open(topic_file, "r", encoding="utf-8") as f:
-                existing = json.load(f)
-            remaining = [
-                t for t in existing
-                if t.get("id") != target and t.get("topic_label") != target
-            ]
-            if len(remaining) != len(existing):
-                with open(topic_file, "w", encoding="utf-8") as f:
-                    json.dump(remaining, f, indent=2, ensure_ascii=False)
-                deleted_file = True
-        except Exception:
-            pass
+    for pdir in _get_search_dirs():
+        topic_file = pdir / f"research_topics_{tenant_id}.json"
+        if topic_file.exists():
+            try:
+                with open(topic_file, "r", encoding="utf-8") as f:
+                    existing = json.load(f)
+                remaining = [
+                    t for t in existing
+                    if str(t.get("id")) != target and t.get("topic_label") != target
+                ]
+                if len(remaining) != len(existing):
+                    with open(topic_file, "w", encoding="utf-8") as f:
+                        json.dump(remaining, f, indent=2, ensure_ascii=False)
+                    deleted_file = True
+            except Exception:
+                pass
     return deleted_pg or deleted_file
 
 
@@ -3033,34 +3137,36 @@ def update_tenant_research_topic_status(tenant_id: str, topic_id_or_label: str, 
     if not is_test_environment() and is_live_write_permitted():
         try:
             with get_tenant_db_cursor(tenant_id, readonly=False) as cur:
-                cur.execute("""
-                    UPDATE tenant_research_topics
-                    SET is_active = %s, updated_at = NOW()
-                    WHERE (id::text = %s OR topic_label = %s);
-                """, (is_active, target, target))
-                updated_pg = cur.rowcount > 0
+                if not isinstance(cur, MockCursor):
+                    cur.execute("""
+                        UPDATE tenant_research_topics
+                        SET is_active = %s, updated_at = NOW()
+                        WHERE (id::text = %s OR topic_label = %s);
+                    """, (is_active, target, target))
+                    updated_pg = cur.rowcount > 0
         except Exception as e:
-            logger.error(f"Failed to update research topic status in Postgres: {e}")
-            raise
+            logger.warning(f"Failed to update research topic status in Postgres, syncing flat-file: {e}")
 
-    # Always synchronize local flat file cache
+    # Always synchronize local flat file cache across active data dirs
     updated_file = False
-    data_dir = _get_data_dir()
-    topic_file = data_dir / f"research_topics_{tenant_id}.json"
-    if topic_file.exists():
-        try:
-            with open(topic_file, "r", encoding="utf-8") as f:
-                existing = json.load(f)
-            for t in existing:
-                if str(t.get("id")) == target or t.get("topic_label") == target:
-                    t["is_active"] = is_active
-                    t["updated_at"] = datetime.now(timezone.utc).isoformat()
-                    updated_file = True
-            if updated_file:
-                with open(topic_file, "w", encoding="utf-8") as f:
-                    json.dump(existing, f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass
+    for pdir in _get_search_dirs():
+        topic_file = pdir / f"research_topics_{tenant_id}.json"
+        if topic_file.exists():
+            try:
+                with open(topic_file, "r", encoding="utf-8") as f:
+                    existing = json.load(f)
+                file_changed = False
+                for t in existing:
+                    if str(t.get("id")) == target or t.get("topic_label") == target:
+                        t["is_active"] = is_active
+                        t["updated_at"] = datetime.now(timezone.utc).isoformat()
+                        file_changed = True
+                        updated_file = True
+                if file_changed:
+                    with open(topic_file, "w", encoding="utf-8") as f:
+                        json.dump(existing, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
 
     return updated_pg or updated_file
 
@@ -3497,46 +3603,50 @@ def get_latest_radar_evaluations_for_tenant(tenant_id: str) -> Dict[str, Dict[st
     if not is_test_environment():
         try:
             with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-                cur.execute("""
-                    SELECT DISTINCT ON (topic_label)
-                           id, topic_label, cycle_id, research_item_count, competitor_connections,
-                           why_it_matters, verified_sources, state_change_detected, created_at
-                    FROM research_radar_evaluations
-                    ORDER BY topic_label, created_at DESC;
-                """)
-                rows = cur.fetchall()
-                for row in rows:
-                    lbl = row[1]
-                    results[lbl.lower()] = {
-                        "id": str(row[0]),
-                        "topic_label": row[1],
-                        "cycle_id": row[2],
-                        "research_item_count": row[3],
-                        "competitor_connections": row[4] if isinstance(row[4], dict) else (json.loads(row[4]) if row[4] else {}),
-                        "why_it_matters": row[5],
-                        "verified_sources": row[6] if isinstance(row[6], list) else (json.loads(row[6]) if row[6] else []),
-                        "state_change_detected": row[7],
-                        "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8]),
-                    }
-                return results
+                if not isinstance(cur, MockCursor):
+                    cur.execute("""
+                        SELECT DISTINCT ON (topic_label)
+                               id, topic_label, cycle_id, research_item_count, competitor_connections,
+                               why_it_matters, verified_sources, state_change_detected, created_at
+                        FROM research_radar_evaluations
+                        ORDER BY topic_label, created_at DESC;
+                    """)
+                    rows = cur.fetchall()
+                    for row in rows:
+                        lbl = row[1]
+                        results[lbl.lower()] = {
+                            "id": str(row[0]),
+                            "topic_label": row[1],
+                            "cycle_id": row[2],
+                            "research_item_count": row[3],
+                            "competitor_connections": row[4] if isinstance(row[4], dict) else (json.loads(row[4]) if row[4] else {}),
+                            "why_it_matters": row[5],
+                            "verified_sources": row[6] if isinstance(row[6], list) else (json.loads(row[6]) if row[6] else []),
+                            "state_change_detected": row[7],
+                            "created_at": row[8].isoformat() if hasattr(row[8], "isoformat") else str(row[8]),
+                        }
+                    if results:
+                        return results
         except Exception as e:
             if is_dry_run():
                 raise
             logger.warning(f"Failed to query batch radar evaluations from Postgres: {e}")
 
-    # Fallback to flat file
-    data_dir = _get_data_dir()
-    eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
-    if eval_file.exists():
-        try:
-            with open(eval_file, "r", encoding="utf-8") as f:
-                history = json.load(f)
-                for h in sorted(history, key=lambda x: x.get("created_at", "")):
-                    lbl = h.get("topic_label", "")
-                    if lbl:
-                        results[lbl.lower()] = h
-        except Exception:
-            pass
+    # Fallback to flat file across active data directories
+    for pdir in _get_search_dirs():
+        eval_file = pdir / f"radar_evaluations_{tenant_id}.json"
+        if eval_file.exists():
+            try:
+                with open(eval_file, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+                    for h in sorted(history, key=lambda x: x.get("created_at", "")):
+                        lbl = h.get("topic_label", "")
+                        if lbl:
+                            results[lbl.lower()] = h
+                if results:
+                    return results
+            except Exception:
+                pass
 
     return results
 
@@ -3555,55 +3665,59 @@ def get_radar_history(
     if not is_test_environment():
         try:
             with get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-                query = """
-                    SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
-                           why_it_matters, verified_sources, state_change_detected, previous_status, created_at
-                    FROM research_radar_evaluations
-                    WHERE 1=1
-                """
-                params: List[Any] = []
-                if topic_label:
-                    query += " AND topic_label = %s"
-                    params.append(topic_label)
-                query += " ORDER BY created_at DESC;"
-                cur.execute(query, tuple(params))
-                rows = cur.fetchall()
-                for r in rows:
-                    conns = r[4] if isinstance(r[4], dict) else (json.loads(r[4]) if r[4] else {})
-                    if competitor and competitor not in conns:
-                        continue
-                    records.append({
-                        "id": str(r[0]),
-                        "topic_label": r[1],
-                        "cycle_id": r[2],
-                        "research_item_count": r[3],
-                        "competitor_connections": conns,
-                        "why_it_matters": r[5],
-                        "verified_sources": r[6] if isinstance(r[6], list) else (json.loads(r[6]) if r[6] else []),
-                        "state_change_detected": r[7],
-                        "previous_status": r[8] if isinstance(r[8], dict) else (json.loads(r[8]) if r[8] else {}),
-                        "created_at": r[9].isoformat() if hasattr(r[9], "isoformat") else str(r[9]),
-                    })
-                return records
+                if not isinstance(cur, MockCursor):
+                    query = """
+                        SELECT id, topic_label, cycle_id, research_item_count, competitor_connections,
+                               why_it_matters, verified_sources, state_change_detected, previous_status, created_at
+                        FROM research_radar_evaluations
+                        WHERE 1=1
+                    """
+                    params: List[Any] = []
+                    if topic_label:
+                        query += " AND topic_label = %s"
+                        params.append(topic_label)
+                    query += " ORDER BY created_at DESC;"
+                    cur.execute(query, tuple(params))
+                    rows = cur.fetchall()
+                    for r in rows:
+                        conns = r[4] if isinstance(r[4], dict) else (json.loads(r[4]) if r[4] else {})
+                        if competitor and competitor not in conns:
+                            continue
+                        records.append({
+                            "id": str(r[0]),
+                            "topic_label": r[1],
+                            "cycle_id": r[2],
+                            "research_item_count": r[3],
+                            "competitor_connections": conns,
+                            "why_it_matters": r[5],
+                            "verified_sources": r[6] if isinstance(r[6], list) else (json.loads(r[6]) if r[6] else []),
+                            "state_change_detected": r[7],
+                            "previous_status": r[8] if isinstance(r[8], dict) else (json.loads(r[8]) if r[8] else {}),
+                            "created_at": r[9].isoformat() if hasattr(r[9], "isoformat") else str(r[9]),
+                        })
+                    if records:
+                        return records
         except Exception as e:
             logger.warning(f"Failed to query radar history from Postgres: {e}")
 
-    # Fallback to flat file
-    data_dir = _get_data_dir()
-    eval_file = data_dir / f"radar_evaluations_{tenant_id}.json"
-    if eval_file.exists():
-        try:
-            with open(eval_file, "r", encoding="utf-8") as f:
-                history = json.load(f)
-                for h in sorted(history, key=lambda x: x.get("created_at", ""), reverse=True):
-                    if topic_label and h.get("topic_label", "").lower() != topic_label.lower():
-                        continue
-                    conns = h.get("competitor_connections", {})
-                    if competitor and competitor not in conns:
-                        continue
-                    records.append(h)
-        except Exception:
-            pass
+    # Fallback to flat file across active data directories
+    for pdir in _get_search_dirs():
+        eval_file = pdir / f"radar_evaluations_{tenant_id}.json"
+        if eval_file.exists():
+            try:
+                with open(eval_file, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+                    for h in sorted(history, key=lambda x: x.get("created_at", ""), reverse=True):
+                        if topic_label and h.get("topic_label", "").lower() != topic_label.lower():
+                            continue
+                        conns = h.get("competitor_connections", {})
+                        if competitor and competitor not in conns:
+                            continue
+                        records.append(h)
+                if records:
+                    return records
+            except Exception:
+                pass
 
     return records
 

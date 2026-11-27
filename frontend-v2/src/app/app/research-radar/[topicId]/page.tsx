@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AppLayout } from "@/components/layout/AppLayout";
 import {
   fetchLatestRadar,
   type RadarEvaluation,
@@ -34,7 +33,7 @@ export default function SingleTopicDetailPage() {
   const params = useParams();
   const router = useRouter();
   const topicParam = (params.topicId as string) || "";
-  const { tenantId } = useWorkspace();
+  const { tenantId, pipelineSyncVersion } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -65,7 +64,7 @@ export default function SingleTopicDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [topicParam, tenantId]);
+  }, [topicParam, tenantId, pipelineSyncVersion]);
 
   React.useEffect(() => {
     loadData();
@@ -92,7 +91,7 @@ export default function SingleTopicDetailPage() {
   }, [evaluation]);
 
   return (
-    <AppLayout>
+    <>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Navigation Breadcrumb */}
         <div>
@@ -384,7 +383,7 @@ export default function SingleTopicDetailPage() {
           data={drawerData}
         />
       )}
-    </AppLayout>
+    </>
   );
 }
 

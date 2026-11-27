@@ -32,7 +32,7 @@ import {
 } from "@/lib/api";
 
 export function SettingsPage() {
-  const { targetCompany, tenantId, switchWorkspace, allWorkspaces, startNewCompanyOnboarding } = useWorkspace();
+  const { targetCompany, tenantId, switchWorkspace, allWorkspaces, startNewCompanyOnboarding, pipelineSyncVersion } = useWorkspace();
   const { user, logout } = useAuth();
 
   const [loading, setLoading] = React.useState(true);
@@ -51,9 +51,10 @@ export function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, pipelineSyncVersion]);
 
   React.useEffect(() => {
+    setSettings(null);
     loadSettings();
   }, [loadSettings]);
 

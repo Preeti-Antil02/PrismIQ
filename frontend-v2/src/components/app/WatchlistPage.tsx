@@ -36,13 +36,16 @@ import {
 } from "@/lib/api";
 
 export function WatchlistPage() {
-  const { targetCompany, tenantId, refreshConfig } = useWorkspace();
+  const { targetCompany, tenantId, refreshConfig, pipelineSyncVersion } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [companies, setCompanies] = React.useState<TrackedCompany[]>([]);
   const [newCompanyName, setNewCompanyName] = React.useState("");
   const [isAdding, setIsAdding] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [actionBanner, setActionBanner] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [confirmUntrackCompany, setConfirmUntrackCompany] = React.useState<string | null>(null);
+  const [isUntracking, setIsUntracking] = React.useState(false);
 
   // Discovery Agent State
   const [discoveryModalOpen, setDiscoveryModalOpen] = React.useState(false);
@@ -63,24 +66,34 @@ export function WatchlistPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId, targetCompany]);
+  }, [tenantId, targetCompany, pipelineSyncVersion]);
 
   React.useEffect(() => {
+    setNewCompanyName("");
+    setDiscoveryModalOpen(false);
+    setCandidates([]);
+    setSelectedCandidates([]);
+    setDiscoveryError(null);
+    setConfirmUntrackCompany(null);
+    setActionBanner(null);
     loadCompanies();
   }, [loadCompanies]);
 
   // Handle manual add
   const handleAddCompany = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCompanyName.trim()) return;
+    const clean = newCompanyName.trim();
+    if (!clean) return;
     setIsAdding(true);
+    setActionBanner(null);
     try {
-      await addTrackedCompany(newCompanyName.trim(), false);
+      await addTrackedCompany(clean, false, tenantId);
       setNewCompanyName("");
       await loadCompanies();
       await refreshConfig();
+      setActionBanner({ type: "success", text: `Added ${clean} to ${targetCompany} watchlist.` });
     } catch (err: any) {
-      alert(`Could not add company: ${err.message}`);
+      setActionBanner({ type: "error", text: `Could not add company: ${err.message}` });
     } finally {
       setIsAdding(false);
     }
@@ -88,13 +101,18 @@ export function WatchlistPage() {
 
   // Handle untrack
   const handleUntrack = async (companyName: string) => {
-    if (!confirm(`Are you sure you want to stop tracking ${companyName}?`)) return;
+    setIsUntracking(true);
+    setActionBanner(null);
     try {
-      await untrackCompany(companyName);
+      await untrackCompany(companyName, tenantId);
+      setConfirmUntrackCompany(null);
       await loadCompanies();
       await refreshConfig();
+      setActionBanner({ type: "success", text: `Removed ${companyName} from active monitoring.` });
     } catch (err: any) {
-      alert(`Could not untrack company: ${err.message}`);
+      setActionBanner({ type: "error", text: `Could not untrack company: ${err.message}` });
+    } finally {
+      setIsUntracking(false);
     }
   };
 
@@ -104,7 +122,7 @@ export function WatchlistPage() {
     setDiscoveryError(null);
     setDiscoveryModalOpen(true);
     try {
-      const res = await discoverCompetitors(targetCompany);
+      const res = await discoverCompetitors(targetCompany, undefined, undefined, false, tenantId);
       setCandidates(res.candidates || []);
       // Pre-select all by default
       const names = (res.candidates || [])
@@ -122,18 +140,20 @@ export function WatchlistPage() {
   const handleAddSelectedCandidates = async () => {
     if (selectedCandidates.length === 0) return;
     setIsAddingCandidates(true);
+    setActionBanner(null);
     try {
       for (const name of selectedCandidates) {
         // Skip if already in companies
         if (!companies.some((c) => c.company_name.toLowerCase() === name.toLowerCase())) {
-          await addTrackedCompany(name, false);
+          await addTrackedCompany(name, false, tenantId);
         }
       }
       await loadCompanies();
       await refreshConfig();
       setDiscoveryModalOpen(false);
+      setActionBanner({ type: "success", text: `Added ${selectedCandidates.length} competitor(s) to watchlist.` });
     } catch (err: any) {
-      alert(`Failed to add candidates: ${err.message}`);
+      setDiscoveryError(`Failed to add candidates: ${err.message}`);
     } finally {
       setIsAddingCandidates(false);
     }
@@ -229,6 +249,26 @@ export function WatchlistPage() {
               Active Monitoring
             </div>
           </div>
+
+          {/* Action Feedback Banner */}
+          {actionBanner && (
+            <div
+              className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between ${
+                actionBanner.type === "success"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                  : "bg-rose-50 border-rose-200 text-rose-800"
+              }`}
+            >
+              <span>{actionBanner.text}</span>
+              <button
+                type="button"
+                onClick={() => setActionBanner(null)}
+                className="p-0.5 rounded hover:bg-black/5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Quick Add Competitor Form */}
           <form
@@ -346,13 +386,35 @@ export function WatchlistPage() {
                                 <GitCompare className="w-3 h-3" />
                                 <span>Compare</span>
                               </Link>
-                              <button
-                                onClick={() => handleUntrack(comp.company_name)}
-                                className="p-1.5 text-[#9ca3af] hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                                title={`Untrack ${comp.company_name}`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {confirmUntrackCompany === comp.company_name ? (
+                                <div className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1">
+                                  <span className="text-[10px] font-bold text-rose-700">Remove?</span>
+                                  <button
+                                    type="button"
+                                    disabled={isUntracking}
+                                    onClick={() => handleUntrack(comp.company_name)}
+                                    className="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold hover:bg-rose-700 cursor-pointer"
+                                  >
+                                    {isUntracking ? "..." : "Confirm"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmUntrackCompany(null)}
+                                    className="px-1.5 py-0.5 rounded bg-white text-zinc-600 text-[10px] font-semibold border border-zinc-200 hover:bg-zinc-50 cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmUntrackCompany(comp.company_name)}
+                                  className="p-1.5 text-[#9ca3af] hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                                  title={`Untrack ${comp.company_name}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>

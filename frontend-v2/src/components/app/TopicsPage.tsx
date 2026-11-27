@@ -30,11 +30,13 @@ import {
 } from "@/lib/api";
 
 export function TopicsPage() {
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion, refreshConfig } = useWorkspace();
 
   const [loading, setLoading] = React.useState(true);
   const [topics, setTopics] = React.useState<ResearchTopic[]>([]);
   const [error, setError] = React.useState<string | null>(null);
+  const [actionBanner, setActionBanner] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null);
 
   // New topic modal state
   const [modalOpen, setModalOpen] = React.useState(false);
@@ -53,29 +55,38 @@ export function TopicsPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, pipelineSyncVersion]);
 
   React.useEffect(() => {
+    setModalOpen(false);
+    setTopicLabel("");
+    setKeywordsText("");
+    setConfirmDeleteId(null);
+    setActionBanner(null);
     loadTopics();
   }, [loadTopics]);
 
   // Create topic
   const handleCreateTopic = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topicLabel.trim()) return;
+    const clean = topicLabel.trim();
+    if (!clean) return;
     setIsSubmitting(true);
+    setActionBanner(null);
     try {
       const keywords = keywordsText
         .split(",")
         .map((k) => k.trim())
         .filter(Boolean);
-      await createWorkspaceTopic(topicLabel.trim(), keywords.length > 0 ? keywords : [topicLabel.trim()]);
+      await createWorkspaceTopic(clean, keywords.length > 0 ? keywords : [clean], tenantId);
       setTopicLabel("");
       setKeywordsText("");
       setModalOpen(false);
       await loadTopics();
+      await refreshConfig();
+      setActionBanner({ type: "success", text: `Topic "${clean}" saved for ${targetCompany}.` });
     } catch (err: any) {
-      alert(`Failed to create topic: ${err.message}`);
+      setActionBanner({ type: "error", text: `Failed to create topic: ${err.message}` });
     } finally {
       setIsSubmitting(false);
     }
@@ -84,22 +95,31 @@ export function TopicsPage() {
   // Toggle status
   const handleToggleStatus = async (topic: ResearchTopic) => {
     const newStatus = !(topic.is_active ?? true);
+    setActionBanner(null);
     try {
-      await updateTopicStatus(topic.id, newStatus);
+      await updateTopicStatus(topic.id, newStatus, tenantId);
       await loadTopics();
+      await refreshConfig();
+      setActionBanner({
+        type: "success",
+        text: `${topic.topic_label} ${newStatus ? "resumed" : "paused"}.`,
+      });
     } catch (err: any) {
-      alert(`Could not update status: ${err.message}`);
+      setActionBanner({ type: "error", text: `Could not update status: ${err.message}` });
     }
   };
 
   // Delete topic
   const handleDelete = async (topicId: string, label: string) => {
-    if (!confirm(`Are you sure you want to delete topic "${label}"?`)) return;
+    setActionBanner(null);
     try {
-      await deleteWorkspaceTopic(topicId);
+      await deleteWorkspaceTopic(topicId, tenantId);
+      setConfirmDeleteId(null);
       await loadTopics();
+      await refreshConfig();
+      setActionBanner({ type: "success", text: `Deleted topic "${label}".` });
     } catch (err: any) {
-      alert(`Could not delete topic: ${err.message}`);
+      setActionBanner({ type: "error", text: `Could not delete topic: ${err.message}` });
     }
   };
 
@@ -131,6 +151,25 @@ export function TopicsPage() {
           </PrismButton>
         </div>
       </div>
+
+      {actionBanner && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center justify-between ${
+            actionBanner.type === "success"
+              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+              : "bg-rose-50 border-rose-200 text-rose-800"
+          }`}
+        >
+          <span>{actionBanner.text}</span>
+          <button
+            type="button"
+            onClick={() => setActionBanner(null)}
+            className="p-0.5 rounded hover:bg-black/5 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <PrismLoadingSkeleton count={3} />
@@ -211,13 +250,34 @@ export function TopicsPage() {
                       )}
                     </button>
 
-                    <button
-                      onClick={() => handleDelete(topic.id, topic.topic_label)}
-                      className="p-1.5 text-[#9ca3af] hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-                      title="Delete Topic"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {confirmDeleteId === topic.id ? (
+                      <div className="inline-flex items-center gap-1 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1">
+                        <span className="text-[10px] font-bold text-rose-700">Delete?</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(topic.id, topic.topic_label)}
+                          className="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold hover:bg-rose-700 cursor-pointer"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-1.5 py-0.5 rounded bg-white text-zinc-600 text-[10px] font-semibold border border-zinc-200 hover:bg-zinc-50 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(topic.id)}
+                        className="p-1.5 text-[#9ca3af] hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Delete Topic"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </PrismCard>
               );

@@ -31,7 +31,7 @@ import {
 } from "@/lib/api";
 
 export function DeliveryPage() {
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
 
   const [deliveryTab, setDeliveryTab] = React.useState<"drift" | "routing">("drift");
   const [loading, setLoading] = React.useState(true);
@@ -43,28 +43,30 @@ export function DeliveryPage() {
   const [showWebhook, setShowWebhook] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const loadDelivery = React.useCallback(async () => {
     setLoading(true);
     setError(null);
+    setSaveError(null);
     try {
       const cfg = await fetchDeliveryConfig(tenantId);
-      if (cfg) {
-        setConfig(cfg);
-        setWebhookUrl(cfg.slack_webhook_url || "");
-        setChannel(cfg.slack_channel || "");
-        setCadence(cfg.delivery_cadence || "daily");
-        setIsEnabled(cfg.is_enabled ?? false);
-      }
+      setConfig(cfg);
+      setWebhookUrl(cfg?.slack_webhook_url || "");
+      setChannel(cfg?.slack_channel || "#competitive-intelligence");
+      setCadence(cfg?.delivery_cadence || "daily");
+      setIsEnabled(Boolean(cfg?.is_enabled));
     } catch (err: any) {
       setError(err.message || "Failed to load delivery configuration");
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, pipelineSyncVersion]);
 
   React.useEffect(() => {
+    setSuccessMessage(null);
+    setSaveError(null);
     loadDelivery();
   }, [loadDelivery]);
 
@@ -72,17 +74,26 @@ export function DeliveryPage() {
     e.preventDefault();
     setIsSaving(true);
     setSuccessMessage(null);
+    setSaveError(null);
     try {
-      const saved = await saveDeliveryConfig({
-        slack_webhook_url: webhookUrl.trim(),
-        channel_name: channel.trim(),
-        is_active: isEnabled,
-      });
+      const saved = await saveDeliveryConfig(
+        {
+          slack_webhook_url: webhookUrl.trim(),
+          channel_name: channel.trim() || "#competitive-intelligence",
+          is_active: isEnabled,
+          delivery_cadence: cadence,
+        },
+        tenantId
+      );
       setConfig(saved);
+      setWebhookUrl(saved.slack_webhook_url || "");
+      setChannel(saved.slack_channel || "");
+      setCadence(saved.delivery_cadence || cadence);
+      setIsEnabled(Boolean(saved.is_enabled));
       setSuccessMessage("Delivery preferences saved successfully.");
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      alert(`Could not save delivery preferences: ${err.message}`);
+      setSaveError(`Could not save delivery preferences: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -202,6 +213,13 @@ export function DeliveryPage() {
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               {successMessage}
+            </div>
+          )}
+
+          {saveError && (
+            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{saveError}</span>
             </div>
           )}
 

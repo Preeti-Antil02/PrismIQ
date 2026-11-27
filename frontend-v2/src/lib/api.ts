@@ -293,7 +293,6 @@ export async function fetchEventDetail(eventId: string, tenantId?: string): Prom
 }
 
 export async function fetchTrackedCompanies(tenantId?: string, company?: string): Promise<TrackedCompany[]> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/companies/tracked" : `${API_BASE_URL}/companies/tracked`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
@@ -304,10 +303,7 @@ export async function fetchTrackedCompanies(tenantId?: string, company?: string)
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
 
@@ -450,7 +446,6 @@ export interface RadarApiResponse {
 }
 
 export async function fetchLatestRadar(tenantId?: string, company?: string): Promise<RadarApiResponse> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/radar" : `${API_BASE_URL}/radar`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
@@ -461,10 +456,7 @@ export async function fetchLatestRadar(tenantId?: string, company?: string): Pro
 
   try {
     const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
 
@@ -778,14 +770,13 @@ export interface DiscoveryResponse {
 }
 
 export async function fetchWorkspaceTopics(includePaused: boolean = true, tenantId?: string): Promise<ResearchTopic[]> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? `/api/topics?include_paused=${includePaused}` : `${API_BASE_URL}/api/topics?include_paused=${includePaused}`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
 
   try {
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
     if (res.ok) {
@@ -800,12 +791,17 @@ export async function fetchWorkspaceTopics(includePaused: boolean = true, tenant
   return [];
 }
 
-export async function createWorkspaceTopic(topicLabel: string, keywords: string[]): Promise<ResearchTopic> {
-  const token = getClientAuthToken();
+export async function createWorkspaceTopic(
+  topicLabel: string,
+  keywords: string[],
+  tenantId?: string
+): Promise<ResearchTopic> {
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/topics" : `${API_BASE_URL}/research-radar/topics`;
-  const res = await fetch(baseUrl, {
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  const res = await fetch(url.toString(), {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify({ topic_label: topicLabel, keywords }),
   });
   if (!res.ok) {
@@ -816,12 +812,17 @@ export async function createWorkspaceTopic(topicLabel: string, keywords: string[
   return data.topic;
 }
 
-export async function updateTopicStatus(topicId: string, isActive: boolean): Promise<boolean> {
-  const token = getClientAuthToken();
+export async function updateTopicStatus(
+  topicId: string,
+  isActive: boolean,
+  tenantId?: string
+): Promise<boolean> {
   const baseUrl = typeof window !== "undefined" ? `/api/workspace/topics/${encodeURIComponent(topicId)}` : `${API_BASE_URL}/research-radar/topics/${encodeURIComponent(topicId)}`;
-  const res = await fetch(baseUrl, {
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  const res = await fetch(url.toString(), {
     method: "PATCH",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify({ is_active: isActive }),
   });
   if (!res.ok) {
@@ -831,12 +832,13 @@ export async function updateTopicStatus(topicId: string, isActive: boolean): Pro
   return true;
 }
 
-export async function deleteWorkspaceTopic(topicId: string): Promise<boolean> {
-  const token = getClientAuthToken();
+export async function deleteWorkspaceTopic(topicId: string, tenantId?: string): Promise<boolean> {
   const baseUrl = typeof window !== "undefined" ? `/api/workspace/topics/${encodeURIComponent(topicId)}` : `${API_BASE_URL}/research-radar/topics/${encodeURIComponent(topicId)}`;
-  const res = await fetch(baseUrl, {
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  const res = await fetch(url.toString(), {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(tenantId),
   });
   if (!res.ok) {
     const errText = await res.text();
@@ -845,12 +847,17 @@ export async function deleteWorkspaceTopic(topicId: string): Promise<boolean> {
   return true;
 }
 
-export async function addTrackedCompany(companyName: string, isTarget: boolean = false): Promise<TrackedCompany> {
-  const token = getClientAuthToken();
+export async function addTrackedCompany(
+  companyName: string,
+  isTarget: boolean = false,
+  tenantId?: string
+): Promise<TrackedCompany> {
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/watchlist/add" : `${API_BASE_URL}/workspace/watchlist/add`;
-  const res = await fetch(baseUrl, {
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  const res = await fetch(url.toString(), {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify({ company_name: companyName, is_target: isTarget }),
   });
   if (!res.ok) {
@@ -861,12 +868,13 @@ export async function addTrackedCompany(companyName: string, isTarget: boolean =
   return data.company;
 }
 
-export async function untrackCompany(companyName: string): Promise<boolean> {
-  const token = getClientAuthToken();
+export async function untrackCompany(companyName: string, tenantId?: string): Promise<boolean> {
   const baseUrl = typeof window !== "undefined" ? `/api/workspace/watchlist/${encodeURIComponent(companyName)}` : `${API_BASE_URL}/workspace/watchlist/${encodeURIComponent(companyName)}`;
-  const res = await fetch(baseUrl, {
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  const res = await fetch(url.toString(), {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(tenantId),
   });
   if (!res.ok) {
     const errText = await res.text();
@@ -879,9 +887,12 @@ export async function discoverCompetitors(
   targetCompany: string,
   website?: string,
   description?: string,
-  forceRefresh?: boolean
+  forceRefresh?: boolean,
+  tenantId?: string
 ): Promise<DiscoveryResponse> {
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/discover" : `${API_BASE_URL}/api/onboarding/discover`;
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
   const payload: Record<string, any> = { target_company: targetCompany };
   if (website && website.trim()) {
     payload.website = website.trim();
@@ -893,9 +904,9 @@ export async function discoverCompetitors(
     payload.force_refresh = true;
   }
 
-  let res = await fetch(baseUrl, {
+  let res = await fetch(url.toString(), {
     method: "POST",
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify(payload),
   });
 
@@ -967,36 +978,53 @@ export async function confirmCompetitors(targetCompany: string, competitors: str
   return res.json();
 }
 
+function normalizeDeliveryConfig(raw: any, tenantId?: string): DeliveryConfig {
+  return {
+    id: raw?.id,
+    tenant_id: raw?.tenant_id || tenantId || DEFAULT_TENANT_ID,
+    slack_webhook_url: raw?.slack_webhook_url || "",
+    slack_channel: raw?.slack_channel ?? raw?.channel_name ?? "#competitive-intelligence",
+    delivery_cadence: raw?.delivery_cadence || "daily",
+    is_enabled: Boolean(raw?.is_enabled ?? raw?.is_active ?? false),
+    created_at: raw?.created_at,
+    updated_at: raw?.updated_at,
+  };
+}
+
 export async function fetchDeliveryConfig(tenantId?: string): Promise<DeliveryConfig | null> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/delivery" : `${API_BASE_URL}/workspace/delivery`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
   try {
     const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: getTenantHeaders(tenantId),
       cache: "no-store",
     });
     if (!res.ok) {
       return null;
     }
     const data = await res.json();
-    return data.delivery_config || null;
+    return data.delivery_config ? normalizeDeliveryConfig(data.delivery_config, tenantId) : null;
   } catch {
     return null;
   }
 }
 
-export async function saveDeliveryConfig(payload: {
-  slack_webhook_url: string;
-  channel_name?: string;
-  is_active?: boolean;
-}): Promise<DeliveryConfig> {
-  const token = getClientAuthToken();
+export async function saveDeliveryConfig(
+  payload: {
+    slack_webhook_url: string;
+    channel_name?: string;
+    is_active?: boolean;
+    delivery_cadence?: string;
+  },
+  tenantId?: string
+): Promise<DeliveryConfig> {
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/delivery" : `${API_BASE_URL}/workspace/delivery`;
-  const res = await fetch(baseUrl, {
+  const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
+  if (tenantId) url.searchParams.set("tenant_id", tenantId);
+  const res = await fetch(url.toString(), {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: getTenantHeaders(tenantId),
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -1004,39 +1032,22 @@ export async function saveDeliveryConfig(payload: {
     throw new Error(`Failed to save delivery config (${res.status}): ${errText}`);
   }
   const data = await res.json();
-  return data.delivery_config;
+  return normalizeDeliveryConfig(data.delivery_config, tenantId);
 }
 
 export async function fetchWorkspaceSettings(tenantId?: string): Promise<WorkspaceSettings> {
-  const token = getClientAuthToken(tenantId);
   const baseUrl = typeof window !== "undefined" ? "/api/workspace/settings" : `${API_BASE_URL}/workspace/settings`;
   const url = new URL(baseUrl, typeof window !== "undefined" ? window.location.origin : API_BASE_URL);
   if (tenantId) url.searchParams.set("tenant_id", tenantId);
-  try {
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      cache: "no-store",
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch {
-    // Zero static fallback
+  const res = await fetch(url.toString(), {
+    headers: getTenantHeaders(tenantId),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Failed to load workspace settings (${res.status}): ${errText || "Server error"}`);
   }
-  return {
-    tenant_id: tenantId || DEFAULT_TENANT_ID,
-    workspace_name: "PrismIQ Workspace",
-    owner_email: "",
-    rls_enforcement: "Active (PostgreSQL Row-Level Security)",
-    tracked_companies_count: 0,
-    active_topics_count: 0,
-    paused_topics_count: 0,
-    total_signals_evaluated: 0,
-    noise_suppressed_count: 0,
-    cadence: "daily",
-    schedule: "0 0 * * *",
-    api_status: "online",
-  };
+  return await res.json();
 }
 
 export interface WorkspaceConfig {

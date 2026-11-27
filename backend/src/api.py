@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -94,6 +94,7 @@ class SaveDeliveryConfigRequest(BaseModel):
     slack_webhook_url: str = Field(..., description="Incoming Slack webhook URL")
     channel_name: str = Field("#competitive-intelligence", description="Slack channel name")
     is_active: bool = Field(True, description="Whether Slack alerts are actively enabled")
+    delivery_cadence: str = Field("daily", description="Delivery cadence (daily, realtime, weekly)")
 
 
 # ============================================================================
@@ -1409,9 +1410,28 @@ def list_tracked_companies(tenant_id: str = Depends(get_current_tenant)) -> Dict
         return {"tracked_companies": [], "count": 0}
 
 
+def _refresh_tenant_intelligence_bg(
+    tenant_id: str,
+    target_company: str,
+    competitors: List[str],
+) -> None:
+    """Refresh dynamic intelligence caches in the background without blocking HTTP responses."""
+    try:
+        from . import dynamic_intelligence_agent
+        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
+            tenant_id=tenant_id,
+            target_company=target_company,
+            competitors=competitors,
+            force_refresh=True,
+        )
+    except Exception as e:
+        logger.warning(f"Error updating dynamic intelligence in background for {tenant_id}: {e}")
+
+
 @app.post("/workspace/watchlist/add")
 def add_tracked_company_endpoint(
     req: AddTrackedCompanyRequest,
+    background_tasks: BackgroundTasks,
     tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
@@ -1427,20 +1447,14 @@ def add_tracked_company_endpoint(
         is_target=req.is_target,
     )
     try:
-        from . import dynamic_intelligence_agent
         cfg = storage.get_tenant_workspace_config(tenant_id)
         target = cfg.get("target_company") or (comp if req.is_target else "Target Entity")
         comps = cfg.get("competitors", [])
         if comp not in comps and not req.is_target:
             comps.append(comp)
-        dynamic_intelligence_agent.ensure_tenant_intelligence_populated(
-            tenant_id=tenant_id,
-            target_company=target,
-            competitors=comps,
-            force_refresh=True,
-        )
+        background_tasks.add_task(_refresh_tenant_intelligence_bg, tenant_id, target, comps)
     except Exception as e:
-        logger.warning(f"Error updating dynamic intelligence on watchlist add for {comp}: {e}")
+        logger.warning(f"Error scheduling dynamic intelligence on watchlist add for {comp}: {e}")
 
     return {"status": "tracked", "company": tracked_entry}
 
@@ -2360,6 +2374,8 @@ def get_latest_radar_endpoint(
 ) -> Dict[str, Any]:
     """
     Fetch the latest radar evaluation snapshot across active topics for the authenticated tenant.
+    Falls back to deterministic signal-grounded evaluation over the tenant's own swept
+    signals/events when a topic lacks a persisted record in radar_evaluations_{tenant_id}.json.
     """
     topics = storage.get_tenant_research_topics(tenant_id)
     if not topics:
@@ -2367,6 +2383,40 @@ def get_latest_radar_endpoint(
 
     evals_map = storage.get_latest_radar_evaluations_for_tenant(tenant_id)
     evals = []
+
+    tenant_signals_cache: Optional[List[Dict[str, Any]]] = None
+    tenant_comps_cache: Optional[List[str]] = None
+
+    def _get_tenant_radar_inputs():
+        nonlocal tenant_signals_cache, tenant_comps_cache
+        if tenant_comps_cache is None:
+            tracked = storage.get_tenant_tracked_companies(tenant_id)
+            names = [c.get("company_name", "").strip() for c in tracked if c.get("company_name")]
+            tenant_comps_cache = [n for n in names if n]
+        if tenant_signals_cache is None:
+            raw_signals = list(storage.load_signals(tenant_id=tenant_id) or [])
+            raw_events = list(storage.load_events(tenant_id=tenant_id) or [])
+            seen_urls = {str(s.get("url") or "").strip() for s in raw_signals if s.get("url")}
+            for ev in raw_events:
+                ev_url = str(ev.get("url") or "").strip()
+                if ev_url and ev_url not in seen_urls:
+                    contrib_src = ev.get("contributing_sources")
+                    src_val = contrib_src[0] if isinstance(contrib_src, list) and contrib_src else "news"
+                    raw_signals.append({
+                        "id": ev.get("id") or ev.get("event_id") or "",
+                        "company": ev.get("company") or ev.get("company_name") or "",
+                        "source": src_val,
+                        "title": ev.get("title") or "",
+                        "url": ev_url,
+                        "raw_excerpt": ev.get("why_it_matters") or ev.get("event_summary") or ev.get("summary") or ev.get("title") or "",
+                        "published_at": ev.get("published_at") or ev.get("timestamp") or "",
+                    })
+                    seen_urls.add(ev_url)
+            tenant_signals_cache = raw_signals
+        return tenant_comps_cache, tenant_signals_cache
+
+    from . import research_radar as rr_engine
+
     for top in topics:
         lbl = top.get("topic_label", "")
         prior = evals_map.get(lbl.lower())
@@ -2381,19 +2431,40 @@ def get_latest_radar_endpoint(
                 }
             evals.append(prior_copy)
         else:
-            evals.append({
-                "topic_id": str(top.get("id") or ""),
-                "topic_label": lbl,
-                "keywords": top.get("keywords") or [],
-                "cycle_id": "pending",
-                "research_item_count": 0,
-                "research_item_ids": [],
-                "competitor_connections": {},
-                "why_it_matters": None,
-                "verified_sources": [],
-                "state_change_detected": False,
-                "pending_sweep": True,
-            })
+            comps, t_signals = _get_tenant_radar_inputs()
+            if t_signals and comps:
+                synth = rr_engine.evaluate_topic_radar(
+                    topic=top,
+                    research_items=[],
+                    competitors=comps,
+                    pipeline_signals=t_signals,
+                    tenant_id=tenant_id,
+                    cycle_id="tenant_signal_synthesis",
+                    verify_content=False,
+                )
+                synth["topic_id"] = str(top.get("id") or "")
+                synth["keywords"] = top.get("keywords") or []
+                synth["pending_sweep"] = False
+                if company:
+                    conns = synth.get("competitor_connections", {})
+                    synth["competitor_connections"] = {
+                        k: v for k, v in conns.items() if company.lower() in k.lower()
+                    }
+                evals.append(synth)
+            else:
+                evals.append({
+                    "topic_id": str(top.get("id") or ""),
+                    "topic_label": lbl,
+                    "keywords": top.get("keywords") or [],
+                    "cycle_id": "pending",
+                    "research_item_count": 0,
+                    "research_item_ids": [],
+                    "competitor_connections": {},
+                    "why_it_matters": None,
+                    "verified_sources": [],
+                    "state_change_detected": False,
+                    "pending_sweep": True,
+                })
 
     return {"evaluations": evals, "count": len(evals)}
 
@@ -2402,6 +2473,7 @@ def get_latest_radar_endpoint(
 # Workspace Endpoints (Spec § 3.11)
 # ============================================================================
 
+@app.get("/api/workspace/delivery")
 @app.get("/workspace/delivery")
 def get_delivery_config_endpoint(
     tenant_id: str = Depends(get_current_tenant),
@@ -2413,6 +2485,7 @@ def get_delivery_config_endpoint(
     return {"delivery_config": cfg}
 
 
+@app.post("/api/workspace/delivery")
 @app.post("/workspace/delivery")
 def save_delivery_config_endpoint(
     req: SaveDeliveryConfigRequest,
@@ -2422,9 +2495,9 @@ def save_delivery_config_endpoint(
     Configure or update Slack webhook alert channel for the tenant under RLS.
     """
     webhook = req.slack_webhook_url.strip()
-    if not webhook:
-        raise HTTPException(status_code=400, detail="Slack webhook URL cannot be empty")
-    if not webhook.startswith("https://hooks.slack.com/"):
+    if not webhook and req.is_active:
+        raise HTTPException(status_code=400, detail="Slack webhook URL cannot be empty when delivery is active")
+    if webhook and not webhook.startswith("https://hooks.slack.com/"):
         raise HTTPException(
             status_code=400,
             detail="Invalid Slack webhook URL format. Must start with https://hooks.slack.com/",
@@ -2435,6 +2508,7 @@ def save_delivery_config_endpoint(
         slack_webhook_url=webhook,
         channel_name=req.channel_name.strip() or "#competitive-intelligence",
         is_active=req.is_active,
+        delivery_cadence=(req.delivery_cadence or "daily").strip() or "daily",
     )
     return {"status": "saved", "delivery_config": saved}
 
@@ -2445,36 +2519,77 @@ def get_workspace_settings_endpoint(
     tenant_id: str = Depends(get_current_tenant),
 ) -> Dict[str, Any]:
     """
-    Retrieve tenant-level settings and status metadata under RLS.
-    All counts and metrics are calculated directly from PostgreSQL.
+    Retrieve tenant-level settings and status metadata under RLS with safe
+    tenant-scoped flat-file fallback when PostgreSQL is inactive or local.
     """
-    with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
-        cur.execute("SELECT COUNT(*) FROM tenant_tracked_companies WHERE status = 'active';")
-        tracked_count = cur.fetchone()[0]
+    ws_cfg = storage.get_tenant_workspace_config(tenant_id)
+    target_company = ws_cfg.get("target_company") or ""
+    tracked_companies = ws_cfg.get("tracked_companies") or storage.get_tenant_tracked_companies(tenant_id)
+    tracked_count = len([c for c in tracked_companies if not c.get("is_target")]) or len(tracked_companies)
+
+    db_active = _is_db_active()
+    if db_active:
+        try:
+            with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
+                if not isinstance(cur, storage.MockCursor):
+                    cur.execute("SELECT COUNT(*) FROM tenant_tracked_companies WHERE status = 'active' AND is_target = FALSE;")
+                    row_cnt = cur.fetchone()
+                    if row_cnt and isinstance(row_cnt[0], int):
+                        tracked_count = row_cnt[0]
+        except Exception as e:
+            logger.warning(f"Settings tracked count DB query fallback for {tenant_id}: {e}")
 
     topics = storage.get_tenant_research_topics(tenant_id, include_paused=True)
     active_topics = [t for t in topics if t.get("is_active", True)]
     paused_topics = [t for t in topics if not t.get("is_active", True)]
 
-    # Real signal and noise suppression metrics from PostgreSQL
     total_signals_evaluated = 0
     noise_suppressed_count = 0
-    try:
-        with storage.get_db_cursor(readonly=True) as cur:
-            cur.execute("SELECT COUNT(*), COUNT(*) FILTER (WHERE is_noise = true) FROM noise_suppression_decisions;")
-            row = cur.fetchone()
-            if row:
-                total_signals_evaluated = row[0]
-                noise_suppressed_count = row[1]
-    except Exception:
-        pass
+    if db_active:
+        try:
+            with storage.get_tenant_db_cursor(tenant_id, readonly=True) as cur:
+                if not isinstance(cur, storage.MockCursor):
+                    cur.execute("SELECT COUNT(*), COUNT(*) FILTER (WHERE is_noise = true) FROM noise_suppression_decisions;")
+                    row = cur.fetchone()
+                    if row and isinstance(row[0], int):
+                        total_signals_evaluated = row[0]
+                        noise_suppressed_count = row[1] or 0
+        except Exception as e:
+            logger.warning(f"Settings noise metrics DB query fallback for {tenant_id}: {e}")
+
+    if total_signals_evaluated == 0:
+        tenant_signals = storage.load_signals(tenant_id=tenant_id) or []
+        total_signals_evaluated = len(tenant_signals)
+        noise_suppressed_count = sum(1 for s in tenant_signals if s.get("is_noise") is True)
+
+    owner_email = ""
+    if db_active:
+        try:
+            with storage.get_db_cursor(readonly=True) as cur:
+                if not isinstance(cur, storage.MockCursor):
+                    cur.execute("SELECT email FROM auth.users WHERE id = %s;", (tenant_id,))
+                    urow = cur.fetchone()
+                    if urow and urow[0]:
+                        owner_email = str(urow[0])
+        except Exception:
+            pass
+
+    if not owner_email:
+        slug = re.sub(r"[^a-z0-9]+", "", target_company.lower()) if target_company else tenant_id[:8]
+        owner_email = f"workspace@{slug}.prismiq.ai"
+
+    workspace_name = f"{target_company} Competitive Intelligence" if target_company else f"Workspace {tenant_id[:8]}"
 
     return {
         "tenant_id": tenant_id,
-        "workspace_name": "PrismIQ Production Intelligence",
-        "owner_email": "preetiantil006@gmail.com",
+        "workspace_name": workspace_name,
+        "owner_email": owner_email,
         "auth_role": "authenticated",
-        "rls_enforcement": "Active (PostgreSQL Row-Level Security)",
+        "rls_enforcement": (
+            "Active (PostgreSQL Row-Level Security)"
+            if db_active
+            else "Active (Strict Tenant-Scoped Storage Isolation)"
+        ),
         "tracked_companies_count": tracked_count,
         "active_topics_count": len(active_topics),
         "paused_topics_count": len(paused_topics),

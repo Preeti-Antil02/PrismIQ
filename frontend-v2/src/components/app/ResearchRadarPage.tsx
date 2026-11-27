@@ -34,7 +34,7 @@ import {
 } from "@/lib/api";
 
 export function ResearchRadarPage() {
-  const { targetCompany, tenantId } = useWorkspace();
+  const { targetCompany, tenantId, pipelineSyncVersion } = useWorkspace();
   const { openEvidence } = useAppEvidence();
 
   const [loading, setLoading] = React.useState(true);
@@ -57,32 +57,41 @@ export function ResearchRadarPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, pipelineSyncVersion]);
 
   React.useEffect(() => {
+    setTopics([]);
+    setRadarEvals([]);
     loadData();
   }, [loadData]);
 
-  // Status badge helper for competitor connection
+  // Status badge helper for competitor connection (handles classifier states)
   const getStatusBadge = (status?: string) => {
-    const s = (status || "unobserved").toLowerCase();
-    if (s.includes("active") || s.includes("adopter")) {
+    const s = (status || "no activity detected").toLowerCase();
+    if (s.includes("adopt") || s.includes("active")) {
       return (
         <span className="app-pill bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase">
-          Active Adopter
+          Adopting
         </span>
       );
     }
-    if (s.includes("experiment") || s.includes("explor")) {
+    if (s.includes("research") || s.includes("experiment") || s.includes("explor")) {
+      return (
+        <span className="app-pill bg-cyan-50 text-cyan-700 border border-cyan-200 text-[10px] font-bold uppercase">
+          Researching
+        </span>
+      );
+    }
+    if (s.includes("mention")) {
       return (
         <span className="app-pill bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase">
-          Experimenting
+          Mentioning
         </span>
       );
     }
     return (
       <span className="app-pill bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] font-semibold uppercase">
-        Unobserved
+        No Activity
       </span>
     );
   };
@@ -173,14 +182,26 @@ export function ResearchRadarPage() {
                   </div>
 
                   <div className="text-xs shrink-0 flex items-center gap-2">
-                    {evaluation?.pending_sweep ? (
+                    {topic.is_active === false ? (
+                      <span className="px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] font-extrabold uppercase flex items-center gap-1">
+                        Paused
+                      </span>
+                    ) : evaluation?.pending_sweep ? (
                       <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-extrabold uppercase flex items-center gap-1">
                         <Clock className="w-3 h-3" /> Sweep Pending
                       </span>
                     ) : (
                       <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold uppercase flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3" /> Swept ({evaluation?.research_item_count || 0} papers)
+                        <ShieldCheck className="w-3 h-3" /> Evaluated ({evaluation?.research_item_count || Object.values(connections).reduce((acc, c) => acc + (c.evidence_signals?.length || 0), 0)} signals)
                       </span>
+                    )}
+                    {topic.is_active !== false && evaluation && (
+                      <Link
+                        href={`/app/research-radar/${encodeURIComponent(topic.id || topic.topic_label)}`}
+                        className="px-2.5 py-1 rounded-lg bg-zinc-100 hover:bg-purple-50 text-[#17171b] hover:text-[#6e57dc] border border-zinc-200 text-[11px] font-bold transition-colors"
+                      >
+                        Deep-Dive →
+                      </Link>
                     )}
                   </div>
                 </div>
@@ -231,6 +252,7 @@ export function ResearchRadarPage() {
                           {conn.evidence_signals && conn.evidence_signals.length > 0 && (
                             <div className="pt-2 border-t border-[rgba(20,20,30,0.05)]">
                               <button
+                                type="button"
                                 onClick={() =>
                                   openEvidence({
                                     title: `${compName} — ${topic.topic_label} Evidence`,
@@ -239,10 +261,17 @@ export function ResearchRadarPage() {
                                     raw_excerpt: conn.evidence_signals?.[0]?.raw_excerpt,
                                     url: conn.evidence_signals?.[0]?.url,
                                     source: conn.evidence_signals?.[0]?.source,
+                                    confidence: "High",
                                     tier: "Should-Know",
+                                    contributing_signals: (conn.evidence_signals || []).map((es) => ({
+                                      source: es.source,
+                                      title: es.title,
+                                      url: es.url,
+                                      raw_excerpt: es.raw_excerpt,
+                                    })),
                                   })
                                 }
-                                className="text-[11px] font-bold text-[#6e57dc] hover:underline flex items-center gap-1"
+                                className="text-[11px] font-bold text-[#6e57dc] hover:underline flex items-center gap-1 cursor-pointer"
                               >
                                 View {conn.evidence_signals.length} Corroborating Signal{conn.evidence_signals.length !== 1 ? "s" : ""} →
                               </button>

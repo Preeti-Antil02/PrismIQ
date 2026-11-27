@@ -70,6 +70,9 @@ export function GlobalDriftReview({ tenantId }: GlobalDriftReviewProps) {
   }, [statusFilter, typeFilter, tenantId]);
 
   React.useEffect(() => {
+    setSearchQuery("");
+    setSelectedAlert(null);
+    setModalOpen(false);
     loadAlerts();
   }, [loadAlerts]);
 
